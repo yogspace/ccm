@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { dialogClosed, dialogOpened } from "../store";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
 
@@ -193,7 +194,10 @@ const LegalNotice = () => {
     <>
       <Button
         className="link"
-        onClick={() => dialogRef.current?.showModal()}
+        onClick={() => {
+          dialogRef.current?.showModal();
+          dialogOpened();
+        }}
         type="button"
       >
         {t("footer.imprint")}
@@ -206,6 +210,8 @@ const LegalNotice = () => {
         onClick={(event) => {
           if (event.target === event.currentTarget) event.currentTarget.close();
         }}
+        // Auch Escape und der Hintergrund-Klick landen hier.
+        onClose={dialogClosed}
         ref={dialogRef}
       >
         {/* Außerhalb des Scrollbereichs, damit er beim Scrollen stehen bleibt. */}

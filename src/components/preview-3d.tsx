@@ -1,7 +1,9 @@
-import { type Ref, useEffect, useImperativeHandle, useRef } from "react";
+import { memo, type Ref, useEffect, useImperativeHandle, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { useSnapshot } from "valtio";
 import type { MeshData } from "../geometry/mesh";
+import { stopAutoRotate, store } from "../store";
 
 /** Von außen: ein Bild des Ausstechers aus der Vogelperspektive rendern. */
 export type PreviewHandle = {
@@ -11,12 +13,6 @@ export type PreviewHandle = {
 
 type Props = {
   ref?: Ref<PreviewHandle>;
-  mesh: MeshData | null;
-  /** Neue Identität = neues Motiv → das Modell wächst neu aus dem Boden. */
-  shape: unknown;
-  autoRotate: boolean;
-  /** Wer selbst dreht, beendet die automatische Drehung. */
-  onUserRotate: () => void;
 };
 
 type View = {
@@ -115,13 +111,18 @@ const renderTopView = (
   return canvas;
 };
 
-const Preview3d = ({ ref, mesh, shape, autoRotate, onUserRotate }: Props) => {
+/**
+ * 3D-Ansicht des Ausstechers. Liest Modell, Kontur und Drehteller aus dem
+ * Store; eine neue Kontur (neues Motiv) lässt das Modell neu aus dem Boden
+ * wachsen. Wer selbst dreht, beendet den Drehteller.
+ */
+const Preview3d = ({ ref }: Props) => {
+  const { cutter, rings: shape, autoRotate } = useSnapshot(store);
+  const mesh: MeshData | null = cutter.mesh;
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<View>(null);
   const fittedSize = useRef(0);
   const pendingRise = useRef(true);
-  const onUserRotateRef = useRef(onUserRotate);
-  onUserRotateRef.current = onUserRotate;
 
   useImperativeHandle(
     ref,
@@ -178,7 +179,7 @@ const Preview3d = ({ ref, mesh, shape, autoRotate, onUserRotate }: Props) => {
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.addEventListener("start", () => onUserRotateRef.current());
+    controls.addEventListener("start", stopAutoRotate);
 
     let riseStart = -Infinity;
     const rise = () => {
@@ -271,4 +272,4 @@ const Preview3d = ({ ref, mesh, shape, autoRotate, onUserRotate }: Props) => {
   return <div className="preview" ref={containerRef} />;
 };
 
-export default Preview3d;
+export default memo(Preview3d);

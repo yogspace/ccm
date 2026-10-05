@@ -24,7 +24,8 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-i18next": "^17.0.15",
-    "three": "^0.186.1"
+    "three": "^0.186.1",
+    "valtio": "^2.3.2"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

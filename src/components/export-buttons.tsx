@@ -1,21 +1,13 @@
 import { Download } from "lucide-react";
 import type { PropsWithChildren } from "react";
 import { useTranslation } from "react-i18next";
+import { useSnapshot } from "valtio";
 import { download } from "../export/download";
 import { toStl } from "../export/stl";
 import { toThreeMf } from "../export/three-mf";
-import type { MeshData } from "../geometry/mesh";
+import { store, trackCreation } from "../store";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
-
-/** `children` stehen vor den Downloads (z. B. „Kreation teilen“). */
-type Props = PropsWithChildren<{
-  mesh: MeshData | null;
-  name: string;
-  size: number;
-  /** Nach jedem Download – zählt die Kreation. */
-  onExport?: () => void;
-}>;
 
 /** „Herz für Oma“ → „herz-fuer-oma“ */
 const slugify = (text: string) =>
@@ -30,8 +22,12 @@ const slugify = (text: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-const ExportButtons = ({ mesh, name, size, onExport, children }: Props) => {
+/** Downloads als STL und 3MF; `children` stehen davor (z. B. „Kreation teilen“). Jeder Download zählt die Kreation. */
+const ExportButtons = ({ children }: PropsWithChildren) => {
   const { t } = useTranslation();
+  const { cutter, name, params } = useSnapshot(store);
+  const { mesh } = cutter;
+  const { size } = params;
   const fileName = `${slugify(name) || "cookie-cutter"}-${Math.round(size)}mm`;
   const title = name.trim() || "Cookie Cutter";
 
@@ -43,7 +39,7 @@ const ExportButtons = ({ mesh, name, size, onExport, children }: Props) => {
         onClick={() => {
           if (!mesh) return;
           download(toStl(mesh), `${fileName}.stl`);
-          onExport?.();
+          trackCreation();
         }}
         type="button"
       >
@@ -56,7 +52,7 @@ const ExportButtons = ({ mesh, name, size, onExport, children }: Props) => {
         onClick={() => {
           if (!mesh) return;
           download(toThreeMf(mesh, title), `${fileName}.3mf`);
-          onExport?.();
+          trackCreation();
         }}
         type="button"
       >

@@ -8,7 +8,8 @@ Die Geometrie wird komplett im Browser erzeugt, der Server liefert nur statische
 
 - Freihand zeichnen (Maus, Touch, Stift) mit geglättetem Strich und Pinselvorschau, Radiergummi (Radiertes wird wirklich aus den Strichen entfernt), Rückgängig/Wiederholen (auch ⌘/Strg+Z, ⌘/Strg+Umschalt+Z), Löschen, vergrößerbare Zeichenfläche mit Koordinatensystem in echten Maßen
 - Werkzeuge Stift, Radiergummi und Verschieben: Was sich berührt, ist ein Objekt; es lässt sich verschieben, an den Ecken drehen und skalieren (auf Touch mit zwei Fingern), in der Strichstärke ändern und entfernen
-- Vorlagen unter der Zeichenfläche: jede SVG-Datei in `src/presets/` wird automatisch eine (siehe unten), eingefügt als Umriss in Pinselstärke
+- Vorlagen: jede SVG-Datei in `src/presets/` wird automatisch eine (siehe unten), eingefügt als Umriss in Pinselstärke
+- Leisten passen sich dem Platz an: Ist die Karte (auf dem Desktop, auch vergrößert) nicht deutlich höher als breit, stehen Werkzeuge links und Vorlagen rechts neben der Zeichenfläche, sonst darunter – die Fläche ist immer das größte Quadrat, das passt
 - SVG/PNG-Import per Button oder Drag & Drop; landet auf der Zeichenfläche, danach kann man weiterzeichnen
 - Formen in Formen werden zu Löchern: innere Klingen, verbunden über Stege an der Falz (abschaltbar)
 - Live-Kontur (Schnittlinie) über der Zeichnung, 3D-Vorschau als Drehteller (im Uhrzeigersinn, abschaltbar); jeder neue Ausstecher bekommt eine andere Filamentfarbe
@@ -18,13 +19,15 @@ Die Geometrie wird komplett im Browser erzeugt, der Server liefert nur statische
 - Deutsch/Englisch (i18next) unter `/de/` und `/en/` mit eigenen Texten für Suchmaschinen; `/` leitet je nach Browsersprache weiter
 - Zähler „x Kreationen erstellt“ im Footer: Downloads und geteilte Kreationen zählen auf dem Server mit (dieselbe Kreation einmal pro Sitzung, gespeichert wird nur die Summe)
 - Light/Dark Mode, Impressum & Datenschutz als Dialog, Animationen mit `motion`
+- Zustand in einem Store ([valtio](https://valtio.dev)): Komponenten lesen selbst, was sie brauchen, statt es durchgereicht zu bekommen
 - Favicon/Icons, Open-Graph-Bilder (en/de), Manifest, `robots.txt`, `sitemap.xml` und JSON-LD
 
 ## Aufbau
 
 ```
 src/
-  app.tsx                     Layout und Zustand
+  app.tsx                     Gerüst der Seite
+  store.ts                    Zustand (valtio): Aktionen, Ausstecher-Worker, Link im Hash, Zähler, Scroll-Sperre
   components/                 draw-canvas, tool-picker, preview-3d, parameter-panel, export-buttons, share-creation, …
   drawing.ts                  Zeichnung als Vektoren: malen, Objekte finden, verschieben/drehen/skalieren, radieren
   presets.ts, presets/        Vorlagen (SVG-Dateien, per import.meta.glob eingebunden)
@@ -32,7 +35,6 @@ src/
     outline.ts                Raster → Kontur (d3-contour), SVG-Import als Silhouette
     cutter.ts                 Kontur + Parameter → Manifold (Falz, Wand, Verjüngung, innere Klingen, Stege)
     cutter-worker.ts          rechnet cutter.ts im Web Worker, nur der neueste Auftrag zählt
-    use-cutter.ts             React-Hook zum Worker
     manifold.ts, mesh.ts      WASM-Singleton, Manifold → Rohdaten
   export/                     three-mf.ts, stl.ts, download.ts
   cookies/                    models.ts (Keks-Geometrien, auch aus Lucide-Icons), renderer.ts (ein WebGL-Kontext für alle Keks-Icons)

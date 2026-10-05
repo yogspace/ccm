@@ -1,18 +1,15 @@
 import { Check, Link, Share2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useSnapshot } from "valtio";
+import { pageUrl, store } from "../store";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
 
-type Props = {
-  /** Teilbarer Link, erst beim Teilen berechnet – ohne Form einfach die Seite. */
-  getUrl: () => string;
-  name: string;
-};
-
 /** Teilen der Seite selbst: System-Teilen-Menü, wo vorhanden, sonst Link kopieren. */
-const SharePanel = ({ getUrl, name }: Props) => {
+const SharePanel = () => {
   const { t } = useTranslation();
+  const { name } = useSnapshot(store);
   const [copied, setCopied] = useState(false);
   const canShare = typeof navigator.share === "function";
 
@@ -23,7 +20,7 @@ const SharePanel = ({ getUrl, name }: Props) => {
   }, [copied]);
 
   const copy = async () => {
-    const url = getUrl();
+    const url = pageUrl();
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
@@ -38,7 +35,7 @@ const SharePanel = ({ getUrl, name }: Props) => {
       await navigator.share({
         title: name.trim() || "Cookie Cutter Maker",
         text: t("share.pageText"),
-        url: getUrl(),
+        url: pageUrl(),
       });
     } catch (error) {
       // Abbrechen im Teilen-Menü ist kein Fehler.

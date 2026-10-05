@@ -1,19 +1,22 @@
 import { Check, Download, Link, Share2, X } from "lucide-react";
 import { type RefObject, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useSnapshot } from "valtio";
 import { download } from "../export/download";
+import {
+  creationUrl,
+  dialogClosed,
+  dialogOpened,
+  store,
+  trackCreation,
+} from "../store";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
 import type { PreviewHandle } from "./preview-3d";
 
 type Props = {
-  /** Link mit der Zeichnung, erst beim Teilen berechnet. */
-  getUrl: () => string;
-  name: string;
+  /** Die 3D-Ansicht – sie rendert das Bild von oben. */
   preview: RefObject<PreviewHandle | null>;
-  disabled: boolean;
-  /** Beim Öffnen – zählt die Kreation. */
-  onShare?: () => void;
 };
 
 const SIZE = 1200;
@@ -66,8 +69,9 @@ type Shared = { url: string; file: File | null; image: string | null };
  * aussieht, darunter den Link zum Kopieren – dazu Bild speichern und, wo der
  * Browser es kann, mit Bild teilen.
  */
-const ShareCreation = ({ getUrl, name, preview, disabled, onShare }: Props) => {
+const ShareCreation = ({ preview }: Props) => {
   const { t } = useTranslation();
+  const { cutter, name } = useSnapshot(store);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [shared, setShared] = useState<Shared | null>(null);
   const [copied, setCopied] = useState(false);
@@ -88,7 +92,7 @@ const ShareCreation = ({ getUrl, name, preview, disabled, onShare }: Props) => {
   }, [shared]);
 
   const open = async () => {
-    const url = getUrl();
+    const url = creationUrl();
     const handle = preview.current;
     const blob = handle ? await composeImage(handle, name) : null;
     const file =
@@ -99,7 +103,9 @@ const ShareCreation = ({ getUrl, name, preview, disabled, onShare }: Props) => {
     setShared({ url, file, image: blob ? URL.createObjectURL(blob) : null });
     setCopied(false);
     dialogRef.current?.showModal();
-    onShare?.();
+    dialogOpened();
+    // Teilen zählt die Kreation.
+    trackCreation();
   };
 
   const copy = async () => {
@@ -134,7 +140,7 @@ const ShareCreation = ({ getUrl, name, preview, disabled, onShare }: Props) => {
   return (
     <>
       <Button
-        disabled={disabled}
+        disabled={!cutter.mesh}
         onClick={open}
         title={t("share.creationHint")}
         type="button"
@@ -149,6 +155,7 @@ const ShareCreation = ({ getUrl, name, preview, disabled, onShare }: Props) => {
         onClick={(event) => {
           if (event.target === event.currentTarget) event.currentTarget.close();
         }}
+        onClose={dialogClosed}
         ref={dialogRef}
       >
         <Button

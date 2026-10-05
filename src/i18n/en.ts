@@ -79,7 +79,7 @@ export const en: typeof de = {
     creationText: "The link opens your drawing so it can be adjusted further.",
     link: "Link to the creation",
     saveImage: "Save image",
-    shareImage: "Share with image …",
+    shareImage: "Share image",
     imageAlt: "Cookie cutter “{{name}}” from above",
     copy: "Copy link",
     copied: "Copied",

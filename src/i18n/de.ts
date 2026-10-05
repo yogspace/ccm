@@ -80,7 +80,7 @@ export const de = {
       "Über den Link lässt sich deine Zeichnung öffnen und weiter anpassen.",
     link: "Link zur Kreation",
     saveImage: "Bild speichern",
-    shareImage: "Mit Bild teilen …",
+    shareImage: "Bild teilen",
     imageAlt: "Ausstecher „{{name}}“ von oben",
     copy: "Link kopieren",
     copied: "Kopiert",

@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import {
   type CSSProperties,
   type DragEvent,
+  memo,
   type PointerEvent,
   useCallback,
   useEffect,
@@ -10,6 +11,7 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { useSnapshot } from "valtio";
 import {
   applyEraser,
   applyTransform,
@@ -27,12 +29,7 @@ import {
   type Transform,
   transformDrawing,
 } from "../drawing";
-import {
-  loadSilhouette,
-  type Point,
-  type Ring,
-  traceOutline,
-} from "../geometry/outline";
+import { loadSilhouette, type Point, traceOutline } from "../geometry/outline";
 import {
   fallbackName,
   loadPreset,
@@ -40,7 +37,14 @@ import {
   type PresetShape,
   presets,
 } from "../presets";
-import type { Unit } from "../units";
+import {
+  drawingChanged,
+  importFailed,
+  initial,
+  store,
+  type Tool,
+  useMmPerCanvas,
+} from "../store";
 import {
   type Drawing,
   emptyDrawing,
@@ -51,24 +55,9 @@ import Button from "./button";
 import CookieIcon from "./cookie-icon";
 import CookieSlider from "./cookie-slider";
 import DrawGrid from "./draw-grid";
-import ToolPicker, { type Tool } from "./tool-picker";
+import ToolPicker from "./tool-picker";
 
 type Pen = { x: number; y: number };
-
-type Props = {
-  /** Finale Ausstecher-Kontur, normiert auf 0…1, als Overlay über der Zeichnung. */
-  outline: Ring[];
-  /** Nach jedem Strich, Import, Rückgängig oder Löschen – mit der Zeichnung zum Teilen. */
-  onChange: (canvas: HTMLCanvasElement, drawing: Drawing) => void;
-  onError: (error: unknown) => void;
-  /** Zeichnung aus einem geteilten Link, wird beim Start einmal gemalt. */
-  initialDrawing: Drawing;
-  /** Nach dem Malen melden, damit der Ausstecher aus der Zeichnung entsteht. */
-  traceInitial: boolean;
-  /** Maßstab fürs Koordinatensystem, `null` solange es keine Form gibt. */
-  mmPerCanvas: number | null;
-  unit: Unit;
-};
 
 type Snapshot = { image: ImageData; drawing: Drawing };
 
@@ -152,16 +141,16 @@ const clampScale = (box: Box, scale: number) => {
   return Math.min(Math.max(scale, MIN_SIZE / size), (RES * 1.5) / size);
 };
 
-const DrawCanvas = ({
-  outline,
-  onChange,
-  onError,
-  initialDrawing,
-  traceInitial,
-  mmPerCanvas,
-  unit,
-}: Props) => {
+/**
+ * Zeichenfläche mit Werkzeugen und Vorlagen. Werkzeug, Pinselstärke, Einheit
+ * und die fertige Kontur kommen aus dem Store, jede Änderung der Zeichnung geht
+ * dorthin zurück. Gesten, Auswahl und Rückgängig bleiben hier lokal.
+ */
+const DrawCanvas = () => {
   const { t } = useTranslation();
+  const { tool, brush, unit, cutter } = useSnapshot(store);
+  const { outline } = cutter;
+  const mmPerCanvas = useMmPerCanvas();
   const presetNames = t("presets", { returnObjects: true }) as Record<
     string,
     string
@@ -174,7 +163,7 @@ const DrawCanvas = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const pen = useRef<{ smoothed: Pen; mid: Pen; points: Point[] } | null>(null);
   /** Was gemalt wurde, als Vektoren – das wird geteilt und verschoben. */
-  const drawing = useRef<Drawing>(initialDrawing);
+  const drawing = useRef<Drawing>(initial.drawing);
   const history = useRef<Snapshot[]>([]);
   /** Rückgängig Gemachtes, für Wiederholen – jede neue Aktion leert es. */
   const future = useRef<Snapshot[]>([]);
@@ -182,15 +171,13 @@ const DrawCanvas = ({
   const pointers = useRef(new Map<number, Point>());
   const wheel = useRef<{ before: Snapshot; timer: number } | null>(null);
   const widthEdit = useRef<{ before: Snapshot; timer: number } | null>(null);
-  const [brush, setBrush] = useState(24);
-  const [tool, setTool] = useState<Tool>("pen");
   const mode = tool === "move" ? "move" : "draw";
   const [selection, setSelection] = useState<Selection | null>(null);
   const [box, setBox] = useState<Box | null>(null);
   /** Während einer Geste: der mitgedrehte Rahmen (sonst folgt er `box`). */
   const [gestureFrame, setGestureFrame] = useState<Frame | null>(null);
   const [shapes, setShapes] = useState<Record<string, PresetShape>>({});
-  const [empty, setEmpty] = useState(isEmptyDrawing(initialDrawing));
+  const [empty, setEmpty] = useState(isEmptyDrawing(initial.drawing));
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -206,7 +193,7 @@ const DrawCanvas = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
     setEmpty(isEmptyDrawing(drawing.current));
-    onChange(canvas, drawing.current);
+    drawingChanged(canvas, drawing.current);
   };
 
   const capture = (): Snapshot | null => {
@@ -252,12 +239,12 @@ const DrawCanvas = ({
     live.current = { ...live.current, selection: next, box: nextBox };
     // Der Regler zeigt die Strichstärke der Auswahl (und ändert sie).
     const width = next ? selectionWidth(drawing.current, next) : null;
-    if (width) setBrush(Math.round(Math.min(64, Math.max(6, width))));
+    if (width) store.brush = Math.round(Math.min(64, Math.max(6, width)));
   };
 
   /** Pinselstärke; mit Auswahl im Verschiebe-Modus auch deren Striche. */
   const changeBrush = (value: number) => {
-    setBrush(value);
+    store.brush = value;
     const { mode: current, selection: chosen } = live.current;
     if (current !== "move" || !chosen) return;
     const before = widthEdit.current?.before ?? capture();
@@ -342,7 +329,7 @@ const DrawCanvas = ({
       select(null);
       commit();
     } catch (error) {
-      onError(error);
+      importFailed(error);
     }
   };
 
@@ -370,16 +357,16 @@ const DrawCanvas = ({
       };
       repaint();
       commit();
-      setTool("move");
+      store.tool = "move";
       // Nur die Vorlage – sie verschmilzt erst, wenn man sie loslässt und neu wählt.
       select({ strokes: strokes.map((_, i) => first + i), rings: [] });
     } catch (error) {
-      onError(error);
+      importFailed(error);
     }
   };
 
   const chooseTool = (next: Tool) => {
-    setTool(next);
+    store.tool = next;
     select(null);
     hideBrush();
   };
@@ -394,9 +381,9 @@ const DrawCanvas = ({
   // biome-ignore lint/correctness/useExhaustiveDependencies: nur beim Start
   useEffect(() => {
     const ctx = context();
-    if (!ctx || isEmptyDrawing(initialDrawing)) return;
-    paint(ctx, initialDrawing);
-    if (traceInitial) commit();
+    if (!ctx || isEmptyDrawing(initial.drawing)) return;
+    paint(ctx, initial.drawing);
+    if (initial.trace) commit();
   }, []);
 
   // Die Zeichenfläche ist das größte Quadrat, das neben bzw. über den Leisten
@@ -1046,4 +1033,5 @@ const DrawCanvas = ({
   );
 };
 
-export default DrawCanvas;
+// Ohne Props: rendert nur neu, wenn sich im Store etwas ändert, das sie liest.
+export default memo(DrawCanvas);

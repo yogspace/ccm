@@ -1,15 +1,12 @@
 import { Ruler } from "lucide-react";
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
+import { useSnapshot } from "valtio";
 import { languages } from "../i18n";
-import { type Unit, units } from "../units";
+import { setUnit, store } from "../store";
+import { units } from "../units";
 import CookieIcon from "./cookie-icon";
 import Segmented from "./segmented";
-
-type Props = {
-  unit: Unit;
-  onUnitChange: (unit: Unit) => void;
-};
 
 const unitOptions = units.map((option) => ({ value: option, label: option }));
 const languageOptions = languages.map((lng) => ({
@@ -22,8 +19,9 @@ const languageOptions = languages.map((lng) => ({
  * Memoisiert: Die gleitenden Pillen messen beim Neuzeichnen das Layout aus –
  * das soll nicht bei jeder Reglerbewegung passieren.
  */
-const Masthead = ({ unit, onUnitChange }: Props) => {
+const Masthead = () => {
   const { t, i18n } = useTranslation();
+  const { unit } = useSnapshot(store);
 
   return (
     <header className="masthead">
@@ -36,7 +34,7 @@ const Masthead = ({ unit, onUnitChange }: Props) => {
         <Segmented
           className="unit-switch"
           label={t("unit")}
-          onChange={onUnitChange}
+          onChange={setUnit}
           options={unitOptions}
           value={unit}
         >

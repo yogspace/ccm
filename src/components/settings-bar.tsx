@@ -1,14 +1,13 @@
 import type { PropsWithChildren } from "react";
 import { useTranslation } from "react-i18next";
+import { useSnapshot } from "valtio";
+import { setName, store } from "../store";
 
-type Props = PropsWithChildren<{
-  name: string;
-  onNameChange: (name: string) => void;
-}>;
-
-/** Leiste über beiden Fenstern: Dateiname links, `children` (Teilen) rechts. Die Beschriftung steckt im Platzhalter. */
-const SettingsBar = ({ name, onNameChange, children }: Props) => {
+/** Leiste über beiden Fenstern: Name der Kreation links, `children` (Teilen) rechts. Die Beschriftung steckt im Platzhalter. */
+const SettingsBar = ({ children }: PropsWithChildren) => {
   const { t } = useTranslation();
+  // Synchron, sonst springt der Cursor im Eingabefeld ans Ende.
+  const { name } = useSnapshot(store, { sync: true });
 
   return (
     <section className="card bar">
@@ -16,7 +15,7 @@ const SettingsBar = ({ name, onNameChange, children }: Props) => {
         <input
           aria-label={t("export.name")}
           maxLength={60}
-          onChange={(event) => onNameChange(event.target.value)}
+          onChange={(event) => setName(event.target.value)}
           placeholder={t("export.namePlaceholder")}
           type="text"
           value={name}

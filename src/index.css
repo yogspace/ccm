@@ -89,6 +89,11 @@ body {
   background: var(--page);
 }
 
+/* Solange ein Fenster offen ist (store.dialogs), scrollt dahinter nichts. */
+html[data-locked] {
+  overflow: hidden;
+}
+
 h1,
 h2,
 h3,
@@ -1399,17 +1404,6 @@ button.remove-chip {
   container-type: inline-size;
 }
 
-.params-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 1rem;
-}
-
-.params-head h3 {
-  margin-right: auto;
-}
-
 /* Checkbox mit Keks-Häkchen (echtes input, nur unsichtbar) */
 .checkbox {
   display: inline-flex;
@@ -1455,12 +1449,18 @@ button.remove-chip {
   outline-offset: 2px;
 }
 
-.params-head h3 {
+.params h3 {
   font-size: var(--fs-small);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+/* Checkbox und Zurücksetzen stehen in eigenen Zeilen, nicht gedehnt. */
+.params > .checkbox,
+.params > .reset {
+  align-self: flex-start;
 }
 
 .params-grid {
@@ -1730,12 +1730,13 @@ footer a.donate:hover {
   align-self: stretch;
 }
 
-/* Teilen, rechts in der Leiste */
+/* Teilen, rechts in der Leiste – auch wenn es auf dem Handy umbricht */
 .share {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem 1.25rem;
+  margin-left: auto;
   transition: opacity 0.2s var(--ease);
 }
 

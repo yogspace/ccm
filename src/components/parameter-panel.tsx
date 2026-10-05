@@ -1,17 +1,13 @@
 import { Check, RotateCcw } from "lucide-react";
-import type { Dispatch, SetStateAction } from "react";
+import { memo } from "react";
 import { useTranslation } from "react-i18next";
+import { useSnapshot } from "valtio";
 import { type CutterParams, defaultParams } from "../geometry/cutter";
-import { formatLength, type Unit } from "../units";
+import { resetParams, setParam, store } from "../store";
+import { formatLength } from "../units";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
 import CookieSlider from "./cookie-slider";
-
-type Props = {
-  params: CutterParams;
-  onChange: Dispatch<SetStateAction<CutterParams>>;
-  unit: Unit;
-};
 
 const fields: {
   key: Exclude<keyof CutterParams, "cutouts">;
@@ -29,9 +25,13 @@ const fields: {
   { key: "smoothing", min: 0, max: 5, step: 0.1 },
 ];
 
-/** Maße-Regler unter der 3D-Ansicht. */
-const ParameterPanel = ({ params, onChange, unit }: Props) => {
+/**
+ * Maße-Regler unter der 3D-Ansicht: Überschrift, Löcher-Checkbox in eigener
+ * Zeile, die Regler, ganz unten Zurücksetzen.
+ */
+const ParameterPanel = () => {
   const { t, i18n } = useTranslation();
+  const { params, unit } = useSnapshot(store);
   const changed = (Object.keys(defaultParams) as (keyof CutterParams)[]).some(
     (key) => params[key] !== defaultParams[key]
   );
@@ -39,37 +39,23 @@ const ParameterPanel = ({ params, onChange, unit }: Props) => {
 
   return (
     <div className="params">
-      <div className="params-head">
-        <h3>{t("params.title")}</h3>
-        {/* Formen in Formen als Löcher ausschneiden – oder wie früher nur außen.
-            Echte Checkbox, das Häkchen ist ein Keks. */}
-        <label className="checkbox" title={t("params.cutoutsHint")}>
-          <input
-            checked={cutouts}
-            onChange={(event) =>
-              onChange((current) => ({
-                ...current,
-                cutouts: event.target.checked ? 1 : 0,
-              }))
-            }
-            type="checkbox"
-          />
-          {/* Bleibt gerendert: Abwählen lässt es per CSS schrumpfen, bis es weg ist. */}
-          <span aria-hidden className="checkbox-box">
-            <CookieIcon icing="#00b86b" icon={Check} roll={-8} size={60} />
-          </span>
-          {t("params.cutouts")}
-        </label>
-        <Button
-          className="ghost"
-          disabled={!changed}
-          onClick={() => onChange(defaultParams)}
-          type="button"
-        >
-          <CookieIcon icing="#ff5fa8" icon={RotateCcw} roll={-14} size={44} />
-          {t("params.reset")}
-        </Button>
-      </div>
+      <h3>{t("params.title")}</h3>
+      {/* Formen in Formen als Löcher ausschneiden – oder wie früher nur außen.
+          Echte Checkbox, das Häkchen ist ein Keks. */}
+      <label className="checkbox" title={t("params.cutoutsHint")}>
+        <input
+          checked={cutouts}
+          onChange={(event) =>
+            setParam("cutouts", event.target.checked ? 1 : 0)
+          }
+          type="checkbox"
+        />
+        {/* Bleibt gerendert: Abwählen lässt es per CSS schrumpfen, bis es weg ist. */}
+        <span aria-hidden className="checkbox-box">
+          <CookieIcon icing="#00b86b" icon={Check} roll={-8} size={60} />
+        </span>
+        {t("params.cutouts")}
+      </label>
       <div className="params-grid">
         {fields.map(({ key, min, max, step }) => (
           <div className="param" key={key} title={t(`params.${key}`)}>
@@ -84,17 +70,24 @@ const ParameterPanel = ({ params, onChange, unit }: Props) => {
               label={t(`params.${key}`)}
               max={max}
               min={min}
-              onChange={(value) =>
-                onChange((current) => ({ ...current, [key]: value }))
-              }
+              onChange={(value) => setParam(key, value)}
               step={step}
               value={params[key]}
             />
           </div>
         ))}
       </div>
+      <Button
+        className="ghost reset"
+        disabled={!changed}
+        onClick={resetParams}
+        type="button"
+      >
+        <CookieIcon icing="#ff5fa8" icon={RotateCcw} roll={-14} size={44} />
+        {t("params.reset")}
+      </Button>
     </div>
   );
 };
 
-export default ParameterPanel;
+export default memo(ParameterPanel);

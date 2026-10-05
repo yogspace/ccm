@@ -5,9 +5,9 @@ import {
   Rotate3d,
   Ruler,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { flushSync } from "react-dom";
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { useSnapshot } from "valtio";
 import Button from "./components/button";
 import CookieBackground from "./components/cookie-background";
 import CookieIcon from "./components/cookie-icon";
@@ -22,133 +22,42 @@ import PrintHints from "./components/print-hints";
 import SettingsBar from "./components/settings-bar";
 import ShareCreation from "./components/share-creation";
 import SharePanel from "./components/share-panel";
-import { InputError, type Ring, traceOutline } from "./geometry/outline";
-import { useCutter } from "./geometry/use-cutter";
-import type { de } from "./i18n/de";
 import { PORTFOLIO_URL } from "./links";
-import { countCreation, loadCreations } from "./stats";
 import {
-  formatLength,
-  initialUnit,
-  numberFormat,
-  storeUnit,
-  type Unit,
-} from "./units";
-import { type Drawing, readHash, writeHash } from "./url-state";
+  connectStore,
+  store,
+  toggleAutoRotate,
+  toggleExpanded,
+  useError,
+} from "./store";
+import { formatLength, numberFormat } from "./units";
 
-type ErrorKey = keyof (typeof de)["errors"];
-
-/** Zustand aus einem geteilten Link – einmal beim Laden gelesen. */
-const shared = readHash(window.location.hash);
-
+/**
+ * Gerüst der Seite. Den Zustand hält der Store (store.ts); die Komponenten
+ * lesen ihn selbst – hier nur, was das Gerüst direkt anzeigt.
+ */
 const App = () => {
   const { t, i18n } = useTranslation();
-  // Alte Links bringen die Kontur mit, neue die Zeichnung (→ Kontur per Abtasten).
-  const [rings, setRings] = useState<Ring[]>(shared.rings);
-  const [drawing, setDrawing] = useState<Drawing>(shared.drawing);
-  const [params, setParams] = useState(shared.params);
-  const [name, setName] = useState(shared.name);
-  const [unit, setUnit] = useState<Unit>(initialUnit);
-  const [autoRotate, setAutoRotate] = useState(true);
-  const [expanded, setExpanded] = useState(false);
-  const [inputError, setInputError] = useState<ErrorKey>();
-  const { ready, mesh, outline, error: cutterError } = useCutter(rings, params);
-  const error = inputError ?? cutterError;
-
-  // Maßstab für das Koordinatensystem: so viele mm ist die Zeichenfläche breit.
-  const mmPerCanvas = useMemo(() => {
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-    for (const ring of outline) {
-      for (const [x, y] of ring) {
-        minX = Math.min(minX, x);
-        minY = Math.min(minY, y);
-        maxX = Math.max(maxX, x);
-        maxY = Math.max(maxY, y);
-      }
-    }
-    // Ohne Form: Annahme, dass die Zeichnung etwa 70 % der Fläche füllt.
-    const extent = Math.max(maxX - minX, maxY - minY);
-    return params.size / (extent > 0 ? extent : 0.7);
-  }, [outline, params.size]);
-
-  // Zustand in den Link schreiben, damit er sich jederzeit teilen lässt –
-  // erst wenn sich eine Weile nichts tut, nicht bei jeder Reglerbewegung.
-  // Gespeichert wird die fertige Kontur, kompakter als die Rohzeichnung.
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const { pathname, search } = window.location;
-      const hash = writeHash({ name, params, drawing });
-      window.history.replaceState(null, "", `${pathname}${search}${hash}`);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [name, params, drawing]);
-
-  // Oben wird die Seite geteilt, unten die Kreation: Link mit Zeichnung,
-  // ohne Sprachpfad – Empfänger landen in ihrer eigenen Sprache.
-  const pageUrl = useCallback(() => `${window.location.origin}/`, []);
-  const creationUrl = useCallback(
-    () => `${window.location.origin}/${writeHash({ name, params, drawing })}`,
-    [name, params, drawing]
-  );
+  // Synchron, damit der Wechsel als View Transition animiert (toggleExpanded).
+  const { expanded } = useSnapshot(store, { sync: true });
+  const { cutter, unit, autoRotate, creations } = useSnapshot(store);
+  const { ready, mesh } = cutter;
+  const error = useError();
   const preview = useRef<PreviewHandle>(null);
 
-  // „x Kreationen erstellt“: Downloads und geteilte Kreationen zählen auf dem
-  // Server mit; dieselbe Kreation nur einmal pro Sitzung.
-  const [creations, setCreations] = useState<number | null>(null);
-  useEffect(() => {
-    loadCreations().then(setCreations);
-  }, []);
-  const countThis = useCallback(() => {
-    countCreation(writeHash({ name, params, drawing })).then((total) => {
-      if (total !== null) setCreations(total);
-    });
-  }, [name, params, drawing]);
-
-  const onDrawingChange = useCallback(
-    (canvas: HTMLCanvasElement, next: Drawing) => {
-      setDrawing(next);
-      try {
-        setRings(traceOutline(canvas));
-        setInputError(undefined);
-      } catch (cause) {
-        setInputError(cause instanceof InputError ? cause.code : "read");
-      }
-    },
-    []
-  );
-
-  const onImportError = useCallback((cause: unknown) => {
-    console.error(cause);
-    setInputError(cause instanceof InputError ? cause.code : "read");
-  }, []);
-
-  const onUserRotate = useCallback(() => setAutoRotate(false), []);
-
-  // Layoutwechsel per View Transition animieren, wo der Browser es kann.
-  const toggleExpanded = () => {
-    const toggle = () => flushSync(() => setExpanded((on) => !on));
-    if (document.startViewTransition) document.startViewTransition(toggle);
-    else toggle();
-  };
-
-  const chooseUnit = useCallback((next: Unit) => {
-    setUnit(next);
-    storeUnit(next);
-  }, []);
+  // Worker, Link im Hash, Zähler und Scroll-Sperre an den Store hängen.
+  useEffect(connectStore, []);
 
   const lang = i18n.resolvedLanguage ?? "en";
 
   return (
     <div className="app">
       <CookieBackground />
-      <Masthead onUnitChange={chooseUnit} unit={unit} />
+      <Masthead />
 
       <main className="layout" data-expanded={expanded || undefined}>
-        <SettingsBar name={name} onNameChange={setName}>
-          <SharePanel getUrl={pageUrl} name={name} />
+        <SettingsBar>
+          <SharePanel />
         </SettingsBar>
 
         <section className="card shape-card">
@@ -170,15 +79,7 @@ const App = () => {
               />
             </Button>
           </div>
-          <DrawCanvas
-            initialDrawing={shared.drawing}
-            mmPerCanvas={mmPerCanvas}
-            onChange={onDrawingChange}
-            onError={onImportError}
-            outline={outline}
-            traceInitial={shared.rings.length === 0}
-            unit={unit}
-          />
+          <DrawCanvas />
           {error && (
             <p className="error" key={error} role="alert">
               {t(`errors.${error}`)}
@@ -209,7 +110,7 @@ const App = () => {
                 aria-label={t("preview.rotate")}
                 aria-pressed={autoRotate}
                 className="icon rotate"
-                onClick={() => setAutoRotate((on) => !on)}
+                onClick={toggleAutoRotate}
                 title={t("preview.rotate")}
                 type="button"
               >
@@ -219,13 +120,7 @@ const App = () => {
           </div>
 
           <div className="stage viewer paper">
-            <Preview3d
-              autoRotate={autoRotate}
-              mesh={mesh}
-              onUserRotate={onUserRotate}
-              ref={preview}
-              shape={rings}
-            />
+            <Preview3d ref={preview} />
             {!mesh && (
               <div className="stage-hint">
                 <CookieIcon kind="star" size={120} spin={!ready} />
@@ -234,23 +129,12 @@ const App = () => {
             )}
           </div>
 
-          <ParameterPanel onChange={setParams} params={params} unit={unit} />
+          <ParameterPanel />
 
           <div className="export">
             <PrintHints />
-            <ExportButtons
-              mesh={mesh}
-              name={name}
-              onExport={countThis}
-              size={params.size}
-            >
-              <ShareCreation
-                disabled={!mesh}
-                getUrl={creationUrl}
-                name={name}
-                onShare={countThis}
-                preview={preview}
-              />
+            <ExportButtons>
+              <ShareCreation preview={preview} />
             </ExportButtons>
           </div>
         </section>
