@@ -168,7 +168,7 @@ const DrawCanvas = ({
   >;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const areaRef = useRef<HTMLDivElement>(null);
-  const toolbarRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const brushCursorRef = useRef<HTMLSpanElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -399,20 +399,28 @@ const DrawCanvas = ({
     if (traceInitial) commit();
   }, []);
 
-  // Die Zeichenfläche ist das größte Quadrat neben der Werkzeugleiste – deren
-  // Höhe wird gemessen statt geschätzt (sie bricht je nach Breite um).
+  // Die Zeichenfläche ist das größte Quadrat, das neben bzw. über den Leisten
+  // Platz hat. Was die Leisten brauchen (Raster minus Fläche), wird gemessen
+  // statt geschätzt – je nach Platz stehen sie daneben oder brechen darunter um.
+  // Beide Maße werden jedes Mal frisch gelesen: Der Observer meldet Raster und
+  // Fläche nicht immer zusammen, alte Werte ließen die Größe hin- und
+  // herspringen. Berechnete Maße statt getBoundingClientRect, damit
+  // Transforms (Fläche beim Drop) nicht mitzählen.
   useEffect(() => {
     const area = areaRef.current;
-    const toolbar = toolbarRef.current;
-    if (!area || !toolbar) return;
+    const grid = gridRef.current;
+    const stage = stageRef.current;
+    if (!area || !grid || !stage) return;
     const observer = new ResizeObserver(() => {
-      const gap = Number.parseFloat(getComputedStyle(area).rowGap) || 0;
-      area.style.setProperty(
-        "--toolbar-h",
-        `${toolbar.getBoundingClientRect().height + gap}px`
-      );
+      const outer = getComputedStyle(grid);
+      const inner = getComputedStyle(stage);
+      const chrome = (key: "width" | "height") =>
+        `${(Number.parseFloat(outer[key]) - Number.parseFloat(inner[key])).toFixed(2)}px`;
+      area.style.setProperty("--chrome-w", chrome("width"));
+      area.style.setProperty("--chrome-h", chrome("height"));
     });
-    observer.observe(toolbar);
+    observer.observe(grid);
+    observer.observe(stage);
     return () => observer.disconnect();
   }, []);
 
@@ -812,224 +820,226 @@ const DrawCanvas = ({
 
   return (
     <div className="draw-area" ref={areaRef}>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: reine Drop-Fläche, Import geht auch über den Button */}
-      <div
-        className="stage paper"
-        data-dragging={dragging || undefined}
-        data-mode={mode}
-        data-tool={tool}
-        onDragLeave={() => setDragging(false)}
-        onDragOver={(event) => {
-          event.preventDefault();
-          setDragging(true);
-        }}
-        onDrop={onDrop}
-        onPointerLeave={hideBrush}
-        onPointerMove={showBrush}
-        ref={stageRef}
-      >
-        <DrawGrid mmPerCanvas={mmPerCanvas} unit={unit} />
-        <canvas
-          className="drawing"
-          height={RES}
-          onPointerCancel={mode === "draw" ? end : release}
-          onPointerDown={mode === "draw" ? start : grab}
-          onPointerMove={mode === "draw" ? move : drag}
-          onPointerUp={mode === "draw" ? end : release}
-          ref={canvasRef}
-          width={RES}
-        />
-        {outline.length > 0 && (
-          <svg
-            aria-hidden
-            className="outline"
-            preserveAspectRatio="none"
-            viewBox="0 0 1 1"
-          >
-            <path
-              d={outline
-                .map(
-                  (ring) => `M${ring.map(([x, y]) => `${x},${y}`).join("L")}Z`
-                )
-                .join("")}
-            />
-          </svg>
-        )}
-        {mode === "move" && frame && (
-          <div
-            aria-hidden
-            className="selection"
-            style={{
-              left: `${((frame.cx - frame.w / 2) / RES) * 100}%`,
-              top: `${((frame.cy - frame.h / 2) / RES) * 100}%`,
-              width: `${(frame.w / RES) * 100}%`,
-              height: `${(frame.h / RES) * 100}%`,
-              rotate: `${frame.angle}rad`,
-            }}
-          >
-            <i />
-            <i />
-            <i />
-            <i />
-          </div>
-        )}
-        {/* X an der Auswahl: entfernt sie (wie Entf) */}
-        {mode === "move" && box && !gestureFrame && (
-          <Button
-            aria-label={t("draw.removeSelection")}
-            className="icon remove-chip"
-            onClick={removeSelected}
-            style={{
-              left: `clamp(1.2rem, calc(${(box.x1 / RES) * 100}% + 14px), calc(100% - 1.2rem))`,
-              top: `clamp(1.2rem, calc(${(box.y0 / RES) * 100}% - 14px), calc(100% - 1.2rem))`,
-            }}
-            title={t("draw.removeSelection")}
-            type="button"
-          >
-            <CookieIcon icing="#ff5fa8" icon={X} roll={8} size={40} />
-          </Button>
-        )}
-        <span aria-hidden className="brush-cursor" ref={brushCursorRef} />
-        <AnimatePresence>
-          {empty && !dragging && !penDown && (
-            <motion.div
-              animate={{ opacity: 1, scale: 1 }}
-              className="stage-hint"
-              exit={{ opacity: 0, scale: 0.94 }}
-              initial={{ opacity: 0, scale: 0.94 }}
-              transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
+      {/* Ein Raster für Fläche und Leisten: Ist Platz daneben, stehen die
+          Werkzeuge links und die Vorlagen rechts, sonst alles darunter (CSS). */}
+      <div className="draw-grid" ref={gridRef}>
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: reine Drop-Fläche, Import geht auch über den Button */}
+        <div
+          className="stage paper"
+          data-dragging={dragging || undefined}
+          data-mode={mode}
+          data-tool={tool}
+          onDragLeave={() => setDragging(false)}
+          onDragOver={(event) => {
+            event.preventDefault();
+            setDragging(true);
+          }}
+          onDrop={onDrop}
+          onPointerLeave={hideBrush}
+          onPointerMove={showBrush}
+          ref={stageRef}
+        >
+          <DrawGrid mmPerCanvas={mmPerCanvas} unit={unit} />
+          <canvas
+            className="drawing"
+            height={RES}
+            onPointerCancel={mode === "draw" ? end : release}
+            onPointerDown={mode === "draw" ? start : grab}
+            onPointerMove={mode === "draw" ? move : drag}
+            onPointerUp={mode === "draw" ? end : release}
+            ref={canvasRef}
+            width={RES}
+          />
+          {outline.length > 0 && (
+            <svg
+              aria-hidden
+              className="outline"
+              preserveAspectRatio="none"
+              viewBox="0 0 1 1"
             >
-              <CookieIcon kind="heart" size={130} />
-              <strong>{t("draw.hint")}</strong>
-              <span>{t("draw.hintSub")}</span>
-            </motion.div>
+              <path
+                d={outline
+                  .map(
+                    (ring) => `M${ring.map(([x, y]) => `${x},${y}`).join("L")}Z`
+                  )
+                  .join("")}
+              />
+            </svg>
           )}
-        </AnimatePresence>
-        {dragging && (
-          <div className="stage-hint drop">
-            <CookieIcon icing="#2a44ff" icon={FileUp} size={110} />
-            <strong>{t("draw.drop")}</strong>
-          </div>
-        )}
-      </div>
-
-      <div className="toolbar" ref={toolbarRef}>
-        {/* Zeile 1: Werkzeuge | Pinselstärke | Rückgängig & Löschen – schmal
-            rutscht die Pinselstärke in eine eigene Zeile (siehe CSS). */}
-        <div className="toolbar-main">
-          <ToolPicker onChoose={onChooseTool} tool={tool} />
-          <div className="tool-options">
-            {mode === "draw" || selection ? (
-              <div className="brush">
-                {/* Vorschau der Strichstärke */}
-                <span
-                  aria-hidden
-                  className="brush-dot"
-                  style={
-                    {
-                      "--dot": `${4 + ((brush - 6) / 58) * 16}px`,
-                    } as CSSProperties
-                  }
-                />
-                <CookieSlider
-                  label={t("draw.brush")}
-                  max={64}
-                  min={6}
-                  onChange={changeBrush}
-                  step={1}
-                  value={brush}
-                />
-              </div>
-            ) : (
-              <span className="move-hint" title={t("draw.moveHint")}>
-                {t("draw.moveHint")}
-              </span>
+          {mode === "move" && frame && (
+            <div
+              aria-hidden
+              className="selection"
+              style={{
+                left: `${((frame.cx - frame.w / 2) / RES) * 100}%`,
+                top: `${((frame.cy - frame.h / 2) / RES) * 100}%`,
+                width: `${(frame.w / RES) * 100}%`,
+                height: `${(frame.h / RES) * 100}%`,
+                rotate: `${frame.angle}rad`,
+              }}
+            >
+              <i />
+              <i />
+              <i />
+              <i />
+            </div>
+          )}
+          {/* X an der Auswahl: entfernt sie (wie Entf) */}
+          {mode === "move" && box && !gestureFrame && (
+            <Button
+              aria-label={t("draw.removeSelection")}
+              className="icon remove-chip"
+              onClick={removeSelected}
+              style={{
+                left: `clamp(1.2rem, calc(${(box.x1 / RES) * 100}% + 14px), calc(100% - 1.2rem))`,
+                top: `clamp(1.2rem, calc(${(box.y0 / RES) * 100}% - 14px), calc(100% - 1.2rem))`,
+              }}
+              title={t("draw.removeSelection")}
+              type="button"
+            >
+              <CookieIcon icing="#ff5fa8" icon={X} roll={8} size={40} />
+            </Button>
+          )}
+          <span aria-hidden className="brush-cursor" ref={brushCursorRef} />
+          <AnimatePresence>
+            {empty && !dragging && !penDown && (
+              <motion.div
+                animate={{ opacity: 1, scale: 1 }}
+                className="stage-hint"
+                exit={{ opacity: 0, scale: 0.94 }}
+                initial={{ opacity: 0, scale: 0.94 }}
+                transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
+              >
+                <CookieIcon kind="heart" size={130} />
+                <strong>{t("draw.hint")}</strong>
+                <span>{t("draw.hintSub")}</span>
+              </motion.div>
             )}
-          </div>
-          <div className="actions">
-            <Button
-              aria-label={t("draw.undo")}
-              className="icon"
-              disabled={!canUndo}
-              onClick={undo}
-              title={t("draw.undo")}
-              type="button"
-            >
-              <CookieIcon icing="#2a44ff" icon={Undo2} roll={-12} size={52} />
-            </Button>
-            <Button
-              aria-label={t("draw.redo")}
-              className="icon"
-              disabled={!canRedo}
-              onClick={redo}
-              title={t("draw.redo")}
-              type="button"
-            >
-              <CookieIcon icing="#2a44ff" icon={Redo2} roll={12} size={52} />
-            </Button>
-            <Button
-              aria-label={t("draw.clear")}
-              className="icon"
-              disabled={empty}
-              onClick={clear}
-              title={t("draw.clear")}
-              type="button"
-            >
-              <CookieIcon icing="#ff5fa8" icon={Trash2} roll={9} size={52} />
-            </Button>
-          </div>
+          </AnimatePresence>
+          {dragging && (
+            <div className="stage-hint drop">
+              <CookieIcon icing="#2a44ff" icon={FileUp} size={110} />
+              <strong>{t("draw.drop")}</strong>
+            </div>
+          )}
         </div>
 
-        {/* Zeile 2: Vorlagen (Überschrift, darunter scrollbare Karten), rechts SVG hochladen */}
+        <ToolPicker onChoose={onChooseTool} tool={tool} />
+        <div className="tool-options">
+          {mode === "draw" || selection ? (
+            <div className="brush">
+              {/* Vorschau der Strichstärke */}
+              <span
+                aria-hidden
+                className="brush-dot"
+                style={
+                  {
+                    "--dot": `${4 + ((brush - 6) / 58) * 16}px`,
+                  } as CSSProperties
+                }
+              />
+              <CookieSlider
+                label={t("draw.brush")}
+                max={64}
+                min={6}
+                onChange={changeBrush}
+                step={1}
+                value={brush}
+              />
+            </div>
+          ) : (
+            <span className="move-hint" title={t("draw.moveHint")}>
+              {t("draw.moveHint")}
+            </span>
+          )}
+        </div>
+        <div className="actions">
+          <Button
+            aria-label={t("draw.undo")}
+            className="icon"
+            disabled={!canUndo}
+            onClick={undo}
+            title={t("draw.undo")}
+            type="button"
+          >
+            <CookieIcon icing="#2a44ff" icon={Undo2} roll={-12} size={52} />
+          </Button>
+          <Button
+            aria-label={t("draw.redo")}
+            className="icon"
+            disabled={!canRedo}
+            onClick={redo}
+            title={t("draw.redo")}
+            type="button"
+          >
+            <CookieIcon icing="#2a44ff" icon={Redo2} roll={12} size={52} />
+          </Button>
+          <Button
+            aria-label={t("draw.clear")}
+            className="icon"
+            disabled={empty}
+            onClick={clear}
+            title={t("draw.clear")}
+            type="button"
+          >
+            <CookieIcon icing="#ff5fa8" icon={Trash2} roll={9} size={52} />
+          </Button>
+        </div>
+
+        {/* Vorlagen: Überschrift, scrollbare Karten, darunter SVG hochladen */}
         <div className="templates">
           <span aria-hidden className="presets-label">
             {t("draw.presets")}
           </span>
-          <div className="templates-row">
-            {/* biome-ignore lint/a11y/useSemanticElements: Gruppe von Buttons, kein Formular */}
-            <div
-              aria-label={t("draw.presets")}
-              className="preset-strip"
-              role="group"
-            >
-              {presets.map((preset) => {
-                const shape = shapes[preset.id];
-                const name = t("draw.insert", { name: presetName(preset) });
-                return (
-                  <Button
-                    aria-label={name}
-                    className="preset"
-                    disabled={!shape}
-                    key={preset.id}
-                    onClick={() => insertPreset(preset)}
-                    title={name}
-                    type="button"
-                  >
-                    {shape && (
-                      <svg aria-hidden viewBox="0 0 24 24">
-                        <path d={shape.path} />
-                      </svg>
-                    )}
-                  </Button>
-                );
-              })}
-            </div>
-            <Button onClick={() => inputRef.current?.click()} type="button">
-              <CookieIcon icing="#2a44ff" icon={Upload} roll={10} size={58} />
-              {t("draw.upload")}
-            </Button>
-            <input
-              accept=".svg,image/svg+xml,image/png"
-              hidden
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) importFile(file);
-                event.target.value = "";
-              }}
-              ref={inputRef}
-              type="file"
-            />
+          {/* biome-ignore lint/a11y/useSemanticElements: Gruppe von Buttons, kein Formular */}
+          <div
+            aria-label={t("draw.presets")}
+            className="preset-strip"
+            role="group"
+          >
+            {presets.map((preset) => {
+              const shape = shapes[preset.id];
+              const name = t("draw.insert", { name: presetName(preset) });
+              return (
+                <Button
+                  aria-label={name}
+                  className="preset"
+                  disabled={!shape}
+                  key={preset.id}
+                  onClick={() => insertPreset(preset)}
+                  title={name}
+                  type="button"
+                >
+                  {shape && (
+                    <svg aria-hidden viewBox="0 0 24 24">
+                      <path d={shape.path} />
+                    </svg>
+                  )}
+                </Button>
+              );
+            })}
           </div>
+          <Button
+            className="upload"
+            onClick={() => inputRef.current?.click()}
+            title={t("draw.upload")}
+            type="button"
+          >
+            <CookieIcon icing="#2a44ff" icon={Upload} roll={10} size={58} />
+            {/* Neben der Fläche bleibt nur der Keks, der Text ist dann unsichtbar. */}
+            <span className="upload-label">{t("draw.upload")}</span>
+          </Button>
+          <input
+            accept=".svg,image/svg+xml,image/png"
+            hidden
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) importFile(file);
+              event.target.value = "";
+            }}
+            ref={inputRef}
+            type="file"
+          />
         </div>
       </div>
     </div>
