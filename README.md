@@ -16,6 +16,7 @@ Die Geometrie wird komplett im Browser erzeugt, der Server liefert nur statische
 - Maße in mm oder inch, Dateiname für den Export, Download als 3MF und STL (`<name>-80mm.3mf`)
 - Teilen: oben die Seite selbst; „Kreation teilen“ bei den Downloads öffnet ein Fenster mit einem Bild des Ausstechers von oben und dem Link zur Zeichnung (der komplette Zustand steckt im URL-Hash)
 - Deutsch/Englisch (i18next) unter `/de/` und `/en/` mit eigenen Texten für Suchmaschinen; `/` leitet je nach Browsersprache weiter
+- Zähler „x Kreationen erstellt“ im Footer: Downloads und geteilte Kreationen zählen auf dem Server mit (dieselbe Kreation einmal pro Sitzung, gespeichert wird nur die Summe)
 - Light/Dark Mode, Impressum & Datenschutz als Dialog, Animationen mit `motion`
 - Favicon/Icons, Open-Graph-Bilder (en/de), Manifest, `robots.txt`, `sitemap.xml` und JSON-LD
 
@@ -38,8 +39,11 @@ src/
   i18n/                       de.ts, en.ts
   url-state.ts                Zustand ↔ URL-Hash
   units.ts                    mm/inch
-vite.config.ts                baut zusätzlich dist/de/ und dist/en/ mit eigenen Meta-Texten
-Caddyfile                     Weiterleitung / → /de/ oder /en/, SPA-Fallback
+api/
+  stats.mjs                   Zähler-Logik (eine Zahl in stats.json), auch im Vite-Dev-Server eingebunden
+  server.mjs                  Mini-API für den Container ccm-api, ohne Abhängigkeiten
+vite.config.ts                baut zusätzlich dist/de/ und dist/en/ mit eigenen Meta-Texten, Zähler-API im Dev-Server
+Caddyfile                     Weiterleitung / → /de/ oder /en/, /api/* → ccm-api, SPA-Fallback
 ```
 
 ### Vorlagen
@@ -76,6 +80,8 @@ pnpm typecheck
 pnpm build        # → dist/
 ```
 
+Der Zähler läuft in `pnpm dev` und `pnpm preview` gleich mit (Daten lokal in `api/.data/`, ignoriert). Einzeln: `node api/server.mjs` (Port 3001).
+
 ## Deployment
 
 Gearbeitet wird auf `development`. Ausgerollt wird mit:
@@ -91,6 +97,8 @@ Push auf `main` → GitHub Actions ([`deploy.yml`](.github/workflows/deploy.yml)
 3. **deploy:** per SSH auf den Hetzner-Server, `/opt/apps/ccm`: `docker compose pull && up -d`
 
 Der Container spricht intern plain HTTP auf `:3000` und hängt im externen Docker-Netz `web`. HTTPS und Domain-Routing übernimmt der zentrale Proxy-Stack (Repo `proxy`, `/opt/apps/proxy`).
+
+Daneben läuft der Zähler als zweiter Dienst `ccm-api` (siehe [`docker-compose.yml`](docker-compose.yml)): das fertige Image `node:22-alpine` führt `api/server.mjs` direkt aus dem Checkout in `/opt/apps/ccm` aus, ein eigenes Image braucht es nicht. Die Zahl liegt im Volume `ccm-data`. Caddy im `ccm`-Container leitet `/api/*` dorthin weiter.
 
 ### Secrets (Settings → Secrets → Actions)
 

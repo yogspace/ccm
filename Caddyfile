@@ -22,8 +22,15 @@
     @assets path /assets/*
     header @assets Cache-Control "public, max-age=31536000, immutable"
 
+    # Zähler-API (Container ccm-api, siehe docker-compose.yml).
+    handle /api/* {
+        reverse_proxy ccm-api:3001
+    }
+
     # SPA-Fallback: Sprachseiten liegen als /de/index.html und /en/index.html,
     # alles Unbekannte landet bei der englischen Wurzel.
-    try_files {path} {path}/index.html /index.html
-    file_server
+    handle {
+        try_files {path} {path}/index.html /index.html
+        file_server
+    }
 }

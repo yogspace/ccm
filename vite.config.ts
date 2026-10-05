@@ -1,7 +1,9 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
+import { createStats } from "./api/stats.mjs";
 
 const SITE = "https://ccm.mxwr.de";
 type Lang = "de" | "en";
@@ -138,9 +140,32 @@ const localizedPages = (): Plugin => {
   };
 };
 
+/**
+ * Zähler „x Kreationen erstellt“ auch im Dev-Server und in der Vorschau – mit
+ * derselben Logik wie der API-Container, Daten lokal in api/.data/.
+ */
+const statsApi = (): Plugin => {
+  const stats = createStats(
+    fileURLToPath(new URL("./api/.data/", import.meta.url))
+  );
+  return {
+    name: "ccm-stats-api",
+    configureServer(server) {
+      server.middlewares.use((request, response, next) => {
+        if (!stats.handle(request, response)) next();
+      });
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use((request, response, next) => {
+        if (!stats.handle(request, response)) next();
+      });
+    },
+  };
+};
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), localizedPages()],
+  plugins: [react(), localizedPages(), statsApi()],
   // manifold-3d lädt sein WASM selbst und enthält Node-Zweige, die der
   // Dependency-Prebundler nicht anfassen soll.
   optimizeDeps: { exclude: ["manifold-3d"] },

@@ -14,6 +14,30 @@ services:
     networks:
       - web
 
+  # Mini-API (Zähler „x Kreationen erstellt“). Läuft direkt aus dem Checkout
+  # (/opt/apps/ccm/api), daher kein eigenes Image; die Zahl liegt im Volume.
+  # ccm leitet /api/* hierher weiter (siehe Caddyfile).
+  ccm-api:
+    image: node:22-alpine
+    restart: unless-stopped
+    command: ["node", "/app/api/server.mjs"]
+    environment:
+      DATA_DIR: /data
+    volumes:
+      - ./api:/app/api:ro
+      - ccm-data:/data
+    mem_limit: 64m
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+    networks:
+      - web
+
+volumes:
+  ccm-data:
+
 networks:
   # Geteiltes Netz des Proxy-Stacks (/opt/apps/proxy), extern angelegt.
   web:

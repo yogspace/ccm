@@ -56,6 +56,10 @@ const ParameterPanel = ({ params, onChange, unit }: Props) => {
         >
           <CookieIcon icing="#ffc31f" icon={Donut} roll={-10} size={44} />
           {t("params.cutouts")}
+          {/* An/aus auf einen Blick */}
+          <span aria-hidden className="switch-track">
+            <span className="switch-knob" />
+          </span>
         </Button>
         <Button
           className="ghost"

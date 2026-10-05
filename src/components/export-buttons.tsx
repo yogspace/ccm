@@ -13,6 +13,8 @@ type Props = PropsWithChildren<{
   mesh: MeshData | null;
   name: string;
   size: number;
+  /** Nach jedem Download – zählt die Kreation. */
+  onExport?: () => void;
 }>;
 
 /** „Herz für Oma“ → „herz-fuer-oma“ */
@@ -28,7 +30,7 @@ const slugify = (text: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-const ExportButtons = ({ mesh, name, size, children }: Props) => {
+const ExportButtons = ({ mesh, name, size, onExport, children }: Props) => {
   const { t } = useTranslation();
   const fileName = `${slugify(name) || "cookie-cutter"}-${Math.round(size)}mm`;
   const title = name.trim() || "Cookie Cutter";
@@ -38,7 +40,11 @@ const ExportButtons = ({ mesh, name, size, children }: Props) => {
       {children}
       <Button
         disabled={!mesh}
-        onClick={() => mesh && download(toStl(mesh), `${fileName}.stl`)}
+        onClick={() => {
+          if (!mesh) return;
+          download(toStl(mesh), `${fileName}.stl`);
+          onExport?.();
+        }}
         type="button"
       >
         <CookieIcon icing="#2a44ff" icon={Download} roll={-14} size={58} />
@@ -47,9 +53,11 @@ const ExportButtons = ({ mesh, name, size, children }: Props) => {
       <Button
         className="primary"
         disabled={!mesh}
-        onClick={() =>
-          mesh && download(toThreeMf(mesh, title), `${fileName}.3mf`)
-        }
+        onClick={() => {
+          if (!mesh) return;
+          download(toThreeMf(mesh, title), `${fileName}.3mf`);
+          onExport?.();
+        }}
         type="button"
       >
         <CookieIcon icon={Download} roll={12} size={58} />

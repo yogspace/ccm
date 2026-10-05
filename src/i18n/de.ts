@@ -94,6 +94,8 @@ export const de = {
     donateTop: "Spendier mir",
     donateMain: "’nen Keks",
     donateLabel: "Mit PayPal einen Keks spendieren",
+    creations_one: "{{formatted}} Kreation erstellt",
+    creations_other: "{{formatted}} Kreationen erstellt",
   },
   errors: {
     engine: "Geometrie-Engine konnte nicht geladen werden.",

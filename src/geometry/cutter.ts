@@ -46,8 +46,10 @@ const LAYER = 0.2;
 /** Stufen überlappen minimal, sonst bleiben sie getrennte Teile im Export. */
 const OVERLAP = 0.01;
 const SEGMENTS = 48;
-/** Teile unter diesem Anteil der Gesamtfläche gelten als Krümel. */
+/** Außen: Teile unter diesem Anteil der Gesamtfläche gelten als Krümel. */
 const MIN_ISLAND_SHARE = 0.01;
+/** Innen (Löcher, Formen in Formen) zählt die echte Größe, nicht der Anteil (mm²). */
+const MIN_INNER_AREA = 6;
 /** Stege zwischen inneren und äußeren Klingen (mm): mittig so breit … */
 const BRIDGE_MID_WIDTH = 3;
 /** … und zu den Wänden hin um höchstens so viel breiter. */
@@ -407,7 +409,9 @@ export const buildCutter = (
     const kept = new Set<number>();
     const keep = (i: number): boolean => {
       const island = all[i];
-      if (island.area < minArea) return false;
+      if (island.area < (island.depth === 0 ? minArea : MIN_INNER_AREA)) {
+        return false;
+      }
       if (island.parent >= 0 && !kept.has(island.parent)) return false;
       if (island.depth > 0 && !params.cutouts) return false;
       // Löcher, in die keine Wand mehr passt, bleiben Keks.

@@ -12,6 +12,8 @@ type Props = {
   name: string;
   preview: RefObject<PreviewHandle | null>;
   disabled: boolean;
+  /** Beim Öffnen – zählt die Kreation. */
+  onShare?: () => void;
 };
 
 const SIZE = 1200;
@@ -64,7 +66,7 @@ type Shared = { url: string; file: File | null; image: string | null };
  * aussieht, darunter den Link zum Kopieren – dazu Bild speichern und, wo der
  * Browser es kann, mit Bild teilen.
  */
-const ShareCreation = ({ getUrl, name, preview, disabled }: Props) => {
+const ShareCreation = ({ getUrl, name, preview, disabled, onShare }: Props) => {
   const { t } = useTranslation();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [shared, setShared] = useState<Shared | null>(null);
@@ -97,6 +99,7 @@ const ShareCreation = ({ getUrl, name, preview, disabled }: Props) => {
     setShared({ url, file, image: blob ? URL.createObjectURL(blob) : null });
     setCopied(false);
     dialogRef.current?.showModal();
+    onShare?.();
   };
 
   const copy = async () => {

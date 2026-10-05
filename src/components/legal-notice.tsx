@@ -64,6 +64,15 @@ const German = () => (
       bereitzustellen und ihre Sicherheit zu gewährleisten. Rechtsgrundlage ist
       Art. 6 Abs. 1 lit. f DSGVO.
     </p>
+    <h3>Zähler „Kreationen erstellt“</h3>
+    <p>
+      Wenn du eine Kreation herunterlädst oder teilst, zählt der Server eine
+      anonyme Zahl um eins hoch – das ist die Anzeige im Footer. Dabei wird
+      nichts außer der Anfrage selbst übertragen, insbesondere keine Zeichnung.
+      Gespeichert wird nur die Summe; deine IP-Adresse wird höchstens eine
+      Stunde im Arbeitsspeicher gehalten, um Missbrauch zu begrenzen (Art. 6
+      Abs. 1 lit. f DSGVO).
+    </p>
     <h3>Kekse spendieren über PayPal</h3>
     <p>
       Der Link „Spendier mir ’nen Keks“ führt zu PayPal (PayPal (Europe) S.à
@@ -136,6 +145,14 @@ const English = () => (
       technically necessary data (IP address, date and time, requested file,
       browser type and operating system) is processed in server logs to deliver
       the site and keep it secure. Legal basis: Art. 6 (1) (f) GDPR.
+    </p>
+    <h3>“Creations made” counter</h3>
+    <p>
+      When you download or share a creation, the server increases an anonymous
+      number by one – that is the figure shown in the footer. Nothing but the
+      request itself is sent, in particular no drawing. Only the total is
+      stored; your IP address is kept in memory for at most one hour to limit
+      abuse (Art. 6 (1) (f) GDPR).
     </p>
     <h3>Buying me a cookie via PayPal</h3>
     <p>

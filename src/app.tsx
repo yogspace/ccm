@@ -26,7 +26,14 @@ import { InputError, type Ring, traceOutline } from "./geometry/outline";
 import { useCutter } from "./geometry/use-cutter";
 import type { de } from "./i18n/de";
 import { PORTFOLIO_URL } from "./links";
-import { formatLength, initialUnit, storeUnit, type Unit } from "./units";
+import { countCreation, loadCreations } from "./stats";
+import {
+  formatLength,
+  initialUnit,
+  numberFormat,
+  storeUnit,
+  type Unit,
+} from "./units";
 import { type Drawing, readHash, writeHash } from "./url-state";
 
 type ErrorKey = keyof (typeof de)["errors"];
@@ -87,6 +94,18 @@ const App = () => {
     [name, params, drawing]
   );
   const preview = useRef<PreviewHandle>(null);
+
+  // „x Kreationen erstellt“: Downloads und geteilte Kreationen zählen auf dem
+  // Server mit; dieselbe Kreation nur einmal pro Sitzung.
+  const [creations, setCreations] = useState<number | null>(null);
+  useEffect(() => {
+    loadCreations().then(setCreations);
+  }, []);
+  const countThis = useCallback(() => {
+    countCreation(writeHash({ name, params, drawing })).then((total) => {
+      if (total !== null) setCreations(total);
+    });
+  }, [name, params, drawing]);
 
   const onDrawingChange = useCallback(
     (canvas: HTMLCanvasElement, next: Drawing) => {
@@ -219,11 +238,17 @@ const App = () => {
 
           <div className="export">
             <PrintHints />
-            <ExportButtons mesh={mesh} name={name} size={params.size}>
+            <ExportButtons
+              mesh={mesh}
+              name={name}
+              onExport={countThis}
+              size={params.size}
+            >
               <ShareCreation
                 disabled={!mesh}
                 getUrl={creationUrl}
                 name={name}
+                onShare={countThis}
                 preview={preview}
               />
             </ExportButtons>
@@ -255,6 +280,14 @@ const App = () => {
             />
           </a>
         </span>
+        {creations !== null && (
+          <span className="creations">
+            {t("footer.creations", {
+              count: creations,
+              formatted: numberFormat(lang, 0).format(creations),
+            })}
+          </span>
+        )}
         <span className="credit">
           <LegalNotice />
           <span aria-hidden className="sep">

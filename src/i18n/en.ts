@@ -93,6 +93,8 @@ export const en: typeof de = {
     donateTop: "Buy me",
     donateMain: "a cookie",
     donateLabel: "Buy me a cookie via PayPal",
+    creations_one: "{{formatted}} creation made",
+    creations_other: "{{formatted}} creations made",
   },
   errors: {
     engine: "The geometry engine could not be loaded.",

@@ -29,3 +29,6 @@ public/fonts/
 
 # Lokale Claude-Code-Einstellungen (Freigaben usw.)
 .claude/
+
+# Lokale Daten der Mini-API (im Betrieb im Docker-Volume)
+api/.data/

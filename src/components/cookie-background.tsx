@@ -20,14 +20,8 @@ import { memo, useState } from "react";
 import type { CookieKind } from "../cookies/models";
 import CookieIcon from "./cookie-icon";
 
-const KINDS: CookieKind[] = [
-  "bite",
-  "chip",
-  "heart",
-  "star",
-  "flower",
-  "gingerbread",
-];
+/** Ohne den angebissenen Keks – der ist dem Logo vorbehalten. */
+const KINDS: CookieKind[] = ["chip", "heart", "star", "flower", "gingerbread"];
 const ICONS: LucideIcon[] = [
   Anchor,
   Cake,
