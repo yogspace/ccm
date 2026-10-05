@@ -7,7 +7,8 @@ Die Geometrie wird komplett im Browser erzeugt, der Server liefert nur statische
 ## Funktionen
 
 - Freihand zeichnen (Maus, Touch, Stift) mit geglättetem Strich und Pinselvorschau, Radiergummi (Radiertes wird wirklich aus den Strichen entfernt), Rückgängig/Wiederholen (auch ⌘/Strg+Z, ⌘/Strg+Umschalt+Z), Löschen, vergrößerbare Zeichenfläche mit Koordinatensystem in echten Maßen
-- Werkzeuge Stift, Radiergummi und Verschieben: Was sich berührt, ist ein Objekt; es lässt sich verschieben, an den Ecken drehen und skalieren (auf Touch mit zwei Fingern), in der Strichstärke ändern und entfernen
+- Werkzeuge Stift, Radiergummi und Verschieben: Was sich berührt, ist ein Objekt; es lässt sich verschieben, an den Ecken drehen und skalieren (auf Touch mit zwei Fingern), in der Strichstärke ändern und entfernen. Mehrere wählt man per Rahmen auf freier Fläche (alles, was ganz darin liegt) oder mit Umschalt-Klick
+- SVG-Import verkraftet auch weiße Linien auf transparentem Grund und reine Haarlinien; findet sich keine Form, bleibt die Zeichnung stehen und es gibt eine Meldung
 - Vorlagen: jede SVG-Datei in `src/presets/` wird automatisch eine (siehe unten), eingefügt als Umriss in Pinselstärke
 - Leisten passen sich dem Platz an: Ist die Karte (auf dem Desktop, auch vergrößert) nicht deutlich höher als breit, stehen Werkzeuge links und Vorlagen rechts neben der Zeichenfläche, sonst darunter – die Fläche ist immer das größte Quadrat, das passt
 - SVG/PNG-Import per Button oder Drag & Drop; landet auf der Zeichenfläche, danach kann man weiterzeichnen
