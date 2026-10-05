@@ -6,15 +6,15 @@ type Props = PropsWithChildren<{
   onNameChange: (name: string) => void;
 }>;
 
-/** Leiste über beiden Fenstern: Dateiname links, `children` (Teilen) rechts. */
+/** Leiste über beiden Fenstern: Dateiname links, `children` (Teilen) rechts. Die Beschriftung steckt im Platzhalter. */
 const SettingsBar = ({ name, onNameChange, children }: Props) => {
   const { t } = useTranslation();
 
   return (
     <section className="card bar">
       <label className="bar-field">
-        <span>{t("export.name")}</span>
         <input
+          aria-label={t("export.name")}
           maxLength={60}
           onChange={(event) => onNameChange(event.target.value)}
           placeholder={t("export.namePlaceholder")}

@@ -39,7 +39,7 @@ export const en: typeof de = {
   },
   export: {
     name: "File name",
-    namePlaceholder: "e.g. Heart",
+    namePlaceholder: "File name, e.g. Heart",
     threeMf: "Download 3MF",
     stl: "STL",
   },
@@ -53,7 +53,6 @@ export const en: typeof de = {
       "If Bambu Studio says “invalid config”, just click OK – the geometry is complete. File → Import avoids the notice.",
   },
   share: {
-    title: "Share",
     text: "Check out my cookie cutter – tweak it and download it as 3MF/STL:",
     copy: "Copy link",
     copied: "Copied",
@@ -64,6 +63,9 @@ export const en: typeof de = {
   },
   footer: {
     imprint: "Imprint & privacy",
+    donateTop: "Buy me",
+    donateMain: "a cookie",
+    donateLabel: "Buy me a cookie via PayPal",
   },
   errors: {
     engine: "The geometry engine could not be loaded.",

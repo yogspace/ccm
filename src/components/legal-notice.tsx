@@ -17,6 +17,8 @@ const ADDRESS = (
 );
 
 const CONTACT_URL = "https://mxwr.de/de/impressum";
+const REPO_URL = "https://github.com/yogspace/ccm";
+const DONATE_URL = "https://paypal.me/yogspace";
 
 const German = () => (
   <>
@@ -69,6 +71,19 @@ const German = () => (
       Widerspruch (Art. 21 DSGVO) sowie ein Beschwerderecht bei einer
       Datenschutzaufsichtsbehörde.
     </p>
+
+    <h2>Projekt</h2>
+    <p>
+      Der Quellcode liegt offen auf{" "}
+      <a href={REPO_URL} rel="noopener" target="_blank">
+        GitHub
+      </a>
+      . Wenn dir der Cookie Cutter Maker gefällt, kannst du mir über{" "}
+      <a href={DONATE_URL} rel="noopener" target="_blank">
+        PayPal
+      </a>{" "}
+      einen Keks spendieren.
+    </p>
   </>
 );
 
@@ -118,6 +133,19 @@ const English = () => (
       You have the right of access (Art. 15 GDPR), rectification (Art. 16),
       erasure (Art. 17), restriction of processing (Art. 18) and objection (Art.
       21 GDPR), and the right to lodge a complaint with a supervisory authority.
+    </p>
+
+    <h2>Project</h2>
+    <p>
+      The source code is open on{" "}
+      <a href={REPO_URL} rel="noopener" target="_blank">
+        GitHub
+      </a>
+      . If you like Cookie Cutter Maker, you can buy me a cookie via{" "}
+      <a href={DONATE_URL} rel="noopener" target="_blank">
+        PayPal
+      </a>
+      .
     </p>
   </>
 );

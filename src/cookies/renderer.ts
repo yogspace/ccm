@@ -37,6 +37,8 @@ type Entry = {
   roll: number;
   /** Sanftes Schweben im Leerlauf (kostet pro Frame ein Rendern). */
   idle: boolean;
+  /** Schaut zur Maus, wenn sie in der Nähe ist. */
+  follow: boolean;
   turnX: Spring;
   turnY: Spring;
   flip: Spring;
@@ -46,6 +48,8 @@ type Entry = {
   /** Ab hier wächst der Keks (performance.now()-Zeit). */
   appearAt: number;
   spin: boolean;
+  /** Drehgeschwindigkeit in der Bildebene (rad/ms), solange `spin` an ist. */
+  spinSpeed: number;
   phase: number;
   visible: boolean;
   drawn: boolean;
@@ -106,7 +110,8 @@ const draw = (entry: Entry, time: number) => {
   object.rotation.set(
     entry.tilt + entry.turnX.value + idle,
     entry.turnY.value + entry.flip.value,
-    entry.roll + (entry.spin ? time / 260 : idle * 0.5)
+    entry.roll +
+      (entry.spin && !reduceMotion ? time * entry.spinSpeed : idle * 0.5)
   );
   const grow = Math.max(entry.appear.value, 1e-3);
   object.scale.set(
@@ -151,7 +156,7 @@ const tick = (time: number) => {
     const dy = pointer.y - (rect.top + rect.height / 2);
     const distance = Math.hypot(dx, dy);
     // Nur in der Nähe schaut der Keks zur Maus, sonst federt er zurück.
-    const near = !reduceMotion && distance < NEAR;
+    const near = entry.follow && !reduceMotion && distance < NEAR;
     const strength = near ? 1 - distance / NEAR : 0;
     entry.turnY.target = near
       ? Math.max(-1, Math.min(1, dx / 90)) * MAX_TURN * (0.4 + strength * 0.6)
@@ -207,7 +212,15 @@ export const registerCookie = (
   canvas: HTMLCanvasElement,
   object: THREE.Object3D,
   /** `delay` (ms) verzögert das Einwachsen, z. B. für nacheinander erscheinende Kekse. */
-  { tilt = -0.55, roll = 0, idle = true, delay = 0 } = {}
+  {
+    tilt = -0.55,
+    roll = 0,
+    idle = true,
+    follow = true,
+    delay = 0,
+    spin = false,
+    spinSpeed = 1 / 260,
+  } = {}
 ): CookieHandle => {
   if (!renderer) setup();
   const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
@@ -218,13 +231,15 @@ export const registerCookie = (
     tilt,
     roll,
     idle,
+    follow,
     turnX: spring(),
     turnY: spring(),
     flip: spring(),
     squash: spring(),
     appear: { value: reduceMotion ? 1 : 0, velocity: 0, target: 1 },
     appearAt: performance.now() + (reduceMotion ? 0 : delay),
-    spin: false,
+    spin,
+    spinSpeed,
     phase: Math.random() * Math.PI * 2,
     visible: true,
     drawn: false,
@@ -287,6 +302,7 @@ export const cookieImage = (kind: CookieKind, pixels: number) => {
           tilt: -0.2,
           roll: 0,
           idle: false,
+          follow: false,
           turnX: spring(),
           turnY: spring(),
           flip: spring(),
@@ -294,6 +310,7 @@ export const cookieImage = (kind: CookieKind, pixels: number) => {
           appear: spring(1),
           appearAt: 0,
           spin: false,
+          spinSpeed: 0,
           phase: 0,
           visible: true,
           drawn: false,

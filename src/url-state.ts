@@ -45,10 +45,13 @@ export type SharedState = {
 const GRID = 1024;
 /** Douglas-Peucker-Toleranz in Rasterpunkten (≈ 0,1 mm bei 80 mm Größe). */
 const TOLERANCE = 1;
-/** Striche etwas genauer, damit sie nachgemalt wie gezeichnet aussehen. */
-const STROKE_TOLERANCE = 0.6;
-/** Formatversion: 1 = nur Kontur, 2 = Zeichnung. */
-const VERSION = 2;
+/** Striche auf 2 px gerundet – bei Strichstärken ab 6 px unsichtbar. */
+const STROKE_STEP = 2;
+/** Je dicker der Strich, desto mehr darf die Mittellinie abweichen. */
+const strokeTolerance = (width: number) =>
+  Math.min(4, Math.max(1.5, width * 0.1));
+/** Formatversion: 1 = nur Kontur, 2 = Zeichnung, 3 = Zeichnung kompakt. */
+const VERSION = 3;
 
 /** Douglas-Peucker für offene Linien: welche Punkte bleiben. */
 const keepPoints = (points: Point[], tolerance: number) => {
@@ -146,25 +149,33 @@ const fromBase64Url = (text: string) =>
     c.charCodeAt(0)
   );
 
+/** Letzter geschriebener Punkt – Folgen schließen daran an. */
+type Origin = { x: number; y: number };
+
+const origin = (): Origin => ({ x: 0, y: 0 });
+
 /** Punktfolge als Deltas – kurze Zahlen, die sich gut komprimieren lassen. */
-const writePoints = (out: number[], points: Point[]) => {
+const writePoints = (out: number[], points: Point[], from: Origin) => {
   writeVarint(out, points.length);
-  let [px, py] = [0, 0];
   for (const [x, y] of points) {
-    writeVarint(out, x - px);
-    writeVarint(out, y - py);
-    [px, py] = [x, y];
+    writeVarint(out, x - from.x);
+    writeVarint(out, y - from.y);
+    from.x = x;
+    from.y = y;
   }
 };
 
-const readPoints = (bytes: Uint8Array, cursor: { at: number }) => {
+const readPoints = (
+  bytes: Uint8Array,
+  cursor: { at: number },
+  from: Origin
+) => {
   const length = readVarint(bytes, cursor);
   const points: Point[] = [];
-  let [x, y] = [0, 0];
   for (let i = 0; i < length; i++) {
-    x += readVarint(bytes, cursor);
-    y += readVarint(bytes, cursor);
-    points.push([x, y]);
+    from.x += readVarint(bytes, cursor);
+    from.y += readVarint(bytes, cursor);
+    points.push([from.x, from.y]);
   }
   return points;
 };
@@ -184,11 +195,20 @@ export const encodeDrawing = ({ base, baseLine, strokes }: Drawing) => {
   writeVarint(out, VERSION);
   writeVarint(out, Math.round(baseLine));
   writeVarint(out, rings.length);
-  for (const ring of rings) writePoints(out, ring);
+  const ringFrom = origin();
+  for (const ring of rings) writePoints(out, ring, ringFrom);
   writeVarint(out, strokes.length);
+  // Jeder Strich beginnt relativ zum Ende des vorigen.
+  const strokeFrom = origin();
   for (const { width, points } of strokes) {
+    const simplified = simplifyLine(points, strokeTolerance(width)).map(
+      ([x, y]): Point => [
+        Math.round(x / STROKE_STEP),
+        Math.round(y / STROKE_STEP),
+      ]
+    );
     writeVarint(out, Math.round(width));
-    writePoints(out, simplifyLine(points.map(round), STROKE_TOLERANCE));
+    writePoints(out, simplified, strokeFrom);
   }
   return toBase64Url(deflateSync(new Uint8Array(out), { level: 9 }));
 };
@@ -202,30 +222,41 @@ export const decodeDrawing = (
   const bytes = inflateSync(fromBase64Url(text));
   const cursor = { at: 0 };
   const version = readVarint(bytes, cursor);
+  // Bis Version 2 begann jede Punktfolge bei 0/0.
+  const chained = version >= 3;
+  const ringFrom = origin();
+  const nextRing = () =>
+    toRing(readPoints(bytes, cursor, chained ? ringFrom : origin()));
 
   // Version 1: nur die Ausstecher-Kontur – wird innen nachgezeichnet.
   if (version === 1) {
     const count = readVarint(bytes, cursor);
     const rings: Ring[] = [];
-    for (let r = 0; r < count; r++)
-      rings.push(toRing(readPoints(bytes, cursor)));
+    for (let r = 0; r < count; r++) rings.push(nextRing());
     return {
       drawing: { base: rings, baseLine: LEGACY_LINE, strokes: [] },
       rings,
     };
   }
-  if (version !== VERSION) throw new Error("Unbekanntes Format");
+  if (version !== 2 && version !== VERSION) {
+    throw new Error("Unbekanntes Format");
+  }
 
   const baseLine = readVarint(bytes, cursor);
   const base: Ring[] = [];
   const ringCount = readVarint(bytes, cursor);
-  for (let r = 0; r < ringCount; r++)
-    base.push(toRing(readPoints(bytes, cursor)));
+  for (let r = 0; r < ringCount; r++) base.push(nextRing());
   const strokes: Stroke[] = [];
+  const step = chained ? STROKE_STEP : 1;
+  const strokeFrom = origin();
   const strokeCount = readVarint(bytes, cursor);
   for (let i = 0; i < strokeCount; i++) {
     const width = readVarint(bytes, cursor);
-    strokes.push({ width, points: readPoints(bytes, cursor) });
+    const points = readPoints(bytes, cursor, chained ? strokeFrom : origin());
+    strokes.push({
+      width,
+      points: points.map(([x, y]): Point => [x * step, y * step]),
+    });
   }
   return { drawing: { base, baseLine, strokes }, rings: [] };
 };

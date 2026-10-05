@@ -38,7 +38,7 @@ export const de = {
   },
   export: {
     name: "Dateiname",
-    namePlaceholder: "z. B. Herz",
+    namePlaceholder: "Dateiname, z. B. Herz",
     threeMf: "3MF herunterladen",
     stl: "STL",
   },
@@ -52,7 +52,6 @@ export const de = {
       "Meldet Bambu Studio „invalid config“: einfach OK – die Geometrie ist vollständig. Ohne Meldung geht es über Datei → Import.",
   },
   share: {
-    title: "Teilen",
     text: "Schau mal, mein Ausstecher – direkt anpassen und als 3MF/STL herunterladen:",
     copy: "Link kopieren",
     copied: "Kopiert",
@@ -63,6 +62,9 @@ export const de = {
   },
   footer: {
     imprint: "Impressum & Datenschutz",
+    donateTop: "Spendier mir",
+    donateMain: "’nen Keks",
+    donateLabel: "Mit PayPal einen Keks spendieren",
   },
   errors: {
     engine: "Geometrie-Engine konnte nicht geladen werden.",

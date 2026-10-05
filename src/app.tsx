@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import Button from "./components/button";
 import CookieBackground from "./components/cookie-background";
 import CookieIcon from "./components/cookie-icon";
+import DonateBadge from "./components/donate-badge";
 import DrawCanvas from "./components/draw-canvas";
 import ExportButtons from "./components/export-buttons";
 import LegalNotice from "./components/legal-notice";
@@ -219,14 +220,36 @@ const App = () => {
       </main>
 
       <footer>
-        <span className="credit">
-          © {new Date().getFullYear()} Maximilian Weber ·{" "}
+        <DonateBadge />
+        <span className="footer-links">
           <a href="https://mxwr.de" rel="noopener" target="_blank">
             mxwr.de
-            <ArrowUpRight aria-hidden size={14} />
+            <CookieIcon icon={ArrowUpRight} roll={-8} size={40} />
+          </a>
+          <span aria-hidden className="sep">
+            ·
+          </span>
+          <a
+            href="https://makerworld.com/@yogspace"
+            rel="noopener"
+            target="_blank"
+          >
+            MakerWorld
+            <CookieIcon
+              icing="#5fb36b"
+              icon={ArrowUpRight}
+              roll={10}
+              size={40}
+            />
           </a>
         </span>
-        <LegalNotice />
+        <span className="credit">
+          <span>© {new Date().getFullYear()} Maximilian Weber</span>
+          <span aria-hidden className="sep">
+            ·
+          </span>
+          <LegalNotice />
+        </span>
       </footer>
     </div>
   );

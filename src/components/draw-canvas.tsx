@@ -65,8 +65,9 @@ const ringsPath = (rings: Ring[]) => {
 };
 
 /**
- * Malt eine gespeicherte Zeichnung: erst die Fläche, dann die Striche – mit
- * denselben Kurven wie beim Zeichnen, damit sie genauso aussieht.
+ * Malt eine gespeicherte Zeichnung: erst die Fläche, dann die Striche. Die
+ * Striche kommen vereinfacht aus dem Link; als Linienzug durch die Punkte
+ * bleiben sie am nächsten an dem, was gezeichnet wurde.
  */
 const paint = (ctx: CanvasRenderingContext2D, drawing: Drawing) => {
   ctx.fillStyle = "#000";
@@ -96,16 +97,7 @@ const paint = (ctx: CanvasRenderingContext2D, drawing: Drawing) => {
     ctx.lineWidth = width;
     ctx.beginPath();
     ctx.moveTo(first[0], first[1]);
-    let previous = first;
-    for (const point of rest) {
-      const mid: Point = [
-        (previous[0] + point[0]) / 2,
-        (previous[1] + point[1]) / 2,
-      ];
-      ctx.quadraticCurveTo(previous[0], previous[1], mid[0], mid[1]);
-      previous = point;
-    }
-    ctx.lineTo(previous[0], previous[1]);
+    for (const [x, y] of rest) ctx.lineTo(x, y);
     ctx.stroke();
   }
 };

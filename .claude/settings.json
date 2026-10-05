@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(sed -i '' 's/name: \"Strichstärke\"/name: \"Pinselstärke\"/' share.mjs)",
-      "Bash(node share.mjs)"
+      "Bash(node share.mjs)",
+      "Bash(sed -i '' 's/await p2.waitForTimeout\\(4000\\);/p2.on\\(\"worker\", \\(w\\) => w.on\\(\"console\", \\(m\\) => console.log\\(\"worker console:\", m.text\\(\\)\\)\\)\\); await p2.waitForTimeout\\(10000\\);/' dbg2.mjs)",
+      "Bash(sed -i '' 's|await p2.goto|p2.on\\(\"worker\", \\(w\\) => { console.log\\(\"worker attached\"\\); w.on\\(\"console\", \\(m\\) => console.log\\(\"worker console:\", m.type\\(\\), m.text\\(\\)\\)\\); }\\); await p2.goto|' dbg2.mjs)",
+      "Bash(node dbg2.mjs)",
+      "Bash(awk '/\\\\{/{sel=$0} /font-size/{print NR\": \"sel\" -> \"$0}' src/index.css)",
+      "Bash(node v2size.mjs)",
+      "Bash(sed -i '' 's/deviceScaleFactor: 2/deviceScaleFactor: 1/; s/await page.waitForTimeout\\(7000\\);/await page.waitForTimeout\\(5000\\);/' foot.mjs)",
+      "Bash(node foot.mjs)"
     ]
   }
 }

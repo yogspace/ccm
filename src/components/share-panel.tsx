@@ -49,7 +49,6 @@ const SharePanel = ({ getUrl, name }: Props) => {
 
   return (
     <div className="share">
-      <span className="share-label">{t("share.title")}</span>
       <Button
         className="copy"
         data-copied={copied || undefined}

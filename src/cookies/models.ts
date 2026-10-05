@@ -7,7 +7,8 @@ export type CookieKind =
   | "heart"
   | "star"
   | "flower"
-  | "gingerbread";
+  | "gingerbread"
+  | "sun";
 
 const DOUGH = "#d4914c";
 const CHOCOLATE = "#4a2a17";
@@ -445,6 +446,26 @@ const FLOWER: SvgCookie = {
   depth: 0.12,
 };
 
+/** Sternförmiger Kranz um die Mitte (im 24er-Raster der SVGs). */
+const burst = (rays: number, outer: number, inner: number) =>
+  Array.from({ length: rays * 2 }, (_, i) => {
+    const radius = i % 2 ? inner : outer;
+    const angle = (i / (rays * 2)) * Math.PI * 2 - Math.PI / 2;
+    return `${(12 + radius * Math.cos(angle)).toFixed(2)},${(12 + radius * Math.sin(angle)).toFixed(2)}`;
+  }).join(" ");
+
+/** Sonne mit gelbem Guss – trägt den Spendenlink. */
+const SUN: SvgCookie = {
+  dough: svg(
+    `<polygon fill="#000" stroke="#000" stroke-width="0.6" stroke-linejoin="round" points="${burst(16, 11.2, 9.3)}"/>`
+  ),
+  glaze: svg(
+    `<polygon fill="#000" stroke="#000" stroke-width="0.5" stroke-linejoin="round" points="${burst(16, 9.4, 8)}"/>`
+  ),
+  glazeColor: "#ffc31f",
+  depth: 0.12,
+};
+
 const cache = new Map<CookieKind, Promise<THREE.Group>>();
 
 /** Liefert einen Keks; Geometrien und Materialien werden zwischen Kopien geteilt. */
@@ -456,7 +477,9 @@ export const createCookie = (kind: CookieKind) => {
         ? buildSvgCookie(GINGERBREAD)
         : kind === "flower"
           ? buildSvgCookie(FLOWER)
-          : Promise.resolve(build(kind));
+          : kind === "sun"
+            ? buildSvgCookie(SUN)
+            : Promise.resolve(build(kind));
     cache.set(kind, original);
   }
   return original.then((group) => group.clone());
