@@ -11,7 +11,7 @@
 
 import { useMemo } from "react";
 import { flushSync } from "react-dom";
-import { proxy, ref, subscribe, useSnapshot } from "valtio";
+import { proxy, ref, snapshot, subscribe, useSnapshot } from "valtio";
 import { type CutterParams, defaultParams } from "./geometry/cutter";
 import type { CutterRequest, CutterResponse } from "./geometry/cutter-worker";
 import type { MeshData } from "./geometry/mesh";
@@ -270,13 +270,16 @@ export const connectStore = () => {
   const lockScroll = () =>
     document.documentElement.toggleAttribute("data-locked", store.dialogs > 0);
 
-  // Änderungen kommen gebündelt an; je nachdem, was sich geändert hat, …
-  const unsubscribe = subscribe(store, (ops) => {
-    const changed = new Set(ops.map(([, path]) => path[0]));
-    if (changed.has("rings") || changed.has("params")) build();
-    if (changed.has("name") || changed.has("params") || changed.has("drawing"))
-      writeLink();
-    if (changed.has("dialogs")) lockScroll();
+  // Änderungen kommen gebündelt an. Was sich geändert hat, zeigt der
+  // Vergleich der Snapshots: Unveränderte Teile behalten ihre Identität.
+  let last = snapshot(store);
+  const unsubscribe = subscribe(store, () => {
+    const next = snapshot(store);
+    const changed = (key: keyof State) => next[key] !== last[key];
+    if (changed("rings") || changed("params")) build();
+    if (changed("name") || changed("params") || changed("drawing")) writeLink();
+    if (changed("dialogs")) lockScroll();
+    last = next;
   });
 
   build();
