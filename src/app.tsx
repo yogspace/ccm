@@ -24,6 +24,7 @@ import SharePanel from "./components/share-panel";
 import { InputError, type Ring, traceOutline } from "./geometry/outline";
 import { useCutter } from "./geometry/use-cutter";
 import type { de } from "./i18n/de";
+import { PORTFOLIO_URL } from "./links";
 import { formatLength, initialUnit, storeUnit, type Unit } from "./units";
 import { type Drawing, readHash, writeHash } from "./url-state";
 
@@ -134,7 +135,7 @@ const App = () => {
             <Button
               aria-label={t(expanded ? "draw.shrink" : "draw.expand")}
               aria-pressed={expanded}
-              className="icon"
+              className="icon expand"
               onClick={toggleExpanded}
               title={t(expanded ? "draw.shrink" : "draw.expand")}
               type="button"
@@ -222,7 +223,7 @@ const App = () => {
       <footer>
         <DonateBadge />
         <span className="footer-links">
-          <a href="https://mxwr.de" rel="noopener" target="_blank">
+          <a href={PORTFOLIO_URL} rel="noopener" target="_blank">
             mxwr.de
             <CookieIcon icon={ArrowUpRight} roll={-8} size={40} />
           </a>

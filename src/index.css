@@ -573,6 +573,13 @@ input[type="range"]:active::-moz-range-thumb {
   }
 }
 
+/* Schmal ist die Zeichenfläche ohnehin volle Breite – Vergrößern bringt nichts. */
+@media (max-width: 56rem) {
+  button.expand {
+    display: none;
+  }
+}
+
 /* Schmal: untereinander, Flächen so breit wie möglich – hier darf gescrollt werden. */
 @media (max-width: 56rem) {
   .layout,
