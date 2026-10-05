@@ -144,15 +144,16 @@ const LegalNotice = () => {
         }}
         ref={dialogRef}
       >
+        {/* Außerhalb des Scrollbereichs, damit er beim Scrollen stehen bleibt. */}
+        <Button
+          aria-label={t("legal.close")}
+          className="icon legal-close"
+          onClick={() => dialogRef.current?.close()}
+          type="button"
+        >
+          <X aria-hidden size={20} strokeWidth={2.6} />
+        </Button>
         <div className="legal-body">
-          <Button
-            aria-label={t("legal.close")}
-            className="icon ghost legal-close"
-            onClick={() => dialogRef.current?.close()}
-            type="button"
-          >
-            <X aria-hidden size={18} />
-          </Button>
           {i18n.resolvedLanguage === "de" ? <German /> : <English />}
         </div>
       </dialog>

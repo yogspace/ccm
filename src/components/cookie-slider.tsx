@@ -1,4 +1,10 @@
-import { type CSSProperties, useEffect, useState } from "react";
+import {
+  type CSSProperties,
+  memo,
+  startTransition,
+  useEffect,
+  useState,
+} from "react";
 import { cookieImage } from "../cookies/renderer";
 
 type Props = {
@@ -13,13 +19,23 @@ type Props = {
 const THUMB = 34;
 
 /**
- * Schieberegler mit einem Schoko-Keks als Knopf (als Bild, nicht live in 3D),
- * der beim Schieben mitrollt. Bedient wird ein unsichtbarer, echter
- * Range-Input darüber – Tastatur, Screenreader und Touch wie gewohnt.
+ * Schieberegler mit einem Schoko-Keks als Knopf (als Bild, nicht live in 3D).
+ * Bedient wird ein unsichtbarer, echter Range-Input darüber – Tastatur,
+ * Screenreader und Touch wie gewohnt.
+ *
+ * Der Knopf folgt sofort einem eigenen Wert; die Änderung nach außen läuft
+ * als Transition, damit teures Neuzeichnen dahinter ihn nicht ausbremst.
  */
 const CookieSlider = ({ min, max, step, value, onChange, label }: Props) => {
   const [thumb, setThumb] = useState<string>();
-  const fill = (value - min) / (max - min);
+  const [current, setCurrent] = useState(value);
+  const [outside, setOutside] = useState(value);
+  // Neuer Wert von außen (z. B. Zurücksetzen) übernimmt den Knopf.
+  if (value !== outside) {
+    setOutside(value);
+    setCurrent(value);
+  }
+  const fill = (current - min) / (max - min);
 
   useEffect(() => {
     const pixels = Math.round(THUMB * Math.min(window.devicePixelRatio, 2));
@@ -36,13 +52,17 @@ const CookieSlider = ({ min, max, step, value, onChange, label }: Props) => {
         aria-label={label}
         max={max}
         min={min}
-        onChange={(event) => onChange(Number(event.target.value))}
+        onChange={(event) => {
+          const next = Number(event.target.value);
+          setCurrent(next);
+          startTransition(() => onChange(next));
+        }}
         step={step}
         type="range"
-        value={value}
+        value={current}
       />
     </span>
   );
 };
 
-export default CookieSlider;
+export default memo(CookieSlider);

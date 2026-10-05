@@ -17,7 +17,7 @@ import {
   Zap,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { useState } from "react";
+import { memo, useState } from "react";
 import type { CookieKind } from "../cookies/models";
 import CookieIcon from "./cookie-icon";
 
@@ -128,4 +128,4 @@ const CookieBackground = () => {
   );
 };
 
-export default CookieBackground;
+export default memo(CookieBackground);

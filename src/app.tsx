@@ -8,23 +8,16 @@ import CookieIcon from "./components/cookie-icon";
 import DrawCanvas from "./components/draw-canvas";
 import ExportButtons from "./components/export-buttons";
 import LegalNotice from "./components/legal-notice";
+import Masthead from "./components/masthead";
 import ParameterPanel from "./components/parameter-panel";
 import Preview3d from "./components/preview-3d";
 import PrintHints from "./components/print-hints";
-import Segmented from "./components/segmented";
 import SettingsBar from "./components/settings-bar";
 import SharePanel from "./components/share-panel";
 import { InputError, type Ring, traceOutline } from "./geometry/outline";
 import { useCutter } from "./geometry/use-cutter";
-import { languages } from "./i18n";
 import type { de } from "./i18n/de";
-import {
-  formatLength,
-  initialUnit,
-  storeUnit,
-  type Unit,
-  units,
-} from "./units";
+import { formatLength, initialUnit, storeUnit, type Unit } from "./units";
 import { readHash, writeHash } from "./url-state";
 
 type ErrorKey = keyof (typeof de)["errors"];
@@ -44,12 +37,6 @@ const App = () => {
   const { ready, mesh, outline, error: cutterError } = useCutter(rings, params);
   const error = inputError ?? cutterError;
 
-  // Zustand laufend in den Link schreiben, damit er sich jederzeit teilen lässt.
-  // Gespeichert wird die fertige Kontur – kompakter als die Rohzeichnung.
-  const hash = useMemo(
-    () => writeHash({ name, params, rings: outline }),
-    [name, params, outline]
-  );
   // Maßstab für das Koordinatensystem: so viele mm ist die Zeichenfläche breit.
   const mmPerCanvas = useMemo(() => {
     let minX = Infinity;
@@ -69,16 +56,24 @@ const App = () => {
     return params.size / (extent > 0 ? extent : 0.7);
   }, [outline, params.size]);
 
-  // Ohne Form wird einfach die Seite geteilt, mit Form der Link samt Form.
-  const shareUrl = `${window.location.origin}${window.location.pathname}${hash}`;
-
+  // Zustand in den Link schreiben, damit er sich jederzeit teilen lässt –
+  // erst wenn sich eine Weile nichts tut, nicht bei jeder Reglerbewegung.
+  // Gespeichert wird die fertige Kontur, kompakter als die Rohzeichnung.
   useEffect(() => {
     const timer = setTimeout(() => {
       const { pathname, search } = window.location;
+      const hash = writeHash({ name, params, rings: outline });
       window.history.replaceState(null, "", `${pathname}${search}${hash}`);
     }, 300);
     return () => clearTimeout(timer);
-  }, [hash]);
+  }, [name, params, outline]);
+
+  // Zum Teilen frisch berechnet. Ohne Form ist es einfach die Seite.
+  const shareUrl = useCallback(
+    () =>
+      `${window.location.origin}${window.location.pathname}${writeHash({ name, params, rings: outline })}`,
+    [name, params, outline]
+  );
 
   const onDrawingChange = useCallback((canvas: HTMLCanvasElement) => {
     try {
@@ -103,47 +98,21 @@ const App = () => {
     else toggle();
   };
 
-  const chooseUnit = (next: Unit) => {
+  const chooseUnit = useCallback((next: Unit) => {
     setUnit(next);
     storeUnit(next);
-  };
+  }, []);
 
   const lang = i18n.resolvedLanguage ?? "en";
 
   return (
     <div className="app">
       <CookieBackground />
-      <header className="masthead">
-        <CookieIcon className="logo" kind="bite" roll={-18} size={100} />
-        <div className="masthead-text">
-          <h1>Cookie Cutter Maker</h1>
-          <p>{t("tagline")}</p>
-        </div>
-        <div className="switches">
-          <Segmented
-            className="unit-switch"
-            label={t("unit")}
-            onChange={chooseUnit}
-            options={units.map((option) => ({ value: option, label: option }))}
-            value={unit}
-          >
-            <CookieIcon icing="#2a44ff" icon={Ruler} roll={35} size={44} />
-          </Segmented>
-          <Segmented
-            label={t("language")}
-            onChange={(lng) => i18n.changeLanguage(lng)}
-            options={languages.map((lng) => ({
-              value: lng,
-              label: lng.toUpperCase(),
-            }))}
-            value={lang}
-          />
-        </div>
-      </header>
+      <Masthead onUnitChange={chooseUnit} unit={unit} />
 
       <main className="layout" data-expanded={expanded || undefined}>
         <SettingsBar name={name} onNameChange={setName}>
-          <SharePanel name={name} url={shareUrl} />
+          <SharePanel getUrl={shareUrl} name={name} />
         </SettingsBar>
 
         <section className="card shape-card">

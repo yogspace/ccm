@@ -1,4 +1,5 @@
 import { RotateCcw } from "lucide-react";
+import type { Dispatch, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 import { type CutterParams, defaultParams } from "../geometry/cutter";
 import { formatLength, type Unit } from "../units";
@@ -7,7 +8,7 @@ import CookieSlider from "./cookie-slider";
 
 type Props = {
   params: CutterParams;
-  onChange: (params: CutterParams) => void;
+  onChange: Dispatch<SetStateAction<CutterParams>>;
   unit: Unit;
 };
 
@@ -55,7 +56,9 @@ const ParameterPanel = ({ params, onChange, unit }: Props) => {
                 label={t(`params.${key}`)}
                 max={max}
                 min={min}
-                onChange={(value) => onChange({ ...params, [key]: value })}
+                onChange={(value) =>
+                  onChange((current) => ({ ...current, [key]: value }))
+                }
                 step={step}
                 value={params[key]}
               />

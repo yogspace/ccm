@@ -5,13 +5,13 @@ import Button from "./button";
 import CookieIcon from "./cookie-icon";
 
 type Props = {
-  /** Teilbarer Link – ohne Form einfach die Seite. */
-  url: string;
+  /** Teilbarer Link, erst beim Teilen berechnet – ohne Form einfach die Seite. */
+  getUrl: () => string;
   name: string;
 };
 
 /** Kompakte Teilen-Leiste: Link kopieren und (wo vorhanden) das System-Menü. */
-const SharePanel = ({ url, name }: Props) => {
+const SharePanel = ({ getUrl, name }: Props) => {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const canShare = typeof navigator.share === "function";
@@ -23,6 +23,7 @@ const SharePanel = ({ url, name }: Props) => {
   }, [copied]);
 
   const copy = async () => {
+    const url = getUrl();
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
@@ -37,7 +38,7 @@ const SharePanel = ({ url, name }: Props) => {
       await navigator.share({
         title: name.trim() || "Cookie Cutter Maker",
         text: t("share.text"),
-        url,
+        url: getUrl(),
       });
     } catch (error) {
       // Abbrechen im Teilen-Menü ist kein Fehler.

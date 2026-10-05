@@ -1,5 +1,6 @@
+import { memo } from "react";
 import { useTranslation } from "react-i18next";
-import type { Unit } from "../units";
+import { numberFormat, type Unit } from "../units";
 
 type Props = {
   /** Wie viele mm die Breite der Zeichenfläche im fertigen Ausstecher sind. */
@@ -22,7 +23,8 @@ const niceStep = (raw: number) => {
   );
 };
 
-type Tick = { pos: number; value: number; major: boolean };
+/** `index` bleibt beim Zoomen gleich – so werden Linien verschoben statt neu angelegt. */
+type Tick = { index: number; pos: number; value: number; major: boolean };
 
 const buildTicks = (span: number): Tick[] => {
   const step = niceStep(span / 8);
@@ -31,7 +33,12 @@ const buildTicks = (span: number): Tick[] => {
   const ticks: Tick[] = [];
   for (let i = -count; i <= count; i++) {
     const value = i * minor;
-    ticks.push({ pos: 0.5 + value / span, value, major: i % 2 === 0 });
+    ticks.push({
+      index: i,
+      pos: 0.5 + value / span,
+      value,
+      major: i % 2 === 0,
+    });
   }
   return ticks;
 };
@@ -39,13 +46,12 @@ const buildTicks = (span: number): Tick[] => {
 /** Koordinatensystem unter der Zeichnung: Raster, Achsen und Lineal in echten Maßen. */
 const DrawGrid = ({ mmPerCanvas, unit }: Props) => {
   const { i18n } = useTranslation();
-  const format = new Intl.NumberFormat(i18n.resolvedLanguage, {
-    maximumFractionDigits: 2,
-  });
+  const format = numberFormat(i18n.resolvedLanguage, 2);
 
   const ticks: Tick[] = mmPerCanvas
     ? buildTicks(unit === "in" ? mmPerCanvas / MM_PER_INCH : mmPerCanvas)
     : Array.from({ length: FALLBACK_DIVISIONS + 1 }, (_, i) => ({
+        index: i,
         pos: i / FALLBACK_DIVISIONS,
         value: 0,
         major: true,
@@ -65,8 +71,8 @@ const DrawGrid = ({ mmPerCanvas, unit }: Props) => {
         preserveAspectRatio="none"
         viewBox="0 0 1 1"
       >
-        {ticks.map(({ pos, major }) => (
-          <g className={major ? "major" : "minor"} key={pos}>
+        {ticks.map(({ index, pos, major }) => (
+          <g className={major ? "major" : "minor"} key={index}>
             <line
               vectorEffect="non-scaling-stroke"
               x1={pos}
@@ -100,20 +106,20 @@ const DrawGrid = ({ mmPerCanvas, unit }: Props) => {
           />
         </g>
       </svg>
-      {labels.map(({ pos, value }) => (
+      {labels.map(({ index, pos, value }) => (
         <span
           className="tick x"
-          key={`x${pos}`}
+          key={`x${index}`}
           style={{ left: `${pos * 100}%` }}
         >
           {format.format(value)}
         </span>
       ))}
-      {labels.map(({ pos, value }) => (
+      {labels.map(({ index, pos, value }) => (
         // y zeigt im Ausstecher nach oben, im Canvas nach unten.
         <span
           className="tick y"
-          key={`y${pos}`}
+          key={`y${index}`}
           style={{ top: `${pos * 100}%` }}
         >
           {format.format(-value)}
@@ -124,4 +130,4 @@ const DrawGrid = ({ mmPerCanvas, unit }: Props) => {
   );
 };
 
-export default DrawGrid;
+export default memo(DrawGrid);

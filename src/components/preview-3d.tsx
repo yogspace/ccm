@@ -165,8 +165,8 @@ const Preview3d = ({ mesh, shape, autoRotate, onUserRotate }: Props) => {
       "position",
       new THREE.BufferAttribute(mesh.positions, 3)
     );
+    // Ohne Normalen: Flat Shading berechnet sie im Shader aus den Flächen.
     object.geometry.setIndex(new THREE.BufferAttribute(mesh.indices, 1));
-    object.geometry.computeVertexNormals();
 
     if (pendingRise.current) {
       pendingRise.current = false;

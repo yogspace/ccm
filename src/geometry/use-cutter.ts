@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
 import type { CutterParams } from "./cutter";
 import type { CutterRequest, CutterResponse } from "./cutter-worker";
 import type { MeshData } from "./mesh";
@@ -34,14 +34,17 @@ export const useCutter = (rings: Ring[], params: CutterParams) => {
       } else if (data.type === "engine-error") {
         setState((current) => ({ ...current, error: "engine" }));
       } else if (data.id === latest.current) {
-        setState((current) =>
-          data.type === "result"
-            ? {
-                ready: true,
-                mesh: data.mesh,
-                outline: data.outline,
-              }
-            : { ...current, error: "build" }
+        // Als Transition, damit ein neues Modell laufende Eingaben nicht blockiert.
+        startTransition(() =>
+          setState((current) =>
+            data.type === "result"
+              ? {
+                  ready: true,
+                  mesh: data.mesh,
+                  outline: data.outline,
+                }
+              : { ...current, error: "build" }
+          )
         );
       }
     };

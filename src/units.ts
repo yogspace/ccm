@@ -24,6 +24,22 @@ export const storeUnit = (unit: Unit) => {
   }
 };
 
+const formats = new Map<string, Intl.NumberFormat>();
+
+/** Zahlenformate sind teuer anzulegen – daher je Sprache und Stellen nur einmal. */
+export const numberFormat = (
+  locale: string | undefined,
+  maximumFractionDigits: number
+) => {
+  const key = `${locale}:${maximumFractionDigits}`;
+  let format = formats.get(key);
+  if (!format) {
+    format = new Intl.NumberFormat(locale, { maximumFractionDigits });
+    formats.set(key, format);
+  }
+  return format;
+};
+
 /** Formatiert eine Länge in mm für die Anzeige in der gewählten Einheit. */
 export const formatLength = (
   mm: number,
@@ -31,6 +47,4 @@ export const formatLength = (
   locale: string | undefined,
   fractionDigits = unit === "in" ? 2 : 1
 ) =>
-  `${new Intl.NumberFormat(locale, {
-    maximumFractionDigits: fractionDigits,
-  }).format(unit === "in" ? mm / MM_PER_INCH : mm)} ${unit}`;
+  `${numberFormat(locale, fractionDigits).format(unit === "in" ? mm / MM_PER_INCH : mm)} ${unit}`;
