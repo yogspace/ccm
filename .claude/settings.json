@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sed -i '' 's/name: \"Strichstärke\"/name: \"Pinselstärke\"/' share.mjs)",
+      "Bash(node share.mjs)"
+    ]
+  }
+}

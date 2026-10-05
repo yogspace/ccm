@@ -156,3 +156,12 @@ Reine Geometrie-Funktionen (`outline.ts` ohne Canvas-Teil, `cutter.ts`, Exporte)
 4. Parameter-Panel, debounced Neuberechnung.
 5. SVG-Upload.
 6. Feinschliff: Druckhinweise, Mobil, Dark Mode, README.
+
+## Roadmap
+
+- **API: SVG rein, Ausstecher raus.** Eine Route (z. B. `POST /api/cutters`) nimmt ein SVG und optional dieselben Parameter wie die App entgegen und liefert den fertigen Ausstecher als 3MF oder STL zurück.
+  - Zugang per API-Token (`Authorization: Bearer …`). Tokens nur gehasht speichern, pro Token Rate-Limit bzw. Kontingent.
+  - Datenbank für Tokens und Nutzung (wer, wann, wie viel).
+  - Geometrie serverseitig mit derselben Pipeline (`outline.ts` → `cutter.ts` → `export/`). manifold-3d läuft auch in Node; nur das Rastern des SVG braucht dort einen Canvas-Ersatz (z. B. resvg).
+  - Läuft als `/api` in diesem Stack (siehe Betrieb), als eigener Container: Das 128m-Limit gilt nur für den Static-Server.
+  - Datenschutz-Text ergänzen: Bei der API geht das SVG an den Server.

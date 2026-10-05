@@ -12,7 +12,7 @@ const MM_PER_INCH = 25.4;
 /** Ohne Form gibt es keinen Maßstab – dann ein neutrales 8×8-Raster. */
 const FALLBACK_DIVISIONS = 8;
 /** Beschriftungen zu nah am Rand würden abgeschnitten. */
-const LABEL_MARGIN = 0.06;
+const LABEL_MARGIN = 0.1;
 
 /** Rundet auf 1, 2 oder 5 mal eine Zehnerpotenz. */
 const niceStep = (raw: number) => {

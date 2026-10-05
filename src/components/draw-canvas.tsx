@@ -9,23 +9,36 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { loadSilhouette, type Ring } from "../geometry/outline";
+import {
+  loadSilhouette,
+  type Point,
+  type Ring,
+  traceOutline,
+} from "../geometry/outline";
 import type { Unit } from "../units";
+import {
+  type Drawing,
+  emptyDrawing,
+  isEmptyDrawing,
+  type Stroke,
+} from "../url-state";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
 import CookieSlider from "./cookie-slider";
 import DrawGrid from "./draw-grid";
 
-type Point = { x: number; y: number };
+type Pen = { x: number; y: number };
 
 type Props = {
   /** Finale Ausstecher-Kontur, normiert auf 0…1, als Overlay über der Zeichnung. */
   outline: Ring[];
-  /** Nach jedem Strich, Import, Rückgängig oder Löschen. */
-  onChange: (canvas: HTMLCanvasElement) => void;
+  /** Nach jedem Strich, Import, Rückgängig oder Löschen – mit der Zeichnung zum Teilen. */
+  onChange: (canvas: HTMLCanvasElement, drawing: Drawing) => void;
   onError: (error: unknown) => void;
-  /** Form aus einem geteilten Link, wird beim Start einmal gemalt. */
-  initialRings: Ring[];
+  /** Zeichnung aus einem geteilten Link, wird beim Start einmal gemalt. */
+  initialDrawing: Drawing;
+  /** Nach dem Malen melden, damit der Ausstecher aus der Zeichnung entsteht. */
+  traceInitial: boolean;
   /** Maßstab fürs Koordinatensystem, `null` solange es keine Form gibt. */
   mmPerCanvas: number | null;
   unit: Unit;
@@ -39,21 +52,82 @@ const HISTORY = 40;
 /** Rand um importierte SVGs, damit sie nicht an der Kante kleben. */
 const IMPORT_MARGIN = 0.1;
 
+const ringsPath = (rings: Ring[]) => {
+  const path = new Path2D();
+  for (const ring of rings) {
+    for (const [i, [x, y]] of ring.entries()) {
+      if (i === 0) path.moveTo(x * RES, y * RES);
+      else path.lineTo(x * RES, y * RES);
+    }
+    path.closePath();
+  }
+  return path;
+};
+
+/**
+ * Malt eine gespeicherte Zeichnung: erst die Fläche, dann die Striche – mit
+ * denselben Kurven wie beim Zeichnen, damit sie genauso aussieht.
+ */
+const paint = (ctx: CanvasRenderingContext2D, drawing: Drawing) => {
+  ctx.fillStyle = "#000";
+  ctx.strokeStyle = "#000";
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  if (drawing.base.length > 0) {
+    const path = ringsPath(drawing.base);
+    if (drawing.baseLine === 0) ctx.fill(path, "evenodd");
+    else {
+      // Alte Links: als Strich innen entlang der Kontur statt als Fläche – sieht
+      // aus wie gezeichnet, und die Außenkante bleibt exakt die geteilte Kontur.
+      ctx.save();
+      ctx.clip(path);
+      ctx.lineWidth = drawing.baseLine;
+      ctx.stroke(path);
+      ctx.restore();
+    }
+  }
+  for (const { width, points } of drawing.strokes) {
+    const [first, ...rest] = points;
+    if (!first) continue;
+    ctx.beginPath();
+    ctx.arc(first[0], first[1], width / 2, 0, Math.PI * 2);
+    ctx.fill();
+    if (rest.length === 0) continue;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(first[0], first[1]);
+    let previous = first;
+    for (const point of rest) {
+      const mid: Point = [
+        (previous[0] + point[0]) / 2,
+        (previous[1] + point[1]) / 2,
+      ];
+      ctx.quadraticCurveTo(previous[0], previous[1], mid[0], mid[1]);
+      previous = point;
+    }
+    ctx.lineTo(previous[0], previous[1]);
+    ctx.stroke();
+  }
+};
+
 const DrawCanvas = ({
   outline,
   onChange,
   onError,
-  initialRings,
+  initialDrawing,
+  traceInitial,
   mmPerCanvas,
   unit,
 }: Props) => {
   const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const pen = useRef<{ smoothed: Point; mid: Point } | null>(null);
-  const history = useRef<ImageData[]>([]);
+  const pen = useRef<{ smoothed: Pen; mid: Pen; points: Point[] } | null>(null);
+  /** Was gemalt wurde, als Vektoren – das wird geteilt. */
+  const drawing = useRef<Drawing>(initialDrawing);
+  const history = useRef<{ image: ImageData; drawing: Drawing }[]>([]);
   const [brush, setBrush] = useState(24);
-  const [empty, setEmpty] = useState(initialRings.length === 0);
+  const [empty, setEmpty] = useState(isEmptyDrawing(initialDrawing));
   const [canUndo, setCanUndo] = useState(false);
   const [dragging, setDragging] = useState(false);
   // Der Hinweis verschwindet schon beim Ansetzen des Stifts, nicht erst danach.
@@ -64,14 +138,17 @@ const DrawCanvas = ({
   const commit = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    setEmpty(false);
-    onChange(canvas);
+    setEmpty(isEmptyDrawing(drawing.current));
+    onChange(canvas, drawing.current);
   };
 
   const snapshot = () => {
     const ctx = context();
     if (!ctx) return;
-    history.current.push(ctx.getImageData(0, 0, RES, RES));
+    history.current.push({
+      image: ctx.getImageData(0, 0, RES, RES),
+      drawing: drawing.current,
+    });
     if (history.current.length > HISTORY) history.current.shift();
     setCanUndo(true);
   };
@@ -80,11 +157,10 @@ const DrawCanvas = ({
     const ctx = context();
     const previous = history.current.pop();
     if (!ctx || !previous) return;
-    ctx.putImageData(previous, 0, 0);
+    ctx.putImageData(previous.image, 0, 0);
+    drawing.current = previous.drawing;
     setCanUndo(history.current.length > 0);
     commit();
-    // Leer ist die Fläche, wenn kein Pixel mehr deckt.
-    setEmpty(!previous.data.some((value, i) => i % 4 === 3 && value > 0));
   };
 
   const clear = () => {
@@ -92,8 +168,8 @@ const DrawCanvas = ({
     if (!ctx) return;
     snapshot();
     ctx.clearRect(0, 0, RES, RES);
+    drawing.current = emptyDrawing;
     commit();
-    setEmpty(true);
   };
 
   const importFile = async (file: File) => {
@@ -108,6 +184,13 @@ const DrawCanvas = ({
       snapshot();
       ctx.clearRect(0, 0, RES, RES);
       ctx.drawImage(silhouette, (RES - w) / 2, (RES - h) / 2, w, h);
+      // Geteilt wird die Silhouette als Fläche, nicht das SVG selbst.
+      const canvas = canvasRef.current;
+      drawing.current = {
+        base: canvas ? traceOutline(canvas) : [],
+        baseLine: 0,
+        strokes: [],
+      };
       commit();
     } catch (error) {
       onError(error);
@@ -117,24 +200,9 @@ const DrawCanvas = ({
   // biome-ignore lint/correctness/useExhaustiveDependencies: nur beim Start
   useEffect(() => {
     const ctx = context();
-    if (!ctx || initialRings.length === 0) return;
-    const path = new Path2D();
-    for (const ring of initialRings) {
-      for (const [i, [x, y]] of ring.entries()) {
-        if (i === 0) path.moveTo(x * RES, y * RES);
-        else path.lineTo(x * RES, y * RES);
-      }
-      path.closePath();
-    }
-    // Als Strich innen entlang der Kontur statt als Fläche: sieht aus wie
-    // gezeichnet, und die Außenkante bleibt exakt die geteilte Kontur.
-    ctx.save();
-    ctx.clip(path);
-    ctx.strokeStyle = "#000";
-    ctx.lineWidth = brush * 2;
-    ctx.lineJoin = "round";
-    ctx.stroke(path);
-    ctx.restore();
+    if (!ctx || isEmptyDrawing(initialDrawing)) return;
+    paint(ctx, initialDrawing);
+    if (traceInitial) commit();
   }, []);
 
   useEffect(() => {
@@ -151,7 +219,7 @@ const DrawCanvas = ({
   const toCanvas = (
     { clientX, clientY }: { clientX: number; clientY: number },
     rect: DOMRect
-  ): Point => ({
+  ): Pen => ({
     x: ((clientX - rect.left) / rect.width) * RES,
     y: ((clientY - rect.top) / rect.height) * RES,
   });
@@ -174,7 +242,7 @@ const DrawCanvas = ({
     snapshot();
     setPenDown(true);
     const point = toCanvas(event, event.currentTarget.getBoundingClientRect());
-    pen.current = { smoothed: point, mid: point };
+    pen.current = { smoothed: point, mid: point, points: [[point.x, point.y]] };
     // Ein Tipp ohne Bewegung ergibt einen Punkt. Als Kreis gefüllt, weil Safari
     // Linien der Länge null mit runden Enden nicht zeichnet.
     const ctx = context();
@@ -210,6 +278,7 @@ const DrawCanvas = ({
       });
       state.smoothed = smoothed;
       state.mid = mid;
+      state.points.push([smoothed.x, smoothed.y]);
     }
   };
 
@@ -222,6 +291,11 @@ const DrawCanvas = ({
       ctx.lineTo(state.smoothed.x, state.smoothed.y);
     });
     pen.current = null;
+    const stroke: Stroke = { width: brush, points: state.points };
+    drawing.current = {
+      ...drawing.current,
+      strokes: [...drawing.current.strokes, stroke],
+    };
     commit();
   };
 

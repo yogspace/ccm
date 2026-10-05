@@ -6,21 +6,88 @@ import type { Point, Ring } from "./geometry/outline";
  * Der komplette Zustand steckt im URL-Hash, damit Links geteilt werden können.
  * Der Hash geht nie an den Server – es wird nichts gespeichert.
  *
- * Format: `#n=<Name>&size=90&…&s=<Form>`; Maße nur, wenn sie vom Standard
- * abweichen.
+ * Format: `#n=<Name>&size=90&…&s=<Zeichnung>`; Maße nur, wenn sie vom
+ * Standard abweichen. Gespeichert wird die Zeichnung selbst (Striche und
+ * importierte Flächen), damit sie nach dem Öffnen genauso aussieht.
  */
+
+/** Ein Strich: geglättete Stiftpunkte in Zeichenflächen-Pixeln und Breite. */
+export type Stroke = { width: number; points: Point[] };
+
+export type Drawing = {
+  /** Fläche aus einem SVG-Import oder einem alten Link, Konturen normiert 0…1. */
+  base: Ring[];
+  /** 0 = gefüllt; sonst innen entlang der Kontur in dieser Breite gezeichnet. */
+  baseLine: number;
+  strokes: Stroke[];
+};
+
+export const emptyDrawing: Drawing = { base: [], baseLine: 0, strokes: [] };
+
+export const isEmptyDrawing = ({ base, strokes }: Drawing) =>
+  base.length === 0 && strokes.length === 0;
+
+/** Strichbreite, mit der alte Links (nur Kontur) nachgezeichnet werden. */
+const LEGACY_LINE = 48;
+
 export type SharedState = {
   name: string;
   params: CutterParams;
+  drawing: Drawing;
+  /**
+   * Nur bei alten Links (Version 1): die geteilte Ausstecher-Kontur, aus der
+   * der Ausstecher direkt entsteht. Bei neuen Links kommt sie aus der Zeichnung.
+   */
   rings: Ring[];
 };
 
-/** Raster, auf das die normierten Koordinaten (0…1) gerundet werden. */
+/** Raster, auf das die Koordinaten gerundet werden (= Zeichenflächen-Pixel). */
 const GRID = 1024;
 /** Douglas-Peucker-Toleranz in Rasterpunkten (≈ 0,1 mm bei 80 mm Größe). */
 const TOLERANCE = 1;
-/** Formatversion, damit alte Links später noch lesbar bleiben. */
-const VERSION = 1;
+/** Striche etwas genauer, damit sie nachgemalt wie gezeichnet aussehen. */
+const STROKE_TOLERANCE = 0.6;
+/** Formatversion: 1 = nur Kontur, 2 = Zeichnung. */
+const VERSION = 2;
+
+/** Douglas-Peucker für offene Linien: welche Punkte bleiben. */
+const keepPoints = (points: Point[], tolerance: number) => {
+  const keep = new Uint8Array(points.length);
+  keep[0] = 1;
+  keep[points.length - 1] = 1;
+  const stack: [number, number][] = [[0, points.length - 1]];
+  while (stack.length > 0) {
+    const [first, last] = stack.pop() as [number, number];
+    const [ax, ay] = points[first];
+    const [bx, by] = points[last];
+    const length = Math.hypot(bx - ax, by - ay);
+    let maxDistance = 0;
+    let index = -1;
+    for (let i = first + 1; i < last; i++) {
+      const [px, py] = points[i];
+      // Abstand zur Strecke; ist sie ein Punkt, zum Punkt.
+      const distance =
+        length > 0
+          ? Math.abs((bx - ax) * (ay - py) - (ax - px) * (by - ay)) / length
+          : Math.hypot(px - ax, py - ay);
+      if (distance > maxDistance) {
+        maxDistance = distance;
+        index = i;
+      }
+    }
+    if (maxDistance > tolerance) {
+      keep[index] = 1;
+      stack.push([first, index], [index, last]);
+    }
+  }
+  return keep;
+};
+
+const simplifyLine = (points: Point[], tolerance: number) => {
+  if (points.length < 3) return points;
+  const keep = keepPoints(points, tolerance);
+  return points.filter((_, i) => keep[i]);
+};
 
 /**
  * Douglas-Peucker für geschlossene Ringe: Anfang und Ende sind derselbe Punkt,
@@ -41,38 +108,9 @@ const simplifyRing = (input: Point[], tolerance: number): Point[] => {
       split = i;
     }
   }
-
-  const points = [...ring, ring[0]];
-  const end = points.length - 1;
-  const keep = new Uint8Array(points.length);
-  keep[0] = 1;
-  keep[split] = 1;
-  const stack: [number, number][] = [
-    [0, split],
-    [split, end],
-  ];
-  while (stack.length > 0) {
-    const [first, last] = stack.pop() as [number, number];
-    const [ax, ay] = points[first];
-    const [bx, by] = points[last];
-    const length = Math.hypot(bx - ax, by - ay) || 1;
-    let maxDistance = 0;
-    let index = -1;
-    for (let i = first + 1; i < last; i++) {
-      const [px, py] = points[i];
-      const distance =
-        Math.abs((bx - ax) * (ay - py) - (ax - px) * (by - ay)) / length;
-      if (distance > maxDistance) {
-        maxDistance = distance;
-        index = i;
-      }
-    }
-    if (maxDistance > tolerance) {
-      keep[index] = 1;
-      stack.push([first, index], [index, last]);
-    }
-  }
-  return ring.filter((_, i) => keep[i]);
+  const first = simplifyLine(ring.slice(0, split + 1), tolerance);
+  const second = simplifyLine([...ring.slice(split), ring[0]], tolerance);
+  return [...first, ...second.slice(1, -1)];
 };
 
 const writeVarint = (out: number[], value: number) => {
@@ -108,60 +146,103 @@ const fromBase64Url = (text: string) =>
     c.charCodeAt(0)
   );
 
-export const encodeRings = (rings: Ring[]) => {
+/** Punktfolge als Deltas – kurze Zahlen, die sich gut komprimieren lassen. */
+const writePoints = (out: number[], points: Point[]) => {
+  writeVarint(out, points.length);
+  let [px, py] = [0, 0];
+  for (const [x, y] of points) {
+    writeVarint(out, x - px);
+    writeVarint(out, y - py);
+    [px, py] = [x, y];
+  }
+};
+
+const readPoints = (bytes: Uint8Array, cursor: { at: number }) => {
+  const length = readVarint(bytes, cursor);
+  const points: Point[] = [];
+  let [x, y] = [0, 0];
+  for (let i = 0; i < length; i++) {
+    x += readVarint(bytes, cursor);
+    y += readVarint(bytes, cursor);
+    points.push([x, y]);
+  }
+  return points;
+};
+
+const round = ([x, y]: Point): Point => [Math.round(x), Math.round(y)];
+
+export const encodeDrawing = ({ base, baseLine, strokes }: Drawing) => {
   const out: number[] = [];
-  const quantized = rings
+  const rings = base
     .map((ring) =>
       simplifyRing(
         ring.map(([x, y]): Point => [x * GRID, y * GRID]),
         TOLERANCE
-      ).map(([x, y]): Point => [Math.round(x), Math.round(y)])
+      ).map(round)
     )
     .filter((ring) => ring.length >= 3);
   writeVarint(out, VERSION);
-  writeVarint(out, quantized.length);
-  for (const ring of quantized) {
-    writeVarint(out, ring.length);
-    let [px, py] = [0, 0];
-    for (const [x, y] of ring) {
-      writeVarint(out, x - px);
-      writeVarint(out, y - py);
-      [px, py] = [x, y];
-    }
+  writeVarint(out, Math.round(baseLine));
+  writeVarint(out, rings.length);
+  for (const ring of rings) writePoints(out, ring);
+  writeVarint(out, strokes.length);
+  for (const { width, points } of strokes) {
+    writeVarint(out, Math.round(width));
+    writePoints(out, simplifyLine(points.map(round), STROKE_TOLERANCE));
   }
   return toBase64Url(deflateSync(new Uint8Array(out), { level: 9 }));
 };
 
-export const decodeRings = (text: string): Ring[] => {
+const toRing = (points: Point[]): Ring =>
+  points.map(([x, y]): Point => [x / GRID, y / GRID]);
+
+export const decodeDrawing = (
+  text: string
+): { drawing: Drawing; rings: Ring[] } => {
   const bytes = inflateSync(fromBase64Url(text));
   const cursor = { at: 0 };
-  if (readVarint(bytes, cursor) !== VERSION)
-    throw new Error("Unbekanntes Format");
-  const count = readVarint(bytes, cursor);
-  const rings: Ring[] = [];
-  for (let r = 0; r < count; r++) {
-    const length = readVarint(bytes, cursor);
-    const ring: Ring = [];
-    let [x, y] = [0, 0];
-    for (let i = 0; i < length; i++) {
-      x += readVarint(bytes, cursor);
-      y += readVarint(bytes, cursor);
-      ring.push([x / GRID, y / GRID]);
-    }
-    rings.push(ring);
+  const version = readVarint(bytes, cursor);
+
+  // Version 1: nur die Ausstecher-Kontur – wird innen nachgezeichnet.
+  if (version === 1) {
+    const count = readVarint(bytes, cursor);
+    const rings: Ring[] = [];
+    for (let r = 0; r < count; r++)
+      rings.push(toRing(readPoints(bytes, cursor)));
+    return {
+      drawing: { base: rings, baseLine: LEGACY_LINE, strokes: [] },
+      rings,
+    };
   }
-  return rings;
+  if (version !== VERSION) throw new Error("Unbekanntes Format");
+
+  const baseLine = readVarint(bytes, cursor);
+  const base: Ring[] = [];
+  const ringCount = readVarint(bytes, cursor);
+  for (let r = 0; r < ringCount; r++)
+    base.push(toRing(readPoints(bytes, cursor)));
+  const strokes: Stroke[] = [];
+  const strokeCount = readVarint(bytes, cursor);
+  for (let i = 0; i < strokeCount; i++) {
+    const width = readVarint(bytes, cursor);
+    strokes.push({ width, points: readPoints(bytes, cursor) });
+  }
+  return { drawing: { base, baseLine, strokes }, rings: [] };
 };
 
 const paramKeys = Object.keys(defaultParams) as (keyof CutterParams)[];
 
-export const writeHash = ({ name, params, rings }: SharedState) => {
+export const writeHash = ({
+  name,
+  params,
+  drawing,
+}: Omit<SharedState, "rings">) => {
   const query = new URLSearchParams();
   if (name) query.set("n", name);
   for (const key of paramKeys) {
     if (params[key] !== defaultParams[key]) query.set(key, String(params[key]));
   }
-  if (rings.length > 0) query.set("s", encodeRings(rings));
+  if (!isEmptyDrawing(drawing)) query.set("s", encodeDrawing(drawing));
   return query.size > 0 ? `#${query}` : "";
 };
 
@@ -172,14 +253,14 @@ export const readHash = (hash: string): SharedState => {
     const value = Number(query.get(key));
     if (query.has(key) && Number.isFinite(value)) params[key] = value;
   }
-  let rings: Ring[] = [];
-  const shape = query.get("s");
-  if (shape) {
+  let shape = { drawing: emptyDrawing, rings: [] as Ring[] };
+  const encoded = query.get("s");
+  if (encoded) {
     try {
-      rings = decodeRings(shape);
+      shape = decodeDrawing(encoded);
     } catch (error) {
       console.warn("Form im Link ist beschädigt", error);
     }
   }
-  return { name: query.get("n") ?? "", params, rings };
+  return { name: query.get("n") ?? "", params, ...shape };
 };

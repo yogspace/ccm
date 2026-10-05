@@ -42,11 +42,15 @@ Pally (Indian Type Foundry, [ITF Free Font License](https://www.fontshare.com)) 
 
 ### Link-Format
 
-`#n=<Name>&<Parameter>=<Wert>&s=<Form>`. Parameter stehen nur drin, wenn sie vom Standard abweichen. Die Form ist die fertige Ausstecher-Kontur: vereinfacht (Douglas-Peucker, ≈ 0,1 mm), auf ein 1024er-Raster gerundet, als ZigZag-Varint-Deltas kodiert, mit Deflate komprimiert und Base64url-kodiert. Ein Herz braucht so rund 160 Zeichen. Das erste Varint ist die Formatversion. Der Hash wird nie an den Server geschickt.
+`#n=<Name>&<Parameter>=<Wert>&s=<Zeichnung>`. Parameter stehen nur drin, wenn sie vom Standard abweichen. Gespeichert wird die Zeichnung selbst, damit sie nach dem Öffnen genauso aussieht: die geglätteten Stiftpunkte jedes Strichs mit Strichstärke und, nach einem SVG-Import, dessen Silhouette als Fläche. Alles wird vereinfacht (Douglas-Peucker), auf das 1024er-Raster der Zeichenfläche gerundet, als ZigZag-Varint-Deltas kodiert, mit Deflate komprimiert und Base64url-kodiert. Das erste Varint ist die Formatversion. Version 1 (nur die Ausstecher-Kontur) wird weiterhin gelesen. Der Hash wird nie an den Server geschickt.
 
 ### Bambu Studio
 
 Beim Öffnen eines 3MF meldet Bambu Studio „The 3mf file has invalid config, load geometry data only“. Das passiert bei jedem 3MF, das nicht aus Bambu Studio selbst stammt (auch bei Fusion 360). Die Geometrie wird trotzdem vollständig geladen. Über *Datei → Import* erscheint die Meldung nicht.
+
+## Geplant
+
+Eine API, an die man ein SVG schickt und den fertigen Ausstecher zurückbekommt (mit API-Token und Datenbank), siehe Roadmap in [projects.md](projects.md).
 
 ## Entwicklung
 

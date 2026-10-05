@@ -24,7 +24,7 @@ import { InputError, type Ring, traceOutline } from "./geometry/outline";
 import { useCutter } from "./geometry/use-cutter";
 import type { de } from "./i18n/de";
 import { formatLength, initialUnit, storeUnit, type Unit } from "./units";
-import { readHash, writeHash } from "./url-state";
+import { type Drawing, readHash, writeHash } from "./url-state";
 
 type ErrorKey = keyof (typeof de)["errors"];
 
@@ -33,7 +33,9 @@ const shared = readHash(window.location.hash);
 
 const App = () => {
   const { t, i18n } = useTranslation();
+  // Alte Links bringen die Kontur mit, neue die Zeichnung (→ Kontur per Abtasten).
   const [rings, setRings] = useState<Ring[]>(shared.rings);
+  const [drawing, setDrawing] = useState<Drawing>(shared.drawing);
   const [params, setParams] = useState(shared.params);
   const [name, setName] = useState(shared.name);
   const [unit, setUnit] = useState<Unit>(initialUnit);
@@ -68,27 +70,31 @@ const App = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       const { pathname, search } = window.location;
-      const hash = writeHash({ name, params, rings: outline });
+      const hash = writeHash({ name, params, drawing });
       window.history.replaceState(null, "", `${pathname}${search}${hash}`);
     }, 300);
     return () => clearTimeout(timer);
-  }, [name, params, outline]);
+  }, [name, params, drawing]);
 
   // Zum Teilen frisch berechnet. Ohne Form ist es einfach die Seite.
   const shareUrl = useCallback(
     () =>
-      `${window.location.origin}${window.location.pathname}${writeHash({ name, params, rings: outline })}`,
-    [name, params, outline]
+      `${window.location.origin}${window.location.pathname}${writeHash({ name, params, drawing })}`,
+    [name, params, drawing]
   );
 
-  const onDrawingChange = useCallback((canvas: HTMLCanvasElement) => {
-    try {
-      setRings(traceOutline(canvas));
-      setInputError(undefined);
-    } catch (cause) {
-      setInputError(cause instanceof InputError ? cause.code : "read");
-    }
-  }, []);
+  const onDrawingChange = useCallback(
+    (canvas: HTMLCanvasElement, next: Drawing) => {
+      setDrawing(next);
+      try {
+        setRings(traceOutline(canvas));
+        setInputError(undefined);
+      } catch (cause) {
+        setInputError(cause instanceof InputError ? cause.code : "read");
+      }
+    },
+    []
+  );
 
   const onImportError = useCallback((cause: unknown) => {
     console.error(cause);
@@ -141,11 +147,12 @@ const App = () => {
             </Button>
           </div>
           <DrawCanvas
-            initialRings={shared.rings}
+            initialDrawing={shared.drawing}
             mmPerCanvas={mmPerCanvas}
             onChange={onDrawingChange}
             onError={onImportError}
             outline={outline}
+            traceInitial={shared.rings.length === 0}
             unit={unit}
           />
           {error && (
