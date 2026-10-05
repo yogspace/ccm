@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { type CookieKind, createCookie } from "./models";
 
 /**
  * Rendert die 3D-Keks-Icons. Jeder Keks hat seine eigene Canvas an seiner
@@ -178,6 +179,8 @@ const wake = () => {
 
 export type CookieHandle = {
   setSpin: (spin: boolean) => void;
+  /** Grunddrehung in der Bildebene (rad), z. B. rollende Regler-Knöpfe. */
+  setRoll: (roll: number) => void;
   /** Einmal um die eigene Achse – beim Hover über den zugehörigen Button. */
   flip: () => void;
   /** Kurz zusammendrücken – beim Klick. */
@@ -218,6 +221,11 @@ export const registerCookie = (
   wake();
 
   return {
+    setRoll: (roll) => {
+      entry.roll = roll;
+      entry.drawn = false;
+      wake();
+    },
     setSpin: (spin) => {
       entry.spin = spin;
       wake();
@@ -237,4 +245,44 @@ export const registerCookie = (
       entries.delete(entry);
     },
   };
+};
+
+const imageCache = new Map<string, Promise<string>>();
+
+/**
+ * Einmal gerenderter Keks als Bild (Data-URL) – für Stellen, an denen Live-3D
+ * zu viel wäre, z. B. die Regler-Knöpfe. Fast von oben, damit er rund wirkt.
+ */
+export const cookieImage = (kind: CookieKind, pixels: number) => {
+  const key = `${kind}:${pixels}`;
+  let pending = imageCache.get(key);
+  if (!pending) {
+    pending = createCookie(kind).then((object) => {
+      if (!renderer) setup();
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = pixels;
+      draw(
+        {
+          canvas,
+          ctx: canvas.getContext("2d") as CanvasRenderingContext2D,
+          object,
+          tilt: -0.2,
+          roll: 0,
+          idle: false,
+          turnX: spring(),
+          turnY: spring(),
+          flip: spring(),
+          squash: spring(),
+          spin: false,
+          phase: 0,
+          visible: true,
+          drawn: false,
+        },
+        0
+      );
+      return canvas.toDataURL("image/webp", 0.92);
+    });
+    imageCache.set(key, pending);
+  }
+  return pending;
 };

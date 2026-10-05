@@ -221,6 +221,89 @@ input[type="range"]:active::-moz-range-thumb {
   transform: scale(1.25);
 }
 
+/* Keks-Regler (components/cookie-slider.tsx): unsichtbarer Range-Input über
+   eigener Spur, der Keks liegt genau über dem unsichtbaren Knopf. */
+.slider {
+  --thumb: 2.1rem;
+  position: relative;
+  display: block;
+  flex: 1;
+  min-width: 0;
+  height: 1.6rem;
+}
+
+.slider-track {
+  position: absolute;
+  top: 50%;
+  right: calc(var(--thumb) / 2);
+  left: calc(var(--thumb) / 2);
+  height: 6px;
+  translate: 0 -50%;
+  background: linear-gradient(
+    to right,
+    var(--accent) calc(var(--fill) * 100%),
+    var(--surface-2) calc(var(--fill) * 100%)
+  );
+  border-radius: 3px;
+}
+
+.slider-thumb {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--thumb) / 2 + var(--fill) * (100% - var(--thumb)));
+  display: block;
+  width: var(--thumb);
+  height: var(--thumb);
+  translate: -50% -50%;
+  border-radius: 50%;
+  pointer-events: none;
+  transition: scale 0.3s var(--ease-spring);
+}
+
+.slider-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* Rollt beim Schieben wie ein Rad mit. */
+  rotate: calc(var(--fill) * -540deg);
+}
+
+.slider:hover .slider-thumb {
+  scale: 1.15;
+}
+
+.slider:has(input:active) .slider-thumb {
+  scale: 0.88;
+}
+
+.slider input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: grab;
+}
+
+.slider input:active {
+  cursor: grabbing;
+}
+
+.slider input::-webkit-slider-thumb {
+  width: var(--thumb);
+  height: var(--thumb);
+}
+
+.slider input::-moz-range-thumb {
+  width: var(--thumb);
+  height: var(--thumb);
+}
+
+.slider:has(input:focus-visible) .slider-thumb {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -872,7 +955,7 @@ button:disabled .cookie {
   }
 }
 
-.params label {
+.params .param {
   display: flex;
   flex-direction: column;
   gap: 0.05rem;

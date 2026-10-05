@@ -20,6 +20,7 @@ import { loadSilhouette, type Ring } from "../geometry/outline";
 import type { Unit } from "../units";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
+import CookieSlider from "./cookie-slider";
 import DrawGrid from "./draw-grid";
 
 type Point = { x: number; y: number };
@@ -320,7 +321,7 @@ const DrawCanvas = ({
       </div>
 
       <div className="toolbar">
-        <label className="brush">
+        <div className="brush">
           <span
             aria-hidden
             className="brush-dot"
@@ -328,18 +329,15 @@ const DrawCanvas = ({
               { "--dot": `${4 + ((brush - 6) / 58) * 16}px` } as CSSProperties
             }
           />
-          <span className="sr-only">{t("draw.brush")}</span>
-          <input
+          <CookieSlider
+            label={t("draw.brush")}
             max={64}
             min={6}
-            onChange={(event) => setBrush(Number(event.target.value))}
-            style={
-              { "--fill": `${((brush - 6) / 58) * 100}%` } as CSSProperties
-            }
-            type="range"
+            onChange={setBrush}
+            step={1}
             value={brush}
           />
-        </label>
+        </div>
         <div className="actions">
           <Button
             aria-label={t("draw.undo")}

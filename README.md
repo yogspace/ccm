@@ -6,12 +6,13 @@ Die Geometrie wird komplett im Browser erzeugt, der Server liefert nur statische
 
 ## Funktionen
 
-- Freihand zeichnen (Maus, Touch, Stift) mit geglättetem Strich, Rückgängig (auch ⌘/Strg+Z), Löschen, vergrößerbare Zeichenfläche
+- Freihand zeichnen (Maus, Touch, Stift) mit geglättetem Strich, Rückgängig (auch ⌘/Strg+Z), Löschen, vergrößerbare Zeichenfläche mit Koordinatensystem in echten Maßen
 - SVG/PNG-Import per Button oder Drag & Drop; landet auf der Zeichenfläche, danach kann man weiterzeichnen
-- Live-Kontur (Schnittlinie) über der Zeichnung, 3D-Vorschau mit optionaler Auto-Rotation; jeder neue Ausstecher bekommt eine andere Filamentfarbe
+- Live-Kontur (Schnittlinie) über der Zeichnung, 3D-Vorschau als Drehteller (im Uhrzeigersinn, abschaltbar); jeder neue Ausstecher bekommt eine andere Filamentfarbe
+- 3D-Kekse als Icons (live gerendert, schauen zur Maus, drehen sich beim Hover) und im Hintergrund
 - Maße in mm oder inch, Dateiname für den Export, Download als 3MF und STL (`<name>-80mm.3mf`)
 - Teilen: Der komplette Zustand steckt im URL-Hash; Link kopieren, WhatsApp, Telegram, E-Mail und (wo vorhanden) das System-Teilen-Menü
-- Deutsch/Englisch (i18next), Light/Dark Mode, Impressum & Datenschutz als Dialog
+- Deutsch/Englisch (i18next), Light/Dark Mode, Impressum & Datenschutz als Dialog, Animationen mit `motion`
 - Favicon/Icons, Open-Graph-Bild, Manifest, `robots.txt`, `sitemap.xml` und JSON-LD in `public/` bzw. `index.html`
 
 ## Aufbau
@@ -27,12 +28,17 @@ src/
     use-cutter.ts             React-Hook zum Worker
     manifold.ts, mesh.ts      WASM-Singleton, Manifold → Rohdaten
   export/                     three-mf.ts, stl.ts, download.ts
+  cookies/                    models.ts (Keks-Geometrien, auch aus Lucide-Icons), renderer.ts (ein WebGL-Kontext für alle Keks-Icons)
   i18n/                       de.ts, en.ts
   url-state.ts                Zustand ↔ URL-Hash
   units.ts                    mm/inch
 ```
 
 Dateinamen sind kebab-case (per Biome-Regel erzwungen).
+
+### Schrift
+
+Pally (Indian Type Foundry, [ITF Free Font License](https://www.fontshare.com)) wird selbst gehostet. Die Lizenz erlaubt das für die eigene Website, verbietet aber die Weitergabe, deshalb liegt die Datei **nicht** im (öffentlichen) Repo: `scripts/fetch-fonts.mjs` lädt sie vor `pnpm dev` und `pnpm build` nach `public/fonts/` (ignoriert). Schlägt das fehl, läuft die Seite mit der Systemschrift. Die App rendert erst, wenn die Schrift da ist (max. 1,5 s), damit sie nicht sichtbar umspringt.
 
 ### Link-Format
 

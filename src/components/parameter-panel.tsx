@@ -1,9 +1,9 @@
 import { RotateCcw } from "lucide-react";
-import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { type CutterParams, defaultParams } from "../geometry/cutter";
 import { formatLength, type Unit } from "../units";
 import Button from "./button";
+import CookieSlider from "./cookie-slider";
 
 type Props = {
   params: CutterParams;
@@ -48,29 +48,22 @@ const ParameterPanel = ({ params, onChange, unit }: Props) => {
       </div>
       <div className="params-grid">
         {fields.map(({ key, min, max, step }) => (
-          <label key={key} title={t(`params.${key}`)}>
+          <div className="param" key={key} title={t(`params.${key}`)}>
             <span className="param-label">{t(`params.${key}`)}</span>
             <span className="param-row">
-              <input
+              <CookieSlider
+                label={t(`params.${key}`)}
                 max={max}
                 min={min}
-                onChange={(event) =>
-                  onChange({ ...params, [key]: Number(event.target.value) })
-                }
+                onChange={(value) => onChange({ ...params, [key]: value })}
                 step={step}
-                style={
-                  {
-                    "--fill": `${((params[key] - min) / (max - min)) * 100}%`,
-                  } as CSSProperties
-                }
-                type="range"
                 value={params[key]}
               />
               <output>
                 {formatLength(params[key], unit, i18n.resolvedLanguage)}
               </output>
             </span>
-          </label>
+          </div>
         ))}
       </div>
     </div>

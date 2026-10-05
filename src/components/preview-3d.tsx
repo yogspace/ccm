@@ -17,7 +17,12 @@ type View = {
   controls: OrbitControls;
   object: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
   rise: () => void;
+  /** Drehteller an/aus. */
+  spin: { on: boolean };
 };
+
+/** Drehteller-Tempo in rad/s – eine Umdrehung in gut 20 Sekunden. */
+const SPIN_SPEED = 0.3;
 
 const RISE_MS = 700;
 
@@ -89,8 +94,6 @@ const Preview3d = ({ mesh, shape, autoRotate, onUserRotate }: Props) => {
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    // Negativ: Das Modell dreht sich im Uhrzeigersinn (von oben gesehen).
-    controls.autoRotateSpeed = -1.2;
     controls.addEventListener("start", () => onUserRotateRef.current());
 
     let riseStart = -Infinity;
@@ -98,10 +101,19 @@ const Preview3d = ({ mesh, shape, autoRotate, onUserRotate }: Props) => {
       // Jeder neue Ausstecher wechselt sofort die Farbe, ohne Überblendung.
       filament = pickFilament(filament);
       material.color.set(filament);
+      // Neue Form: Drehteller zurück, damit sie wie die Zeichnung ausgerichtet startet.
+      object.rotation.z = 0;
       if (!reducedMotion()) riseStart = performance.now();
     };
 
+    // Das Modell selbst dreht sich (nicht die Kamera): zeitbasiert und im
+    // Uhrzeigersinn von oben gesehen – eine negative Drehung um die z-Achse.
+    const spin = { on: false };
+    let lastTime = 0;
     renderer.setAnimationLoop((time) => {
+      const dt = lastTime ? Math.min((time - lastTime) / 1000, 0.1) : 0;
+      lastTime = time;
+      if (spin.on) object.rotation.z -= SPIN_SPEED * dt;
       const t = Math.min(1, (time - riseStart) / RISE_MS);
       object.scale.z = Math.max(0.001, easeOutBack(t));
       controls.update();
@@ -116,7 +128,7 @@ const Preview3d = ({ mesh, shape, autoRotate, onUserRotate }: Props) => {
     });
     observer.observe(container);
 
-    viewRef.current = { camera, controls, object, rise };
+    viewRef.current = { camera, controls, object, rise, spin };
     return () => {
       renderer.setAnimationLoop(null);
       observer.disconnect();
@@ -131,7 +143,7 @@ const Preview3d = ({ mesh, shape, autoRotate, onUserRotate }: Props) => {
 
   useEffect(() => {
     if (viewRef.current) {
-      viewRef.current.controls.autoRotate = autoRotate && !reducedMotion();
+      viewRef.current.spin.on = autoRotate && !reducedMotion();
     }
   }, [autoRotate]);
 
@@ -167,7 +179,8 @@ const Preview3d = ({ mesh, shape, autoRotate, onUserRotate }: Props) => {
       fittedSize.current = size;
       const height = mesh.dimensions[2];
       controls.target.set(0, 0, height / 3);
-      camera.position.set(size * 0.7, -size * 1.3, size * 1.1 + height);
+      // Von vorne: Der Ausstecher steht wie die Zeichnung (oben = hinten).
+      camera.position.set(0, -size * 1.45, size * 1.15 + height);
     }
   }, [mesh]);
 

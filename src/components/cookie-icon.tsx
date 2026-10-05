@@ -40,6 +40,9 @@ const CookieIcon = ({
   const svgRef = useRef<HTMLSpanElement>(null);
   const handle = useRef<CookieHandle>(null);
   const iconName = Icon?.displayName ?? Icon?.name;
+  // Die Rollung ändert sich oft (Regler) – ohne den Keks neu aufzubauen.
+  const rollRef = useRef(roll);
+  rollRef.current = roll;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -57,7 +60,7 @@ const CookieIcon = ({
       if (cancelled) return;
       handle.current = registerCookie(canvas, cookie, {
         tilt: kind ? -0.55 : -0.2,
-        roll: (roll * Math.PI) / 180,
+        roll: (rollRef.current * Math.PI) / 180,
         idle,
       });
     });
@@ -76,7 +79,11 @@ const CookieIcon = ({
       handle.current?.dispose();
       handle.current = null;
     };
-  }, [kind, iconName, icing, idle, roll]);
+  }, [kind, iconName, icing, idle]);
+
+  useEffect(() => {
+    handle.current?.setRoll((roll * Math.PI) / 180);
+  }, [roll]);
 
   useEffect(() => {
     handle.current?.setSpin(spin);

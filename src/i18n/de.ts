@@ -59,7 +59,6 @@ export const de = {
     mail: "E-Mail",
     more: "Weitere Apps …",
     via: "Per {{target}} teilen",
-    empty: "Erst eine Form zeichnen",
   },
   legal: {
     close: "Schließen",

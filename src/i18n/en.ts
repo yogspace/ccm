@@ -60,7 +60,6 @@ export const en: typeof de = {
     mail: "email",
     more: "More apps …",
     via: "Share via {{target}}",
-    empty: "Draw a shape first",
   },
   legal: {
     close: "Close",

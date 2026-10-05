@@ -191,11 +191,7 @@ const App = () => {
             />
             {!mesh && (
               <div className="stage-hint">
-                <CookieIcon
-                  kind={ready ? "star" : "chip"}
-                  size={120}
-                  spin={!ready}
-                />
+                <CookieIcon kind="star" size={120} spin={!ready} />
                 <span>{ready ? t("preview.empty") : t("preview.loading")}</span>
               </div>
             )}
