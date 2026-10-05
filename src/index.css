@@ -448,9 +448,11 @@ input[type="range"]:active::-moz-range-thumb {
   color: var(--on-page);
 }
 
+/* Beide Umschalter (Einheit, Sprache) liegen auf einer hellen Fläche. */
 .masthead .switch {
   align-items: center;
   padding: 0.2rem;
+  background: var(--on-page-soft);
   border-radius: 0.8rem;
 }
 
@@ -467,12 +469,11 @@ input[type="range"]:active::-moz-range-thumb {
   background: var(--on-page);
 }
 
-/* Die Einheit hebt sich mit Fläche und Lineal-Icon leicht von der Sprache ab. */
+/* Die Einheit hat zusätzlich das Lineal-Icon vorne. */
 .masthead .unit-switch {
   gap: 0.15rem;
   padding-left: 0.6rem;
   color: var(--on-page-muted);
-  background: var(--on-page-soft);
   border-color: transparent;
 }
 
