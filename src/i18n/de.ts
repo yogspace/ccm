@@ -10,7 +10,8 @@ export const de = {
   },
   draw: {
     hint: "Umriss malen oder SVG hierher ziehen",
-    hintSub: "Geschlossene Linien werden gefüllt.",
+    hintSub:
+      "Geschlossene Linien werden gefüllt, Formen in Formen ausgeschnitten.",
     brush: "Pinselstärke",
     undo: "Rückgängig",
     clear: "Löschen",
@@ -18,6 +19,20 @@ export const de = {
     drop: "Loslassen zum Importieren",
     expand: "Zeichenfläche vergrößern",
     shrink: "Zeichenfläche verkleinern",
+    tools: "Werkzeuge",
+    pen: "Stift",
+    eraser: "Radiergummi",
+    move: "Formen verschieben",
+    moveHint: "Form ziehen · Ecken drehen & skalieren · Entf löscht",
+    presets: "Vorlagen",
+    removeSelection: "Ausgewählte Form entfernen (Entf)",
+    insert: "{{name}} einfügen",
+  },
+  presets: {
+    star: "Stern",
+    circle: "Kreis",
+    square: "Quadrat",
+    heart: "Herz",
   },
   preview: {
     empty: "Hier erscheint dein Ausstecher.",
@@ -34,6 +49,9 @@ export const de = {
     flangeWidth: "Falz-Breite",
     flangeHeight: "Falz-Höhe",
     smoothing: "Lücken schließen",
+    cutouts: "Innere Formen ausschneiden",
+    cutoutsHint:
+      "Eine Form innerhalb einer anderen wird zum Loch, verbunden über Stege an der Falz.",
     reset: "Zurücksetzen",
   },
   export: {
@@ -53,6 +71,16 @@ export const de = {
   },
   share: {
     text: "Schau mal, mein Ausstecher – direkt anpassen und als 3MF/STL herunterladen:",
+    pageText:
+      "Cookie Cutter Maker – Ausstecher selbst gestalten und 3D-drucken:",
+    creation: "Kreation teilen",
+    creationHint: "Link zu deiner Zeichnung mit Vorschaubild teilen",
+    creationText:
+      "Über den Link lässt sich deine Zeichnung öffnen und weiter anpassen.",
+    link: "Link zur Kreation",
+    saveImage: "Bild speichern",
+    shareImage: "Mit Bild teilen …",
+    imageAlt: "Ausstecher „{{name}}“ von oben",
     copy: "Link kopieren",
     copied: "Kopiert",
     more: "Mit einer App teilen …",

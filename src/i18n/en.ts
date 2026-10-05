@@ -11,7 +11,7 @@ export const en: typeof de = {
   },
   draw: {
     hint: "Draw an outline or drop an SVG here",
-    hintSub: "Closed lines get filled.",
+    hintSub: "Closed lines get filled, shapes inside shapes cut out.",
     brush: "Brush size",
     undo: "Undo",
     clear: "Clear",
@@ -19,6 +19,20 @@ export const en: typeof de = {
     drop: "Release to import",
     expand: "Enlarge canvas",
     shrink: "Shrink canvas",
+    tools: "Tools",
+    pen: "Pen",
+    eraser: "Eraser",
+    move: "Move shapes",
+    moveHint: "Drag a shape · corners rotate & scale · Del removes",
+    presets: "Templates",
+    removeSelection: "Remove the selected shape (Del)",
+    insert: "Insert {{name}}",
+  },
+  presets: {
+    star: "Star",
+    circle: "Circle",
+    square: "Square",
+    heart: "Heart",
   },
   preview: {
     empty: "Your cookie cutter will appear here.",
@@ -35,6 +49,9 @@ export const en: typeof de = {
     flangeWidth: "Rim width",
     flangeHeight: "Rim height",
     smoothing: "Close gaps",
+    cutouts: "Cut out inner shapes",
+    cutoutsHint:
+      "A shape inside another becomes a hole, held by bridges at the rim.",
     reset: "Reset",
   },
   export: {
@@ -54,6 +71,15 @@ export const en: typeof de = {
   },
   share: {
     text: "Check out my cookie cutter – tweak it and download it as 3MF/STL:",
+    pageText:
+      "Cookie Cutter Maker – design your own cookie cutters and 3D print them:",
+    creation: "Share creation",
+    creationHint: "Share a link to your drawing with a preview image",
+    creationText: "The link opens your drawing so it can be adjusted further.",
+    link: "Link to the creation",
+    saveImage: "Save image",
+    shareImage: "Share with image …",
+    imageAlt: "Cookie cutter “{{name}}” from above",
     copy: "Copy link",
     copied: "Copied",
     more: "Share with an app …",

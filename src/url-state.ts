@@ -12,7 +12,12 @@ import type { Point, Ring } from "./geometry/outline";
  */
 
 /** Ein Strich: geglättete Stiftpunkte in Zeichenflächen-Pixeln und Breite. */
-export type Stroke = { width: number; points: Point[] };
+export type Stroke = {
+  width: number;
+  points: Point[];
+  /** Radiergummi: nimmt Tinte weg, statt welche aufzutragen. */
+  erase?: boolean;
+};
 
 export type Drawing = {
   /** Fläche aus einem SVG-Import oder einem alten Link, Konturen normiert 0…1. */
@@ -86,7 +91,7 @@ const keepPoints = (points: Point[], tolerance: number) => {
   return keep;
 };
 
-const simplifyLine = (points: Point[], tolerance: number) => {
+export const simplifyLine = (points: Point[], tolerance: number) => {
   if (points.length < 3) return points;
   const keep = keepPoints(points, tolerance);
   return points.filter((_, i) => keep[i]);
@@ -200,14 +205,15 @@ export const encodeDrawing = ({ base, baseLine, strokes }: Drawing) => {
   writeVarint(out, strokes.length);
   // Jeder Strich beginnt relativ zum Ende des vorigen.
   const strokeFrom = origin();
-  for (const { width, points } of strokes) {
+  for (const { width, points, erase } of strokes) {
     const simplified = simplifyLine(points, strokeTolerance(width)).map(
       ([x, y]): Point => [
         Math.round(x / STROKE_STEP),
         Math.round(y / STROKE_STEP),
       ]
     );
-    writeVarint(out, Math.round(width));
+    // Radierer als negative Breite – alte Links haben nur positive.
+    writeVarint(out, Math.max(1, Math.round(width)) * (erase ? -1 : 1));
     writePoints(out, simplified, strokeFrom);
   }
   return toBase64Url(deflateSync(new Uint8Array(out), { level: 9 }));
@@ -254,8 +260,9 @@ export const decodeDrawing = (
     const width = readVarint(bytes, cursor);
     const points = readPoints(bytes, cursor, chained ? strokeFrom : origin());
     strokes.push({
-      width,
+      width: Math.abs(width),
       points: points.map(([x, y]): Point => [x * step, y * step]),
+      ...(width < 0 && { erase: true }),
     });
   }
   return { drawing: { base, baseLine, strokes }, rings: [] };

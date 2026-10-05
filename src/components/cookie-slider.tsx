@@ -28,6 +28,8 @@ const THUMB = 34;
  */
 const CookieSlider = ({ min, max, step, value, onChange, label }: Props) => {
   const [thumb, setThumb] = useState<string>();
+  // Jeder Keks liegt anders – sonst sehen alle Regler gleich aus.
+  const [turn] = useState(() => Math.round(Math.random() * 360));
   const [current, setCurrent] = useState(value);
   const [outside, setOutside] = useState(value);
   // Neuer Wert von außen (z. B. Zurücksetzen) übernimmt den Knopf.
@@ -46,7 +48,15 @@ const CookieSlider = ({ min, max, step, value, onChange, label }: Props) => {
     <span className="slider" style={{ "--fill": fill } as CSSProperties}>
       <span aria-hidden className="slider-track" />
       <span aria-hidden className="slider-thumb">
-        {thumb && <img alt="" height={THUMB} src={thumb} width={THUMB} />}
+        {thumb && (
+          <img
+            alt=""
+            height={THUMB}
+            src={thumb}
+            style={{ rotate: `${turn}deg` }}
+            width={THUMB}
+          />
+        )}
       </span>
       <input
         aria-label={label}

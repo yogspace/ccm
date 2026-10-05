@@ -10,7 +10,7 @@ type Props = {
   name: string;
 };
 
-/** Kompakte Teilen-Leiste: Link kopieren und (wo vorhanden) das System-Menü. */
+/** Teilen der Seite selbst: Link kopieren und (wo vorhanden) das System-Menü. */
 const SharePanel = ({ getUrl, name }: Props) => {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
@@ -37,7 +37,7 @@ const SharePanel = ({ getUrl, name }: Props) => {
     try {
       await navigator.share({
         title: name.trim() || "Cookie Cutter Maker",
-        text: t("share.text"),
+        text: t("share.pageText"),
         url: getUrl(),
       });
     } catch (error) {

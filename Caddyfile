@@ -8,11 +8,22 @@
     root * /srv
     encode zstd gzip
 
+    # „/“ je nach Browsersprache auf /de/ oder /en/ – der Hash eines geteilten
+    # Links (#…) bleibt bei Weiterleitungen im Browser erhalten. `map` und
+    # `redir` laufen vor `try_files`, das „/“ sonst schon umschreiben würde.
+    map {header.Accept-Language} {lang} {
+        ~(?i)^\s*de de
+        default en
+    }
+    header / Vary Accept-Language
+    redir / /{lang}/ 302
+
     # Vite-Assets tragen einen Hash im Namen → dürfen ewig gecacht werden.
     @assets path /assets/*
     header @assets Cache-Control "public, max-age=31536000, immutable"
 
-    # SPA-Fallback: unbekannte Pfade landen bei index.html.
-    try_files {path} /index.html
+    # SPA-Fallback: Sprachseiten liegen als /de/index.html und /en/index.html,
+    # alles Unbekannte landet bei der englischen Wurzel.
+    try_files {path} {path}/index.html /index.html
     file_server
 }

@@ -5,7 +5,7 @@ import {
   Rotate3d,
   Ruler,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useTranslation } from "react-i18next";
 import Button from "./components/button";
@@ -17,9 +17,10 @@ import ExportButtons from "./components/export-buttons";
 import LegalNotice from "./components/legal-notice";
 import Masthead from "./components/masthead";
 import ParameterPanel from "./components/parameter-panel";
-import Preview3d from "./components/preview-3d";
+import Preview3d, { type PreviewHandle } from "./components/preview-3d";
 import PrintHints from "./components/print-hints";
 import SettingsBar from "./components/settings-bar";
+import ShareCreation from "./components/share-creation";
 import SharePanel from "./components/share-panel";
 import { InputError, type Ring, traceOutline } from "./geometry/outline";
 import { useCutter } from "./geometry/use-cutter";
@@ -78,12 +79,14 @@ const App = () => {
     return () => clearTimeout(timer);
   }, [name, params, drawing]);
 
-  // Zum Teilen frisch berechnet. Ohne Form ist es einfach die Seite.
-  const shareUrl = useCallback(
-    () =>
-      `${window.location.origin}${window.location.pathname}${writeHash({ name, params, drawing })}`,
+  // Oben wird die Seite geteilt, unten die Kreation: Link mit Zeichnung,
+  // ohne Sprachpfad – Empfänger landen in ihrer eigenen Sprache.
+  const pageUrl = useCallback(() => `${window.location.origin}/`, []);
+  const creationUrl = useCallback(
+    () => `${window.location.origin}/${writeHash({ name, params, drawing })}`,
     [name, params, drawing]
   );
+  const preview = useRef<PreviewHandle>(null);
 
   const onDrawingChange = useCallback(
     (canvas: HTMLCanvasElement, next: Drawing) => {
@@ -126,7 +129,7 @@ const App = () => {
 
       <main className="layout" data-expanded={expanded || undefined}>
         <SettingsBar name={name} onNameChange={setName}>
-          <SharePanel getUrl={shareUrl} name={name} />
+          <SharePanel getUrl={pageUrl} name={name} />
         </SettingsBar>
 
         <section className="card shape-card">
@@ -196,11 +199,12 @@ const App = () => {
             </div>
           </div>
 
-          <div className="stage viewer">
+          <div className="stage viewer paper">
             <Preview3d
               autoRotate={autoRotate}
               mesh={mesh}
               onUserRotate={onUserRotate}
+              ref={preview}
               shape={rings}
             />
             {!mesh && (
@@ -215,7 +219,14 @@ const App = () => {
 
           <div className="export">
             <PrintHints />
-            <ExportButtons mesh={mesh} name={name} size={params.size} />
+            <ExportButtons mesh={mesh} name={name} size={params.size}>
+              <ShareCreation
+                disabled={!mesh}
+                getUrl={creationUrl}
+                name={name}
+                preview={preview}
+              />
+            </ExportButtons>
           </div>
         </section>
       </main>

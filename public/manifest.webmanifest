@@ -1,7 +1,8 @@
 {
   "name": "Cookie Cutter Maker",
   "short_name": "Cookie Cutter",
-  "description": "Form malen oder SVG hochladen – raus kommt ein druckfertiger Ausstecher.",
+  "description": "Draw a shape or upload an SVG – get a print-ready cookie cutter.",
+  "lang": "en",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#2a44ff",

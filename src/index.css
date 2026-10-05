@@ -538,7 +538,8 @@ input[type="range"]:active::-moz-range-thumb {
 @media (width > 56rem) {
   /* Füllt genau die Höhe, die neben Kopf, Leiste und Footer bleibt. */
   .layout:not([data-expanded]) {
-    --toolbar-h: 3.9rem;
+    /* Werkzeugleiste: Pinsel/Aktionen + Vorlagen-Zeile */
+    --toolbar-h: 8.1rem;
     flex: 1;
     grid-template-rows: auto 1fr;
   }
@@ -557,7 +558,7 @@ input[type="range"]:active::-moz-range-thumb {
 }
 
 @media (width >= 75rem) {
-  .layout:not([data-expanded]) .toolbar {
+  .layout:not([data-expanded]) .toolbar-row {
     flex-wrap: nowrap;
   }
 
@@ -566,10 +567,10 @@ input[type="range"]:active::-moz-range-thumb {
   }
 }
 
-/* Mittelbreit: Die Werkzeugleiste bricht um und braucht zwei Zeilen. */
+/* Mittelbreit: Die Zeilen der Werkzeugleiste brechen um. */
 @media (56rem < width < 75rem) {
   .layout:not([data-expanded]) {
-    --toolbar-h: 7.4rem;
+    --toolbar-h: 11.6rem;
   }
 }
 
@@ -681,6 +682,8 @@ input[type="range"]:active::-moz-range-thumb {
 
 .stage {
   position: relative;
+  /* Immer quadratisch – sonst verzerrt die Zeichenfläche alles darauf. */
+  flex: none;
   aspect-ratio: 1;
   overflow: hidden;
   background-color: var(--surface-2);
@@ -896,10 +899,6 @@ footer .cookie {
   margin: -0.7rem -0.2rem -0.7rem -0.5rem;
 }
 
-.brush > .cookie {
-  margin: -0.75rem -0.4rem -0.75rem -0.6rem;
-}
-
 button.icon .cookie {
   margin: -0.6rem;
 }
@@ -918,8 +917,9 @@ button:disabled .cookie {
   margin: -0.7rem -0.2rem -0.7rem -0.5rem;
 }
 
-/* Drehteller aus: Keks wird blasser. */
-button.rotate[aria-pressed="false"] .cookie {
+/* Schalter aus (Drehteller, Ausschneiden): Keks wird blasser. */
+button.rotate[aria-pressed="false"] .cookie,
+button.toggle[aria-pressed="false"] .cookie {
   opacity: 0.5;
   filter: grayscale(0.7);
 }
@@ -945,12 +945,51 @@ button.rotate[aria-pressed="false"] .cookie {
 
 /* ---------- Werkzeugleisten ---------- */
 
+/* Zwei Zeilen: Werkzeuge | Rückgängig & Löschen, darunter Vorlagen | Hochladen */
 .toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.toolbar-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem 1.5rem;
+  gap: 0.75rem 1.5rem;
+}
+
+.tools {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+  /* Gleich hoch, egal ob Regler oder Hinweis – sonst springt die Fläche. */
+  min-height: 2.6rem;
+}
+
+.tool-group {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.tool-group .tool {
+  position: relative;
+}
+
+/* Unterstrich unter dem aktiven Werkzeug – gleitet per Layout-Animation */
+.tool-underline {
+  position: absolute;
+  bottom: -0.6rem;
+  left: 50%;
+  width: 1.6rem;
+  height: 4px;
+  margin-left: -0.8rem;
+  background: var(--accent);
+  border-radius: 2px;
 }
 
 .actions {
@@ -963,9 +1002,9 @@ button.rotate[aria-pressed="false"] .cookie {
   display: flex;
   flex: 1;
   align-items: center;
-  gap: 1rem;
-  min-width: 10rem;
-  max-width: 18rem;
+  gap: 0.75rem;
+  min-width: 7rem;
+  max-width: 16rem;
 }
 
 .brush-dot {
@@ -985,6 +1024,153 @@ button.rotate[aria-pressed="false"] .cookie {
   transition:
     width 0.15s var(--ease),
     height 0.15s var(--ease);
+}
+
+/* Vorlagen: weiße Karten mit dem Umriss, der eingefügt wird – eigene Zeile unten */
+/* Vorlagen: Überschrift, darunter Karten (waagerecht scrollbar) und Hochladen */
+.templates {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.templates-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem 1.5rem;
+}
+
+.preset-strip {
+  display: flex;
+  flex: 1;
+  gap: 0.6rem;
+  min-width: 0;
+  padding-block: 0.15rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--muted) 45%, transparent)
+    transparent;
+}
+
+.preset-strip > * {
+  flex: none;
+  scroll-snap-align: start;
+}
+
+.presets-label {
+  font-size: var(--fs-small);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+button.preset,
+button.preset:hover:not(:disabled) {
+  width: 3.1rem;
+  height: 3.1rem;
+  padding: 0.4rem;
+  color: #0d1033;
+  background: var(--paper);
+  border-radius: 0.75rem;
+}
+
+.preset svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+
+.move-hint {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-small);
+  color: var(--muted);
+}
+
+/* Pinselvorschau: Kreis in echter Strichstärke, der dem Zeiger folgt */
+.brush-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  border: 1.5px solid rgb(13 16 51 / 0.55);
+  border-radius: 50%;
+  background: rgb(13 16 51 / 0.06);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s var(--ease);
+}
+
+.stage[data-tool="eraser"] .brush-cursor {
+  border-style: dashed;
+  background: rgb(255 255 255 / 0.55);
+}
+
+/* Mit Maus zeigt die Vorschau, wo gemalt wird – der Pfeil wäre doppelt. */
+@media (hover: hover) {
+  .stage[data-mode="draw"] .drawing {
+    cursor: none;
+  }
+}
+
+.stage[data-mode="move"] .drawing {
+  cursor: default;
+}
+
+/* X an der Auswahl (Position setzt draw-canvas.tsx) */
+button.remove-chip {
+  position: absolute;
+  z-index: 3;
+  translate: -50% -50%;
+}
+
+/* Auswahl beim Verschieben: Rahmen mit Anfassern an den Ecken */
+.selection {
+  position: absolute;
+  z-index: 1;
+  transform-origin: center;
+  border: 2px dashed var(--accent);
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+.selection i {
+  position: absolute;
+  width: 0.8rem;
+  height: 0.8rem;
+  background: var(--paper);
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  translate: -50% -50%;
+}
+
+.selection i:nth-child(1) {
+  top: 0;
+  left: 0;
+}
+
+.selection i:nth-child(2) {
+  top: 0;
+  left: 100%;
+}
+
+.selection i:nth-child(3) {
+  top: 100%;
+  left: 100%;
+}
+
+.selection i:nth-child(4) {
+  top: 100%;
+  left: 0;
 }
 
 /* ---------- Leiste: Dateiname, Einheit, Teilen ---------- */
@@ -1056,8 +1242,17 @@ button.rotate[aria-pressed="false"] .cookie {
 
 .params-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.params-head h3 {
+  margin-right: auto;
+}
+
+.params-head button.toggle[aria-pressed="true"] {
+  color: var(--text);
 }
 
 .params-head h3 {
@@ -1498,6 +1693,58 @@ button.legal-close {
 
 .legal a {
   color: var(--text);
+}
+
+/* „Kreation teilen“: Bild oben, darunter der Link zum Kopieren */
+dialog.share-sheet {
+  width: min(32rem, calc(100% - 2rem));
+}
+
+.share-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 1rem 0 0.75rem;
+  border-radius: var(--radius);
+}
+
+.share-link {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.share-link input {
+  flex: 1;
+  min-width: 0;
+  height: 2.6rem;
+  padding: 0 1rem;
+  font: inherit;
+  font-size: var(--fs-small);
+  color: var(--field-text);
+  background: var(--field);
+  border: 0;
+  border-radius: 999px;
+}
+
+.share-link button.copy {
+  flex: none;
+  height: 2.6rem;
+  padding: 0 1.1rem 0 0.8rem;
+  color: var(--accent-text);
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.share-link button.copy[data-copied] {
+  background: var(--success);
+}
+
+.share-more {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  margin-top: 1rem;
 }
 
 /* ---------- Icon-Animationen (aufsteigende Spezifität) ---------- */

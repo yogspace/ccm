@@ -1,4 +1,4 @@
-import { RotateCcw } from "lucide-react";
+import { Donut, RotateCcw } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 import { type CutterParams, defaultParams } from "../geometry/cutter";
@@ -14,7 +14,7 @@ type Props = {
 };
 
 const fields: {
-  key: keyof CutterParams;
+  key: Exclude<keyof CutterParams, "cutouts">;
   min: number;
   max: number;
   step: number;
@@ -32,12 +32,31 @@ const fields: {
 /** Maße-Regler unter der 3D-Ansicht. */
 const ParameterPanel = ({ params, onChange, unit }: Props) => {
   const { t, i18n } = useTranslation();
-  const changed = fields.some(({ key }) => params[key] !== defaultParams[key]);
+  const changed = (Object.keys(defaultParams) as (keyof CutterParams)[]).some(
+    (key) => params[key] !== defaultParams[key]
+  );
+  const cutouts = params.cutouts === 1;
 
   return (
     <div className="params">
       <div className="params-head">
         <h3>{t("params.title")}</h3>
+        {/* Formen in Formen als Löcher ausschneiden – oder wie früher nur außen */}
+        <Button
+          aria-pressed={cutouts}
+          className="ghost toggle"
+          onClick={() =>
+            onChange((current) => ({
+              ...current,
+              cutouts: current.cutouts ? 0 : 1,
+            }))
+          }
+          title={t("params.cutoutsHint")}
+          type="button"
+        >
+          <CookieIcon icing="#ffc31f" icon={Donut} roll={-10} size={44} />
+          {t("params.cutouts")}
+        </Button>
         <Button
           className="ghost"
           disabled={!changed}

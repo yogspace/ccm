@@ -14,7 +14,8 @@
       "!!**/dist",
       "!!**/pnpm-lock.yaml",
       "!!**/Dockerfile*",
-      "!!**/Caddyfile*"
+      "!!**/Caddyfile*",
+      "!!src/presets"
     ]
   },
   "assist": {

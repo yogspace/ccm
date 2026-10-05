@@ -50,7 +50,12 @@ Beim Öffnen eines 3MF meldet Bambu Studio „The 3mf file has invalid config, l
 
 ## Geplant
 
-Eine API, an die man ein SVG schickt und den fertigen Ausstecher zurückbekommt (mit API-Token und Datenbank), siehe Roadmap in [projects.md](projects.md).
+- Eine API, an die man ein SVG schickt und den fertigen Ausstecher zurückbekommt (mit API-Token und Datenbank).
+- Vorlagen (Stern, Kreis, Quadrat, Herz) sowie Verschieben und Skalieren der Zeichnung, als Leiste unter der Zeichenfläche.
+- Formen ineinander: innere Formen werden zu inneren Klingen, verbunden durch Stege an der Falz.
+- Pinselvorschau beim Hover über der Zeichenfläche.
+
+Details in der Roadmap in [projects.md](projects.md).
 
 ## Entwicklung
 

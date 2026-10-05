@@ -1,7 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml"
+>
   <url>
-    <loc>https://ccm.mxwr.de/</loc>
+    <loc>https://ccm.mxwr.de/de/</loc>
     <changefreq>monthly</changefreq>
+    <xhtml:link href="https://ccm.mxwr.de/de/" hreflang="de" rel="alternate" />
+    <xhtml:link href="https://ccm.mxwr.de/en/" hreflang="en" rel="alternate" />
+    <xhtml:link href="https://ccm.mxwr.de/" hreflang="x-default" rel="alternate" />
+  </url>
+  <url>
+    <loc>https://ccm.mxwr.de/en/</loc>
+    <changefreq>monthly</changefreq>
+    <xhtml:link href="https://ccm.mxwr.de/de/" hreflang="de" rel="alternate" />
+    <xhtml:link href="https://ccm.mxwr.de/en/" hreflang="en" rel="alternate" />
+    <xhtml:link href="https://ccm.mxwr.de/" hreflang="x-default" rel="alternate" />
   </url>
 </urlset>

@@ -24,7 +24,7 @@ const context2d = (canvas: HTMLCanvasElement) => {
 };
 
 /** Gibt SVGs eine feste Pixelgröße, damit sie scharf und im richtigen Seitenverhältnis gerendert werden. */
-const prepareSvg = (text: string, size: number) => {
+export const prepareSvg = (text: string, size: number) => {
   const doc = new DOMParser().parseFromString(text, "image/svg+xml");
   const svg = doc.documentElement;
   if (svg.nodeName !== "svg") throw new InputError("invalidSvg");

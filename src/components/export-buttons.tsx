@@ -1,4 +1,5 @@
 import { Download } from "lucide-react";
+import type { PropsWithChildren } from "react";
 import { useTranslation } from "react-i18next";
 import { download } from "../export/download";
 import { toStl } from "../export/stl";
@@ -7,11 +8,12 @@ import type { MeshData } from "../geometry/mesh";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
 
-type Props = {
+/** `children` stehen vor den Downloads (z. B. „Kreation teilen“). */
+type Props = PropsWithChildren<{
   mesh: MeshData | null;
   name: string;
   size: number;
-};
+}>;
 
 /** „Herz für Oma“ → „herz-fuer-oma“ */
 const slugify = (text: string) =>
@@ -26,13 +28,14 @@ const slugify = (text: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-const ExportButtons = ({ mesh, name, size }: Props) => {
+const ExportButtons = ({ mesh, name, size, children }: Props) => {
   const { t } = useTranslation();
   const fileName = `${slugify(name) || "cookie-cutter"}-${Math.round(size)}mm`;
   const title = name.trim() || "Cookie Cutter";
 
   return (
     <div className="actions">
+      {children}
       <Button
         disabled={!mesh}
         onClick={() => mesh && download(toStl(mesh), `${fileName}.stl`)}

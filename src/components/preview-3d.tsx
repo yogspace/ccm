@@ -1,9 +1,16 @@
-import { useEffect, useRef } from "react";
+import { type Ref, useEffect, useImperativeHandle, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { MeshData } from "../geometry/mesh";
 
+/** Von außen: ein Bild des Ausstechers aus der Vogelperspektive rendern. */
+export type PreviewHandle = {
+  /** Transparentes Bild der Größe width × height, oder `null` ohne Modell. */
+  renderTop: (width: number, height: number) => HTMLCanvasElement | null;
+};
+
 type Props = {
+  ref?: Ref<PreviewHandle>;
   mesh: MeshData | null;
   /** Neue Identität = neues Motiv → das Modell wächst neu aus dem Boden. */
   shape: unknown;
@@ -50,13 +57,89 @@ const easeOutBack = (t: number) => {
 const reducedMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-const Preview3d = ({ mesh, shape, autoRotate, onUserRotate }: Props) => {
+/**
+ * Rendert den Ausstecher wie in der Vorschau (Schneide oben) von schräg oben –
+ * mit eigenem, kurzlebigem Renderer.
+ */
+const renderTopView = (
+  geometry: THREE.BufferGeometry,
+  color: THREE.Color,
+  width: number,
+  height: number
+) => {
+  geometry.computeBoundingBox();
+  const bounds = geometry.boundingBox;
+  if (!bounds) return null;
+  const size = bounds.getSize(new THREE.Vector3());
+
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    alpha: true,
+    preserveDrawingBuffer: true,
+  });
+  renderer.setPixelRatio(1);
+  renderer.setSize(width, height, false);
+
+  const scene = new THREE.Scene();
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x8888aa, 1.5));
+  const sun = new THREE.DirectionalLight(0xffffff, 2.2);
+  sun.position.set(-60, 80, 200);
+  scene.add(sun);
+
+  const material = new THREE.MeshStandardMaterial({
+    color,
+    roughness: 0.45,
+    flatShading: true,
+  });
+  scene.add(new THREE.Mesh(geometry, material));
+
+  const camera = new THREE.PerspectiveCamera(28, width / height, 1, 5000);
+  camera.up.set(0, 1, 0);
+  const radius = Math.hypot(size.x, size.y) / 2;
+  const fit = Math.min(1, width / height);
+  const distance =
+    (radius / Math.sin(THREE.MathUtils.degToRad(14))) * (1.08 / fit);
+  // Leicht schräg von vorn, damit die Wände Tiefe bekommen.
+  const tilt = THREE.MathUtils.degToRad(18);
+  camera.position.set(0, -distance * Math.sin(tilt), distance * Math.cos(tilt));
+  camera.lookAt(0, 0, size.z / 2);
+
+  renderer.render(scene, camera);
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext("2d")?.drawImage(renderer.domElement, 0, 0);
+  material.dispose();
+  renderer.dispose();
+  renderer.forceContextLoss();
+  return canvas;
+};
+
+const Preview3d = ({ ref, mesh, shape, autoRotate, onUserRotate }: Props) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<View>(null);
   const fittedSize = useRef(0);
   const pendingRise = useRef(true);
   const onUserRotateRef = useRef(onUserRotate);
   onUserRotateRef.current = onUserRotate;
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      renderTop: (width, height) => {
+        const view = viewRef.current;
+        const geometry = view?.object.geometry;
+        if (!view || !geometry?.getAttribute("position")) return null;
+        return renderTopView(
+          geometry,
+          view.object.material.color,
+          width,
+          height
+        );
+      },
+    }),
+    []
+  );
 
   useEffect(() => {
     const container = containerRef.current;
@@ -76,10 +159,11 @@ const Preview3d = ({ mesh, shape, autoRotate, onUserRotate }: Props) => {
     sun.position.set(60, -80, 150);
     scene.add(sun);
 
-    const grid = new THREE.GridHelper(300, 30, 0x888888, 0x888888);
+    // Weißer „Tisch“ mit cremefarbenem Raster – wie die Zeichenfläche.
+    const grid = new THREE.GridHelper(300, 30, 0xcdbfa7, 0xe4dac8);
     grid.rotation.x = Math.PI / 2;
     grid.material.transparent = true;
-    grid.material.opacity = 0.18;
+    grid.material.opacity = 0.9;
     scene.add(grid);
 
     const material = new THREE.MeshStandardMaterial({
