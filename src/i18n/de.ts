@@ -14,6 +14,7 @@ export const de = {
       "Geschlossene Linien werden gefüllt, Formen in Formen ausgeschnitten.",
     brush: "Pinselstärke",
     undo: "Rückgängig",
+    redo: "Wiederholen",
     clear: "Löschen",
     upload: "SVG hochladen",
     drop: "Loslassen zum Importieren",

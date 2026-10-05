@@ -1,4 +1,4 @@
-import { FileUp, Trash2, Undo2, Upload, X } from "lucide-react";
+import { FileUp, Redo2, Trash2, Undo2, Upload, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   type CSSProperties,
@@ -176,6 +176,8 @@ const DrawCanvas = ({
   /** Was gemalt wurde, als Vektoren – das wird geteilt und verschoben. */
   const drawing = useRef<Drawing>(initialDrawing);
   const history = useRef<Snapshot[]>([]);
+  /** Rückgängig Gemachtes, für Wiederholen – jede neue Aktion leert es. */
+  const future = useRef<Snapshot[]>([]);
   const gesture = useRef<Gesture | null>(null);
   const pointers = useRef(new Map<number, Point>());
   const wheel = useRef<{ before: Snapshot; timer: number } | null>(null);
@@ -190,6 +192,7 @@ const DrawCanvas = ({
   const [shapes, setShapes] = useState<Record<string, PresetShape>>({});
   const [empty, setEmpty] = useState(isEmptyDrawing(initialDrawing));
   const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
   const [dragging, setDragging] = useState(false);
   // Der Hinweis verschwindet schon beim Ansetzen des Stifts, nicht erst danach.
   const [penDown, setPenDown] = useState(false);
@@ -218,6 +221,18 @@ const DrawCanvas = ({
     history.current.push(entry);
     if (history.current.length > HISTORY) history.current.shift();
     setCanUndo(true);
+    future.current = [];
+    setCanRedo(false);
+  };
+
+  /** Stellt einen gespeicherten Stand wieder her. */
+  const restore = (state: Snapshot) => {
+    const ctx = context();
+    if (!ctx) return;
+    ctx.putImageData(state.image, 0, 0);
+    drawing.current = state.drawing;
+    select(null);
+    commit();
   };
 
   const snapshot = () => remember(capture());
@@ -263,14 +278,24 @@ const DrawCanvas = ({
   };
 
   const undo = () => {
-    const ctx = context();
+    const current = capture();
     const previous = history.current.pop();
-    if (!ctx || !previous) return;
-    ctx.putImageData(previous.image, 0, 0);
-    drawing.current = previous.drawing;
+    if (!current || !previous) return;
+    future.current.push(current);
     setCanUndo(history.current.length > 0);
-    select(null);
-    commit();
+    setCanRedo(true);
+    restore(previous);
+  };
+
+  const redo = () => {
+    const current = capture();
+    const next = future.current.pop();
+    if (!current || !next) return;
+    history.current.push(current);
+    if (history.current.length > HISTORY) history.current.shift();
+    setCanUndo(true);
+    setCanRedo(future.current.length > 0);
+    restore(next);
   };
 
   const clear = () => {
@@ -411,9 +436,12 @@ const DrawCanvas = ({
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key === "z") {
+      // ⌘/Strg+Z rückgängig, mit Umschalt (oder Strg+Y) wiederholen.
+      const key = event.key.toLowerCase();
+      if ((event.metaKey || event.ctrlKey) && (key === "z" || key === "y")) {
         event.preventDefault();
-        undo();
+        if (key === "y" || event.shiftKey) redo();
+        else undo();
         return;
       }
       // Im Dateinamen-Feld u. Ä. gehören die Tasten dem Feld.
@@ -927,6 +955,16 @@ const DrawCanvas = ({
               type="button"
             >
               <CookieIcon icing="#2a44ff" icon={Undo2} roll={-12} size={52} />
+            </Button>
+            <Button
+              aria-label={t("draw.redo")}
+              className="icon"
+              disabled={!canRedo}
+              onClick={redo}
+              title={t("draw.redo")}
+              type="button"
+            >
+              <CookieIcon icing="#2a44ff" icon={Redo2} roll={12} size={52} />
             </Button>
             <Button
               aria-label={t("draw.clear")}

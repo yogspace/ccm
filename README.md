@@ -6,24 +6,30 @@ Die Geometrie wird komplett im Browser erzeugt, der Server liefert nur statische
 
 ## Funktionen
 
-- Freihand zeichnen (Maus, Touch, Stift) mit geglättetem Strich, Rückgängig (auch ⌘/Strg+Z), Löschen, vergrößerbare Zeichenfläche mit Koordinatensystem in echten Maßen
+- Freihand zeichnen (Maus, Touch, Stift) mit geglättetem Strich und Pinselvorschau, Radiergummi (Radiertes wird wirklich aus den Strichen entfernt), Rückgängig/Wiederholen (auch ⌘/Strg+Z, ⌘/Strg+Umschalt+Z), Löschen, vergrößerbare Zeichenfläche mit Koordinatensystem in echten Maßen
+- Werkzeuge Stift, Radiergummi und Verschieben: Was sich berührt, ist ein Objekt; es lässt sich verschieben, an den Ecken drehen und skalieren (auf Touch mit zwei Fingern), in der Strichstärke ändern und entfernen
+- Vorlagen unter der Zeichenfläche: jede SVG-Datei in `src/presets/` wird automatisch eine (siehe unten), eingefügt als Umriss in Pinselstärke
 - SVG/PNG-Import per Button oder Drag & Drop; landet auf der Zeichenfläche, danach kann man weiterzeichnen
+- Formen in Formen werden zu Löchern: innere Klingen, verbunden über Stege an der Falz (abschaltbar)
 - Live-Kontur (Schnittlinie) über der Zeichnung, 3D-Vorschau als Drehteller (im Uhrzeigersinn, abschaltbar); jeder neue Ausstecher bekommt eine andere Filamentfarbe
 - 3D-Kekse als Icons (live gerendert, schauen zur Maus, drehen sich beim Hover) und im Hintergrund
 - Maße in mm oder inch, Dateiname für den Export, Download als 3MF und STL (`<name>-80mm.3mf`)
-- Teilen: Der komplette Zustand steckt im URL-Hash; Link kopieren und (wo vorhanden) das System-Teilen-Menü
-- Deutsch/Englisch (i18next), Light/Dark Mode, Impressum & Datenschutz als Dialog, Animationen mit `motion`
-- Favicon/Icons, Open-Graph-Bild, Manifest, `robots.txt`, `sitemap.xml` und JSON-LD in `public/` bzw. `index.html`
+- Teilen: oben die Seite selbst; „Kreation teilen“ bei den Downloads öffnet ein Fenster mit einem Bild des Ausstechers von oben und dem Link zur Zeichnung (der komplette Zustand steckt im URL-Hash)
+- Deutsch/Englisch (i18next) unter `/de/` und `/en/` mit eigenen Texten für Suchmaschinen; `/` leitet je nach Browsersprache weiter
+- Light/Dark Mode, Impressum & Datenschutz als Dialog, Animationen mit `motion`
+- Favicon/Icons, Open-Graph-Bilder (en/de), Manifest, `robots.txt`, `sitemap.xml` und JSON-LD
 
 ## Aufbau
 
 ```
 src/
   app.tsx                     Layout und Zustand
-  components/                 draw-canvas, preview-3d, parameter-panel, export-buttons, …
+  components/                 draw-canvas, tool-picker, preview-3d, parameter-panel, export-buttons, share-creation, …
+  drawing.ts                  Zeichnung als Vektoren: malen, Objekte finden, verschieben/drehen/skalieren, radieren
+  presets.ts, presets/        Vorlagen (SVG-Dateien, per import.meta.glob eingebunden)
   geometry/
     outline.ts                Raster → Kontur (d3-contour), SVG-Import als Silhouette
-    cutter.ts                 Kontur + Parameter → Manifold (Falz, Wand, Verjüngung in 0,2-mm-Stufen)
+    cutter.ts                 Kontur + Parameter → Manifold (Falz, Wand, Verjüngung, innere Klingen, Stege)
     cutter-worker.ts          rechnet cutter.ts im Web Worker, nur der neueste Auftrag zählt
     use-cutter.ts             React-Hook zum Worker
     manifold.ts, mesh.ts      WASM-Singleton, Manifold → Rohdaten
@@ -32,6 +38,14 @@ src/
   i18n/                       de.ts, en.ts
   url-state.ts                Zustand ↔ URL-Hash
   units.ts                    mm/inch
+vite.config.ts                baut zusätzlich dist/de/ und dist/en/ mit eigenen Meta-Texten
+Caddyfile                     Weiterleitung / → /de/ oder /en/, SPA-Fallback
+```
+
+### Vorlagen
+
+Jede SVG-Datei in `src/presets/` erscheint automatisch als Vorlage. Die Reihenfolge folgt dem Dateinamen; eine führende Zahl (`1-star.svg`) sortiert nur. Der angezeigte Name kommt aus den Übersetzungen unter `presets.<name>` (z. B. `presets.star`), sonst aus dem Dateinamen. Ob die Form gefüllt oder als Linie gezeichnet ist, ist egal: Eingefügt wird ihr Umriss.
+
 ```
 
 Dateinamen sind kebab-case (per Biome-Regel erzwungen).
@@ -42,7 +56,7 @@ Pally (Indian Type Foundry, [ITF Free Font License](https://www.fontshare.com)) 
 
 ### Link-Format
 
-`#n=<Name>&<Parameter>=<Wert>&s=<Zeichnung>`. Parameter stehen nur drin, wenn sie vom Standard abweichen. Gespeichert wird die Zeichnung selbst, damit sie nach dem Öffnen genauso aussieht: die geglätteten Stiftpunkte jedes Strichs mit Strichstärke und, nach einem SVG-Import, dessen Silhouette als Fläche. Alles wird vereinfacht (Douglas-Peucker), auf das 1024er-Raster der Zeichenfläche gerundet, als ZigZag-Varint-Deltas kodiert, mit Deflate komprimiert und Base64url-kodiert. Das erste Varint ist die Formatversion. Version 1 (nur die Ausstecher-Kontur) wird weiterhin gelesen. Der Hash wird nie an den Server geschickt.
+`#n=<Name>&<Parameter>=<Wert>&s=<Zeichnung>`. Parameter stehen nur drin, wenn sie vom Standard abweichen. Gespeichert wird die Zeichnung selbst, damit sie nach dem Öffnen genauso aussieht: je Strich die geglätteten Stiftpunkte und die Strichstärke (Radierer mit negativer Breite) und, nach einem SVG-Import, dessen Silhouette als Fläche. Striche werden je nach Stärke vereinfacht (Douglas-Peucker, 1,5–4 px), auf 2 px gerundet und als verkettete ZigZag-Varint-Deltas kodiert; das Ganze wird mit Deflate komprimiert und Base64url-kodiert. Das erste Varint ist die Formatversion (aktuell 3); die Versionen 1 (nur Kontur) und 2 werden weiterhin gelesen. Geteilte Links haben keinen Sprachpfad, damit Empfänger in ihrer eigenen Sprache landen. Der Hash wird nie an den Server geschickt.
 
 ### Bambu Studio
 
@@ -50,12 +64,7 @@ Beim Öffnen eines 3MF meldet Bambu Studio „The 3mf file has invalid config, l
 
 ## Geplant
 
-- Eine API, an die man ein SVG schickt und den fertigen Ausstecher zurückbekommt (mit API-Token und Datenbank).
-- Vorlagen (Stern, Kreis, Quadrat, Herz) sowie Verschieben und Skalieren der Zeichnung, als Leiste unter der Zeichenfläche.
-- Formen ineinander: innere Formen werden zu inneren Klingen, verbunden durch Stege an der Falz.
-- Pinselvorschau beim Hover über der Zeichenfläche.
-
-Details in der Roadmap in [projects.md](projects.md).
+Eine API, an die man ein SVG schickt und den fertigen Ausstecher zurückbekommt (mit API-Token und Datenbank), siehe Roadmap in [projects.md](projects.md).
 
 ## Entwicklung
 

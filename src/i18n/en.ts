@@ -14,6 +14,7 @@ export const en: typeof de = {
     hintSub: "Closed lines get filled, shapes inside shapes cut out.",
     brush: "Brush size",
     undo: "Undo",
+    redo: "Redo",
     clear: "Clear",
     upload: "Upload SVG",
     drop: "Release to import",
