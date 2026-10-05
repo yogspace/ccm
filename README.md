@@ -11,7 +11,7 @@ Die Geometrie wird komplett im Browser erzeugt, der Server liefert nur statische
 - Live-Kontur (Schnittlinie) über der Zeichnung, 3D-Vorschau als Drehteller (im Uhrzeigersinn, abschaltbar); jeder neue Ausstecher bekommt eine andere Filamentfarbe
 - 3D-Kekse als Icons (live gerendert, schauen zur Maus, drehen sich beim Hover) und im Hintergrund
 - Maße in mm oder inch, Dateiname für den Export, Download als 3MF und STL (`<name>-80mm.3mf`)
-- Teilen: Der komplette Zustand steckt im URL-Hash; Link kopieren, WhatsApp, Telegram, E-Mail und (wo vorhanden) das System-Teilen-Menü
+- Teilen: Der komplette Zustand steckt im URL-Hash; Link kopieren und (wo vorhanden) das System-Teilen-Menü
 - Deutsch/Englisch (i18next), Light/Dark Mode, Impressum & Datenschutz als Dialog, Animationen mit `motion`
 - Favicon/Icons, Open-Graph-Bild, Manifest, `robots.txt`, `sitemap.xml` und JSON-LD in `public/` bzw. `index.html`
 

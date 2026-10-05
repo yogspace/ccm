@@ -38,9 +38,6 @@ importers:
       react-i18next:
         specifier: ^17.0.15
         version: 17.0.15(i18next@26.4.2(typescript@6.0.3))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@6.0.3)
-      simple-icons:
-        specifier: ^16.34.0
-        version: 16.34.0
       three:
         specifier: ^0.186.1
         version: 0.186.1
@@ -777,10 +774,6 @@ packages:
       '@types/node':
         optional: true
 
-  simple-icons@16.34.0:
-    resolution: {integrity: sha512-UTxKn0PVspk84B2hHF3Dqiqht1yDjJmDc/t4cO7PyCQxCMk6OjEu95pnpGjhLaGeQ4qBrGASbefTIe/+czrX7g==}
-    engines: {node: '>=0.12.18'}
-
   source-map-js@1.2.2:
     resolution: {integrity: sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==}
     engines: {node: '>=0.10.0'}
@@ -1418,8 +1411,6 @@ snapshots:
       '@img/sharp-win32-ia32': 0.35.5
       '@img/sharp-win32-x64': 0.35.5
       '@types/node': 24.19.1
-
-  simple-icons@16.34.0: {}
 
   source-map-js@1.2.2: {}
 

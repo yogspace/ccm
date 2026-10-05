@@ -57,9 +57,7 @@ export const en: typeof de = {
     text: "Check out my cookie cutter – tweak it and download it as 3MF/STL:",
     copy: "Copy link",
     copied: "Copied",
-    mail: "email",
-    more: "More apps …",
-    via: "Share via {{target}}",
+    more: "Share with an app …",
   },
   legal: {
     close: "Close",

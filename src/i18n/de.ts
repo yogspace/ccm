@@ -56,9 +56,7 @@ export const de = {
     text: "Schau mal, mein Ausstecher – direkt anpassen und als 3MF/STL herunterladen:",
     copy: "Link kopieren",
     copied: "Kopiert",
-    mail: "E-Mail",
-    more: "Weitere Apps …",
-    via: "Per {{target}} teilen",
+    more: "Mit einer App teilen …",
   },
   legal: {
     close: "Schließen",
