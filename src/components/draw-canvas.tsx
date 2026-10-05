@@ -1,11 +1,12 @@
 import {
-  Brush,
   FileUp,
   Maximize2,
   Minimize2,
   Trash2,
   Undo2,
+  Upload,
 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import {
   type CSSProperties,
   type DragEvent,
@@ -17,6 +18,8 @@ import {
 import { useTranslation } from "react-i18next";
 import { loadSilhouette, type Ring } from "../geometry/outline";
 import type { Unit } from "../units";
+import Button from "./button";
+import CookieIcon from "./cookie-icon";
 import DrawGrid from "./draw-grid";
 
 type Point = { x: number; y: number };
@@ -63,6 +66,8 @@ const DrawCanvas = ({
   const [empty, setEmpty] = useState(initialRings.length === 0);
   const [canUndo, setCanUndo] = useState(false);
   const [dragging, setDragging] = useState(false);
+  // Der Hinweis verschwindet schon beim Ansetzen des Stifts, nicht erst danach.
+  const [penDown, setPenDown] = useState(false);
 
   const context = () => canvasRef.current?.getContext("2d") ?? null;
 
@@ -177,12 +182,17 @@ const DrawCanvas = ({
     if (event.button !== 0) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     snapshot();
+    setPenDown(true);
     const point = toCanvas(event, event.currentTarget.getBoundingClientRect());
     pen.current = { smoothed: point, mid: point };
-    draw((ctx) => {
-      ctx.moveTo(point.x, point.y);
-      ctx.lineTo(point.x, point.y);
-    });
+    // Ein Tipp ohne Bewegung ergibt einen Punkt. Als Kreis gefüllt, weil Safari
+    // Linien der Länge null mit runden Enden nicht zeichnet.
+    const ctx = context();
+    if (!ctx) return;
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, brush / 2, 0, Math.PI * 2);
+    ctx.fill();
   };
 
   const move = (event: PointerEvent<HTMLCanvasElement>) => {
@@ -216,6 +226,7 @@ const DrawCanvas = ({
   const end = () => {
     const state = pen.current;
     if (!state) return;
+    setPenDown(false);
     draw((ctx) => {
       ctx.moveTo(state.mid.x, state.mid.y);
       ctx.lineTo(state.smoothed.x, state.smoothed.y);
@@ -271,7 +282,7 @@ const DrawCanvas = ({
             />
           </svg>
         )}
-        <button
+        <Button
           aria-label={t(expanded ? "draw.shrink" : "draw.expand")}
           aria-pressed={expanded}
           className="icon overlay"
@@ -284,14 +295,22 @@ const DrawCanvas = ({
           ) : (
             <Maximize2 aria-hidden size={18} />
           )}
-        </button>
-        {empty && !dragging && (
-          <div className="stage-hint">
-            <Brush aria-hidden size={28} strokeWidth={1.5} />
-            <strong>{t("draw.hint")}</strong>
-            <span>{t("draw.hintSub")}</span>
-          </div>
-        )}
+        </Button>
+        <AnimatePresence>
+          {empty && !dragging && !penDown && (
+            <motion.div
+              animate={{ opacity: 1, scale: 1 }}
+              className="stage-hint"
+              exit={{ opacity: 0, scale: 0.94 }}
+              initial={{ opacity: 0, scale: 0.94 }}
+              transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
+            >
+              <CookieIcon kind="heart" size={130} />
+              <strong>{t("draw.hint")}</strong>
+              <span>{t("draw.hintSub")}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
         {dragging && (
           <div className="stage-hint drop">
             <FileUp aria-hidden size={28} strokeWidth={1.5} />
@@ -322,7 +341,7 @@ const DrawCanvas = ({
           />
         </label>
         <div className="actions">
-          <button
+          <Button
             aria-label={t("draw.undo")}
             className="icon"
             disabled={!canUndo}
@@ -330,9 +349,9 @@ const DrawCanvas = ({
             title={t("draw.undo")}
             type="button"
           >
-            <Undo2 aria-hidden size={16} />
-          </button>
-          <button
+            <CookieIcon icing="#2a44ff" icon={Undo2} roll={-12} size={52} />
+          </Button>
+          <Button
             aria-label={t("draw.clear")}
             className="icon"
             disabled={empty}
@@ -340,12 +359,12 @@ const DrawCanvas = ({
             title={t("draw.clear")}
             type="button"
           >
-            <Trash2 aria-hidden size={16} />
-          </button>
-          <button onClick={() => inputRef.current?.click()} type="button">
-            <FileUp aria-hidden size={16} />
+            <CookieIcon icing="#ff5fa8" icon={Trash2} roll={9} size={52} />
+          </Button>
+          <Button onClick={() => inputRef.current?.click()} type="button">
+            <CookieIcon icing="#2a44ff" icon={Upload} roll={10} size={58} />
             {t("draw.upload")}
-          </button>
+          </Button>
           <input
             accept=".svg,image/svg+xml,image/png"
             hidden

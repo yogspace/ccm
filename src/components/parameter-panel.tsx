@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { type CutterParams, defaultParams } from "../geometry/cutter";
 import { formatLength, type Unit } from "../units";
+import Button from "./button";
 
 type Props = {
   params: CutterParams;
@@ -35,7 +36,7 @@ const ParameterPanel = ({ params, onChange, unit }: Props) => {
     <div className="params">
       <div className="params-head">
         <h3>{t("params.title")}</h3>
-        <button
+        <Button
           className="ghost"
           disabled={!changed}
           onClick={() => onChange(defaultParams)}
@@ -43,32 +44,32 @@ const ParameterPanel = ({ params, onChange, unit }: Props) => {
         >
           <RotateCcw aria-hidden size={14} />
           {t("params.reset")}
-        </button>
+        </Button>
       </div>
       <div className="params-grid">
         {fields.map(({ key, min, max, step }) => (
           <label key={key} title={t(`params.${key}`)}>
-            <span className="param-head">
-              <span className="param-label">{t(`params.${key}`)}</span>
+            <span className="param-label">{t(`params.${key}`)}</span>
+            <span className="param-row">
+              <input
+                max={max}
+                min={min}
+                onChange={(event) =>
+                  onChange({ ...params, [key]: Number(event.target.value) })
+                }
+                step={step}
+                style={
+                  {
+                    "--fill": `${((params[key] - min) / (max - min)) * 100}%`,
+                  } as CSSProperties
+                }
+                type="range"
+                value={params[key]}
+              />
               <output>
                 {formatLength(params[key], unit, i18n.resolvedLanguage)}
               </output>
             </span>
-            <input
-              max={max}
-              min={min}
-              onChange={(event) =>
-                onChange({ ...params, [key]: Number(event.target.value) })
-              }
-              step={step}
-              style={
-                {
-                  "--fill": `${((params[key] - min) / (max - min)) * 100}%`,
-                } as CSSProperties
-              }
-              type="range"
-              value={params[key]}
-            />
           </label>
         ))}
       </div>

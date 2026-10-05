@@ -89,7 +89,8 @@ const Preview3d = ({ mesh, shape, autoRotate, onUserRotate }: Props) => {
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.autoRotateSpeed = 1.2;
+    // Negativ: Das Modell dreht sich im Uhrzeigersinn (von oben gesehen).
+    controls.autoRotateSpeed = -1.2;
     controls.addEventListener("start", () => onUserRotateRef.current());
 
     let riseStart = -Infinity;

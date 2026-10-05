@@ -2,10 +2,12 @@ import { Check, Link, Mail, Share2 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type SimpleIcon, siTelegram, siWhatsapp } from "simple-icons";
+import Button from "./button";
+import CookieIcon from "./cookie-icon";
 
 type Props = {
-  /** Teilbarer Link, `null` solange es noch keine Form gibt. */
-  url: string | null;
+  /** Teilbarer Link – ohne Form einfach die Seite. */
+  url: string;
   name: string;
 };
 
@@ -52,7 +54,7 @@ const SharePanel = ({ url, name }: Props) => {
     {
       key: "telegram",
       label: "Telegram",
-      href: `https://t.me/share/url?url=${encode(url ?? "")}&text=${encode(text)}`,
+      href: `https://t.me/share/url?url=${encode(url)}&text=${encode(text)}`,
       icon: <BrandIcon icon={siTelegram} />,
     },
     {
@@ -64,7 +66,6 @@ const SharePanel = ({ url, name }: Props) => {
   ];
 
   const copy = async () => {
-    if (!url) return;
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
@@ -75,7 +76,6 @@ const SharePanel = ({ url, name }: Props) => {
   };
 
   const share = async () => {
-    if (!url) return;
     try {
       await navigator.share({ title, text, url });
     } catch (error) {
@@ -86,67 +86,48 @@ const SharePanel = ({ url, name }: Props) => {
   };
 
   return (
-    <div
-      className="share"
-      data-empty={!url || undefined}
-      title={url ? undefined : t("share.empty")}
-    >
-      <h3>{t("share.title")}</h3>
-      <button
+    <div className="share">
+      <span className="share-label">{t("share.title")}</span>
+      <Button
         className="copy"
         data-copied={copied || undefined}
-        disabled={!url}
         onClick={copy}
         type="button"
       >
         {copied ? (
           <Check aria-hidden key="check" size={15} />
         ) : (
-          <Link aria-hidden key="link" size={15} />
+          <CookieIcon icon={Link} key="link" roll={-22} size={52} />
         )}
         <span aria-live="polite">
           {copied ? t("share.copied") : t("share.copy")}
         </span>
-      </button>
+      </Button>
       <div className="share-targets">
-        {targets.map(({ key, label, href, icon }) =>
-          url ? (
-            <a
-              aria-label={t("share.via", { target: label })}
-              className="share-target"
-              data-target={key}
-              href={href}
-              key={key}
-              rel="noopener"
-              target="_blank"
-              title={t("share.via", { target: label })}
-            >
-              {icon}
-            </a>
-          ) : (
-            // Ohne Form gibt es noch nichts zu teilen – gleiche Optik, aber inaktiv.
-            <button
-              aria-label={t("share.via", { target: label })}
-              className="share-target"
-              disabled
-              key={key}
-              type="button"
-            >
-              {icon}
-            </button>
-          )
-        )}
+        {targets.map(({ key, label, href, icon }) => (
+          <a
+            aria-label={t("share.via", { target: label })}
+            className="share-target"
+            data-target={key}
+            href={href}
+            key={key}
+            rel="noopener"
+            target="_blank"
+            title={t("share.via", { target: label })}
+          >
+            {icon}
+          </a>
+        ))}
         {canShare && (
-          <button
+          <Button
             aria-label={t("share.more")}
             className="share-target"
-            disabled={!url}
             onClick={share}
             title={t("share.more")}
             type="button"
           >
             <Share2 aria-hidden size={15} />
-          </button>
+          </Button>
         )}
       </div>
     </div>

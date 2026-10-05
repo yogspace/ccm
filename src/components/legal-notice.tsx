@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
+import Button from "./button";
 
 const ADDRESS = (
   <address>
@@ -44,6 +45,11 @@ const German = () => (
       Sprache und Maßeinheit werden im lokalen Speicher deines Browsers
       abgelegt, damit sie beim nächsten Besuch erhalten bleiben. Es werden keine
       Cookies gesetzt und keine Analyse- oder Tracking-Dienste eingesetzt.
+    </p>
+    <p>
+      Die Schriftart „Pally“ (Indian Type Foundry, über Fontshare) wird vom
+      eigenen Server geladen. Beim Aufruf werden dafür keine Daten an Dritte
+      übertragen.
     </p>
     <h3>Hosting und Server-Logfiles</h3>
     <p>
@@ -94,6 +100,10 @@ const English = () => (
       persist between visits. No cookies are set and no analytics or tracking
       services are used.
     </p>
+    <p>
+      The typeface “Pally” (Indian Type Foundry, via Fontshare) is served from
+      our own server, so no data is sent to third parties to load it.
+    </p>
     <h3>Hosting and server logs</h3>
     <p>
       The site is hosted by Hetzner Online GmbH, Industriestr. 25, 91710
@@ -117,13 +127,13 @@ const LegalNotice = () => {
 
   return (
     <>
-      <button
+      <Button
         className="link"
         onClick={() => dialogRef.current?.showModal()}
         type="button"
       >
         {t("footer.imprint")}
-      </button>
+      </Button>
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: Escape schließt den Dialog nativ, der Klick ist nur für den Hintergrund */}
       <dialog
         aria-label={t("footer.imprint")}
@@ -135,14 +145,14 @@ const LegalNotice = () => {
         ref={dialogRef}
       >
         <div className="legal-body">
-          <button
+          <Button
             aria-label={t("legal.close")}
             className="icon ghost legal-close"
             onClick={() => dialogRef.current?.close()}
             type="button"
           >
             <X aria-hidden size={18} />
-          </button>
+          </Button>
           {i18n.resolvedLanguage === "de" ? <German /> : <English />}
         </div>
       </dialog>

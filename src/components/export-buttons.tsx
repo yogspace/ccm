@@ -4,6 +4,8 @@ import { download } from "../export/download";
 import { toStl } from "../export/stl";
 import { toThreeMf } from "../export/three-mf";
 import type { MeshData } from "../geometry/mesh";
+import Button from "./button";
+import CookieIcon from "./cookie-icon";
 
 type Props = {
   mesh: MeshData | null;
@@ -31,15 +33,15 @@ const ExportButtons = ({ mesh, name, size }: Props) => {
 
   return (
     <div className="actions">
-      <button
+      <Button
         disabled={!mesh}
         onClick={() => mesh && download(toStl(mesh), `${fileName}.stl`)}
         type="button"
       >
-        <Download aria-hidden size={16} />
+        <CookieIcon icing="#2a44ff" icon={Download} roll={-14} size={58} />
         {t("export.stl")}
-      </button>
-      <button
+      </Button>
+      <Button
         className="primary"
         disabled={!mesh}
         onClick={() =>
@@ -47,9 +49,9 @@ const ExportButtons = ({ mesh, name, size }: Props) => {
         }
         type="button"
       >
-        <Download aria-hidden size={16} />
+        <CookieIcon icon={Download} roll={12} size={58} />
         {t("export.threeMf")}
-      </button>
+      </Button>
     </div>
   );
 };

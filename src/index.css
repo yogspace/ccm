@@ -1,6 +1,19 @@
+/* Pally (Indian Type Foundry, ITF Free Font License), selbst gehostet –
+   die Datei holt scripts/fetch-fonts.mjs, sie liegt nicht im Repo. */
+@font-face {
+  font-family: "Pally";
+  src: url("/fonts/Pally-Variable.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   color-scheme: light dark;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    "Pally", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 1.0625rem;
+  font-weight: 500;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 
@@ -10,17 +23,17 @@
   --on-page-muted: rgb(255 255 255 / 0.74);
   --on-page-line: rgb(255 255 255 / 0.22);
   --on-page-soft: rgb(255 255 255 / 0.14);
-  /* Karten: dezentes Creme */
-  --surface: #fbf7ef;
-  --surface-2: #f3ecdf;
-  --paper: #fffdf8;
-  --text: #13173a;
-  --muted: #6f6a5e;
-  --border: #e6dccb;
+  /* Karten: dezentes Creme – flach, deckend, ohne Outlines */
+  --surface: #fdf8ef;
+  --surface-2: #f2e8d5;
+  --paper: #ffffff;
+  --text: #0d1033;
+  --muted: #5c6080;
+  --border: #e9dfcb;
   --accent: #2a44ff;
-  --accent-soft: color-mix(in oklab, var(--accent) 9%, transparent);
+  --accent-soft: #e3e7ff;
   --accent-text: #ffffff;
-  --success: #13b07b;
+  --success: #00b86b;
   /* Schnittlinie auf dem Papier */
   --cut: #2a44ff;
   --error: #d92d20;
@@ -32,13 +45,14 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --page: #141c86;
-    --surface: #10176a;
-    --surface-2: #171f7a;
-    --text: #f6efe2;
-    --muted: #a9b1dc;
-    --border: #2c3599;
-    --accent: #a3adff;
-    --accent-text: #141c86;
+    --surface: #0f1566;
+    --surface-2: #1c2491;
+    --text: #fff8ec;
+    --muted: #b4bbef;
+    --border: #252da0;
+    --accent: #8c9bff;
+    --accent-soft: #252ea6;
+    --accent-text: #0f1566;
     --error: #ff8a80;
   }
 }
@@ -79,29 +93,22 @@ button {
   height: 2.25rem;
   padding: 0 0.9rem;
   font: inherit;
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 1rem;
+  font-weight: 700;
   white-space: nowrap;
   color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--surface-2);
+  border: 0;
   border-radius: 0.6rem;
   cursor: pointer;
   transition:
     background 0.2s var(--ease),
-    border-color 0.2s var(--ease),
-    color 0.2s var(--ease),
-    transform 0.25s var(--ease-spring),
-    box-shadow 0.2s var(--ease);
+    color 0.2s var(--ease);
 }
 
+/* Anheben und Eindrücken animiert motion (components/button.tsx). */
 button:hover:not(:disabled) {
-  border-color: color-mix(in oklab, var(--accent) 50%, var(--border));
-  transform: translateY(-1px);
-}
-
-button:active:not(:disabled) {
-  transform: scale(0.95);
+  background: color-mix(in oklab, var(--surface-2) 82%, var(--text));
 }
 
 button:focus-visible,
@@ -134,7 +141,7 @@ button.primary {
 }
 
 button.primary:hover:not(:disabled) {
-  border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 86%, #000);
 }
 
 button.ghost {
@@ -248,33 +255,35 @@ input[type="range"]:active::-moz-range-thumb {
 }
 
 .masthead h1 {
-  font-size: 1.25rem;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.015em;
+  /* Pally endet bei 700 – die Kontur macht die Headline noch satter. */
+  -webkit-text-stroke: 0.035em currentColor;
+  paint-order: stroke fill;
 }
 
 .masthead p {
   color: var(--on-page-muted);
-  font-size: 0.875rem;
+  font-size: 1rem;
 }
 
 .logo {
-  flex-shrink: 0;
-  box-sizing: content-box;
-  padding: 0.5rem;
-  color: var(--on-page);
-  background: var(--on-page-soft);
-  border-radius: 0.9rem;
-  transition: transform 0.6s var(--ease-spring);
+  margin: -1rem -0.6rem -1rem -0.9rem;
+  transition:
+    rotate 0.6s var(--ease-spring),
+    scale 0.6s var(--ease-spring);
 }
 
 .masthead:hover .logo {
-  transform: rotate(-25deg) scale(1.08);
+  rotate: -25deg;
+  scale: 1.1;
 }
 
 .switches {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .switch {
@@ -285,7 +294,7 @@ input[type="range"]:active::-moz-range-thumb {
 .switch button {
   height: 2rem;
   padding: 0 0.55rem;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   letter-spacing: 0.04em;
   color: var(--muted);
   background: transparent;
@@ -294,13 +303,26 @@ input[type="range"]:active::-moz-range-thumb {
 
 .switch button:hover:not(:disabled) {
   color: var(--text);
-  border-color: transparent;
-  transform: none;
+  background: transparent;
+}
+
+.switch button {
+  position: relative;
 }
 
 .switch button[aria-pressed="true"] {
   color: var(--accent);
+}
+
+.switch-pill {
+  position: absolute;
+  inset: 0;
   background: var(--accent-soft);
+  border-radius: inherit;
+}
+
+.switch-label {
+  position: relative;
 }
 
 .masthead .switch button {
@@ -311,15 +333,38 @@ input[type="range"]:active::-moz-range-thumb {
   color: var(--on-page);
 }
 
+.masthead .switch {
+  align-items: center;
+  padding: 0.2rem;
+  border-radius: 999px;
+}
+
+.masthead .switch button {
+  height: 1.8rem;
+  border-radius: 999px;
+}
+
 .masthead .switch button[aria-pressed="true"] {
-  color: var(--on-page);
+  color: var(--page);
+}
+
+.masthead .switch-pill {
+  background: var(--on-page);
+}
+
+/* Die Einheit hebt sich mit Fläche und Lineal-Icon leicht von der Sprache ab. */
+.masthead .unit-switch {
+  gap: 0.15rem;
+  padding-left: 0.6rem;
+  color: var(--on-page-muted);
   background: var(--on-page-soft);
+  border-color: transparent;
 }
 
 /* Desktop: Leiste über Form und Ausstecher, alles in Fensterhöhe. Die
    Zeichenfläche richtet sich nach der Höhe, die 3D-Ansicht füllt den Rest. */
 .layout {
-  --stage-size: min(100%, max(20rem, calc(100dvh - 24rem)));
+  --stage-size: min(100%, max(20rem, calc(100dvh - 23.75rem)));
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-areas:
@@ -400,7 +445,6 @@ input[type="range"]:active::-moz-range-thumb {
   gap: 0.75rem;
   padding: 1rem 1.25rem 1.25rem;
   background: var(--surface);
-  border: 1px solid var(--border);
   border-radius: calc(var(--radius) + 0.35rem);
   animation: rise 0.6s var(--ease) both;
 }
@@ -425,26 +469,20 @@ input[type="range"]:active::-moz-range-thumb {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  font-size: 1.05rem;
-  letter-spacing: -0.01em;
-}
-
-.step {
-  display: grid;
-  place-items: center;
-  width: 1.6rem;
-  height: 1.6rem;
-  font-size: 0.8rem;
-  color: var(--accent);
-  background: var(--accent-soft);
-  border-radius: 50%;
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.015em;
+  -webkit-text-stroke: 0.02em currentColor;
+  paint-order: stroke fill;
 }
 
 .dims {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 0.875rem;
+  font-size: 1rem;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
   animation: fade 0.3s var(--ease);
@@ -462,7 +500,6 @@ input[type="range"]:active::-moz-range-thumb {
     transparent 1px
   );
   background-size: 22px 22px;
-  border: 1px solid var(--border);
   border-radius: var(--radius);
   transition:
     border-color 0.2s var(--ease),
@@ -471,7 +508,6 @@ input[type="range"]:active::-moz-range-thumb {
 }
 
 .stage[data-dragging] {
-  border-color: var(--accent);
   background-color: var(--accent-soft);
   transform: scale(0.985);
 }
@@ -481,16 +517,15 @@ input[type="range"]:active::-moz-range-thumb {
    hellen Farben für alles, was darauf liegt. */
 .stage.paper {
   --accent: #2a44ff;
-  --accent-soft: color-mix(in oklab, #2a44ff 8%, transparent);
-  --surface: #fffdf8;
-  --surface-2: #f3ecdf;
-  --border: #e6dccb;
-  --muted: #6f6a5e;
-  --text: #13173a;
+  --accent-soft: #e3e7ff;
+  --surface: #ffffff;
+  --surface-2: #f2e8d5;
+  --border: #e9dfcb;
+  --muted: #5c6080;
+  --text: #0d1033;
   color: var(--text);
   background-color: var(--paper);
   background-image: none;
-  border-color: var(--border);
 }
 
 /* Koordinatensystem unter der Zeichnung */
@@ -498,6 +533,12 @@ input[type="range"]:active::-moz-range-thumb {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  opacity: 0.7;
+  transition: opacity 0.3s var(--ease);
+}
+
+.stage:hover .grid {
+  opacity: 1;
 }
 
 .grid-lines {
@@ -525,7 +566,7 @@ input[type="range"]:active::-moz-range-thumb {
 
 .tick {
   position: absolute;
-  font-size: 0.65rem;
+  font-size: 0.72rem;
   line-height: 1;
   font-variant-numeric: tabular-nums;
   color: #9a917f;
@@ -544,13 +585,12 @@ input[type="range"]:active::-moz-range-thumb {
 .tick.unit {
   top: 0.4rem;
   left: 0.4rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--muted);
 }
 
 .stage.paper[data-dragging] {
-  border-color: var(--cut);
-  background-color: #f2f4ff;
+  background-color: #e3e7ff;
 }
 
 .drawing {
@@ -599,7 +639,7 @@ input[type="range"]:active::-moz-range-thumb {
 
 .stage-hint strong {
   color: var(--text);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .viewer .stage-hint {
@@ -642,6 +682,65 @@ button.overlay {
 
 button.overlay[aria-pressed="true"] {
   color: var(--accent);
+}
+
+/* ---------- 3D-Kekse ---------- */
+
+/* Drehen, Hüpfen und Mausblick passieren in 3D (src/cookies/renderer.ts). */
+.cookie {
+  display: block;
+  flex-shrink: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+button .cookie {
+  margin: -1rem -0.3rem -1rem -0.7rem;
+}
+
+.stage-hint .cookie {
+  margin: -0.75rem 0 -0.25rem;
+}
+
+.dims .cookie {
+  margin: -0.7rem -0.2rem -0.7rem -0.5rem;
+}
+
+button.icon .cookie {
+  margin: -0.6rem;
+}
+
+/* Icon-Buttons mit Keks: keine Fläche dahinter, nur der schwebende Keks. */
+button.icon:has(.cookie),
+button.icon:has(.cookie):hover:not(:disabled) {
+  background: transparent;
+}
+
+button:disabled .cookie {
+  filter: grayscale(0.6);
+}
+
+.masthead .switch .cookie {
+  margin: -0.7rem -0.2rem -0.7rem -0.5rem;
+}
+
+/* Hintergrund-Kekse: liegen hinter allem auf der blauen Fläche. */
+.cookie-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.cookie-spot {
+  position: absolute;
+  translate: -50% -50%;
+}
+
+.app > :not(.cookie-background) {
+  position: relative;
+  z-index: 1;
 }
 
 /* ---------- Werkzeugleisten ---------- */
@@ -695,43 +794,42 @@ button.overlay[aria-pressed="true"] {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem 2rem;
-  padding: 0.75rem 1.25rem;
-}
-
-.bar-fields {
-  display: grid;
-  grid-template-columns: auto minmax(0, 18rem);
-  align-items: center;
-  gap: 0.4rem 0.9rem;
+  padding: 1rem 1rem 1rem 1.25rem;
 }
 
 .bar-field {
-  display: contents;
-  font-size: 0.875rem;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 0.9rem;
+  max-width: 28rem;
+  font-size: 1rem;
   color: var(--muted);
 }
 
 .bar-field input {
-  height: 2rem;
-  padding: 0 0.7rem;
+  flex: 1;
+  min-width: 0;
+  height: 2.4rem;
+  padding: 0 1.1rem;
   font: inherit;
   color: var(--text);
   background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 0.55rem;
+  border: 0;
+  border-radius: 999px;
+  outline: 2px solid transparent;
   transition:
-    border-color 0.2s var(--ease),
+    outline-color 0.2s var(--ease),
     background 0.2s var(--ease);
 }
 
-.bar-field input:hover {
-  border-color: color-mix(in oklab, var(--accent) 30%, var(--border));
+.bar-field input::placeholder {
+  color: var(--muted);
 }
 
 .bar-field input:focus {
-  outline: none;
-  background: var(--surface);
-  border-color: var(--accent);
+  background: var(--paper);
+  outline-color: var(--accent);
 }
 
 /* ---------- Maße unter der 3D-Ansicht ---------- */
@@ -749,9 +847,9 @@ button.overlay[aria-pressed="true"] {
 }
 
 .params-head h3 {
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -778,24 +876,32 @@ button.overlay[aria-pressed="true"] {
   display: flex;
   flex-direction: column;
   gap: 0.05rem;
-  font-size: 0.8rem;
-}
-
-.param-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.4rem;
-  min-width: 0;
-  color: var(--muted);
-  white-space: nowrap;
+  font-size: 0.95rem;
 }
 
 .param-label {
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
 }
 
-.param-head output {
+.param-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.param-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.param-row output {
+  min-width: 2.6rem;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
@@ -805,7 +911,7 @@ button.overlay[aria-pressed="true"] {
 .hints {
   align-self: flex-end;
   max-width: 26rem;
-  font-size: 0.875rem;
+  font-size: 0.95rem;
   color: var(--muted);
 }
 
@@ -846,7 +952,7 @@ button.overlay[aria-pressed="true"] {
 
 .error {
   padding: 0.6rem 0.8rem;
-  font-size: 0.875rem;
+  font-size: 0.95rem;
   color: var(--error);
   background: color-mix(in oklab, var(--error) 10%, transparent);
   border-radius: 0.6rem;
@@ -863,8 +969,7 @@ footer {
   gap: 0.5rem 1.5rem;
   margin-top: auto;
   padding-top: 1.25rem;
-  border-top: 1px solid var(--on-page-line);
-  font-size: 0.875rem;
+  font-size: 0.95rem;
   color: var(--on-page-muted);
 }
 
@@ -904,18 +1009,17 @@ footer a:hover {
 
 /* Teilen, rechts in der Leiste */
 .share {
-  display: grid;
-  grid-template-columns: auto auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.4rem 0.6rem;
+  gap: 0.5rem 0.6rem;
   transition: opacity 0.2s var(--ease);
 }
 
-.share h3 {
-  grid-column: 1 / -1;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+.share-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -936,7 +1040,7 @@ footer a:hover {
 }
 
 .share button.copy:hover:not(:disabled) {
-  border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 86%, #000);
 }
 
 .share button.copy[data-copied] {
@@ -957,13 +1061,12 @@ footer a:hover {
   padding: 0;
   color: var(--text);
   background: var(--surface-2);
-  border: 1px solid var(--border);
+  border: 0;
   border-radius: 50%;
   cursor: pointer;
   transition:
     transform 0.3s var(--ease-spring),
     background 0.2s var(--ease),
-    border-color 0.2s var(--ease),
     color 0.2s var(--ease);
 }
 
@@ -999,7 +1102,7 @@ button.link {
 
 button.link:hover:not(:disabled) {
   color: var(--text);
-  transform: none;
+  background: none;
 }
 
 footer button.link {
@@ -1018,7 +1121,6 @@ dialog.legal {
   padding: 0;
   color: var(--text);
   background: var(--surface);
-  border: 1px solid var(--border);
   border-radius: calc(var(--radius) + 0.35rem);
   opacity: 0;
   transform: translateY(16px) scale(0.98);
@@ -1066,7 +1168,7 @@ dialog.legal[open]::backdrop {
 .legal-body {
   position: relative;
   padding: 1.75rem 2rem 2rem;
-  font-size: 0.9rem;
+  font-size: 1rem;
 }
 
 .legal-close {
@@ -1076,7 +1178,7 @@ dialog.legal[open]::backdrop {
 }
 
 .legal h2 {
-  font-size: 1.15rem;
+  font-size: 1.35rem;
   letter-spacing: -0.01em;
 }
 
@@ -1086,7 +1188,7 @@ dialog.legal[open]::backdrop {
 
 .legal h3 {
   margin: 1.1rem 0 0.3rem;
-  font-size: 0.875rem;
+  font-size: 0.95rem;
 }
 
 .legal p,
@@ -1159,7 +1261,18 @@ button.ghost:hover:not(:disabled) svg {
 
 @keyframes bob {
   50% {
-    transform: translateY(-5px);
+    translate: 0 -6px;
+  }
+}
+
+@keyframes cookie-hop {
+  35% {
+    translate: 0 -6px;
+    rotate: -20deg;
+  }
+  70% {
+    translate: 0 0;
+    rotate: 12deg;
   }
 }
 
@@ -1177,7 +1290,7 @@ button.ghost:hover:not(:disabled) svg {
 
 @keyframes spin {
   to {
-    transform: rotate(360deg);
+    rotate: 360deg;
   }
 }
 
