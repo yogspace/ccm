@@ -64,6 +64,15 @@ const German = () => (
       bereitzustellen und ihre Sicherheit zu gewährleisten. Rechtsgrundlage ist
       Art. 6 Abs. 1 lit. f DSGVO.
     </p>
+    <h3>Kekse spendieren über PayPal</h3>
+    <p>
+      Der Link „Spendier mir ’nen Keks“ führt zu PayPal (PayPal (Europe) S.à
+      r.l. et Cie, S.C.A., 22–24 Boulevard Royal, L-2449 Luxemburg). Daten gehen
+      erst an PayPal, wenn du ihn anklickst; dort gelten die Datenschutzhinweise
+      von PayPal. Schickst du etwas, erhalte ich von PayPal deinen Namen, deine
+      E-Mail-Adresse und den Betrag und nutze sie nur für die Abwicklung und
+      meine Buchhaltung (Art. 6 Abs. 1 lit. b und c DSGVO).
+    </p>
     <h3>Deine Rechte</h3>
     <p>
       Du hast das Recht auf Auskunft (Art. 15 DSGVO), Berichtigung (Art. 16),
@@ -127,6 +136,15 @@ const English = () => (
       technically necessary data (IP address, date and time, requested file,
       browser type and operating system) is processed in server logs to deliver
       the site and keep it secure. Legal basis: Art. 6 (1) (f) GDPR.
+    </p>
+    <h3>Buying me a cookie via PayPal</h3>
+    <p>
+      The “Buy me a cookie” link leads to PayPal (PayPal (Europe) S.à r.l. et
+      Cie, S.C.A., 22–24 Boulevard Royal, L-2449 Luxembourg). No data goes to
+      PayPal until you click it; PayPal’s privacy notice applies there. If you
+      send something, PayPal passes me your name, email address and the amount,
+      which I use only to process it and for my bookkeeping (Art. 6 (1) (b) and
+      (c) GDPR).
     </p>
     <h3>Your rights</h3>
     <p>

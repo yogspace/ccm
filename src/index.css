@@ -1218,6 +1218,7 @@ footer {
   position: absolute;
   top: 50%;
   left: 50%;
+  display: block;
   width: 0.65rem;
   height: 0.24rem;
   background: var(--color);

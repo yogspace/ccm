@@ -26,3 +26,6 @@ dist-ssr
 # Schrift (ITF Free Font License): wird von scripts/fetch-fonts.mjs geholt,
 # darf nicht weitergegeben werden – also nicht ins (öffentliche) Repo.
 public/fonts/
+
+# Lokale Claude-Code-Einstellungen (Freigaben usw.)
+.claude/
