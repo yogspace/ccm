@@ -554,13 +554,22 @@ input[type="range"]:active::-moz-range-thumb {
     container-type: size;
   }
 
+  /* Vergrößert: volle Breite, so hoch wie das Fenster – die Leisten stehen
+     dann neben der Fläche (siehe Werkzeugleisten). */
+  .layout[data-expanded] .draw-area {
+    align-items: center;
+    width: 100%;
+    height: clamp(26rem, 100dvh - 7rem, 64rem);
+    container-type: size;
+  }
+
   /* Kantenlänge der Fläche: der Platz der Karte minus dem, was die Leisten
      daneben (--chrome-w) und darunter (--chrome-h) brauchen. Beides misst
      draw-canvas.tsx; die Werte hier gelten nur bis zur ersten Messung. */
-  .layout:not([data-expanded]) .draw-grid {
+  .draw-grid {
     --s: max(
       12rem,
-      min(100cqw - var(--chrome-w, 0px), 100cqh - var(--chrome-h, 8rem))
+      min(60rem, 100cqw - var(--chrome-w, 0px), 100cqh - var(--chrome-h, 8rem))
     );
   }
 }
@@ -1135,11 +1144,13 @@ button.preset:hover:not(:disabled) {
   margin-top: 0.45rem;
 }
 
-/* Ist die Karte breiter als hoch, stehen die Leisten neben der Fläche und
-   sie wird größer: links die Werkzeuge (oben malen, unten rückgängig &
-   löschen), rechts die Vorlagen untereinander, darunter nur die Pinselstärke.
-   Gibt es nur auf dem Desktop – nur dort kennt der Container seine Höhe. */
-@container draw (aspect-ratio >= 1.01) and (width >= 30rem) {
+/* Ist die Karte nicht deutlich höher als breit, stehen die Leisten neben der
+   Fläche und sie wird größer: links die Werkzeuge (oben malen, unten
+   rückgängig & löschen), rechts die Vorlagen untereinander, darunter nur die
+   Pinselstärke. Darunter brauchen die Leisten gut 4× so viel Höhe wie daneben
+   Breite – deshalb lohnt es sich schon ab 0.88. Nur auf dem Desktop (auch
+   vergrößert): nur dort kennt der Container seine Höhe. */
+@container draw (aspect-ratio >= 0.88) and (width >= 30rem) {
   .draw-grid {
     /* So schmal wie eine Vorlagen-Karte – sonst lohnt sich der Platz daneben nicht */
     --rail: 3.1rem;
