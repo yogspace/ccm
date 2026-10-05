@@ -1,4 +1,4 @@
-import { type CSSProperties, useState } from "react";
+import { type CSSProperties, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import CookieIcon from "./cookie-icon";
 
@@ -13,8 +13,8 @@ const SPRINKLES = Array.from({ length: 14 }, (_, i) => ({
 /** Spendenlink als Sonnen-Keks am rechten Rand des Footers, die Schrift liegt auf dem Guss. */
 const DonateBadge = () => {
   const { t } = useTranslation();
-  // Schrift erst, wenn die Sonne da ist – sonst stünde sie kurz im Leeren.
-  const [shown, setShown] = useState(false);
+  // Die Schrift wächst mit der Sonne herein (direkt am Element, ohne Re-Render).
+  const textRef = useRef<HTMLSpanElement>(null);
 
   return (
     <a
@@ -44,13 +44,15 @@ const DonateBadge = () => {
       <CookieIcon
         interactive={false}
         kind="sun"
-        onAppear={() => setShown(true)}
+        onGrow={(scale) =>
+          textRef.current?.style.setProperty("scale", String(scale))
+        }
         size={120}
         spin
         spinSpeed={0.35}
         tilt={-0.15}
       />
-      <span className="donate-text" data-shown={shown || undefined}>
+      <span className="donate-text" ref={textRef}>
         <small>{t("footer.donateTop")}</small>
         {t("footer.donateMain")}
       </span>

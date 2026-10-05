@@ -47,8 +47,8 @@ type Entry = {
   appear: Spring;
   /** Ab hier wächst der Keks (performance.now()-Zeit). */
   appearAt: number;
-  /** Einmal gemeldet, sobald der Keks fast ganz da ist. */
-  onAppear?: () => void;
+  /** Meldet beim Einwachsen jeden Frame die Größe (0…1), zuletzt genau 1. */
+  onGrow?: (scale: number) => void;
   spin: boolean;
   /** Drehgeschwindigkeit in der Bildebene (rad/ms), solange `spin` an ist. */
   spinSpeed: number;
@@ -173,9 +173,10 @@ const tick = (time: number) => {
     // Kritisch gedämpft: wächst weich herein, ohne aufzuploppen.
     const waiting = time < entry.appearAt;
     if (!waiting) step(entry.appear, dt, 120, 22);
-    if (entry.onAppear && entry.appear.value > 0.85) {
-      entry.onAppear();
-      entry.onAppear = undefined;
+    if (entry.onGrow) {
+      const done = settled(entry.appear);
+      entry.onGrow(done ? 1 : Math.max(0, entry.appear.value));
+      if (done) entry.onGrow = undefined;
     }
     if (settled(entry.flip)) {
       // Nach einer vollen Drehung wieder bei 0 anfangen.
@@ -226,7 +227,7 @@ export const registerCookie = (
     delay = 0,
     spin = false,
     spinSpeed = 1 / 260,
-    onAppear,
+    onGrow,
   }: {
     tilt?: number;
     roll?: number;
@@ -235,8 +236,8 @@ export const registerCookie = (
     delay?: number;
     spin?: boolean;
     spinSpeed?: number;
-    /** Wird einmal aufgerufen, wenn der Keks hereingewachsen ist. */
-    onAppear?: () => void;
+    /** Größe beim Einwachsen (0…1), z. B. damit Schrift darauf mitwächst. */
+    onGrow?: (scale: number) => void;
   } = {}
 ): CookieHandle => {
   if (!renderer) setup();
@@ -255,7 +256,7 @@ export const registerCookie = (
     squash: spring(),
     appear: { value: reduceMotion ? 1 : 0, velocity: 0, target: 1 },
     appearAt: performance.now() + (reduceMotion ? 0 : delay),
-    onAppear,
+    onGrow,
     spin,
     spinSpeed,
     phase: Math.random() * Math.PI * 2,
