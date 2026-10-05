@@ -16,6 +16,12 @@ pnpm build        # → dist/
 
 ## Deployment
 
+Gearbeitet wird auf `development`. Ausgerollt wird mit:
+
+```bash
+make deploy   # pusht development, merged nach main, pusht main, zurück auf development
+```
+
 Push auf `main` → GitHub Actions ([`deploy.yml`](.github/workflows/deploy.yml)):
 
 1. **verify:** Biome + TypeScript
