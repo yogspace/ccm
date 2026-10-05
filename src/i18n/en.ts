@@ -24,7 +24,8 @@ export const en: typeof de = {
     pen: "Pen",
     eraser: "Eraser",
     move: "Move shapes",
-    moveHint: "Drag a shape · corners rotate & scale · Del removes",
+    moveHint:
+      "Drag a shape · drag a box to pick several · corners rotate & scale · Del removes",
     presets: "Templates",
     removeSelection: "Remove the selected shape (Del)",
     insert: "Insert {{name}}",
@@ -102,5 +103,6 @@ export const en: typeof de = {
     read: "The file could not be read.",
     invalidSvg: "Not a valid SVG file.",
     noCanvas: "Your browser does not support canvas.",
+    empty: "No shape found in this file.",
   },
 };

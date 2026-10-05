@@ -1298,6 +1298,16 @@ button.remove-chip {
   translate: -50% -50%;
 }
 
+/* Rahmen, den man auf freier Fläche aufzieht, um mehrere zu wählen */
+.marquee {
+  position: absolute;
+  z-index: 1;
+  background: color-mix(in oklab, var(--accent) 10%, transparent);
+  border: 1.5px dashed var(--accent);
+  border-radius: 3px;
+  pointer-events: none;
+}
+
 /* Auswahl beim Verschieben: Rahmen mit Anfassern an den Ecken */
 .selection {
   position: absolute;

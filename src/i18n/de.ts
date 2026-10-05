@@ -24,7 +24,8 @@ export const de = {
     pen: "Stift",
     eraser: "Radiergummi",
     move: "Formen verschieben",
-    moveHint: "Form ziehen · Ecken drehen & skalieren · Entf löscht",
+    moveHint:
+      "Form ziehen · Rahmen aufziehen für mehrere · Ecken drehen & skalieren · Entf löscht",
     presets: "Vorlagen",
     removeSelection: "Ausgewählte Form entfernen (Entf)",
     insert: "{{name}} einfügen",
@@ -103,5 +104,6 @@ export const de = {
     read: "Datei konnte nicht gelesen werden.",
     invalidSvg: "Keine gültige SVG-Datei.",
     noCanvas: "Dein Browser unterstützt kein Canvas.",
+    empty: "In der Datei wurde keine Form gefunden.",
   },
 };

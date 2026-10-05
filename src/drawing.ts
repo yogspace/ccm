@@ -74,6 +74,12 @@ export type Box = { x0: number; y0: number; x1: number; y1: number };
 const isEmpty = (selection: Selection) =>
   selection.strokes.length === 0 && selection.rings.length === 0;
 
+/** Beides zusammen, ohne Doppelte – z. B. Auswahl plus Umschalt-Klick. */
+export const mergeSelections = (a: Selection, b: Selection): Selection => ({
+  strokes: [...new Set([...a.strokes, ...b.strokes])].sort((x, y) => x - y),
+  rings: [...new Set([...a.rings, ...b.rings])].sort((x, y) => x - y),
+});
+
 /** Rahmen um die Auswahl in Zeichenflächen-Pixeln, samt Strichbreite. */
 export const selectionBox = (
   drawing: Drawing,
@@ -482,7 +488,43 @@ const scanObjects = (drawing: Drawing) => {
     return roots;
   };
 
-  return { labelNear, find, collect, rootsOf, eraserRoots };
+  /** Rahmen der Tinte je Objekt (Raster), erst bei Bedarf berechnet. */
+  let rootBoxes: Map<number, Box> | null = null;
+  /** Wurzeln aller Objekte, deren Tinte ganz im Rechteck (Zeichenflächen-Pixel) liegt. */
+  const rootsWithin = (area: Box) => {
+    if (!rootBoxes) {
+      rootBoxes = new Map();
+      for (let cell = 0; cell < labels.length; cell++) {
+        if (!labels[cell]) continue;
+        const root = find(labels[cell]);
+        const x = cell % GROUP_RES;
+        const y = (cell - x) / GROUP_RES;
+        const known = rootBoxes.get(root);
+        if (!known) rootBoxes.set(root, { x0: x, y0: y, x1: x, y1: y });
+        else {
+          known.x0 = Math.min(known.x0, x);
+          known.y0 = Math.min(known.y0, y);
+          known.x1 = Math.max(known.x1, x);
+          known.y1 = Math.max(known.y1, y);
+        }
+      }
+    }
+    const roots = new Set<number>();
+    for (const [root, cells] of rootBoxes) {
+      // Mitten der Rasterzellen in Zeichenflächen-Pixeln
+      if (
+        (cells.x0 + 0.5) / toGrid >= area.x0 &&
+        (cells.y0 + 0.5) / toGrid >= area.y0 &&
+        (cells.x1 + 0.5) / toGrid <= area.x1 &&
+        (cells.y1 + 0.5) / toGrid <= area.y1
+      ) {
+        roots.add(root);
+      }
+    }
+    return roots;
+  };
+
+  return { labelNear, find, collect, rootsOf, rootsWithin, eraserRoots };
 };
 
 /** Das Objekt unter einem Punkt (Zeichenflächen-Pixel), sonst `null`. */
@@ -499,6 +541,19 @@ export const objectAt = (
   );
   if (!hit) return null;
   const selection = objects.collect(new Set([objects.find(hit)]));
+  return isEmpty(selection) ? null : selection;
+};
+
+/** Alle Objekte, die ganz im Rechteck (Zeichenflächen-Pixel) liegen – Auswahl per Rahmen. */
+export const objectsWithin = (
+  drawing: Drawing,
+  area: Box
+): Selection | null => {
+  const objects = findObjects(drawing);
+  if (!objects) return null;
+  const roots = objects.rootsWithin(area);
+  if (roots.size === 0) return null;
+  const selection = objects.collect(roots);
   return isEmpty(selection) ? null : selection;
 };
 

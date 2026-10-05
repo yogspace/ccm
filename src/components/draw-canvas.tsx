@@ -18,7 +18,9 @@ import {
   type Box,
   DRAW_RES,
   detachErasers,
+  mergeSelections,
   objectAt,
+  objectsWithin,
   paint,
   presetStrokes,
   removeSelection,
@@ -128,6 +130,13 @@ const inside = (box: Box, [x, y]: Point, reach: number) =>
   x <= box.x1 + reach &&
   y >= box.y0 - reach &&
   y <= box.y1 + reach;
+/** Rechteck zwischen zwei Punkten, egal in welche Richtung gezogen. */
+const boxBetween = (a: Point, b: Point): Box => ({
+  x0: Math.min(a[0], b[0]),
+  y0: Math.min(a[1], b[1]),
+  x1: Math.max(a[0], b[0]),
+  y1: Math.max(a[1], b[1]),
+});
 const corners = (box: Box): Point[] => [
   [box.x0, box.y0],
   [box.x1, box.y0],
@@ -168,6 +177,11 @@ const DrawCanvas = () => {
   /** Rückgängig Gemachtes, für Wiederholen – jede neue Aktion leert es. */
   const future = useRef<Snapshot[]>([]);
   const gesture = useRef<Gesture | null>(null);
+  /** Auswahl per Rahmen: Startpunkt und – mit Umschalttaste – die Auswahl davor. */
+  const marquee = useRef<{ origin: Point; base: Selection | null } | null>(
+    null
+  );
+  const [marqueeBox, setMarqueeBox] = useState<Box | null>(null);
   const pointers = useRef(new Map<number, Point>());
   const wheel = useRef<{ before: Snapshot; timer: number } | null>(null);
   const widthEdit = useRef<{ before: Snapshot; timer: number } | null>(null);
@@ -367,6 +381,8 @@ const DrawCanvas = () => {
 
   const chooseTool = (next: Tool) => {
     store.tool = next;
+    marquee.current = null;
+    setMarqueeBox(null);
     select(null);
     hideBrush();
   };
@@ -608,6 +624,13 @@ const DrawCanvas = () => {
     pointers.current.set(event.pointerId, point);
     const current = gesture.current;
 
+    // Ein zweiter Finger bricht den Rahmen ab.
+    if (marquee.current && pointers.current.size > 1) {
+      marquee.current = null;
+      setMarqueeBox(null);
+      return;
+    }
+
     // Zweiter Finger: Zwei-Finger-Geste skaliert, dreht und verschiebt.
     if (current && pointers.current.size === 2) {
       const [a, b] = [...pointers.current.values()];
@@ -650,13 +673,27 @@ const DrawCanvas = () => {
       }
     }
     const found = objectAt(drawing.current, point, reach);
+    if (!found) {
+      // Freie Fläche: Rahmen aufziehen – mit Umschalttaste kommt dazu, was
+      // er einfängt, sonst ersetzt es die Auswahl.
+      if (!event.shiftKey) select(null);
+      marquee.current = {
+        origin: point,
+        base: event.shiftKey ? selection : null,
+      };
+      setMarqueeBox(boxBetween(point, point));
+      return;
+    }
+    // Mit Umschalttaste kommt das Objekt zur Auswahl dazu.
+    const wanted =
+      event.shiftKey && selection ? mergeSelections(selection, found) : found;
     // Radierer, die auch andere Objekte betreffen, werden für dieses verdoppelt.
-    const detached = found ? detachErasers(drawing.current, found) : null;
-    if (detached) drawing.current = detached.drawing;
-    const hit = detached?.selection ?? null;
+    const detached = detachErasers(drawing.current, wanted);
+    drawing.current = detached.drawing;
+    const hit = detached.selection;
     select(hit);
-    const hitBox = hit ? selectionBox(drawing.current, hit) : null;
-    if (hit && hitBox) {
+    const hitBox = selectionBox(drawing.current, hit);
+    if (hitBox) {
       gesture.current = {
         kind: "drag",
         start: drawing.current,
@@ -678,7 +715,14 @@ const DrawCanvas = () => {
     }
     const current = gesture.current;
 
-    // Ohne Geste nur den Zeiger anpassen: Anfasser, Ecke, Objekt oder nichts.
+    const area = marquee.current;
+    if (area) {
+      setMarqueeBox(boxBetween(area.origin, point));
+      return;
+    }
+
+    // Ohne Geste nur den Zeiger anpassen: Anfasser, Ecke, Objekt – oder
+    // ein Fadenkreuz, wo man einen Rahmen aufziehen kann.
     if (!current) {
       const reach = tolerance(rect);
       const corner = box
@@ -692,7 +736,7 @@ const DrawCanvas = () => {
           : (box && inside(box, point, 0)) ||
               objectAt(drawing.current, point, reach)
             ? "grab"
-            : "default";
+            : "crosshair";
       return;
     }
 
@@ -745,6 +789,28 @@ const DrawCanvas = () => {
 
   const release = (event: PointerEvent<HTMLCanvasElement>) => {
     pointers.current.delete(event.pointerId);
+
+    // Rahmen loslassen: wählt alles, was ganz darin liegt.
+    const area = marquee.current;
+    if (area) {
+      marquee.current = null;
+      setMarqueeBox(null);
+      const point = toPoint(event, event.currentTarget.getBoundingClientRect());
+      const within = objectsWithin(
+        drawing.current,
+        boxBetween(area.origin, point)
+      );
+      const wanted =
+        area.base && within
+          ? mergeSelections(area.base, within)
+          : (within ?? area.base);
+      if (!wanted) return;
+      const detached = detachErasers(drawing.current, wanted);
+      drawing.current = detached.drawing;
+      select(detached.selection);
+      return;
+    }
+
     const current = gesture.current;
     if (!current) return;
     // Ein Finger bleibt liegen: von hier aus weiter verschieben.
@@ -870,6 +936,19 @@ const DrawCanvas = () => {
               <i />
               <i />
             </div>
+          )}
+          {/* Rahmen, der gerade aufgezogen wird */}
+          {mode === "move" && marqueeBox && (
+            <div
+              aria-hidden
+              className="marquee"
+              style={{
+                left: `${(marqueeBox.x0 / RES) * 100}%`,
+                top: `${(marqueeBox.y0 / RES) * 100}%`,
+                width: `${((marqueeBox.x1 - marqueeBox.x0) / RES) * 100}%`,
+                height: `${((marqueeBox.y1 - marqueeBox.y0) / RES) * 100}%`,
+              }}
+            />
           )}
           {/* X an der Auswahl: entfernt sie (wie Entf) */}
           {mode === "move" && box && !gestureFrame && (
