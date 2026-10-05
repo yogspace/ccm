@@ -1,5 +1,5 @@
 import { ArrowUpRight, Cookie, Rotate3d, Ruler } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import { useTranslation } from "react-i18next";
 import DrawCanvas from "./components/draw-canvas";
@@ -8,7 +8,8 @@ import LegalNotice from "./components/legal-notice";
 import ParameterPanel from "./components/parameter-panel";
 import Preview3d from "./components/preview-3d";
 import PrintHints from "./components/print-hints";
-import ShareButton from "./components/share-button";
+import SettingsBar from "./components/settings-bar";
+import SharePanel from "./components/share-panel";
 import { InputError, type Ring, traceOutline } from "./geometry/outline";
 import { useCutter } from "./geometry/use-cutter";
 import { languages } from "./i18n";
@@ -35,17 +36,40 @@ const App = () => {
 
   // Zustand laufend in den Link schreiben, damit er sich jederzeit teilen lässt.
   // Gespeichert wird die fertige Kontur – kompakter als die Rohzeichnung.
+  const hash = useMemo(
+    () => writeHash({ name, params, rings: outline }),
+    [name, params, outline]
+  );
+  // Maßstab für das Koordinatensystem: so viele mm ist die Zeichenfläche breit.
+  const mmPerCanvas = useMemo(() => {
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const ring of outline) {
+      for (const [x, y] of ring) {
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+      }
+    }
+    const extent = Math.max(maxX - minX, maxY - minY);
+    return extent > 0 ? params.size / extent : null;
+  }, [outline, params.size]);
+
+  const shareUrl =
+    outline.length > 0
+      ? `${window.location.origin}${window.location.pathname}${hash}`
+      : null;
+
   useEffect(() => {
     const timer = setTimeout(() => {
       const { pathname, search } = window.location;
-      window.history.replaceState(
-        null,
-        "",
-        `${pathname}${search}${writeHash({ name, params, rings: outline })}`
-      );
+      window.history.replaceState(null, "", `${pathname}${search}${hash}`);
     }, 300);
     return () => clearTimeout(timer);
-  }, [name, params, outline]);
+  }, [hash]);
 
   const onDrawingChange = useCallback((canvas: HTMLCanvasElement) => {
     try {
@@ -102,6 +126,15 @@ const App = () => {
       </header>
 
       <main className="layout" data-expanded={expanded || undefined}>
+        <SettingsBar
+          name={name}
+          onNameChange={setName}
+          onUnitChange={chooseUnit}
+          unit={unit}
+        >
+          <SharePanel name={name} url={shareUrl} />
+        </SettingsBar>
+
         <section className="card shape-card">
           <div className="card-head">
             <h2>
@@ -112,10 +145,12 @@ const App = () => {
           <DrawCanvas
             expanded={expanded}
             initialRings={shared.rings}
+            mmPerCanvas={mmPerCanvas}
             onChange={onDrawingChange}
             onError={onImportError}
             onToggleExpanded={toggleExpanded}
             outline={outline}
+            unit={unit}
           />
           {error && (
             <p className="error" key={error} role="alert">
@@ -166,29 +201,11 @@ const App = () => {
             </button>
           </div>
 
-          <ParameterPanel
-            onChange={setParams}
-            onUnitChange={chooseUnit}
-            params={params}
-            unit={unit}
-          />
+          <ParameterPanel onChange={setParams} params={params} unit={unit} />
 
           <div className="export">
-            <label className="name-field">
-              <span>{t("export.name")}</span>
-              <input
-                maxLength={60}
-                onChange={(event) => setName(event.target.value)}
-                placeholder={t("export.namePlaceholder")}
-                type="text"
-                value={name}
-              />
-            </label>
             <PrintHints />
-            <div className="toolbar">
-              <ShareButton disabled={rings.length === 0} name={name} />
-              <ExportButtons mesh={mesh} name={name} size={params.size} />
-            </div>
+            <ExportButtons mesh={mesh} name={name} size={params.size} />
           </div>
         </section>
       </main>

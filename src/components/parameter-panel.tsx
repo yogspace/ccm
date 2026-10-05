@@ -2,13 +2,12 @@ import { RotateCcw } from "lucide-react";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { type CutterParams, defaultParams } from "../geometry/cutter";
-import { formatLength, type Unit, units } from "../units";
+import { formatLength, type Unit } from "../units";
 
 type Props = {
   params: CutterParams;
   onChange: (params: CutterParams) => void;
   unit: Unit;
-  onUnitChange: (unit: Unit) => void;
 };
 
 const fields: {
@@ -27,7 +26,8 @@ const fields: {
   { key: "smoothing", min: 0, max: 5, step: 0.1 },
 ];
 
-const ParameterPanel = ({ params, onChange, unit, onUnitChange }: Props) => {
+/** Maße-Regler unter der 3D-Ansicht. */
+const ParameterPanel = ({ params, onChange, unit }: Props) => {
   const { t, i18n } = useTranslation();
   const changed = fields.some(({ key }) => params[key] !== defaultParams[key]);
 
@@ -35,18 +35,6 @@ const ParameterPanel = ({ params, onChange, unit, onUnitChange }: Props) => {
     <div className="params">
       <div className="params-head">
         <h3>{t("params.title")}</h3>
-        <fieldset aria-label={t("unit")} className="switch">
-          {units.map((option) => (
-            <button
-              aria-pressed={unit === option}
-              key={option}
-              onClick={() => onUnitChange(option)}
-              type="button"
-            >
-              {option}
-            </button>
-          ))}
-        </fieldset>
         <button
           className="ghost"
           disabled={!changed}
@@ -59,9 +47,9 @@ const ParameterPanel = ({ params, onChange, unit, onUnitChange }: Props) => {
       </div>
       <div className="params-grid">
         {fields.map(({ key, min, max, step }) => (
-          <label key={key}>
+          <label key={key} title={t(`params.${key}`)}>
             <span className="param-head">
-              {t(`params.${key}`)}
+              <span className="param-label">{t(`params.${key}`)}</span>
               <output>
                 {formatLength(params[key], unit, i18n.resolvedLanguage)}
               </output>

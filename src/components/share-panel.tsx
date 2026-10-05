@@ -1,4 +1,4 @@
-import { Check, Copy, Link, Mail, Share2 } from "lucide-react";
+import { Check, Link, Mail, Share2 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type SimpleIcon, siTelegram, siWhatsapp } from "simple-icons";
@@ -10,11 +10,18 @@ type Props = {
 };
 
 const BrandIcon = ({ icon }: { icon: SimpleIcon }) => (
-  <svg aria-hidden fill="currentColor" height={16} viewBox="0 0 24 24" width={16}>
+  <svg
+    aria-hidden
+    fill="currentColor"
+    height={15}
+    viewBox="0 0 24 24"
+    width={15}
+  >
     <path d={icon.path} />
   </svg>
 );
 
+/** Kompakte Teilen-Leiste: Link kopieren, Messenger, E-Mail, System-Menü. */
 const SharePanel = ({ url, name }: Props) => {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
@@ -35,28 +42,26 @@ const SharePanel = ({ url, name }: Props) => {
     label: string;
     href: string;
     icon: ReactNode;
-  }[] = url
-    ? [
-        {
-          key: "whatsapp",
-          label: "WhatsApp",
-          href: `https://wa.me/?text=${encode(`${text} ${url}`)}`,
-          icon: <BrandIcon icon={siWhatsapp} />,
-        },
-        {
-          key: "telegram",
-          label: "Telegram",
-          href: `https://t.me/share/url?url=${encode(url)}&text=${encode(text)}`,
-          icon: <BrandIcon icon={siTelegram} />,
-        },
-        {
-          key: "mail",
-          label: t("share.mail"),
-          href: `mailto:?subject=${encode(title)}&body=${encode(`${text}\n${url}`)}`,
-          icon: <Mail aria-hidden size={16} />,
-        },
-      ]
-    : [];
+  }[] = [
+    {
+      key: "whatsapp",
+      label: "WhatsApp",
+      href: `https://wa.me/?text=${encode(`${text} ${url}`)}`,
+      icon: <BrandIcon icon={siWhatsapp} />,
+    },
+    {
+      key: "telegram",
+      label: "Telegram",
+      href: `https://t.me/share/url?url=${encode(url ?? "")}&text=${encode(text)}`,
+      icon: <BrandIcon icon={siTelegram} />,
+    },
+    {
+      key: "mail",
+      label: t("share.mail"),
+      href: `mailto:?subject=${encode(title)}&body=${encode(`${text}\n${url}`)}`,
+      icon: <Mail aria-hidden size={15} />,
+    },
+  ];
 
   const copy = async () => {
     if (!url) return;
@@ -64,7 +69,7 @@ const SharePanel = ({ url, name }: Props) => {
       await navigator.clipboard.writeText(url);
       setCopied(true);
     } catch {
-      // Ohne Clipboard-Zugriff bleibt der Link im Feld markierbar.
+      // Ohne Clipboard-Zugriff bleibt der Link in der Adresszeile nutzbar.
       window.prompt(t("share.copy"), url);
     }
   };
@@ -81,38 +86,31 @@ const SharePanel = ({ url, name }: Props) => {
   };
 
   return (
-    <div className="share" data-empty={!url || undefined}>
+    <div
+      className="share"
+      data-empty={!url || undefined}
+      title={url ? undefined : t("share.empty")}
+    >
       <h3>{t("share.title")}</h3>
-      <div className="share-row">
-        <div className="share-link">
-          <Link aria-hidden size={16} />
-          <input
-            aria-label={t("share.title")}
-            onFocus={(event) => event.currentTarget.select()}
-            placeholder={t("share.empty")}
-            readOnly
-            type="text"
-            value={url?.replace(/^https?:\/\//, "") ?? ""}
-          />
-          <button
-            className="copy"
-            data-copied={copied || undefined}
-            disabled={!url}
-            onClick={copy}
-            type="button"
-          >
-            {copied ? (
-              <Check aria-hidden key="check" size={15} />
-            ) : (
-              <Copy aria-hidden key="copy" size={15} />
-            )}
-            <span aria-live="polite">
-              {copied ? t("share.copied") : t("share.copy")}
-            </span>
-          </button>
-        </div>
-        <div className="share-targets">
-          {targets.map(({ key, label, href, icon }) => (
+      <button
+        className="copy"
+        data-copied={copied || undefined}
+        disabled={!url}
+        onClick={copy}
+        type="button"
+      >
+        {copied ? (
+          <Check aria-hidden key="check" size={15} />
+        ) : (
+          <Link aria-hidden key="link" size={15} />
+        )}
+        <span aria-live="polite">
+          {copied ? t("share.copied") : t("share.copy")}
+        </span>
+      </button>
+      <div className="share-targets">
+        {targets.map(({ key, label, href, icon }) =>
+          url ? (
             <a
               aria-label={t("share.via", { target: label })}
               className="share-target"
@@ -125,19 +123,31 @@ const SharePanel = ({ url, name }: Props) => {
             >
               {icon}
             </a>
-          ))}
-          {url && canShare && (
+          ) : (
+            // Ohne Form gibt es noch nichts zu teilen – gleiche Optik, aber inaktiv.
             <button
-              aria-label={t("share.more")}
+              aria-label={t("share.via", { target: label })}
               className="share-target"
-              onClick={share}
-              title={t("share.more")}
+              disabled
+              key={key}
               type="button"
             >
-              <Share2 aria-hidden size={16} />
+              {icon}
             </button>
-          )}
-        </div>
+          )
+        )}
+        {canShare && (
+          <button
+            aria-label={t("share.more")}
+            className="share-target"
+            disabled={!url}
+            onClick={share}
+            title={t("share.more")}
+            type="button"
+          >
+            <Share2 aria-hidden size={15} />
+          </button>
+        )}
       </div>
     </div>
   );

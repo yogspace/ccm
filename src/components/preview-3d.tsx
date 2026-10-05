@@ -21,6 +21,22 @@ type View = {
 
 const RISE_MS = 700;
 
+/** Filamentfarben – jeder neue Ausstecher bekommt eine andere. */
+const FILAMENTS = [
+  "#2a44ff", // Luminous Blue
+  "#ff6a1f", // Energy Orange
+  "#ff5fa8", // Pop Pink
+  "#5fb36b", // Meadowland Green
+  "#c4825f", // Clay
+  "#ffc31f",
+  "#13b0a5",
+];
+
+const pickFilament = (previous: string) => {
+  const options = FILAMENTS.filter((color) => color !== previous);
+  return options[Math.floor(Math.random() * options.length)];
+};
+
 const easeOutBack = (t: number) => {
   const c = 1.4;
   return 1 + (c + 1) * (t - 1) ** 3 + c * (t - 1) ** 2;
@@ -68,15 +84,8 @@ const Preview3d = ({ mesh, shape, autoRotate, onUserRotate }: Props) => {
     const object = new THREE.Mesh(new THREE.BufferGeometry(), material);
     scene.add(object);
 
-    // Modellfarbe kommt aus dem CSS-Token, damit sie zum Theme passt.
-    const scheme = window.matchMedia("(prefers-color-scheme: dark)");
-    const applyColor = () =>
-      material.color.set(
-        getComputedStyle(container).getPropertyValue("--model").trim() ||
-          "#6366f1"
-      );
-    applyColor();
-    scheme.addEventListener("change", applyColor);
+    let filament = pickFilament("");
+    material.color.set(filament);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -85,6 +94,9 @@ const Preview3d = ({ mesh, shape, autoRotate, onUserRotate }: Props) => {
 
     let riseStart = -Infinity;
     const rise = () => {
+      // Jeder neue Ausstecher wechselt sofort die Farbe, ohne Überblendung.
+      filament = pickFilament(filament);
+      material.color.set(filament);
       if (!reducedMotion()) riseStart = performance.now();
     };
 
@@ -107,7 +119,6 @@ const Preview3d = ({ mesh, shape, autoRotate, onUserRotate }: Props) => {
     return () => {
       renderer.setAnimationLoop(null);
       observer.disconnect();
-      scheme.removeEventListener("change", applyColor);
       controls.dispose();
       object.geometry.dispose();
       material.dispose();

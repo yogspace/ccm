@@ -52,10 +52,14 @@ export const de = {
       "Meldet Bambu Studio „invalid config“: einfach OK – die Geometrie ist vollständig. Ohne Meldung geht es über Datei → Import.",
   },
   share: {
-    share: "Teilen",
+    title: "Teilen",
     text: "Schau mal, mein Ausstecher – direkt anpassen und als 3MF/STL herunterladen:",
     copy: "Link kopieren",
     copied: "Kopiert",
+    mail: "E-Mail",
+    more: "Weitere Apps …",
+    via: "Per {{target}} teilen",
+    empty: "Erst eine Form zeichnen",
   },
   legal: {
     close: "Schließen",

@@ -16,6 +16,8 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { loadSilhouette, type Ring } from "../geometry/outline";
+import type { Unit } from "../units";
+import DrawGrid from "./draw-grid";
 
 type Point = { x: number; y: number };
 
@@ -29,6 +31,9 @@ type Props = {
   onToggleExpanded: () => void;
   /** Form aus einem geteilten Link, wird beim Start einmal gemalt. */
   initialRings: Ring[];
+  /** Maßstab fürs Koordinatensystem, `null` solange es keine Form gibt. */
+  mmPerCanvas: number | null;
+  unit: Unit;
 };
 
 /** Auflösung der Zeichenfläche; Striche sind schwarz auf transparent. */
@@ -46,6 +51,8 @@ const DrawCanvas = ({
   expanded,
   onToggleExpanded,
   initialRings,
+  mmPerCanvas,
+  unit,
 }: Props) => {
   const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -237,6 +244,7 @@ const DrawCanvas = ({
         }}
         onDrop={onDrop}
       >
+        <DrawGrid mmPerCanvas={mmPerCanvas} unit={unit} />
         <canvas
           className="drawing"
           height={RES}

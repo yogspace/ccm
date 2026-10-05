@@ -53,10 +53,14 @@ export const en: typeof de = {
       "If Bambu Studio says “invalid config”, just click OK – the geometry is complete. File → Import avoids the notice.",
   },
   share: {
-    share: "Share",
+    title: "Share",
     text: "Check out my cookie cutter – tweak it and download it as 3MF/STL:",
     copy: "Copy link",
     copied: "Copied",
+    mail: "email",
+    more: "More apps …",
+    via: "Share via {{target}}",
+    empty: "Draw a shape first",
   },
   legal: {
     close: "Close",

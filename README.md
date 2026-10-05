@@ -8,10 +8,11 @@ Die Geometrie wird komplett im Browser erzeugt, der Server liefert nur statische
 
 - Freihand zeichnen (Maus, Touch, Stift) mit geglättetem Strich, Rückgängig (auch ⌘/Strg+Z), Löschen, vergrößerbare Zeichenfläche
 - SVG/PNG-Import per Button oder Drag & Drop; landet auf der Zeichenfläche, danach kann man weiterzeichnen
-- Live-Kontur (rote Schnittlinie) über der Zeichnung, 3D-Vorschau mit optionaler Auto-Rotation
-- Maße in mm oder inch, Name für den Export, Download als 3MF und STL (`<name>-80mm.3mf`)
-- Teilen: Der komplette Zustand steckt im URL-Hash, „Teilen“ (System-Menü) und „Link kopieren“
+- Live-Kontur (Schnittlinie) über der Zeichnung, 3D-Vorschau mit optionaler Auto-Rotation; jeder neue Ausstecher bekommt eine andere Filamentfarbe
+- Maße in mm oder inch, Dateiname für den Export, Download als 3MF und STL (`<name>-80mm.3mf`)
+- Teilen: Der komplette Zustand steckt im URL-Hash; Link kopieren, WhatsApp, Telegram, E-Mail und (wo vorhanden) das System-Teilen-Menü
 - Deutsch/Englisch (i18next), Light/Dark Mode, Impressum & Datenschutz als Dialog
+- Favicon/Icons, Open-Graph-Bild, Manifest, `robots.txt`, `sitemap.xml` und JSON-LD in `public/` bzw. `index.html`
 
 ## Aufbau
 
