@@ -1,4 +1,4 @@
-import { Donut, RotateCcw } from "lucide-react";
+import { Check, RotateCcw } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 import { type CutterParams, defaultParams } from "../geometry/cutter";
@@ -41,26 +41,26 @@ const ParameterPanel = ({ params, onChange, unit }: Props) => {
     <div className="params">
       <div className="params-head">
         <h3>{t("params.title")}</h3>
-        {/* Formen in Formen als Löcher ausschneiden – oder wie früher nur außen */}
-        <Button
-          aria-pressed={cutouts}
-          className="ghost toggle"
-          onClick={() =>
-            onChange((current) => ({
-              ...current,
-              cutouts: current.cutouts ? 0 : 1,
-            }))
-          }
-          title={t("params.cutoutsHint")}
-          type="button"
-        >
-          <CookieIcon icing="#ffc31f" icon={Donut} roll={-10} size={44} />
-          {t("params.cutouts")}
-          {/* An/aus auf einen Blick */}
-          <span aria-hidden className="switch-track">
-            <span className="switch-knob" />
+        {/* Formen in Formen als Löcher ausschneiden – oder wie früher nur außen.
+            Echte Checkbox, das Häkchen ist ein Keks. */}
+        <label className="checkbox" title={t("params.cutoutsHint")}>
+          <input
+            checked={cutouts}
+            onChange={(event) =>
+              onChange((current) => ({
+                ...current,
+                cutouts: event.target.checked ? 1 : 0,
+              }))
+            }
+            type="checkbox"
+          />
+          <span aria-hidden className="checkbox-box">
+            {cutouts && (
+              <CookieIcon icing="#00b86b" icon={Check} roll={-8} size={60} />
+            )}
           </span>
-        </Button>
+          {t("params.cutouts")}
+        </label>
         <Button
           className="ghost"
           disabled={!changed}
