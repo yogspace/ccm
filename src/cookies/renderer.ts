@@ -41,6 +41,10 @@ type Entry = {
   turnY: Spring;
   flip: Spring;
   squash: Spring;
+  /** Einwachsen beim Laden, 0 → 1. */
+  appear: Spring;
+  /** Ab hier wächst der Keks (performance.now()-Zeit). */
+  appearAt: number;
   spin: boolean;
   phase: number;
   visible: boolean;
@@ -104,7 +108,12 @@ const draw = (entry: Entry, time: number) => {
     entry.turnY.value + entry.flip.value,
     entry.roll + (entry.spin ? time / 260 : idle * 0.5)
   );
-  object.scale.set(1 + entry.squash.value * 0.5, 1 - entry.squash.value, 1);
+  const grow = Math.max(entry.appear.value, 1e-3);
+  object.scale.set(
+    (1 + entry.squash.value * 0.5) * grow,
+    (1 - entry.squash.value) * grow,
+    grow
+  );
 
   renderer.setViewport(0, 0, width, height);
   renderer.setScissor(0, 0, width, height);
@@ -154,6 +163,9 @@ const tick = (time: number) => {
     for (const s of [entry.turnX, entry.turnY]) step(s, dt);
     step(entry.flip, dt, 90, 11);
     step(entry.squash, dt, 380, 18);
+    // Kritisch gedämpft: wächst weich herein, ohne aufzuploppen.
+    const waiting = time < entry.appearAt;
+    if (!waiting) step(entry.appear, dt, 120, 22);
     if (settled(entry.flip)) {
       // Nach einer vollen Drehung wieder bei 0 anfangen.
       entry.flip.value %= Math.PI * 2;
@@ -163,8 +175,11 @@ const tick = (time: number) => {
     const moving =
       entry.spin ||
       (entry.idle && !reduceMotion) ||
-      ![entry.turnX, entry.turnY, entry.flip, entry.squash].every(settled);
-    if (moving || !entry.drawn) {
+      ![entry.turnX, entry.turnY, entry.flip, entry.squash, entry.appear].every(
+        settled
+      );
+    if (waiting) busy = true;
+    else if (moving || !entry.drawn) {
       draw(entry, time);
       busy = true;
     }
@@ -191,7 +206,8 @@ export type CookieHandle = {
 export const registerCookie = (
   canvas: HTMLCanvasElement,
   object: THREE.Object3D,
-  { tilt = -0.55, roll = 0, idle = true } = {}
+  /** `delay` (ms) verzögert das Einwachsen, z. B. für nacheinander erscheinende Kekse. */
+  { tilt = -0.55, roll = 0, idle = true, delay = 0 } = {}
 ): CookieHandle => {
   if (!renderer) setup();
   const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
@@ -206,6 +222,8 @@ export const registerCookie = (
     turnY: spring(),
     flip: spring(),
     squash: spring(),
+    appear: { value: reduceMotion ? 1 : 0, velocity: 0, target: 1 },
+    appearAt: performance.now() + (reduceMotion ? 0 : delay),
     spin: false,
     phase: Math.random() * Math.PI * 2,
     visible: true,
@@ -273,6 +291,8 @@ export const cookieImage = (kind: CookieKind, pixels: number) => {
           turnY: spring(),
           flip: spring(),
           squash: spring(),
+          appear: spring(1),
+          appearAt: 0,
           spin: false,
           phase: 0,
           visible: true,

@@ -16,7 +16,6 @@ import {
   Star,
   Zap,
 } from "lucide-react";
-import { motion } from "motion/react";
 import { memo, useState } from "react";
 import type { CookieKind } from "../cookies/models";
 import CookieIcon from "./cookie-icon";
@@ -64,20 +63,27 @@ type Placed = {
   roll: number;
 } & ({ kind: CookieKind } | { icon: LucideIcon; glaze: string });
 
-/** Zufällige, nicht überlappende Plätze im Fenster (in %). Halb Sorten, halb Icons. */
+/**
+ * Zufällige Plätze am linken und rechten Rand (in %), abwechselnd links und
+ * rechts, damit die Mitte frei bleibt. Halb Sorten, halb Icons.
+ */
 const place = (count: number): Placed[] => {
   const placed: Placed[] = [];
-  for (let guard = 0; placed.length < count && guard < 400; guard++) {
+  for (let guard = 0; placed.length < count && guard < 600; guard++) {
+    const left = placed.length % 2 === 0;
     const spot = {
-      x: 5 + Math.random() * 90,
+      x: left ? Math.random() * 12 : 88 + Math.random() * 12,
       // Unterhalb des Headers, damit kein Keks hinter dem Titel liegt.
-      y: 22 + Math.random() * 72,
-      size: 80 + Math.random() * 70,
+      y: 20 + Math.random() * 78,
+      size: 90 + Math.random() * 70,
       roll: Math.random() * 40 - 20,
     };
-    if (placed.every((p) => Math.hypot(p.x - spot.x, p.y - spot.y) > 22)) {
+    const free = placed.every(
+      (p) => Math.abs(p.x - spot.x) > 30 || Math.abs(p.y - spot.y) > 19
+    );
+    if (free) {
       placed.push(
-        placed.length % 2
+        Math.floor(placed.length / 2) % 2
           ? { ...spot, icon: pick(ICONS), glaze: pick(GLAZES) }
           : { ...spot, kind: pick(KINDS) }
       );
@@ -86,28 +92,22 @@ const place = (count: number): Placed[] => {
   return placed;
 };
 
-/** Beim Start ploppen nacheinander Kekse an zufälligen Stellen im Hintergrund auf. */
+/** Beim Start wachsen nacheinander Kekse an zufälligen Stellen im Hintergrund herein. */
 const CookieBackground = () => {
   const [cookies] = useState(() => place(window.innerWidth < 640 ? 5 : 8));
 
   return (
     <div aria-hidden className="cookie-background">
       {cookies.map((cookie, i) => (
-        <motion.div
-          animate={{ scale: 1, opacity: 1 }}
+        <div
           className="cookie-spot"
-          initial={{ scale: 0, opacity: 0 }}
           key={i}
           style={{ left: `${cookie.x}%`, top: `${cookie.y}%` }}
-          transition={{
-            delay: 0.2 + i * 0.12,
-            type: "spring",
-            stiffness: 260,
-            damping: 14,
-          }}
         >
+          {/* Wachsen nacheinander herein (der Renderer animiert das in 3D). */}
           {"kind" in cookie ? (
             <CookieIcon
+              delay={900 + i * 220}
               idle={false}
               kind={cookie.kind}
               roll={cookie.roll}
@@ -115,6 +115,7 @@ const CookieBackground = () => {
             />
           ) : (
             <CookieIcon
+              delay={900 + i * 220}
               icing={cookie.glaze}
               icon={cookie.icon}
               idle={false}
@@ -122,7 +123,7 @@ const CookieBackground = () => {
               size={cookie.size}
             />
           )}
-        </motion.div>
+        </div>
       ))}
     </div>
   );

@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { type CSSProperties, useEffect, useRef } from "react";
 import {
   type CookieKind,
   createCookie,
@@ -16,6 +16,8 @@ type Props = {
   idle?: boolean;
   /** Grunddrehung in Grad. */
   roll?: number;
+  /** Verzögerung (ms), bevor der Keks hereinwächst. */
+  delay?: number;
 } & (
   | { kind: CookieKind; icon?: never; icing?: never }
   | { icon: LucideIcon; icing?: string; kind?: never }
@@ -32,6 +34,7 @@ const CookieIcon = ({
   spin = false,
   idle = true,
   roll = 0,
+  delay = 0,
   kind,
   icon: Icon,
   icing = "#ffffff",
@@ -43,6 +46,7 @@ const CookieIcon = ({
   // Die Rollung ändert sich oft (Regler) – ohne den Keks neu aufzubauen.
   const rollRef = useRef(roll);
   rollRef.current = roll;
+  const delayRef = useRef(delay);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -62,6 +66,7 @@ const CookieIcon = ({
         tilt: kind ? -0.55 : -0.2,
         roll: (rollRef.current * Math.PI) / 180,
         idle,
+        delay: delayRef.current,
       });
     });
 
@@ -98,7 +103,7 @@ const CookieIcon = ({
         className={["cookie", className].filter(Boolean).join(" ")}
         height={pixels}
         ref={canvasRef}
-        style={{ width: size, height: size }}
+        style={{ "--size": `${size}px` } as CSSProperties}
         width={pixels}
       />
       {Icon && (

@@ -297,7 +297,7 @@ const DrawCanvas = ({
 
       <div className="toolbar">
         <div className="brush">
-          <CookieIcon icing="#ffc31f" icon={Pencil} roll={-28} size={50} />
+          <CookieIcon icing="#ffc31f" icon={Pencil} roll={118} size={50} />
           {/* Vorschau der Strichstärke */}
           <span
             aria-hidden
