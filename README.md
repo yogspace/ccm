@@ -44,3 +44,5 @@ git clone <repo-url> /opt/apps/ccm
 ```
 
 Voraussetzung: Netz `web` und Proxy-Stack laufen (siehe Repo `proxy`).
+
+test pipeline
