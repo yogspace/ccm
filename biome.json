@@ -53,7 +53,11 @@
         "useImportType": "error",
         "useConst": "error",
         "useNodejsImportProtocol": "error",
-        "noParameterAssign": "error"
+        "noParameterAssign": "error",
+        "useFilenamingConvention": {
+          "level": "error",
+          "options": { "filenameCases": ["kebab-case"] }
+        }
       },
       "suspicious": {
         "noExplicitAny": "warn",

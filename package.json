@@ -15,10 +15,14 @@
   "dependencies": {
     "d3-contour": "^4.0.2",
     "fflate": "^0.8.3",
+    "i18next": "^26.4.2",
+    "i18next-browser-languagedetector": "^8.2.1",
     "lucide-react": "^1.52.0",
     "manifold-3d": "^3.5.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-i18next": "^17.0.15",
+    "simple-icons": "^16.34.0",
     "three": "^0.186.1"
   },
   "devDependencies": {

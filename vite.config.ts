@@ -7,4 +7,6 @@ export default defineConfig({
   // manifold-3d lädt sein WASM selbst und enthält Node-Zweige, die der
   // Dependency-Prebundler nicht anfassen soll.
   optimizeDeps: { exclude: ["manifold-3d"] },
+  // Der Geometrie-Worker lädt manifold per dynamischem Import – das geht nur als ES-Modul.
+  worker: { format: "es" },
 });

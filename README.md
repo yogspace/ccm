@@ -4,6 +4,43 @@ SVG hochladen oder zeichnen → daraus entsteht ein druckfertiger Ausstecher (3M
 
 Die Geometrie wird komplett im Browser erzeugt, der Server liefert nur statische Dateien aus.
 
+## Funktionen
+
+- Freihand zeichnen (Maus, Touch, Stift) mit geglättetem Strich, Rückgängig (auch ⌘/Strg+Z), Löschen, vergrößerbare Zeichenfläche
+- SVG/PNG-Import per Button oder Drag & Drop; landet auf der Zeichenfläche, danach kann man weiterzeichnen
+- Live-Kontur (rote Schnittlinie) über der Zeichnung, 3D-Vorschau mit optionaler Auto-Rotation
+- Maße in mm oder inch, Name für den Export, Download als 3MF und STL (`<name>-80mm.3mf`)
+- Teilen: Der komplette Zustand steckt im URL-Hash, „Teilen“ (System-Menü) und „Link kopieren“
+- Deutsch/Englisch (i18next), Light/Dark Mode, Impressum & Datenschutz als Dialog
+
+## Aufbau
+
+```
+src/
+  app.tsx                     Layout und Zustand
+  components/                 draw-canvas, preview-3d, parameter-panel, export-buttons, …
+  geometry/
+    outline.ts                Raster → Kontur (d3-contour), SVG-Import als Silhouette
+    cutter.ts                 Kontur + Parameter → Manifold (Falz, Wand, Verjüngung in 0,2-mm-Stufen)
+    cutter-worker.ts          rechnet cutter.ts im Web Worker, nur der neueste Auftrag zählt
+    use-cutter.ts             React-Hook zum Worker
+    manifold.ts, mesh.ts      WASM-Singleton, Manifold → Rohdaten
+  export/                     three-mf.ts, stl.ts, download.ts
+  i18n/                       de.ts, en.ts
+  url-state.ts                Zustand ↔ URL-Hash
+  units.ts                    mm/inch
+```
+
+Dateinamen sind kebab-case (per Biome-Regel erzwungen).
+
+### Link-Format
+
+`#n=<Name>&<Parameter>=<Wert>&s=<Form>`. Parameter stehen nur drin, wenn sie vom Standard abweichen. Die Form ist die fertige Ausstecher-Kontur: vereinfacht (Douglas-Peucker, ≈ 0,1 mm), auf ein 1024er-Raster gerundet, als ZigZag-Varint-Deltas kodiert, mit Deflate komprimiert und Base64url-kodiert. Ein Herz braucht so rund 160 Zeichen. Das erste Varint ist die Formatversion. Der Hash wird nie an den Server geschickt.
+
+### Bambu Studio
+
+Beim Öffnen eines 3MF meldet Bambu Studio „The 3mf file has invalid config, load geometry data only“. Das passiert bei jedem 3MF, das nicht aus Bambu Studio selbst stammt (auch bei Fusion 360). Die Geometrie wird trotzdem vollständig geladen. Über *Datei → Import* erscheint die Meldung nicht.
+
 ## Entwicklung
 
 ```bash
