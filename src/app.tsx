@@ -261,7 +261,7 @@ const App = () => {
         <span className="footer-links">
           <a href={PORTFOLIO_URL} rel="noopener" target="_blank">
             mxwr.de
-            <CookieIcon icon={ArrowUpRight} roll={-8} size={40} />
+            <CookieIcon icon={ArrowUpRight} size={40} />
           </a>
           <span aria-hidden className="sep">
             ·
@@ -272,12 +272,7 @@ const App = () => {
             target="_blank"
           >
             MakerWorld
-            <CookieIcon
-              icing="#5fb36b"
-              icon={ArrowUpRight}
-              roll={10}
-              size={40}
-            />
+            <CookieIcon icing="#5fb36b" icon={ArrowUpRight} size={40} />
           </a>
         </span>
         {creations !== null && (

@@ -372,7 +372,7 @@ const DrawCanvas = ({
       commit();
       setTool("move");
       // Nur die Vorlage – sie verschmilzt erst, wenn man sie loslässt und neu wählt.
-      select({ strokes: strokes.map((_, i) => first + i), base: false });
+      select({ strokes: strokes.map((_, i) => first + i), rings: [] });
     } catch (error) {
       onError(error);
     }

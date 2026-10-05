@@ -1,4 +1,4 @@
-import type { Point, Ring } from "./geometry/outline";
+import { type Point, type Ring, traceOutline } from "./geometry/outline";
 import { type Drawing, type Stroke, simplifyLine } from "./url-state";
 
 /**
@@ -9,8 +9,8 @@ import { type Drawing, type Stroke, simplifyLine } from "./url-state";
 /** Auflösung der Zeichenfläche (Pixel je Seite). */
 export const DRAW_RES = 1024;
 
-/** Raster, auf dem bestimmt wird, was sich berührt. */
-const GROUP_RES = 256;
+/** Raster, auf dem bestimmt wird, was sich berührt – fein genug für schmale Radier-Lücken. */
+const GROUP_RES = 512;
 /** Ab dieser Deckkraft (0…255) zählt ein Pixel als Tinte. */
 const INK = 40;
 
@@ -66,13 +66,13 @@ export const paint = (ctx: CanvasRenderingContext2D, drawing: Drawing) => {
   ctx.globalCompositeOperation = "source-over";
 };
 
-/** Ausgewählte Teile: Striche (Indizes) und/oder die Fläche aus einem Import. */
-export type Selection = { strokes: number[]; base: boolean };
+/** Ausgewählte Teile: Striche und Konturen der Importfläche (jeweils Indizes). */
+export type Selection = { strokes: number[]; rings: number[] };
 
 export type Box = { x0: number; y0: number; x1: number; y1: number };
 
 const isEmpty = (selection: Selection) =>
-  selection.strokes.length === 0 && !selection.base;
+  selection.strokes.length === 0 && selection.rings.length === 0;
 
 /** Rahmen um die Auswahl in Zeichenflächen-Pixeln, samt Strichbreite. */
 export const selectionBox = (
@@ -99,9 +99,9 @@ export const selectionBox = (
     if (!stroke || stroke.erase) continue;
     for (const [x, y] of stroke.points) add(x, y, stroke.width / 2);
   }
-  if (selection.base) {
-    for (const ring of drawing.base) {
-      for (const [x, y] of ring) add(x * DRAW_RES, y * DRAW_RES, 0);
+  for (const index of selection.rings) {
+    for (const [x, y] of drawing.base[index] ?? []) {
+      add(x * DRAW_RES, y * DRAW_RES, 0);
     }
   }
   return Number.isFinite(box.x0) ? box : null;
@@ -143,16 +143,21 @@ export const transformDrawing = (
   const { scale } = transform;
   const apply = applyTransform(transform);
   const chosen = new Set(selection.strokes);
+  const rings = new Set(selection.rings);
+  // Die Linienbreite alter Links gilt für die ganze Fläche – nur mitskalieren,
+  // wenn alles davon ausgewählt ist.
+  const wholeBase =
+    drawing.base.length > 0 && rings.size === drawing.base.length;
   return {
-    base: selection.base
-      ? drawing.base.map((ring) =>
-          ring.map(([x, y]) => {
+    base: drawing.base.map((ring, index) =>
+      rings.has(index)
+        ? ring.map(([x, y]): Point => {
             const [px, py] = apply([x * DRAW_RES, y * DRAW_RES]);
             return [px / DRAW_RES, py / DRAW_RES];
           })
-        )
-      : drawing.base,
-    baseLine: selection.base ? drawing.baseLine * scale : drawing.baseLine,
+        : ring
+    ),
+    baseLine: wholeBase ? drawing.baseLine * scale : drawing.baseLine,
     strokes: drawing.strokes.map((stroke, index) =>
       chosen.has(index)
         ? {
@@ -224,8 +229,8 @@ const boxesOverlap = (a: Box, b: Box) =>
  * Radieren wirklich wegnehmen: Striche werden dort gekürzt bzw. geteilt, wo der
  * Radierer sie berührt – so weit, dass auch die runden Enden der Reststücke an
  * der Radierkante aufhören. Was ganz weg ist, verschwindet aus der Zeichnung.
- * Der Radierer selbst bleibt nur für eine importierte Fläche stehen (die lässt
- * sich nicht kürzen) – bei Strichen bliebe er sonst als unsichtbares Loch zurück.
+ * Eine importierte Fläche wird mit dem Radierer neu abgetastet. Der Radierer
+ * selbst bleibt nirgends stehen – sonst wäre er ein unsichtbares Loch.
  */
 export const applyEraser = (drawing: Drawing, eraser: Stroke): Drawing => {
   const radius = eraser.width / 2;
@@ -268,10 +273,26 @@ export const applyEraser = (drawing: Drawing, eraser: Stroke): Drawing => {
           0
         )
       : null;
-  const cutsBase = baseBox !== null && boxesOverlap(baseBox, reachBox);
+  if (!baseBox || !boxesOverlap(baseBox, reachBox)) {
+    return { ...drawing, strokes };
+  }
+  // Die Importfläche wird mit dem Radierer neu abgetastet: Was weg ist, ist
+  // weg, und durchtrennte Teile werden zu eigenen Konturen.
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = DRAW_RES;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return { ...drawing, strokes };
+  paint(ctx, {
+    base: drawing.base,
+    baseLine: drawing.baseLine,
+    strokes: [{ ...eraser, erase: true }],
+  });
   return {
-    ...drawing,
-    strokes: cutsBase ? [...strokes, { ...eraser, erase: true }] : strokes,
+    base: traceOutline(canvas)
+      .map((ring) => simplifyLine(ring, 0.0008))
+      .filter((ring) => ring.length >= 3),
+    baseLine: 0,
+    strokes,
   };
 };
 
@@ -304,9 +325,11 @@ export const removeSelection = (
   selection: Selection
 ): Drawing => {
   const chosen = new Set(selection.strokes);
+  const rings = new Set(selection.rings);
+  const base = drawing.base.filter((_, index) => !rings.has(index));
   return {
-    base: selection.base ? [] : drawing.base,
-    baseLine: selection.base ? 0 : drawing.baseLine,
+    base,
+    baseLine: base.length > 0 ? drawing.baseLine : 0,
     strokes: drawing.strokes.filter((_, index) => !chosen.has(index)),
   };
 };
@@ -403,10 +426,10 @@ const scanObjects = (drawing: Drawing) => {
   const strokeLabels = drawing.strokes.map((stroke) =>
     stroke.erase ? 0 : labelOf(stroke.points)
   );
-  const baseLabel = labelOf(
-    drawing.base.flatMap((ring) =>
-      ring.map(([x, y]): Point => [x * DRAW_RES, y * DRAW_RES])
-    )
+  // Jede Kontur der Importfläche für sich – so lassen sich getrennte Teile
+  // eines Imports einzeln greifen (Löcher hängen an ihrer Tinte).
+  const ringLabels = drawing.base.map((ring) =>
+    labelOf(ring.map(([x, y]): Point => [x * DRAW_RES, y * DRAW_RES]))
   );
 
   // Ein Radierer gehört zu allen Objekten, an deren Tinte er entlangfährt –
@@ -440,7 +463,9 @@ const scanObjects = (drawing: Drawing) => {
       const label = strokeLabels[index];
       return label && roots.has(find(label)) ? [index] : [];
     }),
-    base: baseLabel > 0 && roots.has(find(baseLabel)),
+    rings: ringLabels.flatMap((label, index) =>
+      label && roots.has(find(label)) ? [index] : []
+    ),
   });
 
   /** Wurzeln der ausgewählten Tinte (ohne Radierer). */
@@ -450,7 +475,10 @@ const scanObjects = (drawing: Drawing) => {
       const label = strokeLabels[index];
       if (label) roots.add(find(label));
     }
-    if (selection.base && baseLabel) roots.add(find(baseLabel));
+    for (const index of selection.rings) {
+      const label = ringLabels[index];
+      if (label) roots.add(find(label));
+    }
     return roots;
   };
 
@@ -514,7 +542,7 @@ export const detachErasers = (
   return copied
     ? {
         drawing: { ...drawing, strokes },
-        selection: { strokes: picked, base: selection.base },
+        selection: { strokes: picked, rings: selection.rings },
       }
     : { drawing, selection };
 };
