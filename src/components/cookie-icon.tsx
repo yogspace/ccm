@@ -66,7 +66,7 @@ const CookieIcon = ({
     });
 
     // Der Keks reagiert auf seinen Button: Hover dreht, Klick drückt.
-    const button = canvas.closest("button");
+    const button = canvas.closest("button, summary");
     const flip = () => handle.current?.flip();
     const press = () => handle.current?.press();
     button?.addEventListener("pointerenter", flip);

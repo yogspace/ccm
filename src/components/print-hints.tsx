@@ -1,5 +1,6 @@
 import { Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import CookieIcon from "./cookie-icon";
 
 const PrintHints = () => {
   const { t } = useTranslation();
@@ -7,7 +8,7 @@ const PrintHints = () => {
   return (
     <details className="hints">
       <summary>
-        <Info aria-hidden size={16} />
+        <CookieIcon icing="#2a44ff" icon={Info} roll={-12} size={44} />
         {t("hints.title")}
       </summary>
       <ul>

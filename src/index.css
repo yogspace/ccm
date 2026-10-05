@@ -243,7 +243,7 @@ input[type="range"]:active::-moz-range-thumb {
   display: block;
   flex: 1;
   min-width: 0;
-  height: 1.6rem;
+  height: var(--thumb);
 }
 
 .slider-track {
@@ -278,6 +278,7 @@ input[type="range"]:active::-moz-range-thumb {
   display: block;
   width: 100%;
   height: 100%;
+  animation: grow-in 0.6s var(--ease) both;
 }
 
 .slider:hover .slider-thumb {
@@ -330,17 +331,24 @@ input[type="range"]:active::-moz-range-thumb {
 .app {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
   min-height: 100dvh;
-  max-width: 80rem;
+  max-width: 90rem;
   margin: 0 auto;
-  padding: 1rem 1rem 0.75rem;
+  padding: 1.75rem 2.5rem 1.25rem;
+}
+
+@media (max-width: 40rem) {
+  .app {
+    gap: 1.25rem;
+    padding: 1.25rem 1rem 1rem;
+  }
 }
 
 .masthead {
   display: flex;
   align-items: center;
-  gap: 0.9rem;
+  gap: 1.1rem;
   animation: rise 0.6s var(--ease) both;
 }
 
@@ -378,7 +386,7 @@ input[type="range"]:active::-moz-range-thumb {
 
 .switches {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .switch {
@@ -459,13 +467,13 @@ input[type="range"]:active::-moz-range-thumb {
 /* Desktop: Leiste über Form und Ausstecher, alles in Fensterhöhe. Die
    Zeichenfläche richtet sich nach der Höhe, die 3D-Ansicht füllt den Rest. */
 .layout {
-  --stage-size: min(100%, max(20rem, calc(100dvh - 23.75rem)));
+  --stage-size: min(100%, max(24rem, calc(100dvh - 28.5rem)));
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-areas:
     "bar bar"
     "shape cutter";
-  gap: 1rem;
+  gap: 1.5rem;
   align-items: stretch;
 }
 
@@ -491,7 +499,7 @@ input[type="range"]:active::-moz-range-thumb {
 .draw-area {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1.25rem;
   width: var(--stage-size);
   margin-inline: auto;
 }
@@ -537,9 +545,12 @@ input[type="range"]:active::-moz-range-thumb {
   color: var(--text);
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem 1.25rem 1.25rem;
+  gap: 1.25rem;
+  padding: 1.5rem 1.75rem 1.75rem;
   background: var(--card);
+  /* Hintergrund-Kekse scheinen weichgezeichnet durch. */
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
   border-radius: calc(var(--radius) + 0.35rem);
   animation: rise 0.6s var(--ease) both;
 }
@@ -557,7 +568,13 @@ input[type="range"]:active::-moz-range-thumb {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  min-height: 1.6rem;
+  min-height: 2.25rem;
+}
+
+.card-tools {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
 }
 
 .card-head h2 {
@@ -745,7 +762,7 @@ input[type="range"]:active::-moz-range-thumb {
    füllt die Höhe, die neben der Zeichenfläche übrig bleibt. */
 .stage.viewer {
   flex: 1 1 0;
-  min-height: 14rem;
+  min-height: 15rem;
   aspect-ratio: auto;
   background-image: none;
 }
@@ -764,19 +781,6 @@ input[type="range"]:active::-moz-range-thumb {
 
 .preview canvas {
   display: block;
-}
-
-button.overlay {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  color: var(--text);
-  background: color-mix(in oklab, var(--surface) 80%, transparent);
-  backdrop-filter: blur(8px);
-}
-
-button.overlay[aria-pressed="true"] {
-  color: var(--accent);
 }
 
 /* ---------- 3D-Kekse ---------- */
@@ -801,6 +805,10 @@ button .cookie {
   margin: -0.7rem -0.2rem -0.7rem -0.5rem;
 }
 
+.brush > .cookie {
+  margin: -0.75rem -0.4rem -0.75rem -0.6rem;
+}
+
 button.icon .cookie {
   margin: -0.6rem;
 }
@@ -817,6 +825,12 @@ button:disabled .cookie {
 
 .masthead .switch .cookie {
   margin: -0.7rem -0.2rem -0.7rem -0.5rem;
+}
+
+/* Drehteller aus: Keks wird blasser. */
+button.rotate[aria-pressed="false"] .cookie {
+  opacity: 0.5;
+  filter: grayscale(0.7);
 }
 
 /* Hintergrund-Kekse: liegen hinter allem auf der blauen Fläche. */
@@ -845,21 +859,22 @@ button:disabled .cookie {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 1rem 1.5rem;
 }
 
 .actions {
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 1rem;
 }
 
 .brush {
   display: flex;
   flex: 1;
   align-items: center;
-  gap: 0.75rem;
-  min-width: 8rem;
-  max-width: 16rem;
+  gap: 1rem;
+  min-width: 10rem;
+  max-width: 18rem;
 }
 
 .brush-dot {
@@ -888,16 +903,16 @@ button:disabled .cookie {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem 2rem;
-  padding: 1rem 1rem 1rem 1.25rem;
+  gap: 1rem 2.5rem;
+  padding: 1.1rem 1.5rem 1.1rem 1.75rem;
 }
 
 .bar-field {
   display: flex;
   flex: 1;
   align-items: center;
-  gap: 0.9rem;
-  max-width: 28rem;
+  gap: 1.1rem;
+  max-width: 30rem;
   font-size: 1rem;
   color: var(--muted);
 }
@@ -905,8 +920,8 @@ button:disabled .cookie {
 .bar-field input {
   flex: 1;
   min-width: 0;
-  height: 2.4rem;
-  padding: 0 1.1rem;
+  height: 2.6rem;
+  padding: 0 1.25rem;
   font: inherit;
   font-weight: 700;
   color: var(--field-text);
@@ -934,7 +949,7 @@ button:disabled .cookie {
 .params {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 1rem;
 }
 
 .params-head {
@@ -951,53 +966,38 @@ button:disabled .cookie {
   color: var(--muted);
 }
 
+/* So viele Spalten, wie mit genug Platz für Name und Wert passen. */
 .params-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.3rem 1rem;
-}
-
-@media (max-width: 72rem) {
-  .params-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 30rem) {
-  .params-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+  gap: 1.25rem 2rem;
 }
 
 .params .param {
   display: flex;
   flex-direction: column;
-  gap: 0.05rem;
+  gap: 0.5rem;
   font-size: 0.95rem;
 }
 
+.param-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
 .param-label {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--muted);
 }
 
-.param-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.param-row input {
-  flex: 1;
-  min-width: 0;
-}
-
-.param-row output {
-  min-width: 2.6rem;
+.param-head output {
+  flex: none;
   font-weight: 700;
-  text-align: right;
   white-space: nowrap;
   color: var(--text);
   font-variant-numeric: tabular-nums;
@@ -1063,9 +1063,9 @@ footer {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem 1.5rem;
+  gap: 0.75rem 2rem;
   margin-top: auto;
-  padding-top: 1.25rem;
+  padding-top: 1.5rem;
   font-size: 0.95rem;
   color: var(--on-page-muted);
 }
@@ -1097,7 +1097,7 @@ footer a:hover {
 .export {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 1rem;
 }
 
 .export > .actions {
@@ -1109,7 +1109,7 @@ footer a:hover {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem 0.6rem;
+  gap: 0.75rem 1.25rem;
   transition: opacity 0.2s var(--ease);
 }
 
@@ -1122,7 +1122,8 @@ footer a:hover {
 }
 
 .share button.copy {
-  height: 2.1rem;
+  height: 2.5rem;
+  padding: 0 1.1rem 0 0.9rem;
   color: var(--accent-text);
   background: var(--accent);
   border-color: var(--accent);
@@ -1298,10 +1299,6 @@ footer a:hover svg {
   animation: bob 0.8s ease-in-out infinite;
 }
 
-button.overlay[aria-pressed="true"] svg {
-  animation: spin 3s linear infinite;
-}
-
 button.copy[data-copied] svg {
   animation: pop 0.45s var(--ease-spring);
 }
@@ -1326,6 +1323,12 @@ button.ghost:hover:not(:disabled) svg {
 @keyframes fade {
   from {
     opacity: 0;
+  }
+}
+
+@keyframes grow-in {
+  from {
+    scale: 0;
   }
 }
 

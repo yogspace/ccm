@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { type CutterParams, defaultParams } from "../geometry/cutter";
 import { formatLength, type Unit } from "../units";
 import Button from "./button";
+import CookieIcon from "./cookie-icon";
 import CookieSlider from "./cookie-slider";
 
 type Props = {
@@ -43,29 +44,30 @@ const ParameterPanel = ({ params, onChange, unit }: Props) => {
           onClick={() => onChange(defaultParams)}
           type="button"
         >
-          <RotateCcw aria-hidden size={14} />
+          <CookieIcon icing="#ff5fa8" icon={RotateCcw} roll={-14} size={44} />
           {t("params.reset")}
         </Button>
       </div>
       <div className="params-grid">
         {fields.map(({ key, min, max, step }) => (
           <div className="param" key={key} title={t(`params.${key}`)}>
-            <span className="param-label">{t(`params.${key}`)}</span>
-            <span className="param-row">
-              <CookieSlider
-                label={t(`params.${key}`)}
-                max={max}
-                min={min}
-                onChange={(value) =>
-                  onChange((current) => ({ ...current, [key]: value }))
-                }
-                step={step}
-                value={params[key]}
-              />
+            {/* Wert über dem Regler: So bleibt dessen Breite fest, egal wie breit die Zahl wird. */}
+            <span className="param-head">
+              <span className="param-label">{t(`params.${key}`)}</span>
               <output>
                 {formatLength(params[key], unit, i18n.resolvedLanguage)}
               </output>
             </span>
+            <CookieSlider
+              label={t(`params.${key}`)}
+              max={max}
+              min={min}
+              onChange={(value) =>
+                onChange((current) => ({ ...current, [key]: value }))
+              }
+              step={step}
+              value={params[key]}
+            />
           </div>
         ))}
       </div>

@@ -2,6 +2,7 @@ import { X } from "lucide-react";
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import Button from "./button";
+import CookieIcon from "./cookie-icon";
 
 const ADDRESS = (
   <address>
@@ -151,7 +152,7 @@ const LegalNotice = () => {
           onClick={() => dialogRef.current?.close()}
           type="button"
         >
-          <X aria-hidden size={20} strokeWidth={2.6} />
+          <CookieIcon icing="#ff5fa8" icon={X} roll={8} size={56} />
         </Button>
         <div className="legal-body">
           {i18n.resolvedLanguage === "de" ? <German /> : <English />}

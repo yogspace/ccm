@@ -24,7 +24,8 @@ export const defaultParams: CutterParams = {
   bladeHeight: 15,
   wall: 1.2,
   edge: 0.6,
-  taper: 3,
+  // Kurz halten: Je länger der dünne Bereich, desto leichter bricht die Schneide.
+  taper: 1.6,
   flangeWidth: 5,
   flangeHeight: 2,
   smoothing: 1,

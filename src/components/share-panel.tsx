@@ -57,7 +57,7 @@ const SharePanel = ({ getUrl, name }: Props) => {
         type="button"
       >
         {copied ? (
-          <Check aria-hidden key="check" size={15} />
+          <CookieIcon icing="#00b86b" icon={Check} key="check" size={52} />
         ) : (
           <CookieIcon icon={Link} key="link" roll={-22} size={52} />
         )}

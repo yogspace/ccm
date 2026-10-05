@@ -1,11 +1,4 @@
-import {
-  FileUp,
-  Maximize2,
-  Minimize2,
-  Trash2,
-  Undo2,
-  Upload,
-} from "lucide-react";
+import { FileUp, Pencil, Trash2, Undo2, Upload } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   type CSSProperties,
@@ -31,8 +24,6 @@ type Props = {
   /** Nach jedem Strich, Import, Rückgängig oder Löschen. */
   onChange: (canvas: HTMLCanvasElement) => void;
   onError: (error: unknown) => void;
-  expanded: boolean;
-  onToggleExpanded: () => void;
   /** Form aus einem geteilten Link, wird beim Start einmal gemalt. */
   initialRings: Ring[];
   /** Maßstab fürs Koordinatensystem, `null` solange es keine Form gibt. */
@@ -52,8 +43,6 @@ const DrawCanvas = ({
   outline,
   onChange,
   onError,
-  expanded,
-  onToggleExpanded,
   initialRings,
   mmPerCanvas,
   unit,
@@ -283,20 +272,6 @@ const DrawCanvas = ({
             />
           </svg>
         )}
-        <Button
-          aria-label={t(expanded ? "draw.shrink" : "draw.expand")}
-          aria-pressed={expanded}
-          className="icon overlay"
-          onClick={onToggleExpanded}
-          title={t(expanded ? "draw.shrink" : "draw.expand")}
-          type="button"
-        >
-          {expanded ? (
-            <Minimize2 aria-hidden size={18} />
-          ) : (
-            <Maximize2 aria-hidden size={18} />
-          )}
-        </Button>
         <AnimatePresence>
           {empty && !dragging && !penDown && (
             <motion.div
@@ -314,7 +289,7 @@ const DrawCanvas = ({
         </AnimatePresence>
         {dragging && (
           <div className="stage-hint drop">
-            <FileUp aria-hidden size={28} strokeWidth={1.5} />
+            <CookieIcon icing="#2a44ff" icon={FileUp} size={110} />
             <strong>{t("draw.drop")}</strong>
           </div>
         )}
@@ -322,6 +297,8 @@ const DrawCanvas = ({
 
       <div className="toolbar">
         <div className="brush">
+          <CookieIcon icing="#ffc31f" icon={Pencil} roll={-28} size={50} />
+          {/* Vorschau der Strichstärke */}
           <span
             aria-hidden
             className="brush-dot"

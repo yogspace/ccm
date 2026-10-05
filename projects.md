@@ -27,7 +27,7 @@ Alles läuft **im Browser**: kein Backend, keine Accounts, kein Speichern auf de
    | Klingenhöhe | 15 | 8–30 | ab Oberkante Falz |
    | Wandstärke (unten, an der Falz) | 1.2 | 0.8–2.4 | Vielfache von 0.4 drucken am saubersten |
    | Schneide (Wandstärke oben) | 0.6 | 0.4–1.2 | dünne Kante zum Schneiden |
-   | Länge Verjüngung | 3 | 0–10 | Bereich unter der Schneide, in dem die Wand dünner wird |
+   | Länge Verjüngung | 1.6 | 0–10 | Bereich unter der Schneide, in dem die Wand dünner wird; kurz halten, sonst bricht die Schneide leichter |
    | Falz-Breite | 5 | 0–12 | 0 = kein Falz |
    | Falz-Höhe | 2 | 1–4 | |
    | Lücken schließen | 1 | 0–5 | schließt kleine Lücken in der Zeichnung |

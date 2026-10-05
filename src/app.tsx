@@ -1,4 +1,10 @@
-import { ArrowUpRight, Rotate3d, Ruler } from "lucide-react";
+import {
+  ArrowUpRight,
+  Maximize2,
+  Minimize2,
+  Rotate3d,
+  Ruler,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -118,14 +124,27 @@ const App = () => {
         <section className="card shape-card">
           <div className="card-head">
             <h2>{t("steps.shape")}</h2>
+            <Button
+              aria-label={t(expanded ? "draw.shrink" : "draw.expand")}
+              aria-pressed={expanded}
+              className="icon"
+              onClick={toggleExpanded}
+              title={t(expanded ? "draw.shrink" : "draw.expand")}
+              type="button"
+            >
+              <CookieIcon
+                icing="#2a44ff"
+                icon={expanded ? Minimize2 : Maximize2}
+                roll={-10}
+                size={52}
+              />
+            </Button>
           </div>
           <DrawCanvas
-            expanded={expanded}
             initialRings={shared.rings}
             mmPerCanvas={mmPerCanvas}
             onChange={onDrawingChange}
             onError={onImportError}
-            onToggleExpanded={toggleExpanded}
             outline={outline}
             unit={unit}
           />
@@ -139,16 +158,33 @@ const App = () => {
         <section className="card cutter-card">
           <div className="card-head">
             <h2>{t("steps.cutter")}</h2>
-            {mesh && (
-              <span className="dims">
-                <CookieIcon icing="#2a44ff" icon={Ruler} roll={35} size={46} />
-                {mesh.dimensions
-                  .map((d) =>
-                    formatLength(d, unit, lang, unit === "in" ? 2 : 0)
-                  )
-                  .join(" × ")}
-              </span>
-            )}
+            <div className="card-tools">
+              {mesh && (
+                <span className="dims">
+                  <CookieIcon
+                    icing="#2a44ff"
+                    icon={Ruler}
+                    roll={35}
+                    size={46}
+                  />
+                  {mesh.dimensions
+                    .map((d) =>
+                      formatLength(d, unit, lang, unit === "in" ? 2 : 0)
+                    )
+                    .join(" × ")}
+                </span>
+              )}
+              <Button
+                aria-label={t("preview.rotate")}
+                aria-pressed={autoRotate}
+                className="icon rotate"
+                onClick={() => setAutoRotate((on) => !on)}
+                title={t("preview.rotate")}
+                type="button"
+              >
+                <CookieIcon icon={Rotate3d} roll={12} size={52} />
+              </Button>
+            </div>
           </div>
 
           <div className="stage viewer">
@@ -164,16 +200,6 @@ const App = () => {
                 <span>{ready ? t("preview.empty") : t("preview.loading")}</span>
               </div>
             )}
-            <Button
-              aria-label={t("preview.rotate")}
-              aria-pressed={autoRotate}
-              className="icon overlay"
-              onClick={() => setAutoRotate((on) => !on)}
-              title={t("preview.rotate")}
-              type="button"
-            >
-              <Rotate3d aria-hidden size={18} />
-            </Button>
           </div>
 
           <ParameterPanel onChange={setParams} params={params} unit={unit} />
