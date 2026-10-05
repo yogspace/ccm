@@ -560,10 +560,6 @@ input[type="range"]:active::-moz-range-thumb {
 }
 
 @media (width >= 75rem) {
-  .layout:not([data-expanded]) .toolbar-row {
-    flex-wrap: nowrap;
-  }
-
   .layout:not([data-expanded]) .brush {
     min-width: 6rem;
   }
@@ -953,33 +949,62 @@ button.toggle[aria-pressed="false"] .cookie {
 
 /* ---------- Werkzeugleisten ---------- */
 
-/* Zwei Zeilen: Werkzeuge | Rückgängig & Löschen, darunter Vorlagen | Hochladen */
+/* Werkzeuge | Pinselstärke | Rückgängig & Löschen, darunter Vorlagen | Hochladen.
+   Die Leiste richtet sich nach ihrer eigenen Breite (Container Query). */
 .toolbar {
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
+  container: toolbar / inline-size;
 }
 
-.toolbar-row {
-  display: flex;
-  flex-wrap: wrap;
+.toolbar-main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "tools options actions";
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem 1.5rem;
-}
-
-.tools {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: 1rem;
-  min-width: 0;
-  /* Gleich hoch, egal ob Regler oder Hinweis – sonst springt die Fläche. */
+  gap: 0.75rem 1.25rem;
   min-height: 2.6rem;
+}
+
+.tool-options {
+  display: flex;
+  grid-area: options;
+  align-items: center;
+  min-width: 0;
+  /* So hoch wie der Regler – auch wenn nur der Hinweis dasteht: kein Springen. */
+  min-height: 2.1rem;
+}
+
+/* Schmal: Werkzeuge und Aktionen oben, Pinselstärke in voller Breite darunter */
+@container toolbar (width < 34rem) {
+  .toolbar-main {
+    grid-template-columns: auto auto;
+    grid-template-areas:
+      "tools actions"
+      "options options";
+    justify-content: space-between;
+  }
+
+  .tool-options .brush {
+    max-width: none;
+  }
+
+  .toolbar-main {
+    column-gap: 0.75rem;
+  }
+
+  .toolbar-main .tool-group,
+  .toolbar-main .actions {
+    gap: 0.45rem;
+  }
 }
 
 .tool-group {
   display: flex;
+  grid-area: tools;
+  /* Bündig mit der linken Kante der Zeichenfläche, egal was darunter steht */
+  justify-self: start;
   align-items: center;
   gap: 0.6rem;
 }
@@ -1002,6 +1027,9 @@ button.toggle[aria-pressed="false"] .cookie {
 
 .actions {
   display: flex;
+  grid-area: actions;
+  /* Bündig mit der rechten Kante – ein gedehntes Raster schiebt sie nicht nach innen */
+  justify-self: end;
   align-items: center;
   gap: 1rem;
 }
@@ -1042,16 +1070,18 @@ button.toggle[aria-pressed="false"] .cookie {
   gap: 0.45rem;
 }
 
+/* Karten in voller Breite, „SVG hochladen“ in der nächsten Zeile */
 .templates-row {
   display: flex;
-  align-items: center;
-  gap: 1rem 1.5rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.9rem;
 }
 
 .preset-strip {
   display: flex;
-  flex: 1;
   gap: 0.6rem;
+  align-self: stretch;
   min-width: 0;
   padding-block: 0.15rem;
   overflow-x: auto;
@@ -1578,8 +1608,11 @@ footer a.donate:hover {
   gap: 1rem;
 }
 
+/* Teilen und Downloads: rechtsbündig, brechen um statt aus der Karte zu ragen */
 .export > .actions {
-  align-self: flex-end;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-self: stretch;
 }
 
 /* Teilen, rechts in der Leiste */

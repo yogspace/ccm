@@ -56,8 +56,8 @@ export const de = {
     reset: "Zurücksetzen",
   },
   export: {
-    name: "Dateiname",
-    namePlaceholder: "Dateiname, z. B. Herz",
+    name: "Name deiner Kreation",
+    namePlaceholder: "Name deiner Kreation, z. B. Herz",
     threeMf: "3MF herunterladen",
     stl: "STL",
   },
@@ -84,7 +84,7 @@ export const de = {
     imageAlt: "Ausstecher „{{name}}“ von oben",
     copy: "Link kopieren",
     copied: "Kopiert",
-    more: "Mit einer App teilen …",
+    share: "Teilen",
   },
   legal: {
     close: "Schließen",

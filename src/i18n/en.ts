@@ -56,8 +56,8 @@ export const en: typeof de = {
     reset: "Reset",
   },
   export: {
-    name: "File name",
-    namePlaceholder: "File name, e.g. Heart",
+    name: "Name of your creation",
+    namePlaceholder: "Name your creation, e.g. Heart",
     threeMf: "Download 3MF",
     stl: "STL",
   },
@@ -83,7 +83,7 @@ export const en: typeof de = {
     imageAlt: "Cookie cutter “{{name}}” from above",
     copy: "Copy link",
     copied: "Copied",
-    more: "Share with an app …",
+    share: "Share",
   },
   legal: {
     close: "Close",

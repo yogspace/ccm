@@ -914,10 +914,11 @@ const DrawCanvas = ({
       </div>
 
       <div className="toolbar" ref={toolbarRef}>
-        {/* Zeile 1: Werkzeuge (+ Pinselstärke) links, Rückgängig & Löschen rechts */}
-        <div className="toolbar-row">
-          <div className="tools">
-            <ToolPicker onChoose={onChooseTool} tool={tool} />
+        {/* Zeile 1: Werkzeuge | Pinselstärke | Rückgängig & Löschen – schmal
+            rutscht die Pinselstärke in eine eigene Zeile (siehe CSS). */}
+        <div className="toolbar-main">
+          <ToolPicker onChoose={onChooseTool} tool={tool} />
+          <div className="tool-options">
             {mode === "draw" || selection ? (
               <div className="brush">
                 {/* Vorschau der Strichstärke */}

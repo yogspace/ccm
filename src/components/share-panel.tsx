@@ -10,7 +10,7 @@ type Props = {
   name: string;
 };
 
-/** Teilen der Seite selbst: Link kopieren und (wo vorhanden) das System-Menü. */
+/** Teilen der Seite selbst: System-Teilen-Menü, wo vorhanden, sonst Link kopieren. */
 const SharePanel = ({ getUrl, name }: Props) => {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
@@ -47,34 +47,30 @@ const SharePanel = ({ getUrl, name }: Props) => {
     }
   };
 
+  // Ein Button: System-Teilen-Menü, wo es das gibt – sonst Link kopieren.
   return (
     <div className="share">
       <Button
         className="copy"
         data-copied={copied || undefined}
-        onClick={copy}
+        onClick={canShare ? share : copy}
         type="button"
       >
         {copied ? (
           <CookieIcon icing="#00b86b" icon={Check} key="check" size={52} />
+        ) : canShare ? (
+          <CookieIcon icon={Share2} key="share" roll={14} size={52} />
         ) : (
           <CookieIcon icon={Link} key="link" roll={-22} size={52} />
         )}
         <span aria-live="polite">
-          {copied ? t("share.copied") : t("share.copy")}
+          {copied
+            ? t("share.copied")
+            : canShare
+              ? t("share.share")
+              : t("share.copy")}
         </span>
       </Button>
-      {canShare && (
-        <Button
-          aria-label={t("share.more")}
-          className="icon"
-          onClick={share}
-          title={t("share.more")}
-          type="button"
-        >
-          <CookieIcon icing="#2a44ff" icon={Share2} roll={14} size={52} />
-        </Button>
-      )}
     </div>
   );
 };
