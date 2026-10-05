@@ -47,6 +47,8 @@ type Entry = {
   appear: Spring;
   /** Ab hier wächst der Keks (performance.now()-Zeit). */
   appearAt: number;
+  /** Einmal gemeldet, sobald der Keks fast ganz da ist. */
+  onAppear?: () => void;
   spin: boolean;
   /** Drehgeschwindigkeit in der Bildebene (rad/ms), solange `spin` an ist. */
   spinSpeed: number;
@@ -171,6 +173,10 @@ const tick = (time: number) => {
     // Kritisch gedämpft: wächst weich herein, ohne aufzuploppen.
     const waiting = time < entry.appearAt;
     if (!waiting) step(entry.appear, dt, 120, 22);
+    if (entry.onAppear && entry.appear.value > 0.85) {
+      entry.onAppear();
+      entry.onAppear = undefined;
+    }
     if (settled(entry.flip)) {
       // Nach einer vollen Drehung wieder bei 0 anfangen.
       entry.flip.value %= Math.PI * 2;
@@ -220,6 +226,17 @@ export const registerCookie = (
     delay = 0,
     spin = false,
     spinSpeed = 1 / 260,
+    onAppear,
+  }: {
+    tilt?: number;
+    roll?: number;
+    idle?: boolean;
+    follow?: boolean;
+    delay?: number;
+    spin?: boolean;
+    spinSpeed?: number;
+    /** Wird einmal aufgerufen, wenn der Keks hereingewachsen ist. */
+    onAppear?: () => void;
   } = {}
 ): CookieHandle => {
   if (!renderer) setup();
@@ -238,6 +255,7 @@ export const registerCookie = (
     squash: spring(),
     appear: { value: reduceMotion ? 1 : 0, velocity: 0, target: 1 },
     appearAt: performance.now() + (reduceMotion ? 0 : delay),
+    onAppear,
     spin,
     spinSpeed,
     phase: Math.random() * Math.PI * 2,

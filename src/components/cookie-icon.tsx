@@ -24,6 +24,8 @@ type Props = {
   tilt?: number;
   /** Aus: kein Mausblick, kein Drehen beim Hover – z. B. wenn Schrift darauf liegt. */
   interactive?: boolean;
+  /** Sobald der Keks hereingewachsen ist, z. B. um Schrift darauf einzublenden. */
+  onAppear?: () => void;
 } & (
   | { kind: CookieKind; icon?: never; icing?: never }
   | { icon: LucideIcon; icing?: string; kind?: never }
@@ -44,6 +46,7 @@ const CookieIcon = ({
   delay = 0,
   tilt,
   interactive = true,
+  onAppear,
   kind,
   icon: Icon,
   icing = "#ffffff",
@@ -60,6 +63,8 @@ const CookieIcon = ({
   // setSpin würde sonst ins Leere gehen.
   const spinRef = useRef({ spin, spinSpeed });
   spinRef.current = { spin, spinSpeed };
+  const onAppearRef = useRef(onAppear);
+  onAppearRef.current = onAppear;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -83,6 +88,7 @@ const CookieIcon = ({
         delay: delayRef.current,
         spin: spinRef.current.spin,
         spinSpeed: spinRef.current.spinSpeed / 1000,
+        onAppear: () => onAppearRef.current?.(),
       });
     });
 
