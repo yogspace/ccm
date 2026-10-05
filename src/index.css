@@ -451,12 +451,12 @@ input[type="range"]:active::-moz-range-thumb {
 .masthead .switch {
   align-items: center;
   padding: 0.2rem;
-  border-radius: 999px;
+  border-radius: 0.8rem;
 }
 
 .masthead .switch button {
   height: 1.8rem;
-  border-radius: 999px;
+  border-radius: 0.6rem;
 }
 
 .masthead .switch button[aria-pressed="true"] {
@@ -1222,12 +1222,11 @@ button.remove-chip {
   padding: 1.1rem 1.5rem 1.1rem 1.75rem;
 }
 
-/* Einzeilig als Pille, die Felder darin sitzen konzentrisch. Auf dem Handy
-   bricht die Leiste um und bleibt deshalb eine Karte (Footer genauso). */
+/* Einzeilig schmaler, die Felder darin sitzen konzentrisch. Auf dem Handy
+   bricht die Leiste um. */
 @media (width > 40rem) {
   .card.bar {
     padding: 0.8rem;
-    border-radius: 999px;
   }
 }
 
@@ -1252,7 +1251,7 @@ button.remove-chip {
   color: var(--field-text);
   background: var(--field);
   border: 0;
-  border-radius: 999px;
+  border-radius: 0.6rem;
   outline: 2px solid transparent;
   transition:
     outline-color 0.2s var(--ease),
@@ -1463,12 +1462,6 @@ footer {
   border-radius: calc(var(--radius) + 0.35rem);
 }
 
-@media (width > 40rem) {
-  footer {
-    border-radius: 999px;
-  }
-}
-
 /* Spendenlink: Sonnen-Keks, ragt links unten über den Footer hinaus.
    Beim Hover richtet er sich auf und dreht sich einmal (in 3D). */
 .donate {
@@ -1627,7 +1620,6 @@ footer a.donate:hover {
 .share button.copy {
   height: 2.6rem;
   padding: 0 1.25rem 0 0.9rem;
-  border-radius: 999px;
   color: var(--accent-text);
   background: var(--accent);
   border-color: var(--accent);
@@ -1750,7 +1742,6 @@ button.legal-close {
   width: 2.5rem;
   height: 2.5rem;
   padding: 0;
-  border-radius: 50%;
 }
 
 .legal h2 {
@@ -1812,7 +1803,7 @@ dialog.share-sheet {
   color: var(--field-text);
   background: var(--field);
   border: 0;
-  border-radius: 999px;
+  border-radius: 0.6rem;
 }
 
 .share-link button.copy {
@@ -1821,7 +1812,6 @@ dialog.share-sheet {
   padding: 0 1.1rem 0 0.8rem;
   color: var(--accent-text);
   background: var(--accent);
-  border-radius: 999px;
 }
 
 .share-link button.copy[data-copied] {
