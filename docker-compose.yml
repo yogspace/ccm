@@ -1,0 +1,20 @@
+services:
+  # Service-Name = Hostname im Proxy-Netz: der Proxy-Stack routet
+  # ccm.mxwr.de → ccm:3000. Muss im Netz `web` eindeutig sein.
+  ccm:
+    image: ghcr.io/yogspace/ccm:latest
+    restart: unless-stopped
+    # Schutz für die anderen Apps auf dem Server (u. a. Portfolio).
+    mem_limit: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - web
+
+networks:
+  # Geteiltes Netz des Proxy-Stacks (/opt/apps/proxy), extern angelegt.
+  web:
+    external: true

@@ -1,0 +1,18 @@
+# Interner Static-Server im ccm-Container (kein TLS — das macht der Proxy-Stack).
+{
+    auto_https off
+    admin off
+}
+
+:3000 {
+    root * /srv
+    encode zstd gzip
+
+    # Vite-Assets tragen einen Hash im Namen → dürfen ewig gecacht werden.
+    @assets path /assets/*
+    header @assets Cache-Control "public, max-age=31536000, immutable"
+
+    # SPA-Fallback: unbekannte Pfade landen bei index.html.
+    try_files {path} /index.html
+    file_server
+}
