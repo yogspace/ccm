@@ -244,11 +244,11 @@ const App = () => {
           </a>
         </span>
         <span className="credit">
-          <span>© {new Date().getFullYear()} Maximilian Weber</span>
+          <LegalNotice />
           <span aria-hidden className="sep">
             ·
           </span>
-          <LegalNotice />
+          <span>© {new Date().getFullYear()} Maximilian Weber</span>
         </span>
       </footer>
     </div>
