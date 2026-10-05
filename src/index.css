@@ -897,10 +897,22 @@ footer .cookie {
   margin: -0.7rem -0.2rem -0.7rem -0.5rem;
 }
 
-/* Keks-Häkchen: größer als das Kästchen, ragt heraus. */
+/* Keks-Häkchen: größer als das Kästchen, ragt heraus. Wächst federnd herein … */
 .checkbox-box .cookie {
   position: absolute;
   margin: 0;
+  transition:
+    scale 0.4s var(--ease-spring),
+    visibility 0s;
+}
+
+/* … und schrumpft beim Abwählen, bis es weg ist. */
+.checkbox input:not(:checked) + .checkbox-box .cookie {
+  scale: 0;
+  visibility: hidden;
+  transition:
+    scale 0.25s cubic-bezier(0.5, 0, 0.75, 0),
+    visibility 0s 0.25s;
 }
 
 button.icon .cookie {

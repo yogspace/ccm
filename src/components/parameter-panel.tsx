@@ -54,10 +54,9 @@ const ParameterPanel = ({ params, onChange, unit }: Props) => {
             }
             type="checkbox"
           />
+          {/* Bleibt gerendert: Abwählen lässt es per CSS schrumpfen, bis es weg ist. */}
           <span aria-hidden className="checkbox-box">
-            {cutouts && (
-              <CookieIcon icing="#00b86b" icon={Check} roll={-8} size={60} />
-            )}
+            <CookieIcon icing="#00b86b" icon={Check} roll={-8} size={60} />
           </span>
           {t("params.cutouts")}
         </label>
