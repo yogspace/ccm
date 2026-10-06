@@ -75,7 +75,7 @@ const BRIDGE_MAX_TILT = 35;
  */
 const BRIDGE_GAP = 12;
 /** Radius (mm) der Hohlkehlen, mit denen die Stege in die Wände übergehen. */
-const BRIDGE_FILLET = 3;
+const BRIDGE_FILLET = 2.5;
 
 const signedArea = (ring: Ring) => {
   let area = 0;
@@ -441,7 +441,7 @@ const bridgeProfile = (
  * at the walls slope away from the bridge instead of standing as a block.
  */
 const filletProfile = (half: number, radius: number, height: number): Ring => {
-  const steps = 12;
+  const steps = 20;
   const right: Ring = [];
   for (let i = 0; i <= steps; i++) {
     // From the band edge (full height) out to the bed.
@@ -709,9 +709,10 @@ export const buildCutter = (
         // slivers along them, dropped – plus a slight overlap into the walls
         // and the band running through them.
         const near = track(walls.intersect(soft(band, 4 * BRIDGE_FILLET)));
-        const closed = soft(
-          soft(track(near.add(band)), BRIDGE_FILLET),
-          -BRIDGE_FILLET
+        const closed = track(
+          track(
+            track(near.add(band)).offset(BRIDGE_FILLET, "Round", 2, 48)
+          ).offset(-BRIDGE_FILLET, "Round", 2, 48)
         );
         const outside = track(
           track(closed.intersect(soft(band, 2 * BRIDGE_FILLET))).subtract(walls)
@@ -741,8 +742,10 @@ export const buildCutter = (
         const length = span + 2 * reachOut;
         // Side view: the arch. Cross view: full height over the band, the
         // fillets beside it slope down to the bed.
+        // The arch runs out vertically at the far faces of both walls: in
+        // front of a curved wall only its steep flank shows, no plateau.
         const arch = sweep(
-          bridgeProfile(span, reachOut, endHeight, midHeight),
+          bridgeProfile(span + 2 * wall, reachOut - wall, endHeight, midHeight),
           length,
           start,
           dir,
