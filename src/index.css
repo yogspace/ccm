@@ -1,5 +1,5 @@
-/* Pally (Indian Type Foundry, ITF Free Font License), selbst gehostet –
-   die Datei holt scripts/fetch-fonts.mjs, sie liegt nicht im Repo. */
+/* Pally (Indian Type Foundry, ITF Free Font License), self-hosted – the file
+   is fetched by scripts/fetch-fonts.mjs, it is not in the repo. */
 @font-face {
   font-family: "Pally";
   src: url("/fonts/Pally-Variable.woff2") format("woff2");
@@ -17,13 +17,13 @@
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 
-  /* Seite: Luminous Blue (WGSN/Coloro 125-28-38) mit weißer Schrift */
+  /* Page: Luminous Blue (WGSN/Coloro 125-28-38) with white text */
   --page: #2a44ff;
   --on-page: #ffffff;
   --on-page-muted: rgb(255 255 255 / 0.74);
   --on-page-line: rgb(255 255 255 / 0.22);
   --on-page-soft: rgb(255 255 255 / 0.14);
-  /* Karten: dezentes Creme – flach, ohne Outlines */
+  /* Cards: subtle cream – flat, without outlines */
   --card: #fdf8ef;
   --surface: #fdf8ef;
   --surface-2: #f2e8d5;
@@ -37,17 +37,17 @@
   --accent: #2a44ff;
   --accent-soft: #e3e7ff;
   --accent-text: #ffffff;
-  /* Regler-Spur und Dateiname-Feld */
+  /* Slider track and name field */
   --track-fill: var(--accent);
   --track-rest: #e6d9bf;
   --field: var(--surface-2);
   --field-text: var(--text);
   --field-muted: var(--muted);
   --success: #00b86b;
-  /* Schnittlinie auf dem Papier */
+  /* Cutting line on the paper */
   --cut: #2a44ff;
   --error: #d92d20;
-  /* Schriftgrößen: nur diese fünf */
+  /* Font sizes: only these five */
   --fs-tiny: 0.75rem;
   --fs-small: 0.9rem;
   --fs-body: 1rem;
@@ -61,7 +61,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --page: #141c86;
-    /* Durchscheinend, damit die Hintergrund-Kekse zu sehen sind. */
+    /* Translucent, so the background cookies show through. */
     --card: rgb(15 21 102 / 0.45);
     --surface: #0f1566;
     --surface-2: #1c2491;
@@ -139,7 +139,7 @@ button {
     color 0.2s var(--ease);
 }
 
-/* Anheben und Eindrücken animiert motion (components/button.tsx). */
+/* Lifting and pressing are animated by motion (components/button.tsx). */
 button:hover:not(:disabled) {
   background: color-mix(in oklab, var(--surface-2) 82%, var(--text));
 }
@@ -192,7 +192,7 @@ button.ghost:hover:not(:disabled) {
   transform: none;
 }
 
-/* ---------- Schieberegler ---------- */
+/* ---------- Sliders ---------- */
 
 input[type="range"] {
   --fill: 50%;
@@ -254,11 +254,11 @@ input[type="range"]:active::-moz-range-thumb {
   transform: scale(1.25);
 }
 
-/* Keks-Regler (components/cookie-slider.tsx): unsichtbarer Range-Input über
-   eigener Spur, der Keks liegt genau über dem unsichtbaren Knopf. */
+/* Cookie slider (components/cookie-slider.tsx): an invisible range input over
+   its own track, the cookie lies exactly over the invisible thumb. */
 .slider {
   --thumb: 2.1rem;
-  /* Mitte des Kekses: läuft von thumb/2 bis 100 % − thumb/2. */
+  /* Centre of the cookie: runs from thumb/2 to 100 % − thumb/2. */
   --stop: calc(var(--thumb) / 2 + var(--fill) * (100% - var(--thumb)));
   position: relative;
   display: block;
@@ -347,13 +347,13 @@ input[type="range"]:active::-moz-range-thumb {
   white-space: nowrap;
 }
 
-/* ---------- Seite ---------- */
+/* ---------- Page ---------- */
 
 .app {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  /* Was übersteht (Sonnen-Sticker, große Kekse), macht die Seite nicht größer. */
+  /* What sticks out (sun sticker, large cookies) does not make the page larger. */
   overflow: clip;
   min-height: 100dvh;
   max-width: 90rem;
@@ -385,7 +385,7 @@ input[type="range"]:active::-moz-range-thumb {
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.015em;
-  /* Pally endet bei 700 – die Kontur macht die Headline noch satter. */
+  /* Pally stops at 700 – the outline makes the headline even bolder. */
   -webkit-text-stroke: 0.035em currentColor;
   paint-order: stroke fill;
 }
@@ -455,13 +455,13 @@ input[type="range"]:active::-moz-range-thumb {
   color: var(--on-page-muted);
 }
 
-/* Nur die nicht gewählte Option wird beim Hover heller – die gewählte liegt
-   auf der weißen Pille und behält ihre blaue Schrift. */
+/* Only the unselected option lightens on hover – the selected one sits on the
+   white marker and keeps its blue text. */
 .masthead .switch button:not([aria-pressed="true"]):hover:not(:disabled) {
   color: var(--on-page);
 }
 
-/* Beide Umschalter (Einheit, Sprache) liegen auf einer hellen Fläche. */
+/* Both switches (unit, language) sit on a light surface. */
 .masthead .switch {
   align-items: center;
   padding: 0.2rem;
@@ -482,7 +482,7 @@ input[type="range"]:active::-moz-range-thumb {
   background: var(--on-page);
 }
 
-/* Die Einheit hat zusätzlich das Lineal-Icon vorne. */
+/* The unit also has the ruler icon in front. */
 .masthead .unit-switch {
   gap: 0.15rem;
   padding-left: 0.6rem;
@@ -490,8 +490,8 @@ input[type="range"]:active::-moz-range-thumb {
   border-color: transparent;
 }
 
-/* Desktop: Leiste über Form und Ausstecher, alles in Fensterhöhe. Die
-   Zeichenfläche richtet sich nach der Höhe, die 3D-Ansicht füllt den Rest. */
+/* Desktop: bar above shape and cutter, everything at window height. The
+   drawing area follows the height, the 3D view fills the rest. */
 .layout {
   --stage-size: min(100%, max(24rem, calc(100dvh - 28.5rem)));
   display: grid;
@@ -522,8 +522,8 @@ input[type="range"]:active::-moz-range-thumb {
   animation-timing-function: var(--ease);
 }
 
-/* Container für Fläche und Leisten: Nach seiner Größe richtet sich, ob die
-   Leisten neben oder unter der Fläche stehen (siehe Werkzeugleisten). */
+/* Container for area and bars: its size decides whether the bars sit beside
+   or below the area (see Toolbars). */
 .draw-area {
   display: flex;
   flex-direction: column;
@@ -532,7 +532,7 @@ input[type="range"]:active::-moz-range-thumb {
   container: draw / inline-size;
 }
 
-/* Vergrößert: Zeichnen über die volle Breite, Vorschau rutscht darunter. */
+/* Enlarged: drawing across the full width, the preview moves below. */
 .layout[data-expanded] {
   --stage-size: min(100%, 60rem);
   grid-template-columns: minmax(0, 1fr);
@@ -550,11 +550,11 @@ input[type="range"]:active::-moz-range-thumb {
   animation: none;
 }
 
-/* Desktop: Die Zeile ist mindestens fensterhoch. Die Zeichenfläche wird das
-   größte Quadrat, das in ihre Karte passt; die 3D-Ansicht füllt den Rest
-   neben den Reglern. */
+/* Desktop: the row is at least window high. The drawing area becomes the
+   largest square that fits its card; the 3D view fills the rest next to the
+   sliders. */
 @media (width > 56rem) {
-  /* Füllt genau die Höhe, die neben Kopf, Leiste und Footer bleibt. */
+  /* Fills exactly the height left beside header, bar and footer. */
   .layout:not([data-expanded]) {
     flex: 1;
     grid-template-rows: auto 1fr;
@@ -568,8 +568,8 @@ input[type="range"]:active::-moz-range-thumb {
     container-type: size;
   }
 
-  /* Vergrößert: volle Breite, so hoch wie das Fenster – die Leisten stehen
-     dann neben der Fläche (siehe Werkzeugleisten). */
+  /* Enlarged: full width, as high as the window – the bars then sit beside
+     the area (see Toolbars). */
   .layout[data-expanded] .draw-area {
     align-items: center;
     width: 100%;
@@ -577,9 +577,9 @@ input[type="range"]:active::-moz-range-thumb {
     container-type: size;
   }
 
-  /* Kantenlänge der Fläche: der Platz der Karte minus dem, was die Leisten
-     daneben (--chrome-w) und darunter (--chrome-h) brauchen. Beides misst
-     draw-canvas.tsx; die Werte hier gelten nur bis zur ersten Messung. */
+  /* Side length of the area: the card's room minus what the bars beside
+     (--chrome-w) and below (--chrome-h) need. Both are measured by
+     draw-canvas.tsx; the values here only apply until the first measurement. */
   .draw-grid {
     --s: max(
       12rem,
@@ -594,14 +594,14 @@ input[type="range"]:active::-moz-range-thumb {
   }
 }
 
-/* Schmal ist die Zeichenfläche ohnehin volle Breite – Vergrößern bringt nichts. */
+/* When narrow the drawing area is full width anyway – enlarging gains nothing. */
 @media (max-width: 56rem) {
   button.expand {
     display: none;
   }
 }
 
-/* Schmal: untereinander, Flächen so breit wie möglich – hier darf gescrollt werden. */
+/* Narrow: stacked, areas as wide as possible – scrolling is fine here. */
 @media (max-width: 56rem) {
   .layout,
   .layout[data-expanded] {
@@ -614,7 +614,7 @@ input[type="range"]:active::-moz-range-thumb {
   }
 }
 
-/* Handy: Logo und Titel oben, die Umschalter in eigener Zeile darunter. */
+/* Phone: logo and title on top, the switches on their own row below. */
 @media (max-width: 40rem) {
   .masthead {
     --cookie-scale: 0.7;
@@ -646,14 +646,14 @@ input[type="range"]:active::-moz-range-thumb {
   gap: 1.25rem;
   padding: 1.5rem 1.75rem 1.75rem;
   background: var(--card);
-  /* Hintergrund-Kekse scheinen weichgezeichnet durch. */
+  /* Background cookies shine through, blurred. */
   -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
   border-radius: calc(var(--radius) + 0.35rem);
   animation: rise 0.6s var(--ease) both;
 }
 
-/* Handy: seitlich weniger Polster – mehr Platz für Zeichenfläche und Regler. */
+/* Phone: less padding at the sides – more room for drawing area and sliders. */
 @media (max-width: 40rem) {
   .card {
     padding-inline: 1rem;
@@ -705,11 +705,11 @@ input[type="range"]:active::-moz-range-thumb {
   animation: fade 0.3s var(--ease);
 }
 
-/* ---------- Flächen (Zeichnen, 3D) ---------- */
+/* ---------- Stages (drawing, 3D) ---------- */
 
 .stage {
   position: relative;
-  /* Immer quadratisch – sonst verzerrt die Zeichenfläche alles darauf. */
+  /* Always square – otherwise the drawing area distorts everything on it. */
   flex: none;
   aspect-ratio: 1;
   overflow: hidden;
@@ -731,9 +731,8 @@ input[type="range"]:active::-moz-range-thumb {
   transform: scale(0.985);
 }
 
-/* Die Zeichenfläche bleibt in beiden Themes ein helles Blatt. */
-/* Die Zeichenfläche bleibt in beiden Themes ein helles Blatt – mit eigenen
-   hellen Farben für alles, was darauf liegt. */
+/* The drawing area stays a light sheet in both themes – with light colours of
+   its own for everything on it. */
 .stage.paper {
   --accent: #2a44ff;
   --accent-soft: #e3e7ff;
@@ -747,7 +746,7 @@ input[type="range"]:active::-moz-range-thumb {
   background-image: none;
 }
 
-/* Koordinatensystem unter der Zeichnung */
+/* Coordinate system under the drawing */
 .grid {
   position: absolute;
   inset: 0;
@@ -778,7 +777,7 @@ input[type="range"]:active::-moz-range-thumb {
   stroke: #e4dac8;
 }
 
-/* Die Achsen liegen auf dem Rand – doppelt so dick, die Hälfte ist sichtbar. */
+/* The axes lie on the edge – twice as thick, half of it is visible. */
 .grid .axis line {
   stroke: #cdbfa7;
   stroke-width: 3;
@@ -792,7 +791,7 @@ input[type="range"]:active::-moz-range-thumb {
   color: #9a917f;
 }
 
-/* Beschriftung wie in der Schule: x unten, y links, 0 in der Ecke */
+/* Labels like at school: x at the bottom, y on the left, 0 in the corner */
 .tick.x {
   bottom: 0.4rem;
   transform: translateX(-50%);
@@ -872,8 +871,8 @@ input[type="range"]:active::-moz-range-thumb {
   animation: breathe 2.4s ease-in-out infinite;
 }
 
-/* In der 3D-Ansicht übernimmt das Bodenraster, Punkte wären doppelt. Sie
-   füllt die Höhe, die neben der Zeichenfläche übrig bleibt. */
+/* In the 3D view the floor grid takes over, dots would be doubled. It fills
+   the height left next to the drawing area. */
 .stage.viewer {
   flex: 1 1 0;
   min-height: 15rem;
@@ -897,13 +896,13 @@ input[type="range"]:active::-moz-range-thumb {
   display: block;
 }
 
-/* ---------- 3D-Kekse ---------- */
+/* ---------- 3D cookies ---------- */
 
-/* Drehen, Hüpfen und Mausblick passieren in 3D (src/cookies/renderer.ts). */
+/* Turning, hopping and looking at the mouse happen in 3D (src/cookies/renderer.ts). */
 .cookie {
   display: block;
   flex-shrink: 0;
-  /* Größe aus dem Prop, per --cookie-scale (vererbt) z. B. fürs Handy kleiner. */
+  /* Size from the prop, smaller via --cookie-scale (inherited), e.g. on phones. */
   width: calc(var(--size) * var(--cookie-scale, 1));
   height: calc(var(--size) * var(--cookie-scale, 1));
   pointer-events: none;
@@ -914,7 +913,7 @@ button .cookie {
   margin: -1rem -0.3rem -1rem -0.7rem;
 }
 
-/* Footer: Keks ragt über die Zeile hinaus, ohne sie höher zu machen. */
+/* Footer: the cookie sticks out of the row without making it taller. */
 footer .cookie {
   margin: -0.75rem -0.45rem -0.75rem -0.3rem;
 }
@@ -933,7 +932,7 @@ footer .cookie {
   margin: -0.7rem -0.2rem -0.7rem -0.5rem;
 }
 
-/* Keks-Häkchen: größer als das Kästchen, ragt heraus. Wächst federnd herein … */
+/* Cookie tick: larger than the box, sticks out. Springs in … */
 .checkbox-box .cookie {
   position: absolute;
   margin: 0;
@@ -946,7 +945,7 @@ button.icon .cookie {
   margin: -0.6rem;
 }
 
-/* Icon-Buttons mit Keks: keine Fläche dahinter, nur der schwebende Keks. */
+/* Icon buttons with a cookie: no surface behind, just the floating cookie. */
 button.icon:has(.cookie),
 button.icon:has(.cookie):hover:not(:disabled) {
   background: transparent;
@@ -960,14 +959,14 @@ button:disabled .cookie {
   margin: -0.7rem -0.2rem -0.7rem -0.5rem;
 }
 
-/* Schalter aus (Drehteller, Werkzeuge): Keks wird blasser. */
+/* Toggle off (turntable, tools): the cookie fades. */
 button.rotate[aria-pressed="false"] .cookie,
 button.toggle[aria-pressed="false"] .cookie {
   opacity: 0.5;
   filter: grayscale(0.7);
 }
 
-/* … und schrumpft beim Abwählen, bis es weg ist. */
+/* … and shrinks when unticked until it is gone. */
 .checkbox input:not(:checked) + .checkbox-box .cookie {
   scale: 0;
   visibility: hidden;
@@ -976,7 +975,7 @@ button.toggle[aria-pressed="false"] .cookie {
     visibility 0s 0.25s;
 }
 
-/* Hintergrund-Kekse: liegen hinter allem auf der blauen Fläche. */
+/* Background cookies: behind everything on the blue page. */
 .cookie-background {
   position: fixed;
   inset: 0;
@@ -995,11 +994,11 @@ button.toggle[aria-pressed="false"] .cookie {
   z-index: 1;
 }
 
-/* ---------- Werkzeugleisten ---------- */
+/* ---------- Toolbars ---------- */
 
-/* Fläche und Leisten teilen sich ein Raster. Standard: alles unter der
-   Fläche – Werkzeuge | Pinselstärke | Rückgängig & Löschen, darunter die
-   Vorlagen. Neben der Fläche: siehe ganz unten in diesem Abschnitt. */
+/* Area and bars share one grid. Default: everything below the area – tools |
+   brush size | undo & clear, below that the templates. Beside the area: see
+   the very end of this section. */
 .draw-grid {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -1009,7 +1008,7 @@ button.toggle[aria-pressed="false"] .cookie {
     "templates templates templates";
   align-items: center;
   gap: 1.1rem 1.25rem;
-  /* Auf dem Desktop so breit wie die Fläche (--s), sonst volle Breite */
+  /* On desktop as wide as the area (--s), otherwise full width */
   width: var(--s, auto);
 }
 
@@ -1024,14 +1023,14 @@ button.toggle[aria-pressed="false"] .cookie {
   grid-area: options;
   align-items: center;
   min-width: 0;
-  /* So hoch wie der Regler – auch wenn nur der Hinweis dasteht: kein Springen. */
+  /* As tall as the slider – even when only the hint shows: no jumping. */
   min-height: 2.1rem;
 }
 
 .tool-group {
   display: flex;
   grid-area: tools;
-  /* Bündig mit der linken Kante der Zeichenfläche, egal was daneben steht */
+  /* Flush with the drawing area's left edge, whatever stands next to it */
   justify-self: start;
   align-items: center;
   gap: 0.6rem;
@@ -1041,7 +1040,7 @@ button.toggle[aria-pressed="false"] .cookie {
   position: relative;
 }
 
-/* Unterstrich unter dem aktiven Werkzeug – gleitet per Layout-Animation */
+/* Underline below the active tool – glides via layout animation */
 .tool-underline {
   position: absolute;
   bottom: -0.6rem;
@@ -1056,13 +1055,13 @@ button.toggle[aria-pressed="false"] .cookie {
 .actions {
   display: flex;
   grid-area: actions;
-  /* Bündig mit der rechten Kante – ein gedehntes Raster schiebt sie nicht nach innen */
+  /* Flush with the right edge – a stretched grid does not push them inwards */
   justify-self: end;
   align-items: center;
   gap: 1rem;
 }
 
-/* Schmal: Werkzeuge und Aktionen oben, Pinselstärke in voller Breite darunter */
+/* Narrow: tools and actions on top, brush size full width below */
 @container draw (width < 34rem) {
   .draw-grid {
     grid-template-areas:
@@ -1111,8 +1110,8 @@ button.toggle[aria-pressed="false"] .cookie {
     height 0.15s var(--ease);
 }
 
-/* Vorlagen: Überschrift, darunter Karten (waagerecht scrollbar), darunter
-   „SVG hochladen“. Mindestens vier Karten passen nebeneinander. */
+/* Templates: heading, below it the cards (scrolling sideways), below them
+   “Upload SVG”. At least four cards fit side by side. */
 .templates {
   display: flex;
   flex-direction: column;
@@ -1172,15 +1171,15 @@ button.preset:hover:not(:disabled) {
   margin-top: 0.45rem;
 }
 
-/* Ist die Karte nicht deutlich höher als breit, stehen die Leisten neben der
-   Fläche und sie wird größer: links die Werkzeuge (oben malen, unten
-   rückgängig & löschen), rechts die Vorlagen untereinander, darunter nur die
-   Pinselstärke. Darunter brauchen die Leisten gut 4× so viel Höhe wie daneben
-   Breite – deshalb lohnt es sich schon ab 0.88. Nur auf dem Desktop (auch
-   vergrößert): nur dort kennt der Container seine Höhe. */
+/* Unless the card is clearly taller than wide, the bars sit beside the area
+   and it gets larger: tools on the left (drawing on top, undo & clear at the
+   bottom), templates stacked on the right, only the brush size below. Below
+   the area the bars need a good 4× as much height as they need width beside
+   it – so it pays off from 0.88 on. Desktop only (also enlarged): only there
+   does the container know its height. */
 @container draw (aspect-ratio >= 0.88) and (width >= 30rem) {
   .draw-grid {
-    /* So schmal wie eine Vorlagen-Karte – sonst lohnt sich der Platz daneben nicht */
+    /* As narrow as a template card – otherwise the room beside does not pay off */
     --rail: 3.1rem;
     grid-template-columns: var(--rail) var(--s) var(--rail);
     grid-template-rows: var(--s) auto;
@@ -1207,7 +1206,7 @@ button.preset:hover:not(:disabled) {
     align-self: end;
   }
 
-  /* Untereinander: Strich links neben dem aktiven Werkzeug */
+  /* Stacked: line to the left of the active tool */
   .draw-grid .tool-underline {
     top: 50%;
     bottom: auto;
@@ -1232,7 +1231,7 @@ button.preset:hover:not(:disabled) {
     display: none;
   }
 
-  /* Die Spalte schneidet seitlich ab – der Fokusring liegt deshalb innen. */
+  /* The column clips at the sides – so the focus ring sits inside. */
   .draw-grid button.preset:focus-visible {
     outline-offset: -3px;
   }
@@ -1248,7 +1247,7 @@ button.preset:hover:not(:disabled) {
     scrollbar-width: none;
   }
 
-  /* Hochladen als Kachel wie die Vorlagen: nur der Keks, Text als Tooltip */
+  /* Upload as a tile like the templates: just the cookie, text as a tooltip */
   .draw-grid .templates button.upload {
     position: relative;
     flex: none;
@@ -1283,7 +1282,7 @@ button.preset:hover:not(:disabled) {
   color: var(--muted);
 }
 
-/* Pinselvorschau: Kreis in echter Strichstärke, der dem Zeiger folgt */
+/* Brush preview: a circle at the real brush size that follows the pointer */
 .brush-cursor {
   position: absolute;
   top: 0;
@@ -1302,7 +1301,7 @@ button.preset:hover:not(:disabled) {
   background: rgb(255 255 255 / 0.55);
 }
 
-/* Mit Maus zeigt die Vorschau, wo gemalt wird – der Pfeil wäre doppelt. */
+/* With a mouse the preview shows where it paints – the arrow would be doubled. */
 @media (hover: hover) {
   .stage[data-mode="draw"] .drawing {
     cursor: none;
@@ -1313,14 +1312,14 @@ button.preset:hover:not(:disabled) {
   cursor: default;
 }
 
-/* X an der Auswahl (Position setzt draw-canvas.tsx) */
+/* X at the selection (draw-canvas.tsx sets its position) */
 button.remove-chip {
   position: absolute;
   z-index: 3;
   translate: -50% -50%;
 }
 
-/* Rahmen, den man auf freier Fläche aufzieht, um mehrere zu wählen */
+/* Box dragged on empty space to select several */
 .marquee {
   position: absolute;
   z-index: 1;
@@ -1330,7 +1329,7 @@ button.remove-chip {
   pointer-events: none;
 }
 
-/* Auswahl beim Verschieben: Rahmen mit Anfassern an den Ecken */
+/* Selection while moving: a frame with handles at the corners */
 .selection {
   position: absolute;
   z-index: 1;
@@ -1370,7 +1369,7 @@ button.remove-chip {
   left: 0;
 }
 
-/* ---------- Leiste: Dateiname, Einheit, Teilen ---------- */
+/* ---------- Bar: name, sharing ---------- */
 
 .card.bar {
   flex-direction: row;
@@ -1387,8 +1386,8 @@ button.remove-chip {
   }
 }
 
-/* Einzeilig schmaler, die Felder darin sitzen konzentrisch. Auf dem Handy
-   bricht die Leiste um. */
+/* On one line slimmer, the fields inside sit concentrically. On phones the
+   bar wraps. */
 @media (width > 40rem) {
   .card.bar {
     padding: 0.8rem;
@@ -1433,7 +1432,7 @@ button.remove-chip {
   outline-color: var(--accent);
 }
 
-/* ---------- Maße unter der 3D-Ansicht ---------- */
+/* ---------- Dimensions below the 3D view ---------- */
 
 .params {
   display: flex;
@@ -1442,7 +1441,7 @@ button.remove-chip {
   container-type: inline-size;
 }
 
-/* Checkbox mit Keks-Häkchen (echtes input, nur unsichtbar) */
+/* Checkbox with a cookie tick (a real input, just invisible) */
 .checkbox {
   display: inline-flex;
   align-items: center;
@@ -1721,7 +1720,7 @@ button.hints-toggle {
 
 /* ---------- Footer ---------- */
 
-/* Footer als eigene Karte, wie die übrigen UI-Boxen */
+/* Footer as a card of its own, like the other UI boxes */
 footer {
   display: flex;
   flex-wrap: wrap;
@@ -1729,7 +1728,7 @@ footer {
   justify-content: space-between;
   gap: 0.75rem 2rem;
   margin-top: auto;
-  /* Links Platz für den Sonnen-Keks */
+  /* Room on the left for the sun cookie */
   padding: 0.75rem 1.75rem 0.75rem 7.5rem;
   font-size: var(--fs-body);
   color: var(--muted);
@@ -1739,8 +1738,8 @@ footer {
   border-radius: calc(var(--radius) + 0.35rem);
 }
 
-/* Spendenlink: Sonnen-Keks, ragt links unten über den Footer hinaus.
-   Beim Hover richtet er sich auf und dreht sich einmal (in 3D). */
+/* Donation link: a sun cookie sticking out at the footer's bottom left. On
+   hover it straightens up and turns once (in 3D). */
 .donate {
   position: absolute;
   bottom: -0.4rem;
@@ -1755,7 +1754,7 @@ footer {
   transition:
     rotate 0.5s var(--ease-spring),
     scale 0.5s var(--ease-spring);
-  /* Hüpft ab und zu, damit er auffällt */
+  /* Hops now and then, to catch the eye */
   animation: sun-hop 7s ease-in-out 3s infinite;
 }
 
@@ -1791,7 +1790,7 @@ footer {
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* Wächst mit der Sonne herein (scale setzt donate-badge.tsx). */
+  /* Grows in with the sun (donate-badge.tsx sets the scale). */
   scale: 0;
   font-size: var(--fs-small);
   font-weight: 700;
@@ -1818,7 +1817,7 @@ footer .credit {
   gap: 0.3rem;
 }
 
-/* Handy: Links untereinander, ohne Trennpunkte, Sonne etwas kleiner */
+/* Phone: links stacked, without separator dots, the sun a bit smaller */
 @media (max-width: 40rem) {
   footer {
     padding-right: 1rem;
@@ -1864,9 +1863,12 @@ footer a:hover {
   text-underline-offset: 3px;
 }
 
-/* Die Sonne behält beim Hover ihre dunkle Schrift auf dem Guss. */
+/* The sun keeps its dark text on the icing – in every theme, on hover and in
+   the share dialog too. */
 footer a.donate,
-footer a.donate:hover {
+footer a.donate:hover,
+.legal a.donate,
+.legal a.donate:hover {
   color: #0d1033;
   text-decoration: none;
 }
@@ -1879,14 +1881,14 @@ footer a.donate:hover {
   gap: 1rem;
 }
 
-/* Teilen und Downloads: rechtsbündig, brechen um statt aus der Karte zu ragen */
+/* Downloads: right-aligned, wrapping instead of sticking out of the card */
 .export > .actions {
   flex-wrap: wrap;
   justify-content: flex-end;
   align-self: stretch;
 }
 
-/* Teilen, rechts in der Leiste – auch wenn es auf dem Handy umbricht */
+/* Sharing, on the right of the bar – also when it wraps on phones */
 .share {
   display: flex;
   flex-wrap: wrap;
@@ -1935,12 +1937,12 @@ footer button.link:hover:not(:disabled) {
   color: var(--text);
 }
 
-/* ---------- Impressum ---------- */
+/* ---------- Imprint ---------- */
 
 dialog.legal {
   width: min(40rem, calc(100% - 2rem));
   max-height: min(85dvh, 48rem);
-  /* Der Rand hält die Scrollbar von den runden Ecken fern. */
+  /* The margin keeps the scrollbar away from the round corners. */
   padding: 0.6rem;
   overflow: hidden;
   color: var(--text);
@@ -2003,7 +2005,7 @@ dialog.legal[open]::backdrop {
     transparent;
 }
 
-/* Safari: schmale, runde Scrollbar ohne Spur */
+/* Safari: a slim, round scrollbar without a track */
 .legal-body::-webkit-scrollbar {
   width: 8px;
 }
@@ -2053,9 +2055,26 @@ button.legal-close {
   color: var(--text);
 }
 
-/* „Kreation teilen“: Bild oben, darunter der Link zum Kopieren */
+/* “Share creation”: picture on top, below it the link to copy */
 dialog.share-sheet {
   width: min(32rem, calc(100% - 2rem));
+  /* The sun sticks out at the bottom left; the body scrolls on its own. */
+  overflow: visible;
+}
+
+/* “Buy me a cookie”: the footer's sun, stuck to the dialog's bottom left. */
+dialog.share-sheet .donate {
+  bottom: -2rem;
+  left: -2rem;
+}
+
+@media (max-width: 40rem) {
+  dialog.share-sheet .donate {
+    --cookie-scale: 0.86;
+    left: -0.75rem;
+    width: 6rem;
+    height: 6rem;
+  }
 }
 
 .share-image {
@@ -2066,7 +2085,7 @@ dialog.share-sheet {
   border-radius: var(--radius);
 }
 
-/* Der Link als Feld – Klick kopiert ihn, rechts das Kopier-Icon */
+/* The link as a field – a click copies it, the copy icon on the right */
 button.share-link,
 button.share-link:hover:not(:disabled) {
   justify-content: space-between;
@@ -2097,48 +2116,22 @@ button.share-link[data-copied] {
   color: var(--muted);
 }
 
-/* “Buy me a cookie” at the end of the share dialog: sun cookie and text */
-.donate-banner {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  margin-top: 1.25rem;
-  padding: 0.75rem 1.1rem 0.75rem 0.75rem;
-  color: #0d1033;
-  text-decoration: none;
-  background: #ffe9a3;
-  border-radius: var(--radius);
-  transition: background 0.2s var(--ease);
-}
-
-.donate-banner:hover {
-  background: #ffdf7a;
-}
-
-.donate-banner span {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.donate-banner small {
-  font-size: var(--fs-small);
-  color: rgb(13 16 51 / 0.7);
-}
-
-.donate-banner .cookie {
-  flex: none;
-  margin: -0.75rem -0.25rem -0.75rem 0;
-}
-
+/* Right-aligned: the sun takes the bottom left corner. */
 .share-more {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 0.6rem 1rem;
   margin-top: 1rem;
+  padding-left: 4rem;
 }
 
-/* ---------- Icon-Animationen (aufsteigende Spezifität) ---------- */
+.share-note {
+  padding-left: 4rem;
+  text-align: right;
+}
+
+/* ---------- Icon animations (ascending specificity) ---------- */
 
 .stage-hint svg {
   margin-bottom: 0.4rem;
@@ -2162,7 +2155,7 @@ button.ghost:hover:not(:disabled) svg {
   transform: rotate(-200deg);
 }
 
-/* ---------- Animationen ---------- */
+/* ---------- Animations ---------- */
 
 @keyframes rise {
   from {
@@ -2270,7 +2263,7 @@ button.ghost:hover:not(:disabled) svg {
   }
 }
 
-/* biome-ignore-start lint/complexity/noImportantStyles: Reduced Motion muss alle Animationen sicher überstimmen */
+/* biome-ignore-start lint/complexity/noImportantStyles: reduced motion must reliably override every animation */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -2280,4 +2273,4 @@ button.ghost:hover:not(:disabled) svg {
     transition-duration: 0.01ms !important;
   }
 }
-/* biome-ignore-end lint/complexity/noImportantStyles: siehe oben */
+/* biome-ignore-end lint/complexity/noImportantStyles: see above */

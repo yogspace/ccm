@@ -1,127 +1,131 @@
 # Cookie Cutter Maker
 
-SVG hochladen oder zeichnen → daraus entsteht ein druckfertiger Ausstecher (3MF/STL) für MakerWorld. Live unter https://ccm.mxwr.de.
+Draw or upload an SVG → get a print-ready cookie cutter (3MF/STL) for MakerWorld. Live at https://ccm.mxwr.de.
 
-Die Geometrie wird komplett im Browser erzeugt, der Server liefert nur statische Dateien aus.
+The geometry is built entirely in the browser; the server only serves static files (plus a tiny counter API).
 
-## Funktionen
+## Features
 
-- Freihand zeichnen (Maus, Touch, Stift) mit geglättetem Strich und Pinselvorschau, Radiergummi (Radiertes wird wirklich aus den Strichen entfernt), Rückgängig/Wiederholen (auch ⌘/Strg+Z, ⌘/Strg+Umschalt+Z), Löschen, vergrößerbare Zeichenfläche mit Koordinatensystem in echten Maßen
-- Werkzeuge Stift, Radiergummi und Verschieben: Was sich berührt, ist ein Objekt; es lässt sich verschieben, an den Ecken drehen und skalieren (auf Touch mit zwei Fingern), in der Strichstärke ändern und entfernen. Mehrere wählt man per Rahmen auf freier Fläche (alles, was ganz darin liegt) oder mit Umschalt-Klick
-- SVG-Import verkraftet auch weiße Linien auf transparentem Grund und reine Haarlinien; findet sich keine Form, bleibt die Zeichnung stehen und es gibt eine Meldung
-- Vorlagen: jede SVG-Datei in `src/presets/` wird automatisch eine (siehe unten), eingefügt als Umriss in Pinselstärke
-- Leisten passen sich dem Platz an: Ist die Karte (auf dem Desktop, auch vergrößert) nicht deutlich höher als breit, stehen Werkzeuge links und Vorlagen rechts neben der Zeichenfläche, sonst darunter – die Fläche ist immer das größte Quadrat, das passt
-- SVG/PNG-Import per Button oder Drag & Drop; landet auf der Zeichenfläche, danach kann man weiterzeichnen
-- Formen in Formen werden zu Löchern: innere Klingen, verbunden über Stege an der Falz (abschaltbar)
-- Live-Kontur (Schnittlinie) über der Zeichnung, 3D-Vorschau als Drehteller (im Uhrzeigersinn, abschaltbar); jeder neue Ausstecher bekommt eine andere Filamentfarbe
-- 3D-Kekse als Icons (live gerendert, schauen zur Maus, drehen sich beim Hover) und im Hintergrund
-- Maße in mm oder inch, Dateiname für den Export, Download als 3MF und STL (`<name>-80mm.3mf`)
-- Teilen: oben die Seite selbst; „Kreation teilen“ bei den Downloads öffnet ein Fenster mit einem Bild des Ausstechers von oben und dem Link zur Zeichnung (der komplette Zustand steckt im URL-Hash)
-- Deutsch/Englisch (i18next) unter `/de/` und `/en/` mit eigenen Texten für Suchmaschinen; `/` leitet je nach Browsersprache weiter
-- Zähler „x Kreationen erstellt“ im Footer: Downloads und geteilte Kreationen zählen auf dem Server mit (dieselbe Kreation einmal pro Sitzung, gespeichert wird nur die Summe)
-- Light/Dark Mode, Impressum & Datenschutz als Dialog, Animationen mit `motion`
-- Zustand in einem Store ([valtio](https://valtio.dev)): Komponenten lesen selbst, was sie brauchen, statt es durchgereicht zu bekommen
-- Favicon/Icons, Open-Graph-Bilder (en/de), Manifest, `robots.txt`, `sitemap.xml` und JSON-LD
+- Freehand drawing (mouse, touch, pen) with a smoothed stroke and brush preview, an eraser (erased parts are really removed from the strokes), undo/redo (also ⌘/Ctrl+Z, ⌘/Ctrl+Shift+Z), clear, an enlargeable drawing area with a coordinate system in real dimensions – origin at the bottom left, like at school
+- Tools pen, eraser and move: whatever touches is one object; it can be moved, rotated and scaled at the corners (two fingers on touch), given another stroke width and removed. Select several by dragging a box on empty space (everything entirely inside it) or with shift-click
+- Templates: every SVG file in `src/presets/` becomes one automatically (see below), inserted as an outline in brush width
+- The bars adapt to the room: unless the card is clearly taller than wide (desktop, also enlarged), tools sit left and templates right of the drawing area, otherwise below – the area is always the largest square that fits
+- SVG/PNG import via button or drag & drop; it lands on the drawing area and you can keep drawing. It copes with white lines on a transparent background and with pure hairlines; if no shape is found, the drawing stays and a message pops up
+- Shapes inside shapes become holes (can be switched off): inner blades with a flange around them on the cookie side – close holes join up over their flanges. Each hole gets at least one arched bridge to a wall: low in the middle, running into the walls with fillets measured by the real distance to the wall, always leaving room below the cutting edge for the dough. Further bridges become flat links when a neighbouring hole's flange is closer than the wall. Adjustable bridge width
+- Live contour (cutting line) over the drawing, 3D preview as a turntable (floor and model turn together, can be stopped); every new cutter gets a different filament colour
+- 3D cookies as icons (rendered live, looking at the mouse, turning on hover) and in the background
+- Dimensions in mm or inch, a name for the creation, download as 3MF and STL (`<name>-80mm.3mf`)
+- Printing tips and error messages as popovers in neon pink, anchored with CSS anchor positioning
+- Sharing: at the top the page itself; at the bottom of the page, in front of a fan of example cutters, “Share creation” opens a dialog with a picture of the cutter from above, the link to the drawing (a click copies it), saving the picture and sharing it with text and link (the complete state lives in the URL hash) – and a sun cookie for donations
+- Example gallery: every picture in `src/gallery/` can show up in the fan; five are drawn at random on every load
+- German/English (i18next) under `/de/` and `/en/` with their own texts for search engines; `/` redirects by browser language
+- “x creations made” counter in the footer: downloads and shared creations are counted on the server (the same creation once per session, only the total is stored)
+- Light/dark mode, imprint & privacy as a dialog, animations with `motion`, no scrolling behind open dialogs
+- State in one store ([valtio](https://valtio.dev)): components read what they need themselves instead of having it passed down
+- Favicon/icons, Open Graph images (en/de), manifest, `robots.txt`, `sitemap.xml` and JSON-LD
 
-## Aufbau
+## Structure
 
 ```
 src/
-  app.tsx                     Gerüst der Seite
-  store.ts                    Zustand (valtio): Aktionen, Ausstecher-Worker, Link im Hash, Zähler, Scroll-Sperre
-  components/                 draw-canvas, tool-picker, preview-3d, parameter-panel, export-buttons, share-creation, …
-  drawing.ts                  Zeichnung als Vektoren: malen, Objekte finden, verschieben/drehen/skalieren, radieren
-  presets.ts, presets/        Vorlagen (SVG-Dateien, per import.meta.glob eingebunden)
+  app.tsx                     the page's frame
+  store.ts                    state (valtio): actions, cutter worker, link in the hash, counter, scroll lock
+  components/                 draw-canvas, tool-picker, preview-3d, parameter-panel, share-creation, gallery-fan, …
+  drawing.ts                  the drawing as vectors: painting, finding objects, moving/rotating/scaling, erasing
+  presets.ts, presets/        templates (SVG files, included via import.meta.glob)
+  gallery/                    pictures for the fan at the bottom of the page
   geometry/
-    outline.ts                Raster → Kontur (d3-contour), SVG-Import als Silhouette
-    cutter.ts                 Kontur + Parameter → Manifold (Falz, Wand, Verjüngung, innere Klingen, Stege)
-    cutter-worker.ts          rechnet cutter.ts im Web Worker, nur der neueste Auftrag zählt
-    manifold.ts, mesh.ts      WASM-Singleton, Manifold → Rohdaten
+    outline.ts                raster → contour (d3-contour), SVG import as a silhouette
+    cutter.ts                 contour + parameters → Manifold (flange, wall, taper, inner blades, bridges)
+    cutter-worker.ts          runs cutter.ts in a web worker, only the latest job counts
+    manifold.ts, mesh.ts      WASM singleton, Manifold → raw mesh
   export/                     three-mf.ts, stl.ts, download.ts
-  cookies/                    models.ts (Keks-Geometrien, auch aus Lucide-Icons), renderer.ts (ein WebGL-Kontext für alle Keks-Icons)
+  cookies/                    models.ts (cookie geometries, also from Lucide icons), renderer.ts (one WebGL context for all cookie icons)
   i18n/                       de.ts, en.ts
-  url-state.ts                Zustand ↔ URL-Hash
+  url-state.ts                state ↔ URL hash
   units.ts                    mm/inch
 api/
-  stats.mjs                   Zähler-Logik (eine Zahl in stats.json), auch im Vite-Dev-Server eingebunden
-  server.mjs                  Mini-API für den Container ccm-api, ohne Abhängigkeiten
-vite.config.ts                baut zusätzlich dist/de/ und dist/en/ mit eigenen Meta-Texten, Zähler-API im Dev-Server
-Caddyfile                     Weiterleitung / → /de/ oder /en/, /api/* → ccm-api, SPA-Fallback
+  stats.mjs                   counter logic (one number in stats.json), also mounted in the Vite dev server
+  server.mjs                  mini API for the ccm-api container, without dependencies
+vite.config.ts                additionally builds dist/de/ and dist/en/ with their own meta texts, counter API in the dev server
+Caddyfile                     redirect / → /de/ or /en/, /api/* → ccm-api, SPA fallback
 ```
 
-### Vorlagen
+File names are kebab-case (enforced by a Biome rule). Code comments and this README are in English.
 
-Jede SVG-Datei in `src/presets/` erscheint automatisch als Vorlage. Die Reihenfolge folgt dem Dateinamen; eine führende Zahl (`1-star.svg`) sortiert nur. Der angezeigte Name kommt aus den Übersetzungen unter `presets.<name>` (z. B. `presets.star`), sonst aus dem Dateinamen. Ob die Form gefüllt oder als Linie gezeichnet ist, ist egal: Eingefügt wird ihr Umriss.
+### Templates
 
-```
+Every SVG file in `src/presets/` shows up as a template automatically. The order follows the file name; a leading number (`1-star.svg`) only sorts. The displayed name comes from the translations under `presets.<name>` (e.g. `presets.star`), otherwise from the file name. Whether the shape is filled or drawn as a line does not matter: its outline is inserted.
 
-Dateinamen sind kebab-case (per Biome-Regel erzwungen).
+### Gallery
 
-### Schrift
+Every picture (`jpg`, `png`, `webp`, `avif`) in `src/gallery/` can show up in the fan between editor and footer; five are drawn at random on every load. Square pictures fit best – e.g. the white card cut out of a “Share creation” picture.
 
-Pally (Indian Type Foundry, [ITF Free Font License](https://www.fontshare.com)) wird selbst gehostet. Die Lizenz erlaubt das für die eigene Website, verbietet aber die Weitergabe, deshalb liegt die Datei **nicht** im (öffentlichen) Repo: `scripts/fetch-fonts.mjs` lädt sie vor `pnpm dev` und `pnpm build` nach `public/fonts/` (ignoriert). Schlägt das fehl, läuft die Seite mit der Systemschrift. Die App rendert erst, wenn die Schrift da ist (max. 1,5 s), damit sie nicht sichtbar umspringt.
+### Font
 
-### Link-Format
+Pally (Indian Type Foundry, [ITF Free Font License](https://www.fontshare.com)) is self-hosted. The licence allows that for your own website but forbids redistribution, so the file is **not** in the (public) repo: `scripts/fetch-fonts.mjs` downloads it into `public/fonts/` (ignored) before `pnpm dev` and `pnpm build`. If that fails, the page runs with the system font. The app only renders once the font is there (at most 1.5 s), so it does not visibly jump.
 
-`#n=<Name>&<Parameter>=<Wert>&s=<Zeichnung>`. Parameter stehen nur drin, wenn sie vom Standard abweichen. Gespeichert wird die Zeichnung selbst, damit sie nach dem Öffnen genauso aussieht: je Strich die geglätteten Stiftpunkte und die Strichstärke (Radierer mit negativer Breite) und, nach einem SVG-Import, dessen Silhouette als Fläche. Striche werden je nach Stärke vereinfacht (Douglas-Peucker, 1,5–4 px), auf 2 px gerundet und als verkettete ZigZag-Varint-Deltas kodiert; das Ganze wird mit Deflate komprimiert und Base64url-kodiert. Das erste Varint ist die Formatversion (aktuell 3); die Versionen 1 (nur Kontur) und 2 werden weiterhin gelesen. Geteilte Links haben keinen Sprachpfad, damit Empfänger in ihrer eigenen Sprache landen. Der Hash wird nie an den Server geschickt.
+### Link format
+
+`#n=<name>&<parameter>=<value>&s=<drawing>`. Parameters are only included when they differ from the defaults. The drawing itself is stored, so it looks just the same after opening: per stroke the smoothed pen points and the stroke width (erasers with a negative width) and, after an SVG import, its silhouette as an area. Strokes are simplified depending on their width (Douglas-Peucker, 1.5–4 px), rounded to 2 px and encoded as chained ZigZag varint deltas; the whole thing is deflate-compressed and base64url-encoded. The first varint is the format version (currently 3); versions 1 (contour only) and 2 are still read. Shared links have no language path, so recipients land in their own language. The hash is never sent to the server.
 
 ### Bambu Studio
 
-Beim Öffnen eines 3MF meldet Bambu Studio „The 3mf file has invalid config, load geometry data only“. Das passiert bei jedem 3MF, das nicht aus Bambu Studio selbst stammt (auch bei Fusion 360). Die Geometrie wird trotzdem vollständig geladen. Über *Datei → Import* erscheint die Meldung nicht.
+When opening a 3MF, Bambu Studio reports “The 3mf file has invalid config, load geometry data only”. That happens with every 3MF not made by Bambu Studio itself (Fusion 360 too). The geometry is still loaded completely. Via *File → Import* the message does not appear.
 
-## Geplant
+## Planned
 
-Eine API, an die man ein SVG schickt und den fertigen Ausstecher zurückbekommt (mit API-Token und Datenbank), siehe Roadmap in [projects.md](projects.md).
+An API you send an SVG to and get the finished cutter back from (with API tokens and a database), see the roadmap in [projects.md](projects.md).
 
-## Entwicklung
+## Development
 
 ```bash
 pnpm install
 pnpm dev          # http://localhost:5173
-pnpm lint         # Biome (Format + Lint)
+pnpm lint         # Biome (format + lint)
 pnpm typecheck
 pnpm build        # → dist/
 ```
 
-Der Zähler läuft in `pnpm dev` und `pnpm preview` gleich mit (Daten lokal in `api/.data/`, ignoriert). Einzeln: `node api/server.mjs` (Port 3001).
+The counter runs along in `pnpm dev` and `pnpm preview` (data locally in `api/.data/`, ignored). On its own: `node api/server.mjs` (port 3001).
 
 ## Deployment
 
-Gearbeitet wird auf `development`. Ausgerollt wird mit:
+Work happens on `development`. Roll out with:
 
 ```bash
-make deploy   # pusht development, merged nach main, pusht main, zurück auf development
+make deploy   # pushes development, merges into main, pushes main, back to development
 ```
 
-Push auf `main` → GitHub Actions ([`deploy.yml`](.github/workflows/deploy.yml)):
+A push to `main` → GitHub Actions ([`deploy.yml`](.github/workflows/deploy.yml)):
 
 1. **verify:** Biome + TypeScript
-2. **build:** Docker-Image (Vite-Build → Caddy als Static-Server, siehe [`Dockerfile`](Dockerfile) / [`Caddyfile`](Caddyfile)) → `ghcr.io/yogspace/ccm`
-3. **deploy:** per SSH auf den Hetzner-Server, `/opt/apps/ccm`: `docker compose pull && up -d`
+2. **build:** Docker image (Vite build → Caddy as a static server, see [`Dockerfile`](Dockerfile) / [`Caddyfile`](Caddyfile)) → `ghcr.io/yogspace/ccm`
+3. **deploy:** via SSH to the Hetzner server, `/opt/apps/ccm`: `docker compose pull && up -d`
 
-Der Container spricht intern plain HTTP auf `:3000` und hängt im externen Docker-Netz `web`. HTTPS und Domain-Routing übernimmt der zentrale Proxy-Stack (Repo `proxy`, `/opt/apps/proxy`).
+The container speaks plain HTTP on `:3000` internally and is attached to the external Docker network `web`. HTTPS and domain routing are handled by the central proxy stack (repo `proxy`, `/opt/apps/proxy`).
 
-Daneben läuft der Zähler als zweiter Dienst `ccm-api` (siehe [`docker-compose.yml`](docker-compose.yml)): das fertige Image `node:22-alpine` führt `api/server.mjs` direkt aus dem Checkout in `/opt/apps/ccm` aus, ein eigenes Image braucht es nicht. Die Zahl liegt im Volume `ccm-data`. Caddy im `ccm`-Container leitet `/api/*` dorthin weiter.
+Next to it the counter runs as a second service `ccm-api` (see [`docker-compose.yml`](docker-compose.yml)): the stock `node:22-alpine` image runs `api/server.mjs` straight from the checkout in `/opt/apps/ccm`, no image of its own needed. The number lives in the `ccm-data` volume. Caddy in the `ccm` container forwards `/api/*` there.
 
 ### Secrets (Settings → Secrets → Actions)
 
-| Secret | Wert |
+| Secret | Value |
 |---|---|
-| `HETZNER_HOST` | Server-IP |
-| `HETZNER_USER` | SSH-User |
-| `HETZNER_SSH_KEY` | privater SSH-Key |
+| `HETZNER_HOST` | server IP |
+| `HETZNER_USER` | SSH user |
+| `HETZNER_SSH_KEY` | private SSH key |
 
-Alle drei mit denselben Werten wie im Portfolio-Repo.
+All three with the same values as in the portfolio repo.
 
-Laufzeit-Variablen gibt es keine. Build-Zeit-Werte (`VITE_*`) kämen als `build-args` in die Pipeline.
+There are no runtime variables. Build-time values (`VITE_*`) would go into the pipeline as `build-args`.
 
-### Server, einmalig
+### Server, once
 
 ```bash
 sudo mkdir -p /opt/apps/ccm && sudo chown deploy: /opt/apps/ccm
 git clone <repo-url> /opt/apps/ccm
 ```
 
-Voraussetzung: Netz `web` und Proxy-Stack laufen (siehe Repo `proxy`).
+Prerequisite: the `web` network and the proxy stack are running (see repo `proxy`).
 
 test pipeline

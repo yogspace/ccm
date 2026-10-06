@@ -2,28 +2,37 @@ import { motion, useReducedMotion } from "motion/react";
 import { memo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-/** Every picture in src/gallery/ shows up in the fan, sorted by file name. */
+/** Every picture in src/gallery/ can show up in the fan. */
 const files = import.meta.glob<string>(
   "../gallery/*.{jpg,jpeg,png,webp,avif}",
   { eager: true, query: "?url", import: "default" }
 );
-const pictures = Object.entries(files)
-  .sort(([a], [b]) => a.localeCompare(b, "en", { numeric: true }))
-  .map(([, url]) => url);
+const pictures = Object.values(files);
 
 const CARDS = 5;
+
+/** `CARDS` pictures in random order – a different hand on every load. */
+const deal = () => {
+  const deck = [...pictures];
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  return Array.from({ length: CARDS }, (_, i) => deck[i % deck.length]);
+};
 
 /**
  * Example pictures between editor and footer, as cards like the share image
  * (without text). Once scrolled into view they rise from the middle and then
- * fold apart left and right along an arc, like a hand of cards. With fewer
- * pictures than cards they repeat.
+ * fold apart left and right along an arc, like a hand of cards. Always five,
+ * drawn at random from all pictures; with fewer they repeat.
  */
 const GalleryFan = () => {
   const { t } = useTranslation();
   const still = useReducedMotion();
   // Degrees between neighbouring cards – tighter on small screens.
   const [spread] = useState(() => (window.innerWidth < 640 ? 9 : 12));
+  const [hand] = useState(deal);
   if (pictures.length === 0) return null;
   const middle = (CARDS - 1) / 2;
 
@@ -57,12 +66,7 @@ const GalleryFan = () => {
                   }
             }
           >
-            <img
-              alt=""
-              decoding="async"
-              loading="lazy"
-              src={pictures[i % pictures.length]}
-            />
+            <img alt="" decoding="async" loading="lazy" src={hand[i]} />
           </motion.div>
         );
       })}

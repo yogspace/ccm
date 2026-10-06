@@ -3,7 +3,6 @@ import { type RefObject, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { download } from "../export/download";
-import { DONATE_URL } from "../links";
 import {
   creationUrl,
   dialogClosed,
@@ -13,6 +12,7 @@ import {
 } from "../store";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
+import DonateBadge from "./donate-badge";
 import type { PreviewHandle } from "./preview-3d";
 
 type Props = {
@@ -76,6 +76,8 @@ const ShareCreation = ({ preview }: Props) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [shared, setShared] = useState<Shared | null>(null);
   const [copied, setCopied] = useState(false);
+  /** Open: the sun only mounts then, so it grows in after the dialog. */
+  const [sheetOpen, setSheetOpen] = useState(false);
   /** After “Share image”: a note that text and link were copied too. */
   const [textCopied, setTextCopied] = useState(false);
   const title = name.trim() || "Cookie Cutter Maker";
@@ -106,6 +108,7 @@ const ShareCreation = ({ preview }: Props) => {
     setShared({ url, file, image: blob ? URL.createObjectURL(blob) : null });
     setCopied(false);
     setTextCopied(false);
+    setSheetOpen(true);
     dialogRef.current?.showModal();
     dialogOpened();
     // Sharing counts the creation.
@@ -165,7 +168,10 @@ const ShareCreation = ({ preview }: Props) => {
         onClick={(event) => {
           if (event.target === event.currentTarget) event.currentTarget.close();
         }}
-        onClose={dialogClosed}
+        onClose={() => {
+          setSheetOpen(false);
+          dialogClosed();
+        }}
         ref={dialogRef}
       >
         <Button
@@ -230,20 +236,9 @@ const ShareCreation = ({ preview }: Props) => {
             )}
           </div>
           {textCopied && <p className="share-note">{t("share.textCopied")}</p>}
-          {/* While they are happy with their cutter: a cookie for the maker. */}
-          <a
-            className="donate-banner"
-            href={DONATE_URL}
-            rel="noopener"
-            target="_blank"
-          >
-            <CookieIcon kind="sun" roll={-10} size={64} />
-            <span>
-              <strong>{t("share.donate")}</strong>
-              <small>{t("footer.donateLabel")}</small>
-            </span>
-          </a>
         </div>
+        {/* While they are happy with their cutter: a cookie for the maker. */}
+        {sheetOpen && <DonateBadge delay={450} />}
       </dialog>
     </>
   );

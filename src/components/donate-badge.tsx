@@ -9,8 +9,12 @@ const SPRINKLES = Array.from({ length: 14 }, (_, i) => ({
   color: ["#ff5fa8", "#ffffff", "#ff6a1f", "#5fb36b", "#fdf8ef"][i % 5],
   delay: (i % 3) * 40,
 }));
-/** Donation link as a sun cookie at the edge of the footer, the text lies on the icing. */
-const DonateBadge = () => {
+/**
+ * Donation link as a sun cookie at a box's bottom left corner (footer, share
+ * dialog); the text lies on the icing and grows in with it. `delay` (ms)
+ * holds the growing back, e.g. until a dialog has opened.
+ */
+const DonateBadge = ({ delay = 0 }: { delay?: number }) => {
   const { t } = useTranslation();
   // The text grows in with the sun (directly on the element, without a re-render).
   const textRef = useRef<HTMLSpanElement>(null);
@@ -41,6 +45,7 @@ const DonateBadge = () => {
       {/* Almost flat, not looking at the mouse; turns slowly in the image plane –
           the sun looks the same all round, the text stays readable. */}
       <CookieIcon
+        delay={delay}
         interactive={false}
         kind="sun"
         onGrow={(scale) =>

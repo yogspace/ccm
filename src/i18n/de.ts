@@ -86,7 +86,6 @@ export const de = {
     imageAlt: "Ausstecher „{{name}}“ von oben",
     copy: "Link kopieren",
     copied: "Kopiert",
-    donate: "Gefällt dir dein Ausstecher? Spendier mir ’nen Keks!",
     textCopied:
       "Text und Link sind in der Zwischenablage – falls die App nur das Bild übernimmt, einfach einfügen.",
     sharePage: "Seite teilen",
