@@ -33,7 +33,7 @@ const context2d = (canvas: HTMLCanvasElement) => {
  * Gives SVGs a fixed pixel size, so they render sharp and in the right aspect
  * ratio. With `thicken` all lines become at least `MIN_LINE` pixels thick.
  */
-export const prepareSvg = (text: string, size: number, thicken = false) => {
+const prepareSvg = (text: string, size: number, thicken = false) => {
   const doc = new DOMParser().parseFromString(text, "image/svg+xml");
   const svg = doc.documentElement;
   if (svg.nodeName !== "svg") throw new InputError("invalidSvg");

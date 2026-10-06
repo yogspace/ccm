@@ -557,14 +557,6 @@ export const objectsWithin = (
   return isEmpty(selection) ? null : selection;
 };
 
-/** Extends a selection by everything it touches (e.g. after moving). */
-export const objectOf = (drawing: Drawing, selection: Selection): Selection => {
-  const objects = findObjects(drawing);
-  if (!objects) return selection;
-  const roots = objects.rootsOf(selection);
-  return roots.size > 0 ? objects.collect(roots) : selection;
-};
-
 /**
  * Before moving or deleting: an eraser that also touches other objects is
  * duplicated – one stays for the others, one goes with the selection. The copy

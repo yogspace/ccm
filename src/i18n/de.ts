@@ -80,7 +80,6 @@ export const de = {
     creationHint: "Link zu deiner Zeichnung mit Vorschaubild teilen",
     creationText:
       "Über den Link lässt sich deine Zeichnung öffnen und weiter anpassen.",
-    link: "Link zur Kreation",
     saveImage: "Bild speichern",
     shareImage: "Bild teilen",
     imageAlt: "Ausstecher „{{name}}“ von oben",

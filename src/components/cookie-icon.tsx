@@ -93,7 +93,7 @@ const CookieIcon = ({
     });
 
     // The cookie reacts to its button: hover turns it, a click presses it.
-    const button = interactive ? canvas.closest("button, summary, a") : null;
+    const button = interactive ? canvas.closest("button, a") : null;
     const flip = () => handle.current?.flip();
     const press = () => handle.current?.press();
     button?.addEventListener("pointerenter", flip);

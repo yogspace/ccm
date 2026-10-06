@@ -21,7 +21,7 @@ import { countCreation, loadCreations } from "./stats";
 import { initialUnit, storeUnit, type Unit } from "./units";
 import { type Drawing, readHash, writeHash } from "./url-state";
 
-export type ErrorKey = keyof (typeof de)["errors"];
+type ErrorKey = keyof (typeof de)["errors"];
 
 /** Stored via `ref`: valtio does not track it, snapshots hand it out unchanged. */
 type Ref<T extends object> = ReturnType<typeof ref<T>>;

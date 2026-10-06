@@ -35,7 +35,7 @@ export const isEmptyDrawing = ({ base, strokes }: Drawing) =>
 /** Stroke width used to redraw old links (contour only). */
 const LEGACY_LINE = 48;
 
-export type SharedState = {
+type SharedState = {
   name: string;
   params: CutterParams;
   drawing: Drawing;
@@ -187,7 +187,7 @@ const readPoints = (
 
 const round = ([x, y]: Point): Point => [Math.round(x), Math.round(y)];
 
-export const encodeDrawing = ({ base, baseLine, strokes }: Drawing) => {
+const encodeDrawing = ({ base, baseLine, strokes }: Drawing) => {
   const out: number[] = [];
   const rings = base
     .map((ring) =>
@@ -222,9 +222,7 @@ export const encodeDrawing = ({ base, baseLine, strokes }: Drawing) => {
 const toRing = (points: Point[]): Ring =>
   points.map(([x, y]): Point => [x / GRID, y / GRID]);
 
-export const decodeDrawing = (
-  text: string
-): { drawing: Drawing; rings: Ring[] } => {
+const decodeDrawing = (text: string): { drawing: Drawing; rings: Ring[] } => {
   const bytes = inflateSync(fromBase64Url(text));
   const cursor = { at: 0 };
   const version = readVarint(bytes, cursor);
