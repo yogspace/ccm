@@ -11,7 +11,13 @@ The geometry is built entirely in the browser; the server only serves static fil
 - Templates: every SVG file in `src/presets/` becomes one automatically (see below), inserted as an outline in brush width
 - The bars adapt to the room: unless the card is clearly taller than wide (desktop, also enlarged), tools sit left and templates right of the drawing area, otherwise below – the area is always the largest square that fits
 - SVG/PNG import via button or drag & drop; it lands on the drawing area and you can keep drawing. It copes with white lines on a transparent background and with pure hairlines; if no shape is found, the drawing stays and a message pops up
-- Shapes inside shapes become holes (can be switched off): inner blades with a flange around them on the cookie side – close holes join up over their flanges. Each hole gets at least one arched bridge to a wall: low in the middle, running into the walls with fillets measured by the real distance to the wall, always leaving room below the cutting edge for the dough. Further bridges become flat links when a neighbouring hole's flange is closer than the wall. Adjustable bridge width
+- Shapes inside shapes become holes (can be switched off): inner blades with a flange half as wide around them on the cookie side, never over an opening. What holds them is planned so the cutter stays easy to clean – as few connections as needed, no sharp corners:
+  - holes whose flanges come close are linked flat, the closest pairs first and only as many as it takes (no criss-cross) – they form a group, held as one piece
+  - groups are held one by one, the one nearest to what is held already first, each by the cheapest set of supports spread around it (two at least 90° apart, more for large groups, one for tiny ones) – short, square to the contours, flat rather than arched, apart from each other
+  - open spans up to 8 mm are flat links at flange height, longer ones arched bridges: low in the middle, running into the walls with fillets measured by the real distance to the wall, always leaving room below the cutting edge for the dough
+  - links and bridges blend into walls and flanges with round fillets; hairline gaps between flanges are closed, small pockets in the plate filled, larger ones rounded
+  - adjustable bridge width
+- Geometry tests (`pnpm test`): drawn and generated shapes must come out as one part, with nothing in the dough's room, nothing over an opening, no hairline slits or sharp corners next to inner blades, and no more arches than needed
 - Live contour (cutting line) over the drawing, 3D preview as a turntable (floor and model turn together, can be stopped); every new cutter gets a different filament colour
 - 3D cookies as icons (rendered live, looking at the mouse, turning on hover) and in the background
 - Dimensions in mm or inch, a name for the creation, download as 3MF and STL (`<name>-80mm.3mf`)
@@ -36,7 +42,11 @@ src/
   gallery/                    pictures for the fan at the bottom of the page
   geometry/
     outline.ts                raster → contour (d3-contour), SVG import as a silhouette
-    cutter.ts                 contour + parameters → Manifold (flange, wall, taper, inner blades, bridges)
+    cutter.ts                 contour + parameters → Manifold (wall, taper, flange plate), puts it all together
+    islands.ts                which contour lies inside which (cookie, hole, cookie in the hole …)
+    connections.ts            plans what holds the inner blades: flat links and arches
+    bridges.ts                builds an arched bridge (height field with fillets)
+    rings.ts                  2D helpers for contours
     cutter-worker.ts          runs cutter.ts in a web worker, only the latest job counts
     manifold.ts, mesh.ts      WASM singleton, Manifold → raw mesh
   export/                     three-mf.ts, stl.ts, download.ts
@@ -47,6 +57,7 @@ src/
 api/
   stats.mjs                   counter logic (one number in stats.json), also mounted in the Vite dev server
   server.mjs                  mini API for the ccm-api container, without dependencies
+test/                         geometry tests (Vitest): cutter.test.ts, clean.ts (inspects a cutter in slices), shapes.ts, fixtures/ (drawn shapes)
 vite.config.ts                additionally builds dist/de/ and dist/en/ with their own meta texts, counter API in the dev server
 Caddyfile                     redirect / → /de/ or /en/, /api/* → ccm-api, SPA fallback
 ```
@@ -87,6 +98,7 @@ pnpm install
 pnpm dev          # http://localhost:5173
 pnpm lint         # Biome (format + lint)
 pnpm typecheck
+pnpm test         # geometry tests (Vitest)
 pnpm build        # → dist/
 ```
 

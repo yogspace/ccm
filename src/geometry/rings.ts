@@ -33,6 +33,43 @@ export const perimeter = (ring: Ring) =>
     return sum + Math.hypot(nx - x, ny - y);
   }, 0);
 
+/** Bounding box. */
+export const bounds = (ring: Ring) => {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const [x, y] of ring) {
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x);
+    maxY = Math.max(maxY, y);
+  }
+  return { minX, minY, maxX, maxY };
+};
+
+/** Convex hull (monotone chain), counter-clockwise. */
+export const hull = (points: Point[]): Ring => {
+  const sorted = [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o: Point, a: Point, b: Point) =>
+    (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const half = (from: Point[]) => {
+    const chain: Point[] = [];
+    for (const point of from) {
+      while (
+        chain.length >= 2 &&
+        cross(chain[chain.length - 2], chain[chain.length - 1], point) <= 0
+      ) {
+        chain.pop();
+      }
+      chain.push(point);
+    }
+    chain.pop();
+    return chain;
+  };
+  return [...half(sorted), ...half([...sorted].reverse())];
+};
+
 export const distance = (a: Point, b: Point) =>
   Math.hypot(b[0] - a[0], b[1] - a[1]);
 

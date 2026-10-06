@@ -1,10 +1,12 @@
 import { type Island, isHole } from "./islands";
 import type { Point, Ring } from "./outline";
 import {
+  bounds,
   centroid,
   closestOnRing,
   crossesRing,
   distance,
+  hull,
   perimeter,
   rayHit,
   resample,
@@ -81,46 +83,10 @@ type Group = {
   attached: Connection[];
 };
 
-const box = (ring: Ring) => {
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-  for (const [x, y] of ring) {
-    minX = Math.min(minX, x);
-    minY = Math.min(minY, y);
-    maxX = Math.max(maxX, x);
-    maxY = Math.max(maxY, y);
-  }
-  return { minX, minY, maxX, maxY };
-};
-
-/** Convex hull (monotone chain), counter-clockwise. */
-const hull = (points: Point[]): Ring => {
-  const sorted = [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-  const cross = (o: Point, a: Point, b: Point) =>
-    (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
-  const half = (from: Point[]) => {
-    const chain: Point[] = [];
-    for (const point of from) {
-      while (
-        chain.length >= 2 &&
-        cross(chain[chain.length - 2], chain[chain.length - 1], point) <= 0
-      ) {
-        chain.pop();
-      }
-      chain.push(point);
-    }
-    chain.pop();
-    return chain;
-  };
-  return [...half(sorted), ...half([...sorted].reverse())];
-};
-
 /** Gap between the bounding boxes of two rings (0 if they overlap). */
 const boxGap = (a: Ring, b: Ring) => {
-  const p = box(a);
-  const q = box(b);
+  const p = bounds(a);
+  const q = bounds(b);
   return Math.hypot(
     Math.max(0, p.minX - q.maxX, q.minX - p.maxX),
     Math.max(0, p.minY - q.maxY, q.minY - p.maxY)
@@ -176,14 +142,13 @@ const angleBetween = (a: number, b: number) => {
  * 1. Flanges of neighbouring holes that come closer than `join` are linked
  *    flat – the closest pairs first, only as many as it takes to hold them
  *    together. Holes linked like this form a group, held as one piece.
- * 2. Every group gets its cheapest connection to something that is held
- *    already – the wall, or a group connected to it – the nearest groups
- *    first (like a minimum spanning tree). Where a flange comes close to
- *    the wall, that is a short flat link.
- * 3. Then each group gets further supports until they spread around it:
- *    two at least 90° apart, more for large groups. Again the cheapest:
- *    short, about square to both contours, flat rather than arched, and not
- *    crowding another connection.
+ * 2. Then the groups are held one by one, the one closest to what is held
+ *    already first (like a minimum spanning tree), each by the cheapest set
+ *    of supports – to the wall or to groups held already – spread around it:
+ *    two at least 90° apart, more for large groups, one for tiny ones.
+ *    Cheap means short, about square to both contours, flat rather than
+ *    arched, and not crowding another connection. Where a flange comes
+ *    close to the wall, that is a short flat link.
  *
  * Short open spans become flat links, longer ones arches. Cookie in a hole is
  * only ever held by arches across the opening, never joined.
@@ -253,18 +218,12 @@ const planInside = (
       weight += area;
     }
     const center: Point = [cx / weight, cy / weight];
-    const bounds = members.map(({ ring }) => box(ring));
-    const extent = Math.max(
-      Math.max(...bounds.map((b) => b.maxX)) -
-        Math.min(...bounds.map((b) => b.minX)),
-      Math.max(...bounds.map((b) => b.maxY)) -
-        Math.min(...bounds.map((b) => b.minY))
-    );
-    const around = perimeter(hull(members.flatMap(({ ring }) => ring)));
+    const outline = hull(members.flatMap(({ ring }) => ring));
+    const { minX, minY, maxX, maxY } = bounds(outline);
     const needed =
-      extent <= SMALL_GROUP
+      Math.max(maxX - minX, maxY - minY) <= SMALL_GROUP
         ? 1
-        : Math.max(2, Math.min(4, Math.round(around / SPACING)));
+        : Math.max(2, Math.min(4, Math.round(perimeter(outline) / SPACING)));
     const group: Group = {
       members,
       center,

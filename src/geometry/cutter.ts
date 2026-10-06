@@ -10,7 +10,7 @@ import {
 import { type Connection, planConnections } from "./connections";
 import { type Island, isHole, nestIslands } from "./islands";
 import type { Point, Ring } from "./outline";
-import { signedArea } from "./rings";
+import { bounds, signedArea } from "./rings";
 
 /** All dimensions in millimetres. */
 export type CutterParams = {
@@ -89,23 +89,12 @@ const FLAT_SPAN = 8;
 const LINK_GAP = 4;
 /** Hairline gaps in the flange plate up to this width (mm) are closed … */
 const HAIRLINE = 2;
-/** … and pockets enclosed by it up to this area (mm²). */
+/** … and pockets enclosed by it up to this area (mm²); larger ones rounded. */
 const POCKET = 20;
 
 /** Maps the normalised contours (y down) to mm, centred, y up. */
 const fitToSize = (rings: Ring[], size: number) => {
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-  for (const ring of rings) {
-    for (const [x, y] of ring) {
-      minX = Math.min(minX, x);
-      minY = Math.min(minY, y);
-      maxX = Math.max(maxX, x);
-      maxY = Math.max(maxY, y);
-    }
-  }
+  const { minX, minY, maxX, maxY } = bounds(rings.flat());
   const scale = size / Math.max(maxX - minX, maxY - minY);
   const cx = (minX + maxX) / 2;
   const cy = (minY + maxY) / 2;
@@ -274,26 +263,33 @@ export const buildCutter = (
     let plate: CrossSection | null = null;
     if (pieces.length > 0) {
       const joined = track(CrossSection.union(pieces));
-      /** What closing by `radius` adds over the cookie. */
-      const gaps = (radius: number) =>
-        track(
-          track(close(joined, radius).subtract(joined)).intersect(
-            cookieAndWalls
-          )
+      /**
+       * What closing by `radius` adds over the cookie up to `reach` from
+       * `around` – the plate cut out wide enough that its cut edges stay out.
+       */
+      const gaps = (radius: number, around: CrossSection, reach: number) => {
+        const near = track(joined.intersect(grow(around, reach + radius)));
+        return track(
+          track(
+            track(close(near, radius).subtract(near)).intersect(
+              grow(around, reach)
+            )
+          ).intersect(cookieAndWalls)
         );
-      const fillets = track(
-        gaps(FILLET).intersect(grow(track(CrossSection.union(links)), FILLET))
-      );
-      // Only between inner pieces – narrow cookie along the outside (tips,
-      // thin arms) stays open from above.
-      const touching = grow(
-        track(CrossSection.union([...inner, ...links])),
-        0.05
-      );
-      const hairlines = gaps(HAIRLINE / 2)
+      };
+      const linked = track(CrossSection.union(links));
+      const fillets = links.length > 0 ? gaps(FILLET, linked, FILLET) : linked;
+      // Only next to inner pieces – narrow cookie along the outside (tips,
+      // thin arms) stays open from above. Offsetting curves leaves dust.
+      const innerPieces = track(CrossSection.union([...inner, ...links]));
+      const hairlines = gaps(HAIRLINE / 2, innerPieces, HAIRLINE)
         .decompose()
         .map(track)
-        .filter((gap) => !track(gap.intersect(touching)).isEmpty());
+        .filter(
+          (gap) =>
+            gap.area() > 0.01 &&
+            !track(grow(gap, 0.05).intersect(innerPieces)).isEmpty()
+        );
       const filled = track(
         track(joined.add(fillets)).add(track(CrossSection.union(hairlines)))
       );
