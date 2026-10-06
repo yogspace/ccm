@@ -87,7 +87,7 @@ export const de = {
     copied: "Kopiert",
     textCopied:
       "Text und Link sind in der Zwischenablage – falls die App nur das Bild übernimmt, einfach einfügen.",
-    share: "Teilen",
+    sharePage: "Seite teilen",
   },
   legal: {
     close: "Schließen",

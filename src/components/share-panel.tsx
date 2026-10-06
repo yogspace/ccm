@@ -64,7 +64,7 @@ const SharePanel = () => {
           {copied
             ? t("share.copied")
             : canShare
-              ? t("share.share")
+              ? t("share.sharePage")
               : t("share.copy")}
         </span>
       </Button>

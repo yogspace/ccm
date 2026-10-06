@@ -156,6 +156,33 @@ const segmentDistance = (a: Point, b: Point, c: Point, d: Point) => {
   return Math.min(gap(a, c, d), gap(b, c, d), gap(c, a, b), gap(d, a, b));
 };
 
+/**
+ * How far a ray from `from` in direction `dir` (unit length) gets until it hits
+ * the ring, and at which angle: `square` is 1 for a perpendicular hit, 0 for a
+ * grazing one.
+ */
+const rayHitAt = (from: Point, [dx, dy]: Point, ring: Ring) => {
+  let nearest = Infinity;
+  let square = 0;
+  for (let i = 0; i < ring.length; i++) {
+    const [ax, ay] = ring[i];
+    const [bx, by] = ring[(i + 1) % ring.length];
+    const ex = bx - ax;
+    const ey = by - ay;
+    const denominator = dx * ey - dy * ex;
+    if (Math.abs(denominator) < 1e-12) continue;
+    const fx = ax - from[0];
+    const fy = ay - from[1];
+    const t = (fx * ey - fy * ex) / denominator;
+    const u = (fx * dy - fy * dx) / denominator;
+    if (t > 0.05 && u >= 0 && u <= 1 && t < nearest) {
+      nearest = t;
+      square = Math.abs(denominator) / (Math.hypot(ex, ey) || 1);
+    }
+  }
+  return { distance: nearest, square };
+};
+
 /** Wie weit ein Strahl von `from` in Richtung `dir` (Länge 1) bis zum Ring kommt. */
 const rayHit = (from: Point, [dx, dy]: Point, ring: Ring) => {
   let nearest = Infinity;
@@ -281,10 +308,12 @@ const placeBridges = (
     const norm = Math.hypot(tx, ty) || 1;
     const normal: Point = [ty / norm, -tx / norm];
     const options: Bridge[] = [];
-    // Geradeaus nach außen …
-    const reach = rayHit(from, normal, outer);
+    // Straight outwards – if it also meets the enclosing wall about square
+    // (an oblique joint would leave a crease) …
+    const { distance: reach, square } = rayHitAt(from, normal, outer);
     if (
       Number.isFinite(reach) &&
+      square >= maxTilt &&
       blockers.every((ring) => rayHit(from, normal, ring) >= reach)
     ) {
       options.push({
@@ -419,7 +448,7 @@ const filletProfile = (half: number, radius: number, height: number): Ring => {
     const phi = (i / steps) * (Math.PI / 2);
     right.push([
       half + radius * Math.sin(phi),
-      height * (1 - Math.sin(phi)) ** 2 + 0,
+      height * (1 - Math.sin(phi)) ** 2,
     ]);
   }
   const left = right.map(([x, y]): Point => [-x, y]).reverse();

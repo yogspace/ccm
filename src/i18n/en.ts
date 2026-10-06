@@ -86,7 +86,7 @@ export const en: typeof de = {
     copied: "Copied",
     textCopied:
       "Text and link are on the clipboard – if the app only takes the image, just paste them.",
-    share: "Share",
+    sharePage: "Share page",
   },
   legal: {
     close: "Close",
