@@ -53,6 +53,9 @@ export const de = {
     smoothing: "Lücken schließen",
     bridgeWidth: "Stegbreite",
     cutouts: "Innere Formen ausschneiden",
+    mirror: "Spiegeln (für Schrift)",
+    mirrorHint:
+      "Ausgestochen wird mit dem umgedrehten Ausstecher – gespiegelt steht Schrift auf dem Keks richtig herum.",
     cutoutsHint:
       "Eine Form innerhalb einer anderen wird zum Loch, verbunden über Stege an der Falz.",
     reset: "Zurücksetzen",

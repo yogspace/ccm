@@ -10,7 +10,7 @@ import CookieIcon from "./cookie-icon";
 import CookieSlider from "./cookie-slider";
 
 type Field = {
-  key: Exclude<keyof CutterParams, "cutouts">;
+  key: Exclude<keyof CutterParams, "cutouts" | "mirror">;
   min: number;
   max: number;
   step: number;
@@ -29,6 +29,35 @@ const fields: Field[] = [
 
 /** Only matters with cut-out inner shapes – shown next to that checkbox. */
 const bridgeField: Field = { key: "bridgeWidth", min: 1.5, max: 8, step: 0.5 };
+
+/**
+ * An on/off parameter as a checkbox with a cookie tick (a real input, just
+ * invisible). The tick stays rendered: unticking lets it shrink away via CSS.
+ */
+const Toggle = ({
+  name,
+  label,
+  hint,
+}: {
+  name: "cutouts" | "mirror";
+  label: string;
+  hint: string;
+}) => {
+  const { params } = useSnapshot(store);
+  return (
+    <label className="checkbox" title={hint}>
+      <input
+        checked={params[name] === 1}
+        onChange={(event) => setParam(name, event.target.checked ? 1 : 0)}
+        type="checkbox"
+      />
+      <span aria-hidden className="checkbox-box">
+        <CookieIcon icing="#00b86b" icon={Check} roll={-8} size={60} />
+      </span>
+      {label}
+    </label>
+  );
+};
 
 /**
  * Dimension sliders below the 3D view: heading, the checkbox for cutting out
@@ -68,21 +97,12 @@ const ParameterPanel = () => {
       <h3>{t("params.title")}</h3>
       <div className="params-grid">
         {/* Shapes inside shapes become holes – or, as before, only the
-            outside counts. A real checkbox; the tick is a cookie. */}
-        <label className="checkbox" title={t("params.cutoutsHint")}>
-          <input
-            checked={cutouts}
-            onChange={(event) =>
-              setParam("cutouts", event.target.checked ? 1 : 0)
-            }
-            type="checkbox"
-          />
-          {/* Stays rendered: unticking lets it shrink away via CSS. */}
-          <span aria-hidden className="checkbox-box">
-            <CookieIcon icing="#00b86b" icon={Check} roll={-8} size={60} />
-          </span>
-          {t("params.cutouts")}
-        </label>
+            outside counts. */}
+        <Toggle
+          hint={t("params.cutoutsHint")}
+          label={t("params.cutouts")}
+          name="cutouts"
+        />
         {/* Always laid out (no jump), faded out and inert while unticked. */}
         <div
           aria-hidden={!cutouts}
@@ -92,6 +112,14 @@ const ParameterPanel = () => {
         >
           {slider(bridgeField)}
         </div>
+      </div>
+      <div className="params-grid">
+        {/* The cutter is used upside down – mirrored, text on the cookie reads right. */}
+        <Toggle
+          hint={t("params.mirrorHint")}
+          label={t("params.mirror")}
+          name="mirror"
+        />
       </div>
       <div className="params-grid">{fields.map(slider)}</div>
       <Button

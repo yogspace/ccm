@@ -21,6 +21,11 @@ export type CutterParams = {
   cutouts: number;
   /** Width of the bridges that hold inner blades. */
   bridgeWidth: number;
+  /**
+   * 1 = mirror the cutter. It is used upside down, so the cookie comes out
+   * mirrored to the cutter as printed – mirroring keeps text the right way round.
+   */
+  mirror: number;
 };
 
 export const defaultParams: CutterParams = {
@@ -35,6 +40,7 @@ export const defaultParams: CutterParams = {
   smoothing: 1,
   cutouts: 1,
   bridgeWidth: 3,
+  mirror: 0,
 };
 
 export type Cutter = {
@@ -885,8 +891,14 @@ export const buildCutter = (
     // is composed fresh: it belongs to the caller, not to `garbage`.
     const pieces = track(Manifold.union(parts)).decompose();
     garbage.push(...pieces);
+    const solid = Manifold.compose(
+      pieces.filter((piece) => piece.volume() > 1)
+    );
+    // Mirrored across the y axis: the contour on the drawing stays as it is.
+    const manifold = params.mirror ? solid.mirror([1, 0, 0]) : solid;
+    if (manifold !== solid) solid.delete();
     return {
-      manifold: Manifold.compose(pieces.filter((piece) => piece.volume() > 1)),
+      manifold,
       outline: shape.toPolygons().map((ring) => ring.map(fromMm)),
     };
   } finally {

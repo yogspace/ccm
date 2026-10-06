@@ -53,6 +53,9 @@ export const en: typeof de = {
     smoothing: "Close gaps",
     bridgeWidth: "Bridge width",
     cutouts: "Cut out inner shapes",
+    mirror: "Mirror (for text)",
+    mirrorHint:
+      "Cookies are cut with the cutter upside down – mirrored, text on the cookie reads the right way round.",
     cutoutsHint:
       "A shape inside another becomes a hole, held by bridges at the rim.",
     reset: "Reset",
