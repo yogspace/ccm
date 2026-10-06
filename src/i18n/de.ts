@@ -93,6 +93,7 @@ export const de = {
     sharePage: "Seite teilen",
   },
   card: {
+    compose: "Grußkarte",
     share: "Als Karte teilen",
     shareHint:
       "Eine Grußkarte mit deinem Ausstecher – zum Ansehen und Herunterladen",
@@ -124,7 +125,27 @@ export const de = {
     download: "3MF herunterladen",
     stl: "STL",
     printHint: "Bereit für den 3D-Drucker – Rand aufs Druckbett, ohne Stützen",
+    flip: "Umdrehen",
+    flipBack: "Zurückdrehen",
+    cookieAlt: "Der Keks aus „{{name}}“",
+    baked: "gebacken",
     makeOwn: "Eigenen Ausstecher gestalten",
+  },
+  jar: {
+    label: "Deine Kekse",
+    title: "Diese Seite verwendet Kekse.",
+    subtitle_one: "Deine eigenen – einen hast du gebacken.",
+    subtitle_other: "Deine eigenen – {{count}} hast du gebacken.",
+    fresh: "Frisch gebacken: „{{name}}“",
+    close: "Keksleiste schließen",
+    open: "„{{name}}“ öffnen",
+    eat: "„{{name}}“ aufessen",
+    reopen: "Deine Kekse ({{count}})",
+    save: "Als Keks speichern",
+    saveHint:
+      "Speichert deine Kreation als Keks in der Keksleiste – so findest du sie wieder.",
+    saved: "Gespeichert",
+    unnamed: "Ohne Namen",
   },
   gallery: {
     label: "Beispiele",

@@ -1,32 +1,70 @@
 import { Download } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
+import { cookieSeed } from "../cookie-jar";
 import { download } from "../export/download";
 import { fileBase } from "../export/file-name";
 import { toStl } from "../export/stl";
 import { toThreeMf } from "../export/three-mf";
-import { store, trackCreation } from "../store";
+import { saveCookie, store, trackCreation } from "../store";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
 
-/** Downloads as STL and 3MF. Every download counts the creation. */
+/**
+ * Keeping the creation as a cookie, and downloads as STL and 3MF. Every
+ * download counts the creation – and keeps it as a cookie, too.
+ */
 const ExportButtons = () => {
   const { t } = useTranslation();
   const { cutter, name, params } = useSnapshot(store);
-  const { mesh } = cutter;
+  const { mesh, outline, icing } = cutter;
   const { size } = params;
   const fileName = fileBase(name, size);
   const title = name.trim() || "Cookie Cutter";
+  const [saved, setSaved] = useState(false);
+  // The button shows the cookie this creation bakes.
+  const shape = useMemo(
+    () =>
+      outline.length > 0
+        ? { dough: outline, icing, seed: cookieSeed(outline) }
+        : null,
+    [outline, icing]
+  );
+
+  useEffect(() => {
+    if (!saved) return;
+    const timer = setTimeout(() => setSaved(false), 2000);
+    return () => clearTimeout(timer);
+  }, [saved]);
+
+  const save = (file: Blob, extension: string) => {
+    download(file, `${fileName}.${extension}`);
+    trackCreation();
+    saveCookie();
+  };
 
   return (
     <div className="actions">
       <Button
         disabled={!mesh}
         onClick={() => {
-          if (!mesh) return;
-          download(toStl(mesh), `${fileName}.stl`);
-          trackCreation();
+          saveCookie();
+          setSaved(true);
         }}
+        title={t("jar.saveHint")}
+        type="button"
+      >
+        {shape ? (
+          <CookieIcon roll={-10} shape={shape} size={58} />
+        ) : (
+          <CookieIcon kind="chip" roll={-10} size={58} />
+        )}
+        {saved ? t("jar.saved") : t("jar.save")}
+      </Button>
+      <Button
+        disabled={!mesh}
+        onClick={() => mesh && save(toStl(mesh), "stl")}
         type="button"
       >
         <CookieIcon icing="#2a44ff" icon={Download} roll={-14} size={58} />
@@ -35,11 +73,7 @@ const ExportButtons = () => {
       <Button
         className="primary"
         disabled={!mesh}
-        onClick={() => {
-          if (!mesh) return;
-          download(toThreeMf(mesh, title), `${fileName}.3mf`);
-          trackCreation();
-        }}
+        onClick={() => mesh && save(toThreeMf(mesh, title), "3mf")}
         type="button"
       >
         <CookieIcon icon={Download} roll={12} size={58} />

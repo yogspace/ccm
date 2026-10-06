@@ -101,7 +101,7 @@ export const simplifyLine = (points: Point[], tolerance: number) => {
  * Douglas-Peucker for closed rings: start and end are the same point, so the
  * ring is split into two open halves at the farthest point.
  */
-const simplifyRing = (input: Point[], tolerance: number): Point[] => {
+export const simplifyRing = (input: Point[], tolerance: number): Point[] => {
   const [fx, fy] = input[0];
   const [lx, ly] = input[input.length - 1];
   const ring = fx === lx && fy === ly ? input.slice(0, -1) : input;

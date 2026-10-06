@@ -1000,7 +1000,7 @@ button.toggle[aria-pressed="false"] .cookie {
   translate: -50% -50%;
 }
 
-.app > :not(.cookie-background) {
+.app > :not(.cookie-background, .cookie-dock) {
   position: relative;
   z-index: 1;
 }
@@ -2177,6 +2177,13 @@ button.card-offer:hover:not(:disabled) {
 }
 
 /* The card composer: the card page in small, then who, from whom, what */
+.composer-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-left: -0.35rem;
+}
+
 .composer-preview {
   position: relative;
   width: min(100%, 17rem);
@@ -2321,6 +2328,233 @@ button.card-offer:hover:not(:disabled) {
   font-weight: 700;
 }
 
+/* ---------- Cookie bar: the creations as cookies ----------
+   A cookie banner that really is one. In the page right above the footer,
+   sticking to the bottom of the screen while scrolling – it never covers the
+   footer or the sun. It slides in from below with the first scroll; closed,
+   a jar takes its place. */
+
+.cookie-dock {
+  position: sticky;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  translate: 0 calc(100% + 2rem);
+  transition:
+    translate 0.6s var(--ease-spring),
+    opacity 0.3s var(--ease);
+}
+
+.cookie-dock[data-shown] {
+  opacity: 1;
+  translate: 0 0;
+}
+
+.cookie-dock > * {
+  pointer-events: auto;
+}
+
+/* Closed: the jar on the right. */
+.cookie-dock:has(> .cookie-bar[hidden]) {
+  justify-content: flex-end;
+}
+
+/* Where the bar gets as wide as the page, it stays above the sun too. */
+@media (max-width: 64rem) {
+  .cookie-dock {
+    margin-bottom: 3.5rem;
+  }
+}
+
+.cookie-bar {
+  display: grid;
+  grid-template-columns: auto minmax(0, auto) auto;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
+  max-width: min(62rem, 100%);
+  padding: 0.6rem 0.9rem 0.6rem 1.4rem;
+  color: var(--text);
+  background: var(--surface);
+  border-radius: calc(var(--radius) + 0.5rem);
+  box-shadow:
+    0 0.3rem 0.8rem rgb(4 8 60 / 0.16),
+    0 1.6rem 3rem -1rem rgb(4 8 60 / 0.5);
+}
+
+.cookie-bar[hidden] {
+  display: none;
+}
+
+.cookie-bar-text {
+  display: grid;
+  gap: 0.1rem;
+  max-width: 15rem;
+  font-size: var(--fs-small);
+  line-height: 1.3;
+  color: var(--muted);
+}
+
+.cookie-bar-text strong {
+  font-size: var(--fs-body);
+  color: var(--text);
+}
+
+.cookie-bar-list {
+  display: flex;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0.3rem 0.75rem;
+  overflow-x: auto;
+  list-style: none;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 0.75rem,
+    #000 calc(100% - 0.75rem),
+    transparent
+  );
+}
+
+.cookie-bar-item {
+  position: relative;
+  flex: none;
+  scroll-snap-align: start;
+  transition:
+    scale 0.35s var(--ease),
+    rotate 0.35s var(--ease),
+    opacity 0.35s var(--ease);
+}
+
+/* A new cookie pops in; an eaten one vanishes with a twist. */
+.cookie-bar-item[data-fresh] {
+  animation: cookie-pop 0.7s var(--ease-spring) 0.25s both;
+}
+
+.cookie-bar-item[data-eating] {
+  opacity: 0;
+  scale: 0.2;
+  rotate: -50deg;
+}
+
+button.cookie-bar-cookie {
+  flex-direction: column;
+  gap: 0;
+  width: 6rem;
+  height: auto;
+  padding: 0.2rem 0.3rem 0.35rem;
+  font-size: var(--fs-tiny);
+  background: transparent;
+  border-radius: 0.8rem;
+}
+
+button.cookie-bar-cookie:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.cookie.cookie-tile {
+  margin: -0.7rem 0 -0.45rem;
+}
+
+button.cookie-bar-cookie span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Eat: the cross shows on hover (always on touch). */
+button.cookie-bar-eat {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 1.7rem;
+  height: 1.7rem;
+  background: var(--surface);
+  opacity: 0;
+  transition: opacity 0.2s var(--ease);
+}
+
+.cookie.cookie-eat {
+  margin: -0.5rem;
+}
+
+.cookie-bar-item:hover button.cookie-bar-eat,
+button.cookie-bar-eat:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  button.cookie-bar-eat {
+    opacity: 1;
+  }
+}
+
+button.cookie-bar-close {
+  align-self: start;
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+/* The jar while the bar is closed */
+button.cookie-jar {
+  position: relative;
+  width: 4.2rem;
+  height: 4.2rem;
+  padding: 0;
+  background: var(--surface);
+  border-radius: 1.2rem;
+  box-shadow: 0 1rem 2rem -0.8rem rgb(4 8 60 / 0.55);
+  transition:
+    scale 0.4s var(--ease-spring),
+    background 0.2s var(--ease);
+}
+
+.cookie.cookie-jar-icon {
+  margin: 0;
+}
+
+button.cookie-jar[hidden] {
+  display: none;
+}
+
+@starting-style {
+  button.cookie-jar {
+    scale: 0;
+  }
+}
+
+.cookie-jar-count {
+  position: absolute;
+  top: -0.35rem;
+  right: -0.35rem;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.4rem;
+  font-size: var(--fs-tiny);
+  line-height: 1.5rem;
+  color: var(--on-neon);
+  background: var(--neon);
+  border-radius: 0.75rem;
+}
+
+@media (max-width: 40rem) {
+  .cookie-bar {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 0.75rem 0.75rem 0.5rem 1.1rem;
+  }
+
+  .cookie-bar-list {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin: 0 -0.5rem;
+  }
+}
+
 /* ---------- Animations ---------- */
 
 @keyframes rise {
@@ -2362,6 +2596,13 @@ button.card-offer:hover:not(:disabled) {
     opacity: 0;
     transform: translate(-50%, -50%) rotate(var(--angle)) translateX(5rem)
       rotate(160deg);
+  }
+}
+
+@keyframes cookie-pop {
+  from {
+    opacity: 0;
+    scale: 0.3;
   }
 }
 

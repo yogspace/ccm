@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import Button from "./components/button";
 import CookieBackground from "./components/cookie-background";
+import CookieBar from "./components/cookie-bar";
 import CookieIcon from "./components/cookie-icon";
 import DonateBadge from "./components/donate-badge";
 import DrawCanvas from "./components/draw-canvas";
@@ -142,6 +143,9 @@ const App = () => {
           <ShareCreation preview={preview} />
         </div>
       </div>
+
+      {/* Floats at the bottom while scrolling, stops right above the footer. */}
+      <CookieBar />
 
       <footer>
         <DonateBadge />

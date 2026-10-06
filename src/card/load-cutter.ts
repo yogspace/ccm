@@ -1,12 +1,13 @@
 import { DRAW_RES, paint } from "../drawing";
 import type { CutterRequest, CutterResponse } from "../geometry/cutter-worker";
 import type { MeshData } from "../geometry/mesh";
-import { traceOutline } from "../geometry/outline";
+import { type Ring, traceOutline } from "../geometry/outline";
 import type { readHash } from "../url-state";
 
 /**
  * Builds the cutter of a shared creation once: paints the drawing like the
- * drawing area does, traces it and lets the geometry worker do the rest.
+ * drawing area does, traces it and lets the geometry worker do the rest –
+ * the model, its contour and the icing of the cookie it bakes.
  */
 export const loadCutter = async ({
   drawing,
@@ -27,12 +28,18 @@ export const loadCutter = async ({
     new URL("../geometry/cutter-worker.ts", import.meta.url),
     { type: "module" }
   );
-  return new Promise<MeshData | null>((resolve, reject) => {
+  return new Promise<{
+    mesh: MeshData;
+    outline: Ring[];
+    icing: Ring[];
+  } | null>((resolve, reject) => {
     worker.onmessage = ({ data }: MessageEvent<CutterResponse>) => {
       if (data.type === "ready") return;
       worker.terminate();
-      if (data.type === "result") resolve(data.mesh);
-      else reject(new Error(data.type));
+      if (data.type !== "result") reject(new Error(data.type));
+      else if (!data.mesh) resolve(null);
+      else
+        resolve({ mesh: data.mesh, outline: data.outline, icing: data.icing });
     };
     const request: CutterRequest = { id: 1, rings, params };
     worker.postMessage(request);

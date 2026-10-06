@@ -92,6 +92,7 @@ export const en: typeof de = {
     sharePage: "Share page",
   },
   card: {
+    compose: "Greeting card",
     share: "Share as a card",
     shareHint: "A greeting card with your cutter – to look at and download",
     intro:
@@ -122,7 +123,27 @@ export const en: typeof de = {
     download: "Download 3MF",
     stl: "STL",
     printHint: "Ready for the 3D printer – rim on the bed, no supports",
+    flip: "Turn over",
+    flipBack: "Turn back",
+    cookieAlt: "The cookie from “{{name}}”",
+    baked: "baked",
     makeOwn: "Design your own cutter",
+  },
+  jar: {
+    label: "Your cookies",
+    title: "This site uses cookies.",
+    subtitle_one: "Your own – you baked one.",
+    subtitle_other: "Your own – you baked {{count}}.",
+    fresh: "Freshly baked: “{{name}}”",
+    close: "Close the cookie bar",
+    open: "Open “{{name}}”",
+    eat: "Eat “{{name}}”",
+    reopen: "Your cookies ({{count}})",
+    save: "Save as cookie",
+    saveHint:
+      "Keeps your creation as a cookie in the cookie bar – so you find it again.",
+    saved: "Saved",
+    unnamed: "Untitled",
   },
   gallery: {
     label: "Examples",

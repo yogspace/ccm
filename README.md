@@ -17,12 +17,15 @@ The geometry is built entirely in the browser; the server only serves static fil
   - open spans up to 8 mm are flat links at flange height, longer ones arched bridges: low in the middle, running into the walls with fillets measured by the real distance to the wall, always leaving room below the cutting edge for the dough
   - links and bridges blend into walls and flanges with round fillets; hairline gaps between flanges are closed, small pockets in the plate filled, larger ones rounded
   - adjustable bridge width
-- Geometry tests (`pnpm test`): drawn and generated shapes must come out as one part, with nothing in the dough's room, nothing over an opening, no hairline slits or sharp corners next to inner blades, and no more arches than needed
+- Geometry tests (`pnpm test`, also in the pipeline): drawn and generated shapes must come out as one part, with nothing in the dough's room, nothing over an opening, no hairline slits or sharp corners next to inner blades, and no more arches than needed. In the dev server, Alt+Shift+F saves the drawing on screen as a new test case
 - Live contour (cutting line) over the drawing, 3D preview as a turntable (floor and model turn together, can be stopped); every new cutter gets a different filament colour
 - 3D cookies as icons (rendered live, looking at the mouse, turning on hover) and in the background
 - Dimensions in mm or inch, a name for the creation, download as 3MF and STL (`<name>-80mm.3mf`)
 - Printing tips and error messages as popovers in neon pink, anchored with CSS anchor positioning
 - Sharing: at the top the page itself; at the bottom of the page, in front of a fan of example cutters, “Share creation” opens a dialog with a picture of the cutter from above, the link to the drawing (a click copies it), saving the picture and sharing it with text and link (the complete state lives in the URL hash) – and a sun cookie for donations
+- Bake it: every creation also makes a 3D cookie in its shape – dough with a rounded edge, holes and all, icing poured a little inside the edge (narrower or left off where the shape is thin) and sprinkles on top, always the same for the same shape
+- Cookie bar: “Save as cookie” (and every download) keeps the creation as such a cookie in this browser. “This site uses cookies” – your own: a bar slides up from the bottom with the first scroll, sticks to the bottom of the screen and stops right above the footer; a click on a cookie opens its creation, the small cross eats it, closed it becomes a jar
+- Share as a card: in the share dialog, add who it is for, who it is from and a message (a little preview shows it running around the cutter) and get a link to the card's own page – one screen without scrolling: the cutter in 3D on a card, the message turning around it, 3MF/STL to download and a way to the maker. A click turns the card over – on its back lies the cookie it bakes. Like every link, it all lives in the hash
 - Example gallery: every picture in `src/gallery/` can show up in the fan; five are drawn at random on every load
 - German/English (i18next) under `/de/` and `/en/` with their own texts for search engines; `/` redirects by browser language
 - “x creations made” counter in the footer: downloads and shared creations are counted on the server (the same creation once per session, only the total is stored)
@@ -35,6 +38,7 @@ The geometry is built entirely in the browser; the server only serves static fil
 ```
 src/
   app.tsx                     the page's frame
+  card/                       the greeting card's own page (entry card/index.html): card-page, card-cutter (3D on the card), load-cutter
   store.ts                    state (valtio): actions, cutter worker, link in the hash, counter, scroll lock
   components/                 draw-canvas, tool-picker, preview-3d, parameter-panel, share-creation, gallery-fan, …
   drawing.ts                  the drawing as vectors: painting, finding objects, moving/rotating/scaling, erasing
@@ -42,21 +46,26 @@ src/
   gallery/                    pictures for the fan at the bottom of the page
   geometry/
     outline.ts                raster → contour (d3-contour), SVG import as a silhouette
-    cutter.ts                 contour + parameters → Manifold (wall, taper, flange plate), puts it all together
+    cutter.ts                 contour + parameters → Manifold (wall, taper, flange plate), puts it all together; also the cookie's icing
     islands.ts                which contour lies inside which (cookie, hole, cookie in the hole …)
     connections.ts            plans what holds the inner blades: flat links and arches
     bridges.ts                builds an arched bridge (height field with fillets)
     rings.ts                  2D helpers for contours
     cutter-worker.ts          runs cutter.ts in a web worker, only the latest job counts
     manifold.ts, mesh.ts      WASM singleton, Manifold → raw mesh
-  export/                     three-mf.ts, stl.ts, download.ts
-  cookies/                    models.ts (cookie geometries, also from Lucide icons), renderer.ts (one WebGL context for all cookie icons)
+  export/                     three-mf.ts, stl.ts, download.ts, file-name.ts
+  cookies/                    models.ts (cookie geometries, also from Lucide icons and from creations), renderer.ts (one WebGL context for all cookie icons)
   i18n/                       de.ts, en.ts
   url-state.ts                state ↔ URL hash
+  cookie-jar.ts               the cookie bar's cookies in localStorage
+  filaments.ts, hash-text.ts  filament colours, stable numbers from texts (same colour, same sprinkles everywhere)
+  greeting.ts                 the card's link: recipient, sender, message on top of the creation's hash
+  dev-fixture.ts              dev server only: Alt+Shift+F saves the drawing as a test case
   units.ts                    mm/inch
 api/
   stats.mjs                   counter logic (one number in stats.json), also mounted in the Vite dev server
   server.mjs                  mini API for the ccm-api container, without dependencies
+card/index.html               entry of the greeting card page (/card/)
 test/                         geometry tests (Vitest): cutter.test.ts, clean.ts (inspects a cutter in slices), shapes.ts, fixtures/ (drawn shapes)
 vite.config.ts                additionally builds dist/de/ and dist/en/ with their own meta texts, counter API in the dev server
 Caddyfile                     redirect / → /de/ or /en/, /api/* → ccm-api, SPA fallback
@@ -78,7 +87,7 @@ Pally (Indian Type Foundry, [ITF Free Font License](https://www.fontshare.com)) 
 
 ### Link format
 
-`#n=<name>&<parameter>=<value>&s=<drawing>`. Parameters are only included when they differ from the defaults. The drawing itself is stored, so it looks just the same after opening: per stroke the smoothed pen points and the stroke width (erasers with a negative width) and, after an SVG import, its silhouette as an area. Strokes are simplified depending on their width (Douglas-Peucker, 1.5–4 px), rounded to 2 px and encoded as chained ZigZag varint deltas; the whole thing is deflate-compressed and base64url-encoded. The first varint is the format version (currently 3); versions 1 (contour only) and 2 are still read. Shared links have no language path, so recipients land in their own language. The hash is never sent to the server.
+`#n=<name>&<parameter>=<value>&s=<drawing>`. Parameters are only included when they differ from the defaults. The drawing itself is stored, so it looks just the same after opening: per stroke the smoothed pen points and the stroke width (erasers with a negative width) and, after an SVG import, its silhouette as an area. Strokes are simplified depending on their width (Douglas-Peucker, 1.5–4 px), rounded to 2 px and encoded as chained ZigZag varint deltas; the whole thing is deflate-compressed and base64url-encoded. The first varint is the format version (currently 3); versions 1 (contour only) and 2 are still read. Shared links have no language path, so recipients land in their own language. A greeting card is the same link under `/card/` plus `&to=<recipient>&from=<sender>&m=<message>`. The hash is never sent to the server.
 
 ### Bambu Studio
 
@@ -98,7 +107,7 @@ pnpm install
 pnpm dev          # http://localhost:5173
 pnpm lint         # Biome (format + lint)
 pnpm typecheck
-pnpm test         # geometry tests (Vitest)
+pnpm test         # geometry tests (Vitest); Alt+Shift+F in the dev server adds the drawing on screen to test/fixtures/
 pnpm build        # → dist/
 ```
 
@@ -114,7 +123,7 @@ make deploy   # pushes development, merges into main, pushes main, back to devel
 
 A push to `main` → GitHub Actions ([`deploy.yml`](.github/workflows/deploy.yml)):
 
-1. **verify:** Biome + TypeScript
+1. **verify:** Biome + TypeScript + geometry tests
 2. **build:** Docker image (Vite build → Caddy as a static server, see [`Dockerfile`](Dockerfile) / [`Caddyfile`](Caddyfile)) → `ghcr.io/yogspace/ccm`
 3. **deploy:** via SSH to the Hetzner server, `/opt/apps/ccm`: `docker compose pull && up -d`
 

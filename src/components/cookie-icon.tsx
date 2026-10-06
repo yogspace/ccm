@@ -2,8 +2,11 @@ import type { LucideIcon } from "lucide-react";
 import { type CSSProperties, useEffect, useRef } from "react";
 import {
   type CookieKind,
+  type CookieShape,
   createCookie,
   createIconCookie,
+  createShapeCookie,
+  disposeCookie,
 } from "../cookies/models";
 import { type CookieHandle, registerCookie } from "../cookies/renderer";
 
@@ -27,14 +30,16 @@ type Props = {
   /** Size while growing in (0…1), e.g. so text on it grows along. */
   onGrow?: (scale: number) => void;
 } & (
-  | { kind: CookieKind; icon?: never; icing?: never }
-  | { icon: LucideIcon; icing?: string; kind?: never }
+  | { kind: CookieKind; icon?: never; icing?: never; shape?: never }
+  | { icon: LucideIcon; icing?: string; kind?: never; shape?: never }
+  /** Baked from a creation's contours (see `createShapeCookie`). */
+  | { shape: CookieShape; kind?: never; icon?: never; icing?: never }
 );
 
 /**
- * A real 3D cookie as an icon: either a kind of cookie or a Lucide icon as a
- * cookie. Looks at the mouse when it is near, turns on hover over the
- * surrounding button and gives way briefly on click.
+ * A real 3D cookie as an icon: a kind of cookie, a Lucide icon as a cookie or
+ * a creation baked as a cookie. Looks at the mouse when it is near, turns on
+ * hover over the surrounding button and gives way briefly on click.
  */
 const CookieIcon = ({
   size,
@@ -50,6 +55,7 @@ const CookieIcon = ({
   kind,
   icon: Icon,
   icing = "#ffffff",
+  shape,
 }: Props) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const svgRef = useRef<HTMLSpanElement>(null);
@@ -72,12 +78,16 @@ const CookieIcon = ({
     let cancelled = false;
     const svg = svgRef.current?.querySelector("svg");
 
+    // A baked creation is its own; the others share their geometry.
+    const baked = kind === undefined && shape ? createShapeCookie(shape) : null;
     const object =
       kind !== undefined
         ? createCookie(kind)
-        : svg
-          ? createIconCookie(svg, iconName ?? "icon", icing)
-          : null;
+        : baked
+          ? Promise.resolve(baked)
+          : svg
+            ? createIconCookie(svg, iconName ?? "icon", icing)
+            : null;
     object?.then((cookie) => {
       if (cancelled) return;
       handle.current = registerCookie(canvas, cookie, {
@@ -105,8 +115,9 @@ const CookieIcon = ({
       button?.removeEventListener("pointerdown", press);
       handle.current?.dispose();
       handle.current = null;
+      if (baked) disposeCookie(baked);
     };
-  }, [kind, iconName, icing, idle, tilt, interactive]);
+  }, [kind, iconName, icing, shape, idle, tilt, interactive]);
 
   useEffect(() => {
     handle.current?.setRoll((roll * Math.PI) / 180);

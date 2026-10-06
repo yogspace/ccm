@@ -62,6 +62,8 @@ export type Cutter = {
   manifold: Manifold;
   /** Final contour in the same normalised coordinates as the input. */
   outline: Ring[];
+  /** The cookie's icing: the contour a little smaller, corners rounded. */
+  icing: Ring[];
   /** What holds the inner blades (in mm, before mirroring). */
   connections: Connection[];
 };
@@ -87,6 +89,12 @@ export const BRIDGE_CLEARANCE = 9;
 const FLAT_SPAN = 8;
 /** Flanges closer than this (mm) are linked where they come closest. */
 const LINK_GAP = 4;
+/** How far (share of the size) the icing stays inside the cookie's edge … */
+const ICING_INSET = 0.05;
+/** … covering at least this share of the cookie, else it is left off … */
+const ICING_SHARE = 0.4;
+/** … and without bits of icing below this share. */
+const ICING_CRUMB = 0.03;
 /** Hairline gaps in the flange plate up to this width (mm) are closed … */
 const HAIRLINE = 2;
 /** … and pockets enclosed by it up to this area (mm²); larger ones rounded. */
@@ -357,9 +365,27 @@ export const buildCutter = (
     // Mirrored across the y axis: the contour on the drawing stays as it is.
     const manifold = params.mirror ? solid.mirror([1, 0, 0]) : solid;
     if (manifold !== solid) solid.delete();
+    // For the baked cookie: icing poured on top, a little inside the edge,
+    // its corners rounded like a glaze would run. Narrow shapes get a
+    // narrower rim; if even that leaves little, no icing at all – crumbs of
+    // icing in the tips would look odd.
+    const area = shape.area();
+    const pour = (inset: number) => {
+      const poured = grow(grow(shape, -1.6 * inset), 0.6 * inset);
+      const kept = poured
+        .decompose()
+        .map(track)
+        .filter((part) => part.area() > area * ICING_CRUMB);
+      return track(CrossSection.union(kept));
+    };
+    const inset = Math.min(6, Math.max(1.5, params.size * ICING_INSET));
+    let icing = pour(inset);
+    if (icing.area() < area * ICING_SHARE) icing = pour(inset / 2);
+    const iced = icing.area() >= area * ICING_SHARE;
     return {
       manifold,
       outline: shape.toPolygons().map((ring) => ring.map(fromMm)),
+      icing: iced ? icing.toPolygons().map((ring) => ring.map(fromMm)) : [],
       connections,
     };
   } finally {

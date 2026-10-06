@@ -43,12 +43,16 @@ const German = () => (
       Zeichnungen, hochgeladene SVGs und die erzeugten 3D-Modelle werden
       ausschließlich in deinem Browser verarbeitet und nicht an den Server
       übertragen. Ein geteilter Link enthält die Form im Teil hinter dem „#“;
-      dieser Teil wird vom Browser nicht an den Server gesendet.
+      dieser Teil wird vom Browser nicht an den Server gesendet. Das gilt auch
+      für Grußkarten samt Namen und Nachricht.
     </p>
     <p>
       Sprache und Maßeinheit werden im lokalen Speicher deines Browsers
-      abgelegt, damit sie beim nächsten Besuch erhalten bleiben. Es werden keine
-      Cookies gesetzt und keine Analyse- oder Tracking-Dienste eingesetzt.
+      abgelegt, damit sie beim nächsten Besuch erhalten bleiben – ebenso die
+      Kreationen, die du als Keks speicherst (Link, Name, Größe und Umriss). Sie
+      verlassen deinen Browser nicht; „Aufessen“ löscht einen Keks. Es werden
+      keine Cookies gesetzt (nur gebackene) und keine Analyse- oder
+      Tracking-Dienste eingesetzt.
     </p>
     <p>
       Die Schriftart „Pally“ (Indian Type Foundry, über Fontshare) wird vom
@@ -128,12 +132,14 @@ const English = () => (
       Drawings, uploaded SVGs and the generated 3D models are processed entirely
       in your browser and are never sent to the server. A shared link carries
       the shape in the part after the “#”, which browsers do not send to the
-      server.
+      server. The same goes for greeting cards with their names and message.
     </p>
     <p>
       Your language and unit are kept in your browser’s local storage so they
-      persist between visits. No cookies are set and no analytics or tracking
-      services are used.
+      persist between visits – and so are the creations you save as cookies
+      (link, name, size and outline). They never leave your browser; eating a
+      cookie deletes it. No cookies are set (only baked ones) and no analytics
+      or tracking services are used.
     </p>
     <p>
       The typeface “Pally” (Indian Type Foundry, via Fontshare) is served from

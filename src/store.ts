@@ -12,6 +12,15 @@
 import { flushSync } from "react-dom";
 import { proxy, ref, snapshot, subscribe, useSnapshot } from "valtio";
 import {
+  bakeCookie,
+  JAR_SIZE,
+  jarClosed,
+  loadJar,
+  rememberJarClosed,
+  type SavedCookie,
+  storeJar,
+} from "./cookie-jar";
+import {
   type CutterParams,
   defaultParams,
   SIZE_RANGE,
@@ -39,6 +48,8 @@ type Cutter = {
   mesh: Ref<MeshData> | null;
   /** Final contour, normalised to 0…1 – as an overlay on the drawing. */
   outline: Ref<Ring[]>;
+  /** Icing of the baked cookie, normalised like the contour. */
+  icing: Ref<Ring[]>;
   error?: "engine" | "build";
 };
 
@@ -71,6 +82,12 @@ type State = {
    * it instead (the grid zooms).
    */
   sheet: number;
+  /** Creations kept as cookies (cookie-jar.ts), newest first. */
+  jar: Ref<SavedCookie[]>;
+  /** The cookie bar is open – on every visit, until closed. */
+  jarOpen: boolean;
+  /** The cookie saved last (its hash) – it pops into the bar. */
+  lastSaved: string | null;
 };
 
 /** Longest side of a set of contours (normalised 0…1), 0 if there are none. */
@@ -99,6 +116,7 @@ const sheetFor = (size: number, rings: Ring[]) =>
 
 /** State from a shared link – read once on load. */
 const shared = readHash(window.location.hash);
+const savedCookies = loadJar();
 
 /**
  * What the drawing area starts with. Old links bring only the contour, new
@@ -114,7 +132,7 @@ export const store = proxy<State>({
   params: { ...shared.params },
   drawing: ref(shared.drawing),
   rings: ref(shared.rings),
-  cutter: { ready: false, mesh: null, outline: ref([]) },
+  cutter: { ready: false, mesh: null, outline: ref([]), icing: ref([]) },
   unit: initialUnit(),
   tool: "pen",
   brush: 24,
@@ -123,6 +141,9 @@ export const store = proxy<State>({
   creations: null,
   dialogs: 0,
   sheet: sheetFor(shared.params.size, shared.rings),
+  jar: ref(savedCookies),
+  jarOpen: savedCookies.length > 0 && !jarClosed(),
+  lastSaved: null,
 });
 
 /**
@@ -242,6 +263,49 @@ export const greetingLink = (greeting: Greeting) =>
   greetingUrl(currentHash(), greeting);
 
 /**
+ * Keeps the creation on screen as a cookie in the bar (the newest first; the
+ * same creation only once) and opens the bar.
+ */
+export const saveCookie = () => {
+  const { mesh, outline, icing } = store.cutter;
+  if (!mesh || outline.length === 0) return;
+  const hash = currentHash();
+  const cookie = bakeCookie({
+    hash,
+    name: store.name,
+    size: store.params.size,
+    outline,
+    icing,
+  });
+  store.jar = ref(
+    [cookie, ...store.jar.filter((other) => other.hash !== hash)].slice(
+      0,
+      JAR_SIZE
+    )
+  );
+  store.lastSaved = hash;
+  setJarOpen(true);
+};
+
+/** Eats a cookie: it leaves the bar for good. */
+export const eatCookie = (hash: string) => {
+  store.jar = ref(store.jar.filter((cookie) => cookie.hash !== hash));
+  if (store.jar.length === 0) store.jarOpen = false;
+};
+
+export const setJarOpen = (open: boolean) => {
+  store.jarOpen = open;
+  rememberJarClosed(!open);
+};
+
+/** Opens a saved creation: its link, loaded afresh (Back returns). */
+export const openCookie = (hash: string) => {
+  const { pathname, search } = window.location;
+  window.history.pushState(null, "", `${pathname}${search}${hash}`);
+  window.location.reload();
+};
+
+/**
  * “x creations made”: downloads and shared creations are counted on the
  * server; the same creation only once per session.
  */
@@ -287,6 +351,7 @@ export const connectStore = () => {
         ready: true,
         mesh: data.mesh && ref(data.mesh),
         outline: ref(data.outline),
+        icing: ref(data.icing),
       };
     } else store.cutter.error = "build";
   };
@@ -325,6 +390,7 @@ export const connectStore = () => {
     if (changed("rings") || changed("params")) build();
     if (changed("name") || changed("params") || changed("drawing")) writeLink();
     if (changed("dialogs")) lockScroll();
+    if (changed("jar")) storeJar(store.jar);
     last = next;
   });
 

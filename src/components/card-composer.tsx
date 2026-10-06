@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { filamentFor } from "../filaments";
 import { GREETING_LIMITS, type Greeting } from "../greeting";
+import { drawingKey } from "../hash-text";
 import { creationUrl, greetingLink, store } from "../store";
 import { formatLength } from "../units";
 import Button from "./button";
@@ -20,10 +21,7 @@ type Props = {
 };
 
 /** The card's cutter colour – the same the card page picks (by the drawing). */
-const cardFilament = () => {
-  const { hash } = new URL(creationUrl());
-  return filamentFor(new URLSearchParams(hash.slice(1)).get("s") ?? hash);
-};
+const cardFilament = () => filamentFor(drawingKey(new URL(creationUrl()).hash));
 
 /**
  * “Share as a card”: who it is for, who it is from and a message – the
@@ -38,6 +36,7 @@ const CardComposer = ({ preview, greeting, onChange, onBack }: Props) => {
   const [copied, setCopied] = useState(false);
   const ids = useId();
   const title = name.trim() || "Cookie Cutter";
+  const canSend = "share" in navigator;
   const lang = i18n.resolvedLanguage ?? "en";
 
   useEffect(() => {
@@ -85,7 +84,18 @@ const CardComposer = ({ preview, greeting, onChange, onBack }: Props) => {
 
   return (
     <div className="composer">
-      <h2>{t("card.share")}</h2>
+      <div className="composer-head">
+        <Button
+          aria-label={t("card.back")}
+          className="icon"
+          onClick={onBack}
+          title={t("card.back")}
+          type="button"
+        >
+          <CookieIcon icing="#2a44ff" icon={ArrowLeft} roll={-6} size={52} />
+        </Button>
+        <h2>{t("card.compose")}</h2>
+      </div>
       <p>{t("card.intro")}</p>
 
       {/* The card page in small: the message runs around the cutter. */}
@@ -164,7 +174,11 @@ const CardComposer = ({ preview, greeting, onChange, onBack }: Props) => {
             )}
           </Button>
           <div className="share-more">
+            <Button className="ghost" onClick={onBack} type="button">
+              {t("card.back")}
+            </Button>
             <Button
+              className={canSend ? undefined : "primary"}
               onClick={() => window.open(link, "_blank", "noopener")}
               type="button"
             >
@@ -176,7 +190,7 @@ const CardComposer = ({ preview, greeting, onChange, onBack }: Props) => {
               />
               {t("card.open")}
             </Button>
-            {"share" in navigator && (
+            {canSend && (
               <Button className="primary" onClick={send} type="button">
                 <CookieIcon icon={Share2} roll={10} size={48} />
                 {t("card.send")}
@@ -187,7 +201,6 @@ const CardComposer = ({ preview, greeting, onChange, onBack }: Props) => {
       ) : (
         <div className="share-more">
           <Button className="ghost" onClick={onBack} type="button">
-            <CookieIcon icing="#2a44ff" icon={ArrowLeft} size={40} />
             {t("card.back")}
           </Button>
           <Button

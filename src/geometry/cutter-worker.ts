@@ -9,7 +9,13 @@ export type CutterRequest = { id: number; rings: Ring[]; params: CutterParams };
 export type CutterResponse =
   | { type: "ready" }
   | { type: "engine-error" }
-  | { type: "result"; id: number; mesh: MeshData | null; outline: Ring[] }
+  | {
+      type: "result";
+      id: number;
+      mesh: MeshData | null;
+      outline: Ring[];
+      icing: Ring[];
+    }
   | { type: "build-error"; id: number };
 
 declare const self: DedicatedWorkerGlobalScope;
@@ -36,12 +42,13 @@ const run = async () => {
   try {
     const cutter = buildCutter(await wasm, job.rings, job.params);
     if (!cutter) {
-      post({ type: "result", id: job.id, mesh: null, outline: [] });
+      post({ type: "result", id: job.id, mesh: null, outline: [], icing: [] });
       return;
     }
     const mesh = toMeshData(cutter.manifold);
     cutter.manifold.delete();
-    post({ type: "result", id: job.id, mesh, outline: cutter.outline }, [
+    const { outline, icing } = cutter;
+    post({ type: "result", id: job.id, mesh, outline, icing }, [
       mesh.positions.buffer,
       mesh.indices.buffer,
     ]);

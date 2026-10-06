@@ -54,7 +54,7 @@ html:has(.greeting) {
 .greeting-to {
   max-width: 100%;
   margin-top: clamp(0rem, 1.5dvh, 1rem);
-  font-size: clamp(2.2rem, 7.2dvh, 4.4rem);
+  font-size: clamp(1.8rem, min(7.2dvh, 150vw / (var(--chars, 8) + 2)), 4.4rem);
   line-height: 1.05;
   letter-spacing: -0.025em;
   overflow-wrap: anywhere;
@@ -102,16 +102,60 @@ html:has(.greeting) {
   inset: 20.5%;
   transform: perspective(70rem) rotateX(var(--lean-x, 0deg))
     rotateY(var(--lean-y, 0deg)) rotate(-3deg);
+  transform-style: preserve-3d;
   transition: transform 0.9s var(--ease);
   animation: card-land 1.1s var(--ease-spring) 0.15s both;
 }
 
-.greeting-paper {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
+/* The card turns over: cutter in front, the cookie it bakes on the back. */
+button.greeting-flip,
+button.greeting-flip:hover:not(:disabled) {
+  position: relative;
+  display: block;
   width: 100%;
   height: 100%;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  white-space: normal;
+  background: none;
+  border-radius: 5.5cqw;
+  transform-style: preserve-3d;
+  transition: transform 0.95s var(--ease-spring);
+  -webkit-tap-highlight-color: transparent;
+}
+
+button.greeting-flip:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+button.greeting-flip:focus-visible {
+  outline: 3px solid var(--on-page);
+  outline-offset: 0.5rem;
+}
+
+button.greeting-flip[data-flipped] {
+  transform: rotateY(180deg);
+}
+
+/* Once landed, it wobbles as if about to turn – a hint it can. On its own
+   property (rotate), so the turn itself (transform) still transitions. */
+button.greeting-flip:not(:disabled, [data-flipped]) {
+  animation: greet-peek 1.4s var(--ease) 2.4s;
+}
+
+.greeting-paper {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
   padding: 4cqw 4.5cqw 4cqw;
+  backface-visibility: hidden;
+  /* The far side hides when the card stands on edge – with the springy
+     turn after about a sixth of it – and its canvas with it. */
+  transition: visibility 0s linear 0.17s;
   color: var(--ink);
   background: var(--sheet);
   border-radius: 5.5cqw;
@@ -119,6 +163,43 @@ html:has(.greeting) {
     inset 0 0.15rem 0 rgb(255 255 255 / 0.8),
     0 0.6rem 1.2rem -0.4rem rgb(4 8 60 / 0.35),
     0 2.8rem 4.5rem -1.8rem rgb(4 8 60 / 0.6);
+}
+
+.greeting-back {
+  visibility: hidden;
+  background: #fff3e0;
+  transform: rotateY(180deg);
+}
+
+button.greeting-flip[data-flipped] .greeting-front {
+  visibility: hidden;
+}
+
+button.greeting-flip[data-flipped] .greeting-back {
+  visibility: visible;
+}
+
+.cookie.greeting-cookie {
+  justify-self: center;
+  width: auto;
+  height: 100%;
+  min-height: 0;
+  aspect-ratio: 1;
+  margin: 0;
+}
+
+.greeting-turn {
+  position: absolute;
+  top: 2.2cqw;
+  right: 2.2cqw;
+  display: grid;
+  place-items: center;
+}
+
+.cookie.greeting-turn-icon {
+  width: 8cqw;
+  height: 8cqw;
+  margin: 0;
 }
 
 .card-cutter {
@@ -158,6 +239,10 @@ html:has(.greeting) {
   text-align: left;
 }
 
+.greeting-name[hidden] {
+  display: none;
+}
+
 .greeting-name span {
   min-width: 0;
   overflow: hidden;
@@ -182,12 +267,12 @@ html:has(.greeting) {
   background: var(--color);
   border-radius: 1cqw;
   opacity: 0;
-  animation: greet-sprinkle 1.4s var(--ease) 0.7s both;
+  animation: greet-sprinkle 1.4s var(--ease) var(--delay, 0.7s) both;
 }
 
 .greeting-from {
   max-width: 100%;
-  font-size: clamp(1.15rem, 3.3dvh, 1.7rem);
+  font-size: clamp(1rem, min(3.3dvh, 110vw / (var(--chars, 8) + 2)), 1.7rem);
   font-weight: 600;
   line-height: 1.2;
   color: var(--on-page-muted);
@@ -285,6 +370,15 @@ html:has(.greeting) {
   }
   35% {
     opacity: 1;
+  }
+}
+
+@keyframes greet-peek {
+  30% {
+    rotate: y -24deg;
+  }
+  60% {
+    rotate: y 8deg;
   }
 }
 
