@@ -90,6 +90,9 @@ export const de = {
       "Text und Link sind in der Zwischenablage – falls die App nur das Bild übernimmt, einfach einfügen.",
     sharePage: "Seite teilen",
   },
+  gallery: {
+    label: "Beispiele",
+  },
   legal: {
     close: "Schließen",
   },

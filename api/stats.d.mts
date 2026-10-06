@@ -1,9 +1,9 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 export type Stats = {
-  /** Beantwortet die Zähler-Routen; `false`, wenn die Anfrage nicht dazugehört. */
+  /** Answers the counter routes; `false` if the request is not one of them. */
   handle: (request: IncomingMessage, response: ServerResponse) => boolean;
-  /** Schreibt einen noch ausstehenden Stand sofort. */
+  /** Writes a pending count right away. */
   flush: () => void;
 };
 

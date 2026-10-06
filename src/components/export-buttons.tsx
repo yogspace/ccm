@@ -9,7 +9,7 @@ import { store, trackCreation } from "../store";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
 
-/** „Herz für Oma“ → „herz-fuer-oma“ */
+/** “Herz für Oma” → “herz-fuer-oma” */
 const slugify = (text: string) =>
   text
     .toLowerCase()
@@ -22,7 +22,7 @@ const slugify = (text: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-/** Downloads als STL und 3MF; `children` stehen davor (z. B. „Kreation teilen“). Jeder Download zählt die Kreation. */
+/** Downloads as STL and 3MF; `children` come first (e.g. “Share creation”). Every download counts the creation. */
 const ExportButtons = ({ children }: PropsWithChildren) => {
   const { t } = useTranslation();
   const { cutter, name, params } = useSnapshot(store);

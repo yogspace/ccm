@@ -21,8 +21,8 @@ i18n
     nonExplicitSupportedLngs: true,
     fallbackLng: "en",
     interpolation: { escapeValue: false },
-    // /de/ bzw. /en/ geben die Sprache vor (die Seiten haben je eigene Texte
-    // für Google); ohne Sprachpfad gilt die gespeicherte bzw. die des Browsers.
+    // /de/ and /en/ set the language (each page has its own texts for
+    // Google); without a language path the stored one or the browser's counts.
     detection: {
       order: ["path", "localStorage", "navigator"],
       lookupFromPathIndex: 0,
@@ -30,11 +30,11 @@ i18n
     },
   });
 
-/** Sprache auch in der URL: /de/ bzw. /en/ – Hash (geteilte Zeichnung) bleibt. */
+/** The language in the URL too: /de/ or /en/ – the hash (shared drawing) stays. */
 const syncPath = (lng: string) => {
   const { pathname, search, hash } = window.location;
   const first = pathname.split("/")[1] ?? "";
-  // Fremde Pfade nicht anfassen, nur „/“ und die Sprachseiten.
+  // Leave other paths alone, only “/” and the language pages.
   if (first && !(languages as readonly string[]).includes(first)) return;
   const path = `/${lng}/`;
   if (pathname !== path) {

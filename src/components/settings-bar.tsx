@@ -3,10 +3,10 @@ import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { setName, store } from "../store";
 
-/** Leiste über beiden Fenstern: Name der Kreation links, `children` (Teilen) rechts. Die Beschriftung steckt im Platzhalter. */
+/** Bar above both panels: name of the creation on the left, `children` (sharing) on the right. The label lives in the placeholder. */
 const SettingsBar = ({ children }: PropsWithChildren) => {
   const { t } = useTranslation();
-  // Synchron, sonst springt der Cursor im Eingabefeld ans Ende.
+  // Synchronous – otherwise the caret in the input jumps to the end.
   const { name } = useSnapshot(store, { sync: true });
 
   return (

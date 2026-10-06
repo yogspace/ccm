@@ -18,16 +18,16 @@ const TOOLS = [
 ] as const;
 
 /**
- * Stift, Radiergummi, Verschieben – das aktive ist unterstrichen, der Strich
- * gleitet zum neuen. Memoisiert, weil `motion` beim Neuzeichnen das Layout
- * misst; das soll nicht bei jeder Reglerbewegung passieren.
+ * Pen, eraser, move – the active one is underlined, the line glides to the
+ * new one. Memoised because `motion` measures the layout on every render;
+ * that should not happen on every slider move.
  */
 const ToolPicker = ({ tool, onChoose }: Props) => {
   const { t } = useTranslation();
   const id = useId();
 
   return (
-    // biome-ignore lint/a11y/useSemanticElements: Gruppe von Umschaltern, kein Formular
+    // biome-ignore lint/a11y/useSemanticElements: a group of toggles, not a form
     <div aria-label={t("draw.tools")} className="tool-group" role="group">
       {TOOLS.map(([value, icon, icing, roll, label]) => (
         <Button

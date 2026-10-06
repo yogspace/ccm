@@ -23,8 +23,8 @@ wasm.then(
   () => post({ type: "engine-error" })
 );
 
-// Nur der jeweils neueste Auftrag zählt: Was während einer Berechnung
-// eintrifft, überschreibt sich gegenseitig, statt sich anzustauen.
+// Only the latest job counts: whatever arrives during a computation replaces
+// each other instead of piling up.
 let next: CutterRequest | null = null;
 let scheduled = false;
 

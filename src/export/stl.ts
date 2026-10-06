@@ -1,6 +1,6 @@
 import type { MeshData } from "../geometry/mesh";
 
-/** Binäres STL: 80-Byte-Header, Dreiecksanzahl, je Dreieck Normale + 3 Vertices + 2 Byte Attribut. */
+/** Binary STL: 80-byte header, triangle count, per triangle a normal + 3 vertices + a 2-byte attribute. */
 export const toStl = ({ positions, indices }: MeshData) => {
   const count = indices.length / 3;
   const buffer = new ArrayBuffer(84 + count * 50);

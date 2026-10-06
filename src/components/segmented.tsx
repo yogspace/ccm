@@ -9,7 +9,7 @@ type Props<T extends string> = PropsWithChildren<{
   className?: string;
 }>;
 
-/** Umschalter, bei dem die Markierung zur gewählten Option gleitet. `children` stehen davor (z. B. ein Icon). */
+/** Switch whose marker glides to the chosen option. `children` come first (e.g. an icon). */
 const Segmented = <T extends string>({
   label,
   options,

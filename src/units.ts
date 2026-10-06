@@ -5,13 +5,13 @@ export const units: Unit[] = ["mm", "in"];
 const STORAGE_KEY = "ccm.unit";
 const MM_PER_INCH = 25.4;
 
-/** Gespeicherte Wahl, sonst mm. */
+/** The stored choice, otherwise mm. */
 export const initialUnit = (): Unit => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === "mm" || stored === "in") return stored;
   } catch {
-    // Ohne Storage (privater Modus o. Ä.) gilt der Standard.
+    // Without storage (private mode and the like) the default applies.
   }
   return "mm";
 };
@@ -20,13 +20,13 @@ export const storeUnit = (unit: Unit) => {
   try {
     localStorage.setItem(STORAGE_KEY, unit);
   } catch {
-    // Nicht schlimm, dann gilt beim nächsten Mal wieder der Standard.
+    // No harm – next time the default applies again.
   }
 };
 
 const formats = new Map<string, Intl.NumberFormat>();
 
-/** Zahlenformate sind teuer anzulegen – daher je Sprache und Stellen nur einmal. */
+/** Number formats are expensive to create – so only once per language and digits. */
 export const numberFormat = (
   locale: string | undefined,
   maximumFractionDigits: number
@@ -40,7 +40,7 @@ export const numberFormat = (
   return format;
 };
 
-/** Formatiert eine Länge in mm für die Anzeige in der gewählten Einheit. */
+/** Formats a length in mm for display in the chosen unit. */
 export const formatLength = (
   mm: number,
   unit: Unit,

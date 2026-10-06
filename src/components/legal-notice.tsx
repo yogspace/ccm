@@ -202,19 +202,19 @@ const LegalNotice = () => {
       >
         {t("footer.imprint")}
       </Button>
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: Escape schließt den Dialog nativ, der Klick ist nur für den Hintergrund */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: Escape closes the dialog natively, the click is only for the backdrop */}
       <dialog
         aria-label={t("footer.imprint")}
         className="legal"
-        // Klick auf den abgedunkelten Hintergrund schließt den Dialog.
+        // A click on the dimmed backdrop closes the dialog.
         onClick={(event) => {
           if (event.target === event.currentTarget) event.currentTarget.close();
         }}
-        // Auch Escape und der Hintergrund-Klick landen hier.
+        // Escape and the backdrop click end up here as well.
         onClose={dialogClosed}
         ref={dialogRef}
       >
-        {/* Außerhalb des Scrollbereichs, damit er beim Scrollen stehen bleibt. */}
+        {/* Outside the scrolling area, so it stays put while scrolling. */}
         <Button
           aria-label={t("legal.close")}
           className="icon legal-close"

@@ -13,7 +13,9 @@ import CookieBackground from "./components/cookie-background";
 import CookieIcon from "./components/cookie-icon";
 import DonateBadge from "./components/donate-badge";
 import DrawCanvas from "./components/draw-canvas";
+import ErrorPopup from "./components/error-popup";
 import ExportButtons from "./components/export-buttons";
+import GalleryFan from "./components/gallery-fan";
 import LegalNotice from "./components/legal-notice";
 import Masthead from "./components/masthead";
 import ParameterPanel from "./components/parameter-panel";
@@ -23,29 +25,22 @@ import SettingsBar from "./components/settings-bar";
 import ShareCreation from "./components/share-creation";
 import SharePanel from "./components/share-panel";
 import { PORTFOLIO_URL } from "./links";
-import {
-  connectStore,
-  store,
-  toggleAutoRotate,
-  toggleExpanded,
-  useError,
-} from "./store";
+import { connectStore, store, toggleAutoRotate, toggleExpanded } from "./store";
 import { formatLength, numberFormat } from "./units";
 
 /**
- * Gerüst der Seite. Den Zustand hält der Store (store.ts); die Komponenten
- * lesen ihn selbst – hier nur, was das Gerüst direkt anzeigt.
+ * The page's frame. The store (store.ts) holds the state; components read it
+ * themselves – here only what the frame shows directly.
  */
 const App = () => {
   const { t, i18n } = useTranslation();
-  // Synchron, damit der Wechsel als View Transition animiert (toggleExpanded).
+  // Synchronous, so the switch animates as a view transition (toggleExpanded).
   const { expanded } = useSnapshot(store, { sync: true });
   const { cutter, unit, autoRotate, creations } = useSnapshot(store);
   const { ready, mesh } = cutter;
-  const error = useError();
   const preview = useRef<PreviewHandle>(null);
 
-  // Worker, Link im Hash, Zähler und Scroll-Sperre an den Store hängen.
+  // Hook worker, link in the hash, counter and scroll lock up to the store.
   useEffect(connectStore, []);
 
   const lang = i18n.resolvedLanguage ?? "en";
@@ -80,11 +75,7 @@ const App = () => {
             </Button>
           </div>
           <DrawCanvas />
-          {error && (
-            <p className="error" key={error} role="alert">
-              {t(`errors.${error}`)}
-            </p>
-          )}
+          <ErrorPopup />
         </section>
 
         <section className="card cutter-card">
@@ -139,6 +130,8 @@ const App = () => {
           </div>
         </section>
       </main>
+
+      <GalleryFan />
 
       <footer>
         <DonateBadge />

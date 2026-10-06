@@ -6,7 +6,7 @@ import { pageUrl, store } from "../store";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
 
-/** Teilen der Seite selbst: System-Teilen-Menü, wo vorhanden, sonst Link kopieren. */
+/** Sharing the page itself: the system share menu where there is one, otherwise copying the link. */
 const SharePanel = () => {
   const { t } = useTranslation();
   const { name } = useSnapshot(store);
@@ -25,7 +25,7 @@ const SharePanel = () => {
       await navigator.clipboard.writeText(url);
       setCopied(true);
     } catch {
-      // Ohne Clipboard-Zugriff bleibt der Link in der Adresszeile nutzbar.
+      // Without clipboard access the link in the address bar still works.
       window.prompt(t("share.copy"), url);
     }
   };
@@ -39,13 +39,13 @@ const SharePanel = () => {
         url: pageUrl(),
       });
     } catch (error) {
-      // Abbrechen im Teilen-Menü ist kein Fehler.
+      // Cancelling the share menu is not an error.
       if (error instanceof DOMException && error.name === "AbortError") return;
       copy();
     }
   };
 
-  // Ein Button: System-Teilen-Menü, wo es das gibt – sonst Link kopieren.
+  // One button: the system share menu where there is one – otherwise copy the link.
   return (
     <div className="share">
       <Button

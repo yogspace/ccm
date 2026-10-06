@@ -24,7 +24,7 @@ jobs:
       - name: Set up pnpm
         uses: pnpm/action-setup@v6
 
-      # Nach pnpm-Setup: `cache: pnpm` braucht ein installiertes pnpm.
+      # After the pnpm setup: `cache: pnpm` needs pnpm installed.
       - name: Set up Node
         uses: actions/setup-node@v7
         with:

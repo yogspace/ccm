@@ -1,10 +1,10 @@
 services:
-  # Service-Name = Hostname im Proxy-Netz: der Proxy-Stack routet
-  # ccm.mxwr.de → ccm:3000. Muss im Netz `web` eindeutig sein.
+  # Service name = host name in the proxy network: the proxy stack routes
+  # ccm.mxwr.de → ccm:3000. Must be unique in the `web` network.
   ccm:
     image: ghcr.io/yogspace/ccm:latest
     restart: unless-stopped
-    # Schutz für die anderen Apps auf dem Server (u. a. Portfolio).
+    # Protects the other apps on the server (portfolio among others).
     mem_limit: 128m
     logging:
       driver: json-file
@@ -14,9 +14,9 @@ services:
     networks:
       - web
 
-  # Mini-API (Zähler „x Kreationen erstellt“). Läuft direkt aus dem Checkout
-  # (/opt/apps/ccm/api), daher kein eigenes Image; die Zahl liegt im Volume.
-  # ccm leitet /api/* hierher weiter (siehe Caddyfile).
+  # Mini API (the “x creations made” counter). Runs straight from the checkout
+  # (/opt/apps/ccm/api), so no image of its own; the number lives in the volume.
+  # ccm forwards /api/* here (see Caddyfile).
   ccm-api:
     image: node:22-alpine
     restart: unless-stopped
@@ -39,6 +39,6 @@ volumes:
   ccm-data:
 
 networks:
-  # Geteiltes Netz des Proxy-Stacks (/opt/apps/proxy), extern angelegt.
+  # Shared network of the proxy stack (/opt/apps/proxy), created externally.
   web:
     external: true

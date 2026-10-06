@@ -23,12 +23,12 @@ dist-ssr
 *.sln
 *.sw?
 
-# Schrift (ITF Free Font License): wird von scripts/fetch-fonts.mjs geholt,
-# darf nicht weitergegeben werden – also nicht ins (öffentliche) Repo.
+# Font (ITF Free Font License): fetched by scripts/fetch-fonts.mjs, must not
+# be redistributed – so not in the (public) repo.
 public/fonts/
 
-# Lokale Claude-Code-Einstellungen (Freigaben usw.)
+# Local Claude Code settings (permissions etc.)
 .claude/
 
-# Lokale Daten der Mini-API (im Betrieb im Docker-Volume)
+# Local data of the mini API (in production in the Docker volume)
 api/.data/

@@ -1,7 +1,7 @@
 /**
- * Portfolio-Links tragen die Herkunft in der URL, damit die Besuche aus dem
- * Cookie Cutter Maker in der Statistik von mxwr.de auftauchen – auch wenn ein
- * Browser den Referrer wegfiltert.
+ * Portfolio links carry their origin in the URL, so visits from the Cookie
+ * Cutter Maker show up in mxwr.de's statistics – even when a browser strips
+ * the referrer.
  */
 export const PORTFOLIO_URL =
   "https://mxwr.de/?utm_source=ccm.mxwr.de&utm_medium=referral";

@@ -2,7 +2,7 @@ import { type HTMLMotionProps, motion } from "motion/react";
 
 const spring = { type: "spring", stiffness: 500, damping: 28 } as const;
 
-/** Button mit federndem Hover und Druck – überall statt `<button>`. */
+/** Button with a springy hover and press – used everywhere instead of `<button>`. */
 const Button = (props: HTMLMotionProps<"button">) => (
   <motion.button
     transition={spring}

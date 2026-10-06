@@ -1,6 +1,6 @@
-// Mini-API des Cookie Cutter Makers im Container `ccm-api` (siehe
-// docker-compose.yml). Bewusst ohne Abhängigkeiten: `node api/server.mjs`.
-// Die Logik steckt in stats.mjs; im Dev-Server bindet vite.config.ts sie ein.
+// Mini API of the Cookie Cutter Maker in the `ccm-api` container (see
+// docker-compose.yml). Deliberately without dependencies: `node api/server.mjs`.
+// The logic lives in stats.mjs; in the dev server vite.config.ts mounts it.
 
 import { createServer } from "node:http";
 import { createStats } from "./stats.mjs";

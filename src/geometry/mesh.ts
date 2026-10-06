@@ -1,6 +1,6 @@
 import type { Manifold } from "manifold-3d";
 
-/** Rohdaten eines Dreiecksnetzes in mm, unabhängig von manifold und three.js. */
+/** Raw triangle mesh in mm, independent of manifold and three.js. */
 export type MeshData = {
   positions: Float32Array;
   indices: Uint32Array;

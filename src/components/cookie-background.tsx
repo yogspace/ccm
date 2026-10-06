@@ -20,7 +20,7 @@ import { memo, useState } from "react";
 import type { CookieKind } from "../cookies/models";
 import CookieIcon from "./cookie-icon";
 
-/** Ohne den angebissenen Keks – der ist dem Logo vorbehalten. */
+/** Without the bitten cookie – that one is reserved for the logo. */
 const KINDS: CookieKind[] = ["chip", "heart", "star", "flower", "gingerbread"];
 const ICONS: LucideIcon[] = [
   Anchor,
@@ -58,8 +58,8 @@ type Placed = {
 } & ({ kind: CookieKind } | { icon: LucideIcon; glaze: string });
 
 /**
- * Zufällige Plätze am linken und rechten Rand (in %), abwechselnd links und
- * rechts, damit die Mitte frei bleibt. Halb Sorten, halb Icons.
+ * Random spots along the left and right edges (in %), alternating left and
+ * right so the middle stays free. Half kinds, half icons.
  */
 const place = (count: number): Placed[] => {
   const placed: Placed[] = [];
@@ -67,7 +67,7 @@ const place = (count: number): Placed[] => {
     const left = placed.length % 2 === 0;
     const spot = {
       x: left ? Math.random() * 12 : 88 + Math.random() * 12,
-      // Unterhalb des Headers, damit kein Keks hinter dem Titel liegt.
+      // Below the header, so no cookie lies behind the title.
       y: 20 + Math.random() * 78,
       size: 90 + Math.random() * 70,
       roll: Math.random() * 40 - 20,
@@ -86,7 +86,7 @@ const place = (count: number): Placed[] => {
   return placed;
 };
 
-/** Beim Start wachsen nacheinander Kekse an zufälligen Stellen im Hintergrund herein. */
+/** On start, cookies grow in one after another at random spots in the background. */
 const CookieBackground = () => {
   const [cookies] = useState(() => place(window.innerWidth < 640 ? 5 : 8));
 
@@ -98,7 +98,7 @@ const CookieBackground = () => {
           key={i}
           style={{ left: `${cookie.x}%`, top: `${cookie.y}%` }}
         >
-          {/* Wachsen nacheinander herein (der Renderer animiert das in 3D). */}
+          {/* Grow in one after another (the renderer animates that in 3D). */}
           {"kind" in cookie ? (
             <CookieIcon
               delay={900 + i * 220}

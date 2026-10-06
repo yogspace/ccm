@@ -15,9 +15,9 @@ const languageOptions = languages.map((lng) => ({
 }));
 
 /**
- * Kopf mit Logo, Titel und den Umschaltern für Einheit und Sprache.
- * Memoisiert: Die gleitenden Pillen messen beim Neuzeichnen das Layout aus –
- * das soll nicht bei jeder Reglerbewegung passieren.
+ * Header with logo, title and the switches for unit and language. Memoised:
+ * the gliding markers measure the layout on every render – that should not
+ * happen on every slider move.
  */
 const Masthead = () => {
   const { t, i18n } = useTranslation();
