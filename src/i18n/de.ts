@@ -51,6 +51,7 @@ export const de = {
     flangeWidth: "Falz-Breite",
     flangeHeight: "Falz-Höhe",
     smoothing: "Lücken schließen",
+    bridgeWidth: "Stegbreite",
     cutouts: "Innere Formen ausschneiden",
     cutoutsHint:
       "Eine Form innerhalb einer anderen wird zum Loch, verbunden über Stege an der Falz.",
@@ -85,7 +86,9 @@ export const de = {
     imageAlt: "Ausstecher „{{name}}“ von oben",
     copy: "Link kopieren",
     copied: "Kopiert",
-    share: "Teilen",
+    textCopied:
+      "Text und Link sind in der Zwischenablage – falls die App nur das Bild übernimmt, einfach einfügen.",
+    sharePage: "Seite teilen",
   },
   legal: {
     close: "Schließen",

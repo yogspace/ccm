@@ -51,6 +51,7 @@ export const en: typeof de = {
     flangeWidth: "Rim width",
     flangeHeight: "Rim height",
     smoothing: "Close gaps",
+    bridgeWidth: "Bridge width",
     cutouts: "Cut out inner shapes",
     cutoutsHint:
       "A shape inside another becomes a hole, held by bridges at the rim.",
@@ -84,7 +85,9 @@ export const en: typeof de = {
     imageAlt: "Cookie cutter “{{name}}” from above",
     copy: "Copy link",
     copied: "Copied",
-    share: "Share",
+    textCopied:
+      "Text and link are on the clipboard – if the app only takes the image, just paste them.",
+    sharePage: "Share page",
   },
   legal: {
     close: "Close",

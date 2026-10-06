@@ -19,6 +19,8 @@ export type CutterParams = {
   smoothing: number;
   /** 1 = Formen in Formen werden zu inneren Klingen (Löcher), 0 = nur außen. */
   cutouts: number;
+  /** Width of the bridges that hold inner blades. */
+  bridgeWidth: number;
 };
 
 export const defaultParams: CutterParams = {
@@ -32,6 +34,7 @@ export const defaultParams: CutterParams = {
   flangeHeight: 2,
   smoothing: 1,
   cutouts: 1,
+  bridgeWidth: 3,
 };
 
 export type Cutter = {
@@ -50,26 +53,33 @@ const SEGMENTS = 48;
 const MIN_ISLAND_SHARE = 0.01;
 /** Innen (Löcher, Formen in Formen) zählt die echte Größe, nicht der Anteil (mm²). */
 const MIN_INNER_AREA = 6;
-/** Stege zwischen inneren und äußeren Klingen (mm): mittig so breit … */
-const BRIDGE_MID_WIDTH = 3;
-/** … und zu den Wänden hin um höchstens so viel breiter. */
-const BRIDGE_MAX_FLARE = 4;
-/** Höhe in der Mitte des Stegs; an den Wänden wird er höher (siehe bridgeProfile). */
+/** Height of a bridge in the middle; towards the walls it rises. */
 const BRIDGE_MID_HEIGHT = 3;
-/** Anteil der Gesamthöhe, bis zu dem der Steg an den Wänden höchstens hochgeht. */
-const BRIDGE_END_SHARE = 0.45;
+/**
+ * Room (mm) the bridges always leave below the cutting edge for the dough –
+ * nothing of them may press into the cookie.
+ */
+const BRIDGE_CLEARANCE = 9;
 /**
  * Wie stark die Enden ausgestellt sind, wächst mit der Spannweite – kurze Stege
  * bleiben schlank statt zum Klotz zu werden.
  */
 const BRIDGE_RISE_PER_MM = 0.25;
-const BRIDGE_FLARE_PER_MM = 0.2;
 /** Etwa ein Steg je so viel mm Umfang der inneren Form, mindestens zwei. */
 const BRIDGE_SPACING = 45;
 /** Abstand der Stellen, an denen ein Steg ansetzen darf (mm). */
 const BRIDGE_SAMPLE = 1.5;
 /** Wie viel mm Steglänge ein mm näher an der Mitte seines Abschnitts wert ist. */
 const BRIDGE_SPREAD = 0.6;
+/** So weit (Grad) darf ein Steg von der Senkrechten auf die innere Form abweichen. */
+const BRIDGE_MAX_TILT = 35;
+/**
+ * Näher (mm) sollen sich Stege nicht kommen – sonst verschmelzen sie samt
+ * ihren ausgestellten Enden zu einem Klotz.
+ */
+const BRIDGE_GAP = 6;
+/** Radius (mm) der Hohlkehlen, mit denen die Stege in die Wände übergehen. */
+const BRIDGE_FILLET = 2.5;
 
 const signedArea = (ring: Ring) => {
   let area = 0;
@@ -140,6 +150,62 @@ const segmentsCross = (a: Point, b: Point, c: Point, d: Point) => {
   return d1 * d2 < 0 && d3 * d4 < 0;
 };
 
+/** Abstand zweier Strecken (0, wenn sie sich kreuzen). */
+const segmentDistance = (a: Point, b: Point, c: Point, d: Point) => {
+  if (segmentsCross(a, b, c, d)) return 0;
+  const gap = (p: Point, from: Point, to: Point) => {
+    const [x, y] = closestOnSegment(p, from, to);
+    return Math.hypot(x - p[0], y - p[1]);
+  };
+  return Math.min(gap(a, c, d), gap(b, c, d), gap(c, a, b), gap(d, a, b));
+};
+
+/**
+ * How far a ray from `from` in direction `dir` (unit length) gets until it hits
+ * the ring, and at which angle: `square` is 1 for a perpendicular hit, 0 for a
+ * grazing one.
+ */
+const rayHitAt = (from: Point, [dx, dy]: Point, ring: Ring) => {
+  let nearest = Infinity;
+  let square = 0;
+  for (let i = 0; i < ring.length; i++) {
+    const [ax, ay] = ring[i];
+    const [bx, by] = ring[(i + 1) % ring.length];
+    const ex = bx - ax;
+    const ey = by - ay;
+    const denominator = dx * ey - dy * ex;
+    if (Math.abs(denominator) < 1e-12) continue;
+    const fx = ax - from[0];
+    const fy = ay - from[1];
+    const t = (fx * ey - fy * ex) / denominator;
+    const u = (fx * dy - fy * dx) / denominator;
+    if (t > 0.05 && u >= 0 && u <= 1 && t < nearest) {
+      nearest = t;
+      square = Math.abs(denominator) / (Math.hypot(ex, ey) || 1);
+    }
+  }
+  return { distance: nearest, square };
+};
+
+/** Wie weit ein Strahl von `from` in Richtung `dir` (Länge 1) bis zum Ring kommt. */
+const rayHit = (from: Point, [dx, dy]: Point, ring: Ring) => {
+  let nearest = Infinity;
+  for (let i = 0; i < ring.length; i++) {
+    const [ax, ay] = ring[i];
+    const [bx, by] = ring[(i + 1) % ring.length];
+    const ex = bx - ax;
+    const ey = by - ay;
+    const denominator = dx * ey - dy * ex;
+    if (Math.abs(denominator) < 1e-12) continue;
+    const fx = ax - from[0];
+    const fy = ay - from[1];
+    const t = (fx * ey - fy * ex) / denominator;
+    const u = (fx * dy - fy * dx) / denominator;
+    if (t > 0.05 && u >= 0 && u <= 1 && t < nearest) nearest = t;
+  }
+  return nearest;
+};
+
 /** Punkte im Abstand `step` entlang eines geschlossenen Rings. */
 const resample = (ring: Ring, step: number) => {
   const points: Point[] = [];
@@ -201,43 +267,114 @@ const nestIslands = (exteriors: Ring[]): Island[] => {
   return islands;
 };
 
+type Bridge = { from: Point; to: Point; length: number };
+
 /**
  * Wo die Stege einer inneren Form ansetzen: gleichmäßig über ihren Umfang
- * verteilt, jeweils auf kürzestem Weg zur umschließenden Kontur, ohne eine
- * andere Kontur zu kreuzen. Liefert Strecken von innen nach außen.
+ * verteilt, jeweils etwa senkrecht von ihr weg (wie Speichen) zur
+ * umschließenden Kontur, ohne eine andere Kontur zu kreuzen. Nimmt die schon
+ * gesetzten Stege (`taken`) mit, damit keiner mit einem anderen zusammenläuft.
+ * Liefert Strecken von innen nach außen.
  */
-const placeBridges = (inner: Ring, outer: Ring, obstacles: Ring[]) => {
+const placeBridges = (
+  inner: Ring,
+  outer: Ring,
+  obstacles: Ring[],
+  taken: Bridge[],
+  gap: number
+) => {
   const samples = resample(inner, BRIDGE_SAMPLE);
-  if (samples.length === 0) return [];
+  if (samples.length < 3) return [];
   const count = Math.max(
     2,
     Math.min(4, Math.round(perimeter(inner) / BRIDGE_SPACING))
   );
-  const rings = [inner, outer, ...obstacles];
-  const candidates = samples.map((from) => {
-    const to = closestOnRing(from, outer);
-    const length = Math.hypot(to[0] - from[0], to[1] - from[1]);
-    // Etwas gekürzt prüfen, damit die Endpunkte auf den Konturen nicht zählen.
+  const blockers = [inner, ...obstacles];
+  const maxTilt = Math.cos((BRIDGE_MAX_TILT * Math.PI) / 180);
+  /** Kreuzt die Strecke eine Kontur? Etwas gekürzt, damit die Enden nicht zählen. */
+  const crosses = (from: Point, to: Point, length: number) => {
     const ux = (to[0] - from[0]) / (length || 1);
     const uy = (to[1] - from[1]) / (length || 1);
     const a: Point = [from[0] + ux * 0.05, from[1] + uy * 0.05];
     const b: Point = [to[0] - ux * 0.05, to[1] - uy * 0.05];
-    const free = rings.every((ring) =>
-      ring.every(
-        (point, i) => !segmentsCross(a, b, point, ring[(i + 1) % ring.length])
+    return [outer, ...blockers].some((ring) =>
+      ring.some((point, i) =>
+        segmentsCross(a, b, point, ring[(i + 1) % ring.length])
       )
     );
-    return { from, to, length, free };
+  };
+
+  const candidates = samples.map((from, i): Bridge | null => {
+    // Nach außen zeigende Senkrechte (Ringe laufen gegen den Uhrzeigersinn).
+    const before = samples[(i - 1 + samples.length) % samples.length];
+    const after = samples[(i + 1) % samples.length];
+    const tx = after[0] - before[0];
+    const ty = after[1] - before[1];
+    const norm = Math.hypot(tx, ty) || 1;
+    const normal: Point = [ty / norm, -tx / norm];
+    const options: Bridge[] = [];
+    // Straight outwards – if it also meets the enclosing wall about square
+    // (an oblique joint would leave a crease) …
+    const { distance: reach, square } = rayHitAt(from, normal, outer);
+    if (
+      Number.isFinite(reach) &&
+      square >= maxTilt &&
+      blockers.every((ring) => rayHit(from, normal, ring) >= reach)
+    ) {
+      options.push({
+        from,
+        to: [from[0] + normal[0] * reach, from[1] + normal[1] * reach],
+        length: reach,
+      });
+    }
+    // … oder zur nächsten Stelle, solange das nicht zu schräg ist.
+    const to = closestOnRing(from, outer);
+    const length = Math.hypot(to[0] - from[0], to[1] - from[1]);
+    const facing =
+      ((to[0] - from[0]) * normal[0] + (to[1] - from[1]) * normal[1]) /
+      (length || 1);
+    if (facing >= maxTilt && !crosses(from, to, length)) {
+      options.push({ from, to, length });
+    }
+    return options.reduce<Bridge | null>(
+      (best, option) => (!best || option.length < best.length ? option : best),
+      null
+    );
   });
 
+  /** Zu nah an einem anderen Steg? Stege derselben Form dürfen nur nicht zusammenlaufen. */
+  const crowded = (bridge: Bridge, others: Bridge[], own: Bridge[]) =>
+    others.some(
+      (other) =>
+        segmentDistance(bridge.from, bridge.to, other.from, other.to) < gap
+    ) ||
+    own.some((other) => {
+      const apart = Math.hypot(
+        bridge.from[0] - other.from[0],
+        bridge.from[1] - other.from[1]
+      );
+      // Spokes of a small shape start close together – fine, as long as they
+      // spread out: they must neither converge nor run side by side, so
+      // their far ends are at least the gap apart.
+      const ends = Math.hypot(
+        bridge.to[0] - other.to[0],
+        bridge.to[1] - other.to[1]
+      );
+      return (
+        ends < gap ||
+        segmentDistance(bridge.from, bridge.to, other.from, other.to) <
+          0.9 * Math.min(gap, apart)
+      );
+    });
+
   // Umfang in `count` gleiche Abschnitte teilen und je Abschnitt den besten
-  // freien Steg nehmen; den Versatz der Abschnitte so wählen, dass die Stege
+  // Steg nehmen; den Versatz der Abschnitte so wählen, dass die Stege
   // insgesamt am kürzesten sind.
-  let best: typeof candidates = [];
+  let best: Bridge[] = [];
   let bestScore = Infinity;
   const tries = 12;
   for (let offset = 0; offset < tries; offset++) {
-    const picked: typeof candidates = [];
+    const picked: Bridge[] = [];
     let score = 0;
     for (let part = 0; part < count; part++) {
       const start = Math.floor(
@@ -246,17 +383,19 @@ const placeBridges = (inner: Ring, outer: Ring, obstacles: Ring[]) => {
       const end = Math.floor(
         ((part + 1 + offset / tries) / count) * samples.length
       );
-      // Kurz, aber möglichst mittig im Abschnitt – sonst rutschen die Stege
-      // an der engsten Stelle zusammen und verschmelzen.
+      // Kurz, aber möglichst mittig im Abschnitt und mit Abstand zu den
+      // anderen – nur wenn es gar nicht anders geht, auch dicht daneben.
       const middle = (start + end) / 2;
-      let choice: (typeof candidates)[number] | undefined;
+      let choice: Bridge | undefined;
       let choiceCost = Infinity;
       for (let k = start; k < end; k++) {
         const candidate = candidates[k % samples.length];
+        if (!candidate) continue;
         const cost =
           candidate.length +
-          BRIDGE_SPREAD * Math.abs(k - middle) * BRIDGE_SAMPLE;
-        if (candidate.free && cost < choiceCost) {
+          BRIDGE_SPREAD * Math.abs(k - middle) * BRIDGE_SAMPLE +
+          (crowded(candidate, taken, picked) ? 1000 : 0);
+        if (cost < choiceCost) {
           choice = candidate;
           choiceCost = cost;
         }
@@ -276,64 +415,57 @@ const placeBridges = (inner: Ring, outer: Ring, obstacles: Ring[]) => {
   return best;
 };
 
-/**
- * Profil eines Stegs entlang seiner Länge: flach auf dem Bett, oben zwischen
- * den Wänden durchhängend wie das Seil einer Hängebrücke – an den Wänden hoch
- * und kräftig angesetzt, in der Mitte niedriger. Jede Schicht ist kleiner als
- * die darunter, gedruckt wird also ohne Überhang; im Gebrauch (umgedreht) ist
- * es ein Bogen über dem Teig.
- */
-const bridgeProfile = (
-  span: number,
-  extend: number,
-  endHeight: number,
-  midHeight: number
-): Ring => {
-  const total = span + 2 * extend;
-  const steps = 24;
-  const profile: Ring = [
-    [0, 0],
-    [total, 0],
-  ];
-  for (let i = steps; i >= 0; i--) {
-    const u = (i / steps) * total;
-    const t = span > 0 ? (u - extend) / span : 0;
-    const height =
-      t <= 0 || t >= 1
-        ? endHeight
-        : midHeight + (endHeight - midHeight) * (2 * t - 1) ** 2;
-    profile.push([u, height]);
+/** The segments of a ring that come within `reach` of a box – flat x/y pairs. */
+const segmentsNear = (
+  ring: Ring,
+  [minX, minY]: readonly number[],
+  [maxX, maxY]: readonly number[],
+  reach: number
+) => {
+  const segments: number[] = [];
+  for (let i = 0; i < ring.length; i++) {
+    const [ax, ay] = ring[i];
+    const [bx, by] = ring[(i + 1) % ring.length];
+    if (
+      Math.max(ax, bx) < minX - reach ||
+      Math.min(ax, bx) > maxX + reach ||
+      Math.max(ay, by) < minY - reach ||
+      Math.min(ay, by) > maxY + reach
+    ) {
+      continue;
+    }
+    segments.push(ax, ay, bx, by);
   }
-  return profile;
+  return segments;
 };
 
 /**
- * Grundriss eines Stegs: zu den Wänden hin breiter wie die Pfeiler einer
- * Hängebrücke, damit er großflächig in die Wand greift.
+ * Distance from a point to the nearest of these segments (Infinity if none),
+ * and whether it lies inside the ring they belong to – rings run counter-
+ * clockwise, so inside is to the left of the nearest segment.
  */
-const bridgeFootprint = (
-  span: number,
-  extend: number,
-  endWidth: number
-): Ring => {
-  const total = span + 2 * extend;
-  const steps = 24;
-  const half = (u: number) => {
-    const t = span > 0 ? (u - extend) / span : 0;
-    const width =
-      t <= 0 || t >= 1
-        ? endWidth
-        : BRIDGE_MID_WIDTH + (endWidth - BRIDGE_MID_WIDTH) * (2 * t - 1) ** 2;
-    return width / 2;
-  };
-  const top: Ring = [];
-  const bottom: Ring = [];
-  for (let i = 0; i <= steps; i++) {
-    const u = (i / steps) * total;
-    top.push([u, half(u)]);
-    bottom.push([u, -half(u)]);
+const nearestOn = (segments: number[], x: number, y: number) => {
+  let best = Infinity;
+  let inside = false;
+  for (let i = 0; i < segments.length; i += 4) {
+    const ax = segments[i];
+    const ay = segments[i + 1];
+    const dx = segments[i + 2] - ax;
+    const dy = segments[i + 3] - ay;
+    const length = dx * dx + dy * dy;
+    const t =
+      length > 0
+        ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / length))
+        : 0;
+    const ex = ax + t * dx - x;
+    const ey = ay + t * dy - y;
+    const distance = ex * ex + ey * ey;
+    if (distance < best) {
+      best = distance;
+      inside = dx * (y - ay) - dy * (x - ax) > 0;
+    }
   }
-  return [...bottom, ...top.reverse()];
+  return { distance: Math.sqrt(best), inside };
 };
 
 /** Abbildung der normierten Konturen (y nach unten) auf mm, zentriert, y nach oben. */
@@ -439,14 +571,6 @@ export const buildCutter = (
         )
       ).simplify(0.01)
     );
-    const outer = track(
-      new CrossSection(
-        islands
-          .filter((island) => island.depth === 0)
-          .map((island) => island.ring),
-        "Positive"
-      )
-    );
     if (shape.isEmpty()) return null;
 
     /** Wand der Dicke `thickness` um den Keks, von `z` bis `z + height`. */
@@ -467,102 +591,219 @@ export const buildCutter = (
         band(thickness, LAYER + OVERLAP, taperTop + i * LAYER - OVERLAP)
       );
     }
-    // Die Falz läuft nur außen herum; innere Klingen hängen an Stegen.
+    // The flange runs around the outside – and around every inner blade, but
+    // there only over cookie and walls (on top in use, above the dough), never
+    // over an opening: what a hole cuts out must still drop out. Close inner
+    // shapes join up over their flanges and with the rim, supporting each
+    // other.
     if (params.flangeWidth > wall) {
-      const flange = track(grow(outer, params.flangeWidth).subtract(outer));
+      const width = params.flangeWidth;
+      const pieces = islands.map((island) => {
+        const area = track(new CrossSection([island.ring], "Positive"));
+        return island.depth === 0
+          ? track(grow(area, width).subtract(area))
+          : track(grow(area, width).subtract(grow(area, -width)));
+      });
+      const outer = pieces.filter((_, i) => islands[i].depth === 0);
+      const inner = pieces.filter((_, i) => islands[i].depth > 0);
+      const flange = track(
+        track(CrossSection.union(outer)).add(
+          track(track(CrossSection.union(inner)).intersect(grow(shape, wall)))
+        )
+      );
       parts.push(track(flange.extrude(flangeHeight)));
     }
 
-    // Stege: an der Falz (im Gebrauch oben, weit weg vom Teig), beim Druck auf
-    // dem Bett. Sie reichen in beide Wände hinein und nie über die Außenwand.
-    const maxEndHeight = Math.max(BRIDGE_MID_HEIGHT, top * BRIDGE_END_SHARE);
-    const midHeight = Math.min(
-      maxEndHeight,
-      Math.max(BRIDGE_MID_HEIGHT, flangeHeight + 1)
-    );
-    // Großzügig verlängert und dann exakt an den Wandflächen abgeschnitten:
-    // Der Steg geht durch die ganze Wand, ragt aber nirgends heraus.
+    // Bridges sit at the flange (on top in use, far from the dough; on the bed
+    // when printing). Each one is a straight band under an arch: low in the
+    // middle, rising to the walls and meeting them vertically. In plan its
+    // corners at the walls are rounded off (by the real distance to the wall,
+    // so also where it is oblique or curved), and these fillets slope down
+    // away from the bridge like a fillet would – no edge where it joins.
+    const bridgeWidth = Math.max(1, params.bridgeWidth);
+    const midHeight = Math.max(BRIDGE_MID_HEIGHT, flangeHeight + 1);
+    // Highest point of a bridge, fillet included: the dough needs its room.
+    const ceiling = Math.max(midHeight + 1, top - BRIDGE_CLEARANCE);
+    const riseHeight = Math.min(BRIDGE_FILLET, (ceiling - midHeight) / 2);
+    // Long enough to reach through any wall, then cut to the wall faces.
     const extend = wall + 2;
+    const soft = (section: CrossSection, delta: number) =>
+      track(section.offset(delta, "Round", 2, 16));
+    /** All walls in plan, below the taper where the bridges live. */
+    const walls = track(grow(shape, wall).subtract(shape));
+    /** Rectangle along a bridge: from `start` to `end` mm past `from`. */
+    const strip = (
+      from: Point,
+      [ux, uy]: Point,
+      start: number,
+      end: number,
+      width: number
+    ) => {
+      const hx = (-uy * width) / 2;
+      const hy = (ux * width) / 2;
+      const [ax, ay] = [from[0] + ux * start, from[1] + uy * start];
+      const [bx, by] = [from[0] + ux * end, from[1] + uy * end];
+      return track(
+        new CrossSection(
+          [
+            [
+              [ax + hx, ay + hy],
+              [bx + hx, by + hy],
+              [bx - hx, by - hy],
+              [ax - hx, ay - hy],
+            ],
+          ],
+          "NonZero"
+        )
+      );
+    };
+    const taken: Bridge[] = [];
     for (const [index, island] of islands.entries()) {
       if (island.depth === 0) continue;
       const parent = all[island.parent];
       const obstacles = islands
         .filter((_, other) => other !== index && islands[other] !== parent)
         .map((other) => other.ring);
-      // Wo der Steg sein darf: zwischen den beiden Konturen samt ihren Wänden.
-      // Bei einem Loch wächst dessen Wand nach innen, die äußere nach außen;
-      // bei Keks im Loch liegen beide Wände im Loch.
+      // Where a bridge may be: between both contours including their walls.
+      // A hole's wall grows inwards, the enclosing one outwards; for cookie
+      // inside a hole both walls lie in the hole.
       const parentArea = track(new CrossSection([parent.ring], "Positive"));
       const childArea = track(new CrossSection([island.ring], "Positive"));
       const allowed = track(
-        track(
-          island.depth % 2 === 1
-            ? grow(parentArea, wall).subtract(grow(childArea, -wall))
-            : parentArea.subtract(childArea)
-        ).extrude(maxEndHeight + 1)
+        island.depth % 2 === 1
+          ? grow(parentArea, wall).subtract(grow(childArea, -wall))
+          : parentArea.subtract(childArea)
       );
-      // Kleine innere Formen bekommen schmalere Stegenden.
-      const { min, max } = childArea.bounds();
-      const childSize = Math.min(max[0] - min[0], max[1] - min[1]);
-      for (const { from, to } of placeBridges(
+      const placed = placeBridges(
         island.ring,
         parent.ring,
-        obstacles
-      )) {
+        obstacles,
+        taken,
+        // Wider bridges keep proportionally more distance.
+        BRIDGE_GAP + 2 * bridgeWidth
+      );
+      taken.push(...placed);
+      for (const { from, to } of placed) {
         const span = Math.hypot(to[0] - from[0], to[1] - from[1]);
-        const endHeight = Math.min(
-          maxEndHeight,
-          midHeight + span * BRIDGE_RISE_PER_MM
+        if (span <= 0) continue;
+        const dir: Point = [(to[0] - from[0]) / span, (to[1] - from[1]) / span];
+        const [nx, ny] = [-dir[1], dir[0]];
+        const half = bridgeWidth / 2;
+        const band0 = track(
+          strip(from, dir, -extend, span + extend, bridgeWidth).intersect(
+            allowed
+          )
         );
-        const endWidth =
-          BRIDGE_MID_WIDTH +
-          Math.min(
-            BRIDGE_MAX_FLARE,
-            span * BRIDGE_FLARE_PER_MM,
-            childSize * 0.25
-          );
-        const angle =
-          (Math.atan2(to[1] - from[1], to[0] - from[0]) * 180) / Math.PI;
-        const ux = (to[0] - from[0]) / (span || 1);
-        const uy = (to[1] - from[1]) / (span || 1);
-        // Seitenprofil (x = Länge, y = Höhe) in voller Breite extrudieren und
-        // aufstellen, mit dem ausgestellten Grundriss schneiden, dann in
-        // Stegrichtung drehen und an den Anfang (samt Überstand) schieben.
-        const side = track(
-          track(
-            track(
-              track(
-                new CrossSection(
-                  [bridgeProfile(span, extend, endHeight, midHeight)],
-                  "NonZero"
-                )
-              ).extrude(endWidth)
-            ).translate(0, 0, -endWidth / 2)
-          ).rotate(90, 0, 0)
+        // Only the piece that really spans between the two contours: at a
+        // notch the extension could poke into another bit of wall and stay
+        // there as a loose block.
+        const middle: Point = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2];
+        const pieces = band0.decompose();
+        garbage.push(...pieces);
+        const band = pieces.find((piece) =>
+          piece
+            .toPolygons()
+            .some((ring) => signedArea(ring) > 0 && contains(ring, middle))
         );
-        const plan = track(
+        if (!band) continue;
+
+        // Plan: band plus rounded corners at the walls (closing: grow, then
+        // shrink), kept outside the walls – rounding errors leave paper-thin
+        // slivers along them, dropped – plus a slight overlap into the walls
+        // and the band running through them.
+        const near = track(walls.intersect(soft(band, 4 * BRIDGE_FILLET)));
+        const closed = track(
           track(
-            new CrossSection(
-              [bridgeFootprint(span, extend, endWidth)],
-              "NonZero"
-            )
-          ).extrude(endHeight)
+            track(near.add(band)).offset(BRIDGE_FILLET, "Round", 2, 48)
+          ).offset(-BRIDGE_FILLET, "Round", 2, 48)
         );
-        const bar = track(
+        const outside = track(
+          track(closed.intersect(soft(band, 2 * BRIDGE_FILLET))).subtract(walls)
+        );
+        const kept = outside.decompose();
+        garbage.push(...kept);
+        const free = track(
+          CrossSection.union(kept.filter((piece) => piece.area() > 0.05))
+        );
+        const footprint = track(
           track(
-            track(track(side.intersect(plan)).rotate(0, 0, angle)).translate(
-              from[0] - ux * extend,
-              from[1] - uy * extend,
-              0
+            track(free.add(track(soft(free, 0.3).intersect(walls)))).add(
+              track(band.intersect(walls))
             )
           ).intersect(allowed)
         );
-        // Nur das zusammenhängende Hauptstück: An Einbuchtungen kann die
-        // Verlängerung sonst über eine Lücke in ein anderes Wandstück reichen
-        // und dort als loser Klotz stehen bleiben.
-        const pieces = bar.decompose();
-        garbage.push(...pieces);
-        const main = pieces.reduce<Manifold | null>(
+
+        const endHeight = Math.min(
+          ceiling - riseHeight,
+          midHeight + span * BRIDGE_RISE_PER_MM
+        );
+        // Height field over the plan, from the real distance to the two wall
+        // faces the bridge joins: sagging like a rope towards the middle, and
+        // at each wall (also a curved one) a fillet that sweeps steeply up
+        // into it; beside the band the fillets slope down. Inside a wall
+        // everything is at full height, so no ridge forms at its face. A
+        // cookie inside a hole has both walls on the bridge side of its
+        // contours.
+        const inset = island.depth % 2 === 0 ? wall : 0;
+        const gap = Math.max(span - 2 * inset, 1);
+        const { min, max } = footprint.bounds();
+        const reach = gap / 2 + inset + 1;
+        // Beyond the child contour lies its wall for a hole, the cookie for a
+        // cookie in a hole – either way not the gap; beyond the parent's too.
+        const faces = [
+          {
+            segments: segmentsNear(island.ring, min, max, reach),
+            beyondInside: true,
+          },
+          {
+            segments: segmentsNear(parent.ring, min, max, reach),
+            beyondInside: false,
+          },
+        ];
+        const height = (x: number, y: number) => {
+          let d = Infinity;
+          for (const { segments, beyondInside } of faces) {
+            const { distance, inside } = nearestOn(segments, x, y);
+            d = Math.min(d, inside === beyondInside ? 0 : distance);
+          }
+          d = Math.max(0, d - inset);
+          const t = Math.min(0.5, d / gap);
+          const sag = midHeight + (endHeight - midHeight) * (1 - 2 * t) ** 2;
+          const rise =
+            d < BRIDGE_FILLET ? riseHeight * (1 - d / BRIDGE_FILLET) ** 2 : 0;
+          let h = sag + rise;
+          const side = Math.abs((x - from[0]) * nx + (y - from[1]) * ny);
+          if (side > half) {
+            const s = Math.min(1, (side - half) / BRIDGE_FILLET);
+            h *= (1 - s) ** 2;
+          }
+          return Math.max(h, 0.3);
+        };
+        // Extruded to 1 mm, finely divided, then each point pulled up to its
+        // height – one smooth solid per bridge.
+        const flanks = strip(
+          from,
+          dir,
+          -extend - 2 * BRIDGE_FILLET,
+          span + extend + 2 * BRIDGE_FILLET,
+          bridgeWidth + 2 * BRIDGE_FILLET
+        );
+        const bar = track(
+          track(
+            track(track(footprint.intersect(flanks)).extrude(1)).refineToLength(
+              0.5
+            )
+          ).warpBatch((verts, count) => {
+            for (let i = 0; i < count; i++) {
+              verts[i * 3 + 2] *= height(verts[i * 3], verts[i * 3 + 1]);
+            }
+          })
+        );
+        // Only the connected main piece – rounding can leave splinters at the
+        // ends that would otherwise float as loose parts.
+        const solids = bar.decompose();
+        garbage.push(...solids);
+        const main = solids.reduce<Manifold | null>(
           (best, piece) =>
             !best || piece.volume() > best.volume() ? piece : best,
           null
@@ -571,8 +812,13 @@ export const buildCutter = (
       }
     }
 
+    // Rounding can leave zero-volume splinters as parts of their own; real
+    // separate pieces (e.g. letters side by side) are far larger. The result
+    // is composed fresh: it belongs to the caller, not to `garbage`.
+    const pieces = track(Manifold.union(parts)).decompose();
+    garbage.push(...pieces);
     return {
-      manifold: Manifold.union(parts),
+      manifold: Manifold.compose(pieces.filter((piece) => piece.volume() > 1)),
       outline: shape.toPolygons().map((ring) => ring.map(fromMm)),
     };
   } finally {
