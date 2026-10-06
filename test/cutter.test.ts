@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import Module, { type ManifoldToplevel } from "manifold-3d";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
@@ -17,7 +17,14 @@ beforeAll(async () => {
   wasm.setup();
 });
 
-/** Drawings saved from the app: their contours and the size they had. */
+/**
+ * Drawings saved from the app (Alt+Shift+F in the dev server): their contours
+ * and the dimensions they had. Every one of them is checked.
+ */
+const drawn = readdirSync(new URL("fixtures/", import.meta.url))
+  .filter((file) => file.endsWith(".json"))
+  .map((file) => file.replace(/\.json$/, ""));
+
 const fixture = (name: string) => {
   const { rings, ...params } = JSON.parse(
     readFileSync(new URL(`fixtures/${name}.json`, import.meta.url), "utf8")
@@ -36,14 +43,26 @@ type Case = {
 /** Short gaps are linked flat – no arches at all. */
 const flatOnly = new Set(["star with a star hole", "slot along the wall"]);
 
+/** What some drawings must come out as, beyond being clean. */
+const expected: Record<string, Pick<Case, "maxArches">> = {
+  // Eyes and mouth linked flat, hung from two arches.
+  poop: { maxArches: 2 },
+  // Eyes, nose and teeth close together: linked flat into one piece, held
+  // flat at the jaw and the cheek, by one arch on the far side.
+  skull: { maxArches: 1 },
+};
+
 const cases: Case[] = [
   ...Object.entries(shapes).map(([name, rings]) => ({
     name,
     rings,
     maxArches: flatOnly.has(name) ? 0 : undefined,
   })),
-  // Eyes and mouth linked flat, hung from two arches.
-  { name: "poop (drawn)", ...fixture("poop"), maxArches: 2 },
+  ...drawn.map((name) => ({
+    name: `${name} (drawn)`,
+    ...fixture(name),
+    ...expected[name],
+  })),
   {
     name: "poop, wide bridges",
     ...fixture("poop"),
@@ -54,9 +73,6 @@ const cases: Case[] = [
     ...fixture("poop"),
     params: { ...fixture("poop").params, wall: 0.8 },
   },
-  // Eyes, nose and teeth close together: linked flat into one piece, held
-  // flat at the jaw and the cheek, by one arch on the far side.
-  { name: "skull (drawn)", ...fixture("skull"), maxArches: 1 },
 ];
 
 const build = (rings: Ring[], overrides: Partial<CutterParams> = {}) => {

@@ -14,7 +14,7 @@ env:
 
 jobs:
   verify:
-    name: Lint, types
+    name: Lint, types, tests
     runs-on: ubuntu-latest
 
     steps:
@@ -39,6 +39,10 @@ jobs:
 
       - name: TypeScript
         run: pnpm typecheck
+
+      # The cutters must come out clean (see test/).
+      - name: Geometry tests
+        run: pnpm test
 
   build:
     name: Build and push image

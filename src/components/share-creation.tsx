@@ -1,8 +1,9 @@
-import { Check, Copy, Download, Share2, X } from "lucide-react";
+import { Check, Copy, Download, Gift, Share2, X } from "lucide-react";
 import { type RefObject, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { download } from "../export/download";
+import type { Greeting } from "../greeting";
 import {
   creationUrl,
   dialogClosed,
@@ -11,6 +12,7 @@ import {
   trackCreation,
 } from "../store";
 import Button from "./button";
+import CardComposer from "./card-composer";
 import CookieIcon from "./cookie-icon";
 import DonateBadge from "./donate-badge";
 import type { PreviewHandle } from "./preview-3d";
@@ -80,6 +82,18 @@ const ShareCreation = ({ preview }: Props) => {
   const [sheetOpen, setSheetOpen] = useState(false);
   /** After “Share image”: a note that text and link were copied too. */
   const [textCopied, setTextCopied] = useState(false);
+  /** Sharing as usual, or writing a greeting card. */
+  const [mode, setMode] = useState<"share" | "card">("share");
+  const [greeting, setGreeting] = useState<Greeting>({
+    to: "",
+    from: "",
+    message: "",
+  });
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const switchTo = (next: "share" | "card") => {
+    setMode(next);
+    bodyRef.current?.scrollTo({ top: 0 });
+  };
   const title = name.trim() || "Cookie Cutter Maker";
 
   useEffect(() => {
@@ -170,6 +184,7 @@ const ShareCreation = ({ preview }: Props) => {
         }}
         onClose={() => {
           setSheetOpen(false);
+          setMode("share");
           dialogClosed();
         }}
         ref={dialogRef}
@@ -182,60 +197,95 @@ const ShareCreation = ({ preview }: Props) => {
         >
           <CookieIcon icing="#ff5fa8" icon={X} roll={8} size={56} />
         </Button>
-        <div className="legal-body">
-          <h2>{t("share.creation")}</h2>
-          {shared?.image && (
-            <img
-              alt={t("share.imageAlt", { name: title })}
-              className="share-image"
-              height={SIZE}
-              src={shared.image}
-              width={SIZE}
+        <div className="legal-body" ref={bodyRef}>
+          {mode === "card" ? (
+            <CardComposer
+              greeting={greeting}
+              onBack={() => switchTo("share")}
+              onChange={setGreeting}
+              preview={preview}
             />
-          )}
-          <p>{t("share.creationText")}</p>
-          {/* The link itself is the button: a click copies it. */}
-          <Button
-            aria-label={copied ? t("share.copied") : t("share.copy")}
-            className="share-link"
-            data-copied={copied || undefined}
-            onClick={copy}
-            title={t("share.copy")}
-            type="button"
-          >
-            <span aria-live="polite" className="share-url">
-              {copied ? t("share.copied") : shared?.url}
-            </span>
-            {copied ? (
-              <CookieIcon icing="#00b86b" icon={Check} key="ok" size={44} />
-            ) : (
-              <CookieIcon icing="#2a44ff" icon={Copy} key="copy" size={44} />
-            )}
-          </Button>
-          <div className="share-more">
-            <Button
-              disabled={!shared?.file}
-              onClick={() =>
-                shared?.file && download(shared.file, shared.file.name)
-              }
-              type="button"
-            >
-              <CookieIcon
-                icing="#2a44ff"
-                icon={Download}
-                roll={-12}
-                size={48}
-              />
-              {t("share.saveImage")}
-            </Button>
-            {canShareImage && (
-              <Button onClick={shareImage} type="button">
-                <CookieIcon icing="#ff5fa8" icon={Share2} roll={10} size={48} />
-                {t("share.shareImage")}
+          ) : (
+            <>
+              <h2>{t("share.creation")}</h2>
+              {shared?.image && (
+                <img
+                  alt={t("share.imageAlt", { name: title })}
+                  className="share-image"
+                  height={SIZE}
+                  src={shared.image}
+                  width={SIZE}
+                />
+              )}
+              <p>{t("share.creationText")}</p>
+              {/* The link itself is the button: a click copies it. */}
+              <Button
+                aria-label={copied ? t("share.copied") : t("share.copy")}
+                className="share-link"
+                data-copied={copied || undefined}
+                onClick={copy}
+                title={t("share.copy")}
+                type="button"
+              >
+                <span aria-live="polite" className="share-url">
+                  {copied ? t("share.copied") : shared?.url}
+                </span>
+                {copied ? (
+                  <CookieIcon icing="#00b86b" icon={Check} key="ok" size={44} />
+                ) : (
+                  <CookieIcon
+                    icing="#2a44ff"
+                    icon={Copy}
+                    key="copy"
+                    size={44}
+                  />
+                )}
               </Button>
-            )}
-          </div>
-          {textCopied && <p className="share-note">{t("share.textCopied")}</p>}
+              {/* The greeting card: its own page with the message around the cutter. */}
+              <Button
+                className="card-offer"
+                onClick={() => switchTo("card")}
+                type="button"
+              >
+                <CookieIcon icing="#ffc31f" icon={Gift} roll={-10} size={56} />
+                <span>
+                  <strong>{t("card.share")}</strong>
+                  <small>{t("card.shareHint")}</small>
+                </span>
+              </Button>
+              <div className="share-more">
+                <Button
+                  disabled={!shared?.file}
+                  onClick={() =>
+                    shared?.file && download(shared.file, shared.file.name)
+                  }
+                  type="button"
+                >
+                  <CookieIcon
+                    icing="#2a44ff"
+                    icon={Download}
+                    roll={-12}
+                    size={48}
+                  />
+                  {t("share.saveImage")}
+                </Button>
+                {canShareImage && (
+                  <Button onClick={shareImage} type="button">
+                    <CookieIcon
+                      icing="#ff5fa8"
+                      icon={Share2}
+                      roll={10}
+                      size={48}
+                    />
+                    {t("share.shareImage")}
+                  </Button>
+                )}
+              </div>
+              {textCopied && (
+                <p className="share-note">{t("share.textCopied")}</p>
+              )}
+            </>
+          )}
         </div>
         {/* While they are happy with their cutter: a cookie for the maker. */}
         {sheetOpen && <DonateBadge delay={450} />}

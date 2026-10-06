@@ -2,13 +2,21 @@ import { memo, type Ref, useEffect, useImperativeHandle, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { useSnapshot } from "valtio";
+import { FILAMENTS } from "../filaments";
 import type { MeshData } from "../geometry/mesh";
 import { stopAutoRotate, store } from "../store";
 
 /** From outside: render a picture of the cutter from a bird's eye view. */
 export type PreviewHandle = {
-  /** Transparent picture of size width × height, or `null` without a model. */
-  renderTop: (width: number, height: number) => HTMLCanvasElement | null;
+  /**
+   * Transparent picture of size width × height, or `null` without a model –
+   * in the filament colour on screen unless `color` says otherwise.
+   */
+  renderTop: (
+    width: number,
+    height: number,
+    color?: string
+  ) => HTMLCanvasElement | null;
 };
 
 type Props = {
@@ -28,17 +36,6 @@ type View = {
 const SPIN_SPEED = 0.3;
 
 const RISE_MS = 700;
-
-/** Filament colours – every new cutter gets a different one. */
-const FILAMENTS = [
-  "#2a44ff", // Luminous Blue
-  "#ff6a1f", // Energy Orange
-  "#ff5fa8", // Pop Pink
-  "#5fb36b", // Meadowland Green
-  "#c4825f", // Clay
-  "#ffc31f",
-  "#13b0a5",
-];
 
 const pickFilament = (previous: string) => {
   const options = FILAMENTS.filter((color) => color !== previous);
@@ -127,13 +124,13 @@ const Preview3d = ({ ref }: Props) => {
   useImperativeHandle(
     ref,
     () => ({
-      renderTop: (width, height) => {
+      renderTop: (width, height, color) => {
         const view = viewRef.current;
         const geometry = view?.object.geometry;
         if (!view || !geometry?.getAttribute("position")) return null;
         return renderTopView(
           geometry,
-          view.object.material.color,
+          color ? new THREE.Color(color) : view.object.material.color,
           width,
           height
         );

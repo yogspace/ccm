@@ -19,6 +19,7 @@ import {
 import type { CutterRequest, CutterResponse } from "./geometry/cutter-worker";
 import type { MeshData } from "./geometry/mesh";
 import { InputError, type Ring, traceOutline } from "./geometry/outline";
+import { type Greeting, greetingUrl } from "./greeting";
 import type { de } from "./i18n/de";
 import { countCreation, loadCreations } from "./stats";
 import { initialUnit, storeUnit, type Unit } from "./units";
@@ -235,6 +236,10 @@ export const pageUrl = () => `${window.location.origin}/`;
 
 /** Below, the creation: a link with the drawing, also without a language path. */
 export const creationUrl = () => `${window.location.origin}/${currentHash()}`;
+
+/** The creation as a greeting card (its own page). */
+export const greetingLink = (greeting: Greeting) =>
+  greetingUrl(currentHash(), greeting);
 
 /**
  * “x creations made”: downloads and shared creations are counted on the

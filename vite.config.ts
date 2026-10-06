@@ -163,12 +163,59 @@ const statsApi = (): Plugin => {
   };
 };
 
+/**
+ * Dev server only: the app posts the drawing on screen as a geometry test case
+ * (Alt+Shift+F, see src/dev-fixture.ts) – it lands in test/fixtures/.
+ */
+const fixtureSaver = (): Plugin => ({
+  name: "ccm-fixture-saver",
+  apply: "serve",
+  configureServer(server) {
+    server.middlewares.use("/__fixture", (request, response) => {
+      if (request.method !== "POST") {
+        response.statusCode = 405;
+        response.end();
+        return;
+      }
+      let body = "";
+      request.on("data", (chunk) => {
+        body += chunk;
+      });
+      request.on("end", () => {
+        try {
+          const { name, ...fixture } = JSON.parse(body);
+          const slug = String(name)
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+          if (!slug) throw new Error("No name");
+          const file = new URL(`./test/fixtures/${slug}.json`, import.meta.url);
+          writeFileSync(fileURLToPath(file), JSON.stringify(fixture));
+          response.end(slug);
+        } catch {
+          response.statusCode = 400;
+          response.end();
+        }
+      });
+    });
+  },
+});
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), localizedPages(), statsApi()],
+  plugins: [react(), localizedPages(), statsApi(), fixtureSaver()],
   // manifold-3d loads its WASM itself and has Node branches the dependency
   // pre-bundler should not touch.
   optimizeDeps: { exclude: ["manifold-3d"] },
   // The geometry worker loads manifold via dynamic import – that only works as an ES module.
   worker: { format: "es" },
+  build: {
+    rolldownOptions: {
+      // The app, and the greeting card's own page (/card/).
+      input: {
+        main: fileURLToPath(new URL("./index.html", import.meta.url)),
+        card: fileURLToPath(new URL("./card/index.html", import.meta.url)),
+      },
+    },
+  },
 });

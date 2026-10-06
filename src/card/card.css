@@ -1,0 +1,311 @@
+/* ---------- Greeting card page (/card/) ----------
+   One screen without scrolling: who it is for, the card with the cutter and
+   the message running around it, who it is from, the files, the way to the
+   maker. Sizes follow the screen's height, the card's insides follow the
+   card (container units). */
+
+/* Nothing scrolls – so no room is kept for a scrollbar either. */
+html:has(.greeting) {
+  overflow: hidden;
+  scrollbar-gutter: auto;
+}
+
+.greeting {
+  --ink: #0d1033;
+  --ink-muted: #6a6e8c;
+  --sheet: #fffdf8;
+  position: relative;
+  display: grid;
+  /* The stage takes what is left, but never more than the width allows –
+     any room beyond that goes above and below, not between the lines. */
+  grid-template-rows: auto minmax(0, min(100vw - 2rem, 38rem)) auto auto auto auto;
+  align-content: center;
+  justify-items: center;
+  align-items: center;
+  row-gap: clamp(0.3rem, 1.5dvh, 0.9rem);
+  height: 100dvh;
+  padding: max(1.25rem, env(safe-area-inset-top)) 1rem
+    max(1rem, env(safe-area-inset-bottom));
+  overflow: hidden;
+  text-align: center;
+  isolation: isolate;
+}
+
+/* Light from behind the card, a neon glow rising from below. */
+.greeting::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(
+      ellipse 55% 42% at 50% 47%,
+      rgb(255 255 255 / 0.2),
+      transparent 72%
+    ),
+    radial-gradient(
+      ellipse 90% 55% at 50% 118%,
+      rgb(255 71 208 / 0.3),
+      transparent 70%
+    );
+  pointer-events: none;
+}
+
+.greeting-to {
+  max-width: 100%;
+  margin-top: clamp(0rem, 1.5dvh, 1rem);
+  font-size: clamp(2.2rem, 7.2dvh, 4.4rem);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+  -webkit-text-stroke: 0.025em currentColor;
+  paint-order: stroke fill;
+  rotate: -2deg;
+  animation: greet-rise 0.9s var(--ease) 0.1s both;
+}
+
+/* The stage is the largest square that fits the room left. */
+.greeting-slot {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  container-type: size;
+}
+
+.greeting-stage {
+  position: relative;
+  width: min(100cqw, 100cqh, 38rem);
+  aspect-ratio: 1;
+  container-type: inline-size;
+}
+
+/* The message, all the way around – slowly turning like a record. */
+.greeting .ring-text {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  font-weight: 600;
+  white-space: pre;
+  fill: var(--on-page);
+  animation:
+    ring-in 1.6s var(--ease) 0.45s both,
+    ring-turn 150s linear infinite;
+}
+
+/* The card: tilted a little, leaning towards the pointer (card-page.tsx). */
+.greeting-card {
+  position: absolute;
+  inset: 20.5%;
+  transform: perspective(70rem) rotateX(var(--lean-x, 0deg))
+    rotateY(var(--lean-y, 0deg)) rotate(-3deg);
+  transition: transform 0.9s var(--ease);
+  animation: card-land 1.1s var(--ease-spring) 0.15s both;
+}
+
+.greeting-paper {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  width: 100%;
+  height: 100%;
+  padding: 4cqw 4.5cqw 4cqw;
+  color: var(--ink);
+  background: var(--sheet);
+  border-radius: 5.5cqw;
+  box-shadow:
+    inset 0 0.15rem 0 rgb(255 255 255 / 0.8),
+    0 0.6rem 1.2rem -0.4rem rgb(4 8 60 / 0.35),
+    0 2.8rem 4.5rem -1.8rem rgb(4 8 60 / 0.6);
+}
+
+.card-cutter {
+  min-width: 0;
+  min-height: 0;
+}
+
+.card-cutter canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.greeting-wait {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 0.6em;
+  min-height: 0;
+  padding: 0 8%;
+  font-size: 3.4cqw;
+  line-height: 1.3;
+  color: var(--ink-muted);
+}
+
+/* Like a label: the name left, the size right. */
+.greeting-name {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6em;
+  padding: 0 1.2cqw;
+  font-size: 4.6cqw;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  text-align: left;
+}
+
+.greeting-name span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.greeting-name small {
+  flex: none;
+  font-size: 0.68em;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+/* Sprinkles burst from behind the card as it lands. */
+.greeting-sprinkle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2.4cqw;
+  height: 0.95cqw;
+  background: var(--color);
+  border-radius: 1cqw;
+  opacity: 0;
+  animation: greet-sprinkle 1.4s var(--ease) 0.7s both;
+}
+
+.greeting-from {
+  max-width: 100%;
+  font-size: clamp(1.15rem, 3.3dvh, 1.7rem);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--on-page-muted);
+  overflow-wrap: anywhere;
+  rotate: -1deg;
+  animation: greet-rise 0.9s var(--ease) 0.65s both;
+}
+
+.greeting-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: clamp(0rem, 1dvh, 0.5rem);
+  animation: greet-rise 0.9s var(--ease) 0.8s both;
+}
+
+.greeting-actions button {
+  gap: 0.45rem;
+  height: 2.9rem;
+  padding: 0 1.2rem 0 0.8rem;
+  font-size: 1.05rem;
+  color: var(--on-page);
+  background: rgb(255 255 255 / 0.14);
+  border-radius: 0.8rem;
+}
+
+.greeting-actions button:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.24);
+}
+
+.greeting-actions button.primary {
+  color: var(--ink);
+  background: var(--sheet);
+}
+
+.greeting-actions button.primary:hover:not(:disabled) {
+  background: #ffffff;
+}
+
+.greeting-hint {
+  font-size: var(--fs-tiny);
+  color: var(--on-page-muted);
+  animation: greet-fade 1s var(--ease) 1s both;
+}
+
+.greeting-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-top: clamp(0rem, 1dvh, 0.6rem);
+  padding: 0.3rem 0.35rem 0.3rem 1rem;
+  font-size: var(--fs-small);
+  font-weight: 700;
+  color: var(--on-page);
+  text-decoration: none;
+  background: rgb(255 255 255 / 0.1);
+  border-radius: 0.7rem;
+  transition: background 0.2s var(--ease);
+  animation: greet-fade 1s var(--ease) 1.1s both;
+}
+
+.greeting-cta:hover {
+  background: rgb(255 255 255 / 0.2);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@keyframes greet-rise {
+  from {
+    opacity: 0;
+    translate: 0 0.9rem;
+  }
+}
+
+@keyframes greet-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes card-land {
+  from {
+    opacity: 0;
+    translate: 0 -14%;
+    rotate: -14deg;
+    scale: 0.82;
+  }
+  35% {
+    opacity: 1;
+  }
+}
+
+@keyframes ring-in {
+  from {
+    opacity: 0;
+    scale: 0.84;
+  }
+}
+
+@keyframes greet-sprinkle {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--angle)) translateX(16cqw);
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--angle))
+      translateX(var(--reach)) rotate(220deg);
+  }
+}

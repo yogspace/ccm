@@ -4,6 +4,11 @@ import App from "./app.tsx";
 import "./i18n";
 import "./index.css";
 
+// Dev server only: save the drawing as a test case (Alt+Shift+F).
+if (import.meta.env.DEV) {
+  import("./dev-fixture").then(({ listenForFixtures }) => listenForFixtures());
+}
+
 const root = document.getElementById("root");
 if (!root) throw new Error("#root fehlt in index.html");
 
