@@ -403,56 +403,49 @@ const placeBridges = (
   return best;
 };
 
-/**
- * Side profile of a bridge along its length: flat on the bed, on top an arch –
- * lowest in the middle, rising to the walls and meeting them vertically, so
- * the bridge runs into the wall without an edge. Every layer is smaller than
- * the one below: it prints without overhang; in use (upside down) it is an
- * arch over the dough. Beyond the contours (`extend`) it stays at full height.
- */
-const bridgeProfile = (
-  span: number,
-  extend: number,
-  endHeight: number,
-  midHeight: number
-): Ring => {
-  const total = span + 2 * extend;
-  const profile: Ring = [
-    [0, 0],
-    [total, 0],
-    [total, endHeight],
-  ];
-  // Spaced by angle: densest at the walls where the arch is steep.
-  const steps = 32;
-  for (let i = steps; i >= 0; i--) {
-    const phi = (i / steps) * Math.PI;
-    profile.push([
-      extend + (span * (1 - Math.cos(phi))) / 2,
-      endHeight - (endHeight - midHeight) * Math.sin(phi),
-    ]);
+/** The segments of a ring that come within `reach` of a box – flat x/y pairs. */
+const segmentsNear = (
+  ring: Ring,
+  [minX, minY]: readonly number[],
+  [maxX, maxY]: readonly number[],
+  reach: number
+) => {
+  const segments: number[] = [];
+  for (let i = 0; i < ring.length; i++) {
+    const [ax, ay] = ring[i];
+    const [bx, by] = ring[(i + 1) % ring.length];
+    if (
+      Math.max(ax, bx) < minX - reach ||
+      Math.min(ax, bx) > maxX + reach ||
+      Math.max(ay, by) < minY - reach ||
+      Math.min(ay, by) > maxY + reach
+    ) {
+      continue;
+    }
+    segments.push(ax, ay, bx, by);
   }
-  profile.push([0, endHeight]);
-  return profile;
+  return segments;
 };
 
-/**
- * Cross profile of a bridge (x = sideways, y = height): full height over the
- * band, beside it a concave quarter circle down to the bed – so the fillets
- * at the walls slope away from the bridge instead of standing as a block.
- */
-const filletProfile = (half: number, radius: number, height: number): Ring => {
-  const steps = 20;
-  const right: Ring = [];
-  for (let i = 0; i <= steps; i++) {
-    // From the band edge (full height) out to the bed.
-    const phi = (i / steps) * (Math.PI / 2);
-    right.push([
-      half + radius * Math.sin(phi),
-      height * (1 - Math.sin(phi)) ** 2,
-    ]);
+/** Distance from a point to the nearest of these segments (Infinity if none). */
+const distanceTo = (segments: number[], x: number, y: number) => {
+  let best = Infinity;
+  for (let i = 0; i < segments.length; i += 4) {
+    const ax = segments[i];
+    const ay = segments[i + 1];
+    const dx = segments[i + 2] - ax;
+    const dy = segments[i + 3] - ay;
+    const length = dx * dx + dy * dy;
+    const t =
+      length > 0
+        ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / length))
+        : 0;
+    const ex = ax + t * dx - x;
+    const ey = ay + t * dy - y;
+    const distance = ex * ex + ey * ey;
+    if (distance < best) best = distance;
   }
-  const left = right.map(([x, y]): Point => [-x, y]).reverse();
-  return [...left, ...right].reverse();
+  return Math.sqrt(best);
 };
 
 /** Abbildung der normierten Konturen (y nach unten) auf mm, zentriert, y nach oben. */
@@ -626,28 +619,31 @@ export const buildCutter = (
       track(section.offset(delta, "Round", 2, 16));
     /** All walls in plan, below the taper where the bridges live. */
     const walls = track(grow(shape, wall).subtract(shape));
-    /** A profile in the x/y plane, swept along a bridge and placed there. */
-    const sweep = (
-      profile: Ring,
-      length: number,
+    /** Rectangle along a bridge: from `start` to `end` mm past `from`. */
+    const strip = (
       from: Point,
-      dir: Point,
-      along: boolean
+      [ux, uy]: Point,
+      start: number,
+      end: number,
+      width: number
     ) => {
-      const angle = (Math.atan2(dir[1], dir[0]) * 180) / Math.PI;
-      const prism = track(
-        track(new CrossSection([profile], "NonZero")).extrude(length)
+      const hx = (-uy * width) / 2;
+      const hy = (ux * width) / 2;
+      const [ax, ay] = [from[0] + ux * start, from[1] + uy * start];
+      const [bx, by] = [from[0] + ux * end, from[1] + uy * end];
+      return track(
+        new CrossSection(
+          [
+            [
+              [ax + hx, ay + hy],
+              [bx + hx, by + hy],
+              [bx - hx, by - hy],
+              [ax - hx, ay - hy],
+            ],
+          ],
+          "NonZero"
+        )
       );
-      // `along`: x runs along the bridge, swept sideways; otherwise x runs
-      // sideways, swept along. Stood up so y becomes the height.
-      const placed = along
-        ? track(
-            track(
-              track(prism.translate(0, 0, -length / 2)).rotate(90, 0, 0)
-            ).rotate(0, 0, angle)
-          )
-        : track(track(prism.rotate(90, 0, 0)).rotate(0, 0, angle + 90));
-      return track(placed.translate(from[0], from[1], 0));
     };
     const taken: Bridge[] = [];
     for (const [index, island] of islands.entries()) {
@@ -674,28 +670,16 @@ export const buildCutter = (
         const dir: Point = [(to[0] - from[0]) / span, (to[1] - from[1]) / span];
         const [nx, ny] = [-dir[1], dir[0]];
         const half = BRIDGE_WIDTH / 2;
-        const [ax, ay] = [from[0] - dir[0] * extend, from[1] - dir[1] * extend];
-        const [bx, by] = [to[0] + dir[0] * extend, to[1] + dir[1] * extend];
-        const strip = track(
-          track(
-            new CrossSection(
-              [
-                [
-                  [ax + nx * half, ay + ny * half],
-                  [bx + nx * half, by + ny * half],
-                  [bx - nx * half, by - ny * half],
-                  [ax - nx * half, ay - ny * half],
-                ],
-              ],
-              "NonZero"
-            )
-          ).intersect(allowed)
+        const band0 = track(
+          strip(from, dir, -extend, span + extend, BRIDGE_WIDTH).intersect(
+            allowed
+          )
         );
         // Only the piece that really spans between the two contours: at a
         // notch the extension could poke into another bit of wall and stay
         // there as a loose block.
         const middle: Point = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2];
-        const pieces = strip.decompose();
+        const pieces = band0.decompose();
         garbage.push(...pieces);
         const band = pieces.find((piece) =>
           piece
@@ -734,34 +718,52 @@ export const buildCutter = (
           maxEndHeight,
           midHeight + span * BRIDGE_RISE_PER_MM
         );
-        const reachOut = extend + 2 * BRIDGE_FILLET;
-        const start: Point = [
-          from[0] - dir[0] * reachOut,
-          from[1] - dir[1] * reachOut,
-        ];
-        const length = span + 2 * reachOut;
-        // Side view: the arch. Cross view: full height over the band, the
-        // fillets beside it slope down to the bed.
-        // The arch runs out vertically at the far faces of both walls: in
-        // front of a curved wall only its steep flank shows, no plateau.
-        const arch = sweep(
-          bridgeProfile(span + 2 * wall, reachOut - wall, endHeight, midHeight),
-          length,
-          start,
-          dir,
-          true
+        // Height field over the plan, from the real distance to the two wall
+        // faces the bridge joins: an arch that runs vertically into each wall
+        // (also a curved one) and is lowest in the middle; beside the band the
+        // fillets slope down like a fillet. A cookie inside a hole has both
+        // walls on the bridge side of its contours.
+        const inset = island.depth % 2 === 0 ? wall : 0;
+        const gap = Math.max(span - 2 * inset, 1);
+        const { min, max } = footprint.bounds();
+        const reach = gap / 2 + inset + 1;
+        const faces = [island.ring, parent.ring].map((ring) =>
+          segmentsNear(ring, min, max, reach)
         );
-        const flanks = sweep(
-          filletProfile(half, BRIDGE_FILLET, endHeight + 1),
-          length,
-          start,
+        const height = (x: number, y: number) => {
+          const d = Math.max(
+            0,
+            Math.min(...faces.map((face) => distanceTo(face, x, y))) - inset
+          );
+          const cos = 1 - 2 * Math.min(0.5, d / gap);
+          let h =
+            endHeight - (endHeight - midHeight) * Math.sqrt(1 - cos * cos);
+          const side = Math.abs((x - from[0]) * nx + (y - from[1]) * ny);
+          if (side > half) {
+            const s = Math.min(1, (side - half) / BRIDGE_FILLET);
+            h = Math.min(h, endHeight * (1 - s) ** 2);
+          }
+          return Math.max(h, 0.3);
+        };
+        // Extruded to 1 mm, finely divided, then each point pulled up to its
+        // height – one smooth solid per bridge.
+        const flanks = strip(
+          from,
           dir,
-          false
+          -extend - 2 * BRIDGE_FILLET,
+          span + extend + 2 * BRIDGE_FILLET,
+          BRIDGE_WIDTH + 2 * BRIDGE_FILLET
         );
         const bar = track(
           track(
-            track(footprint.extrude(endHeight + 1)).intersect(arch)
-          ).intersect(flanks)
+            track(track(footprint.intersect(flanks)).extrude(1)).refineToLength(
+              0.5
+            )
+          ).warpBatch((verts, count) => {
+            for (let i = 0; i < count; i++) {
+              verts[i * 3 + 2] *= height(verts[i * 3], verts[i * 3 + 1]);
+            }
+          })
         );
         // Only the connected main piece – rounding can leave splinters at the
         // ends that would otherwise float as loose parts.
