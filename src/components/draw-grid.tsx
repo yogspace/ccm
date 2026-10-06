@@ -11,8 +11,8 @@ type Props = {
 const MM_PER_INCH = 25.4;
 /** Ohne Form gibt es keinen Maßstab – dann ein neutrales 8×8-Raster. */
 const FALLBACK_DIVISIONS = 8;
-/** Beschriftungen zu nah am Rand würden abgeschnitten. */
-const LABEL_MARGIN = 0.1;
+/** Beschriftungen zu nah an der Ecke stießen an die der anderen Achse. */
+const LABEL_MARGIN = 0.08;
 
 /** Rundet auf 1, 2 oder 5 mal eine Zehnerpotenz. */
 const niceStep = (raw: number) => {
@@ -26,24 +26,24 @@ const niceStep = (raw: number) => {
 /** `index` bleibt beim Zoomen gleich – so werden Linien verschoben statt neu angelegt. */
 type Tick = { index: number; pos: number; value: number; major: boolean };
 
+/** Striche ab 0 (Ecke unten links) bis zum Rand; `pos` von links bzw. unten (0…1). */
 const buildTicks = (span: number): Tick[] => {
   const step = niceStep(span / 8);
   const minor = step / 2;
-  const count = Math.floor(span / 2 / minor);
-  const ticks: Tick[] = [];
-  for (let i = -count; i <= count; i++) {
-    const value = i * minor;
-    ticks.push({
-      index: i,
-      pos: 0.5 + value / span,
-      value,
-      major: i % 2 === 0,
-    });
-  }
-  return ticks;
+  const count = Math.floor(span / minor + 1e-9);
+  return Array.from({ length: count + 1 }, (_, i) => ({
+    index: i,
+    pos: (i * minor) / span,
+    value: i * minor,
+    major: i % 2 === 0,
+  }));
 };
 
-/** Koordinatensystem unter der Zeichnung: Raster, Achsen und Lineal in echten Maßen. */
+/**
+ * Koordinatensystem unter der Zeichnung, wie in der Schule: Ursprung unten
+ * links, x nach rechts, y nach oben, in echten Maßen des Ausstechers. So lässt
+ * sich ablesen, wo etwas liegt.
+ */
 const DrawGrid = ({ mmPerCanvas, unit }: Props) => {
   const { i18n } = useTranslation();
   const format = numberFormat(i18n.resolvedLanguage, 2);
@@ -56,10 +56,11 @@ const DrawGrid = ({ mmPerCanvas, unit }: Props) => {
         value: 0,
         major: true,
       }));
+  // Die 0 steht einmal in der Ecke; nichts zu nah an den Ecken.
   const labels = mmPerCanvas
     ? ticks.filter(
-        ({ pos, major, value }) =>
-          major && value !== 0 && pos > LABEL_MARGIN && pos < 1 - LABEL_MARGIN
+        ({ pos, major }) =>
+          major && pos > LABEL_MARGIN && pos < 1 - LABEL_MARGIN
       )
     : [];
 
@@ -80,30 +81,20 @@ const DrawGrid = ({ mmPerCanvas, unit }: Props) => {
               y1={0}
               y2={1}
             />
+            {/* Im SVG zeigt y nach unten – gezählt wird von unten. */}
             <line
               vectorEffect="non-scaling-stroke"
               x1={0}
               x2={1}
-              y1={pos}
-              y2={pos}
+              y1={1 - pos}
+              y2={1 - pos}
             />
           </g>
         ))}
+        {/* Achsen: linker und unterer Rand */}
         <g className="axis">
-          <line
-            vectorEffect="non-scaling-stroke"
-            x1={0.5}
-            x2={0.5}
-            y1={0}
-            y2={1}
-          />
-          <line
-            vectorEffect="non-scaling-stroke"
-            x1={0}
-            x2={1}
-            y1={0.5}
-            y2={0.5}
-          />
+          <line vectorEffect="non-scaling-stroke" x1={0} x2={0} y1={0} y2={1} />
+          <line vectorEffect="non-scaling-stroke" x1={0} x2={1} y1={1} y2={1} />
         </g>
       </svg>
       {labels.map(({ index, pos, value }) => (
@@ -116,16 +107,20 @@ const DrawGrid = ({ mmPerCanvas, unit }: Props) => {
         </span>
       ))}
       {labels.map(({ index, pos, value }) => (
-        // y zeigt im Ausstecher nach oben, im Canvas nach unten.
         <span
           className="tick y"
           key={`y${index}`}
-          style={{ top: `${pos * 100}%` }}
+          style={{ top: `${(1 - pos) * 100}%` }}
         >
-          {format.format(-value)}
+          {format.format(value)}
         </span>
       ))}
-      {mmPerCanvas && <span className="tick unit">{unit}</span>}
+      {mmPerCanvas && (
+        <>
+          <span className="tick origin">0</span>
+          <span className="tick unit">{unit}</span>
+        </>
+      )}
     </div>
   );
 };

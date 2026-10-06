@@ -1,4 +1,4 @@
-import { Check, Download, Link, Share2, X } from "lucide-react";
+import { Check, Copy, Download, Share2, X } from "lucide-react";
 import { type RefObject, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
@@ -66,8 +66,8 @@ type Shared = { url: string; file: File | null; image: string | null };
 
 /**
  * „Kreation teilen“: öffnet ein Fenster mit dem Bild, wie der Ausstecher gerade
- * aussieht, darunter den Link zum Kopieren – dazu Bild speichern und, wo der
- * Browser es kann, mit Bild teilen.
+ * aussieht, darunter den Link (Klick kopiert ihn) – dazu Bild speichern und,
+ * wo der Browser es kann, Bild samt Text und Link teilen.
  */
 const ShareCreation = ({ preview }: Props) => {
   const { t } = useTranslation();
@@ -75,6 +75,8 @@ const ShareCreation = ({ preview }: Props) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [shared, setShared] = useState<Shared | null>(null);
   const [copied, setCopied] = useState(false);
+  /** Nach „Bild teilen“: Hinweis, dass Text und Link auch kopiert sind. */
+  const [textCopied, setTextCopied] = useState(false);
   const title = name.trim() || "Cookie Cutter Maker";
 
   useEffect(() => {
@@ -102,6 +104,7 @@ const ShareCreation = ({ preview }: Props) => {
       });
     setShared({ url, file, image: blob ? URL.createObjectURL(blob) : null });
     setCopied(false);
+    setTextCopied(false);
     dialogRef.current?.showModal();
     dialogOpened();
     // Teilen zählt die Kreation.
@@ -118,24 +121,29 @@ const ShareCreation = ({ preview }: Props) => {
     }
   };
 
-  const shareWithImage = async () => {
+  const shareImage = () => {
     if (!shared?.file) return;
-    try {
-      await navigator.share({
-        files: [shared.file],
-        title,
-        text: `${t("share.text")} ${shared.url}`,
+    const text = `${t("share.text")} ${shared.url}`;
+    // Manche Apps (z. B. Signal) übernehmen nur das Bild und lassen den Text
+    // fallen – deshalb liegt er samt Link auch in der Zwischenablage. Beides
+    // direkt im Klick aufrufen, sonst verfällt die Erlaubnis dafür.
+    navigator.clipboard
+      ?.writeText(text)
+      .then(() => setTextCopied(true))
+      .catch(() => undefined);
+    navigator
+      .share({ files: [shared.file], title, text })
+      .catch((error: unknown) => {
+        // Abbrechen im Teilen-Menü ist kein Fehler.
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          console.error(error);
+        }
       });
-    } catch (error) {
-      // Abbrechen im Teilen-Menü ist kein Fehler.
-      if (!(error instanceof DOMException && error.name === "AbortError")) {
-        console.error(error);
-      }
-    }
   };
 
   const canShareImage =
-    !!shared?.file && !!navigator.canShare?.({ files: [shared.file] });
+    !!shared?.file &&
+    !!navigator.canShare?.({ files: [shared.file], text: shared.url });
 
   return (
     <>
@@ -178,30 +186,24 @@ const ShareCreation = ({ preview }: Props) => {
             />
           )}
           <p>{t("share.creationText")}</p>
-          <div className="share-link">
-            <input
-              aria-label={t("share.link")}
-              onFocus={(event) => event.target.select()}
-              readOnly
-              type="text"
-              value={shared?.url ?? ""}
-            />
-            <Button
-              className="copy"
-              data-copied={copied || undefined}
-              onClick={copy}
-              type="button"
-            >
-              {copied ? (
-                <CookieIcon icing="#00b86b" icon={Check} key="ok" size={48} />
-              ) : (
-                <CookieIcon icon={Link} key="link" roll={-22} size={48} />
-              )}
-              <span aria-live="polite">
-                {copied ? t("share.copied") : t("share.copy")}
-              </span>
-            </Button>
-          </div>
+          {/* Der Link selbst ist der Knopf: Klick kopiert ihn. */}
+          <Button
+            aria-label={copied ? t("share.copied") : t("share.copy")}
+            className="share-link"
+            data-copied={copied || undefined}
+            onClick={copy}
+            title={t("share.copy")}
+            type="button"
+          >
+            <span aria-live="polite" className="share-url">
+              {copied ? t("share.copied") : shared?.url}
+            </span>
+            {copied ? (
+              <CookieIcon icing="#00b86b" icon={Check} key="ok" size={44} />
+            ) : (
+              <CookieIcon icing="#2a44ff" icon={Copy} key="copy" size={44} />
+            )}
+          </Button>
           <div className="share-more">
             <Button
               disabled={!shared?.file}
@@ -219,12 +221,13 @@ const ShareCreation = ({ preview }: Props) => {
               {t("share.saveImage")}
             </Button>
             {canShareImage && (
-              <Button onClick={shareWithImage} type="button">
+              <Button onClick={shareImage} type="button">
                 <CookieIcon icing="#ff5fa8" icon={Share2} roll={10} size={48} />
                 {t("share.shareImage")}
               </Button>
             )}
           </div>
+          {textCopied && <p className="share-note">{t("share.textCopied")}</p>}
         </div>
       </dialog>
     </>

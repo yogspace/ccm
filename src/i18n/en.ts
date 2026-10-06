@@ -84,6 +84,8 @@ export const en: typeof de = {
     imageAlt: "Cookie cutter “{{name}}” from above",
     copy: "Copy link",
     copied: "Copied",
+    textCopied:
+      "Text and link are on the clipboard – if the app only takes the image, just paste them.",
     share: "Share",
   },
   legal: {

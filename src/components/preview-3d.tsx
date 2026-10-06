@@ -160,19 +160,23 @@ const Preview3d = ({ ref }: Props) => {
     sun.position.set(60, -80, 150);
     scene.add(sun);
 
-    // Weißer „Tisch“ mit cremefarbenem Raster – wie die Zeichenfläche.
+    // Turntable: the floor grid and the model turn together, like a plate.
+    const turntable = new THREE.Group();
+    scene.add(turntable);
+
+    // White "table" with a cream grid – like the drawing area.
     const grid = new THREE.GridHelper(300, 30, 0xcdbfa7, 0xe4dac8);
     grid.rotation.x = Math.PI / 2;
     grid.material.transparent = true;
     grid.material.opacity = 0.9;
-    scene.add(grid);
+    turntable.add(grid);
 
     const material = new THREE.MeshStandardMaterial({
       roughness: 0.45,
       flatShading: true,
     });
     const object = new THREE.Mesh(new THREE.BufferGeometry(), material);
-    scene.add(object);
+    turntable.add(object);
 
     let filament = pickFilament("");
     material.color.set(filament);
@@ -186,19 +190,19 @@ const Preview3d = ({ ref }: Props) => {
       // Jeder neue Ausstecher wechselt sofort die Farbe, ohne Überblendung.
       filament = pickFilament(filament);
       material.color.set(filament);
-      // Neue Form: Drehteller zurück, damit sie wie die Zeichnung ausgerichtet startet.
-      object.rotation.z = 0;
+      // New shape: reset the turntable so it starts aligned like the drawing.
+      turntable.rotation.z = 0;
       if (!reducedMotion()) riseStart = performance.now();
     };
 
-    // Das Modell selbst dreht sich (nicht die Kamera): zeitbasiert und im
-    // Uhrzeigersinn von oben gesehen – eine negative Drehung um die z-Achse.
+    // The turntable spins (not the camera): time-based and clockwise seen from
+    // above – a negative rotation around the z axis.
     const spin = { on: false };
     let lastTime = 0;
     renderer.setAnimationLoop((time) => {
       const dt = lastTime ? Math.min((time - lastTime) / 1000, 0.1) : 0;
       lastTime = time;
-      if (spin.on) object.rotation.z -= SPIN_SPEED * dt;
+      if (spin.on) turntable.rotation.z -= SPIN_SPEED * dt;
       const t = Math.min(1, (time - riseStart) / RISE_MS);
       object.scale.z = Math.max(0.001, easeOutBack(t));
       controls.update();
