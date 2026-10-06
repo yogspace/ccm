@@ -33,9 +33,8 @@ i18n
 /** The language in the URL too: /de/ or /en/ – the hash (shared drawing) stays. */
 const syncPath = (lng: string) => {
   const { pathname, search, hash } = window.location;
-  const first = pathname.split("/")[1] ?? "";
-  // Leave other paths alone, only “/” and the language pages.
-  if (first && !(languages as readonly string[]).includes(first)) return;
+  // Only “/” and the language pages themselves – not e.g. /de/card/.
+  if (!/^\/((de|en)\/?)?$/.test(pathname)) return;
   const path = `/${lng}/`;
   if (pathname !== path) {
     window.history.replaceState(null, "", `${path}${search}${hash}`);

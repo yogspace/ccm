@@ -113,8 +113,9 @@ const localize = (html: string, lang: Lang) =>
 
 /**
  * One page per language: /de/ and /en/ with their own texts for Google and
- * link previews. The root (and the dev server) gets English; the server
- * redirects “/” by browser language (see Caddyfile).
+ * link previews, and the greeting card as /de/card/ and /en/card/. The root
+ * (and the dev server) gets English; the server redirects “/” by browser
+ * language (see Caddyfile). /card/ alone (older links) follows the browser.
  */
 const localizedPages = (): Plugin => {
   let outDir = "dist";
@@ -124,17 +125,28 @@ const localizedPages = (): Plugin => {
       outDir = join(config.root, config.build.outDir);
     },
     transformIndexHtml: (html) => localize(html, "en"),
+    // The greeting card in a language: /de/card/ and /en/card/ are the card.
+    configureServer(server) {
+      server.middlewares.use((request, _response, next) => {
+        request.url = request.url?.replace(/^\/(de|en)\/card\b/, "/card");
+        next();
+      });
+    },
     closeBundle() {
-      const file = join(outDir, "index.html");
-      let html: string;
-      try {
-        html = readFileSync(file, "utf8");
-      } catch {
-        return; // e.g. SSR builds without index.html
-      }
-      for (const lang of ["de", "en"] as const) {
-        mkdirSync(join(outDir, lang), { recursive: true });
-        writeFileSync(join(outDir, lang, "index.html"), localize(html, lang));
+      for (const page of ["", "card"]) {
+        let html: string;
+        try {
+          html = readFileSync(join(outDir, page, "index.html"), "utf8");
+        } catch {
+          continue; // e.g. SSR builds without index.html
+        }
+        for (const lang of ["de", "en"] as const) {
+          mkdirSync(join(outDir, lang, page), { recursive: true });
+          writeFileSync(
+            join(outDir, lang, page, "index.html"),
+            localize(html, lang)
+          );
+        }
       }
     },
   };

@@ -312,7 +312,7 @@ const CardPage = () => {
         </>
       )}
 
-      <a className="greeting-cta" href="/">
+      <a className="greeting-cta" href={`/${lang}/`}>
         {t("card.makeOwn")}
         <CookieIcon
           icing="#ff5fa8"

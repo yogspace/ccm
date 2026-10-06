@@ -62,6 +62,7 @@ export const en: typeof de = {
   },
   export: {
     name: "Name of your creation",
+    clearName: "Clear the name",
     namePlaceholder: "Name your creation, e.g. Heart",
     threeMf: "Download 3MF",
     stl: "STL",

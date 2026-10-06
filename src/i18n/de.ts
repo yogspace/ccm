@@ -62,6 +62,7 @@ export const de = {
   },
   export: {
     name: "Name deiner Kreation",
+    clearName: "Namen löschen",
     namePlaceholder: "Name deiner Kreation, z. B. Herz",
     threeMf: "3MF herunterladen",
     stl: "STL",

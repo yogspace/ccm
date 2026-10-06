@@ -258,9 +258,9 @@ export const pageUrl = () => `${window.location.origin}/`;
 /** Below, the creation: a link with the drawing, also without a language path. */
 export const creationUrl = () => `${window.location.origin}/${currentHash()}`;
 
-/** The creation as a greeting card (its own page). */
-export const greetingLink = (greeting: Greeting) =>
-  greetingUrl(currentHash(), greeting);
+/** The creation as a greeting card (its own page), in this language. */
+export const greetingLink = (greeting: Greeting, lang: string) =>
+  greetingUrl(currentHash(), greeting, lang);
 
 /**
  * Keeps the creation on screen as a cookie in the bar (the newest first; the

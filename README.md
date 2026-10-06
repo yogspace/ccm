@@ -67,7 +67,7 @@ api/
   server.mjs                  mini API for the ccm-api container, without dependencies
 card/index.html               entry of the greeting card page (/card/)
 test/                         geometry tests (Vitest): cutter.test.ts, clean.ts (inspects a cutter in slices), shapes.ts, fixtures/ (drawn shapes)
-vite.config.ts                additionally builds dist/de/ and dist/en/ with their own meta texts, counter API in the dev server
+vite.config.ts                additionally builds dist/de/ and dist/en/ (and the card in both) with their own meta texts, counter API in the dev server
 Caddyfile                     redirect / → /de/ or /en/, /api/* → ccm-api, SPA fallback
 ```
 
@@ -87,7 +87,7 @@ Pally (Indian Type Foundry, [ITF Free Font License](https://www.fontshare.com)) 
 
 ### Link format
 
-`#n=<name>&<parameter>=<value>&s=<drawing>`. Parameters are only included when they differ from the defaults. The drawing itself is stored, so it looks just the same after opening: per stroke the smoothed pen points and the stroke width (erasers with a negative width) and, after an SVG import, its silhouette as an area. Strokes are simplified depending on their width (Douglas-Peucker, 1.5–4 px), rounded to 2 px and encoded as chained ZigZag varint deltas; the whole thing is deflate-compressed and base64url-encoded. The first varint is the format version (currently 3); versions 1 (contour only) and 2 are still read. Shared links have no language path, so recipients land in their own language. A greeting card is the same link under `/card/` plus `&to=<recipient>&from=<sender>&m=<message>`. The hash is never sent to the server.
+`#n=<name>&<parameter>=<value>&s=<drawing>`. Parameters are only included when they differ from the defaults. The drawing itself is stored, so it looks just the same after opening: per stroke the smoothed pen points and the stroke width (erasers with a negative width) and, after an SVG import, its silhouette as an area. Strokes are simplified depending on their width (Douglas-Peucker, 1.5–4 px), rounded to 2 px and encoded as chained ZigZag varint deltas; the whole thing is deflate-compressed and base64url-encoded. The first varint is the format version (currently 3); versions 1 (contour only) and 2 are still read. Shared links have no language path, so recipients land in their own language. A greeting card is the same link under `/<language>/card/` – the sender's language, like the message – plus `&to=<recipient>&from=<sender>&m=<message>`; `/card/` alone (older links) follows the browser. The hash is never sent to the server.
 
 ### Bambu Studio
 

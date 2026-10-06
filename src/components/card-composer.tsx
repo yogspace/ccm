@@ -82,20 +82,22 @@ const CardComposer = ({ preview, greeting, onChange, onBack }: Props) => {
       });
   };
 
+  /** Back to sharing – an arrow at the left of the actions, in both states. */
+  const back = (
+    <Button
+      aria-label={t("card.back")}
+      className="icon composer-back"
+      onClick={onBack}
+      title={t("card.back")}
+      type="button"
+    >
+      <CookieIcon icing="#2a44ff" icon={ArrowLeft} roll={-6} size={48} />
+    </Button>
+  );
+
   return (
     <div className="composer">
-      <div className="composer-head">
-        <Button
-          aria-label={t("card.back")}
-          className="icon"
-          onClick={onBack}
-          title={t("card.back")}
-          type="button"
-        >
-          <CookieIcon icing="#2a44ff" icon={ArrowLeft} roll={-6} size={52} />
-        </Button>
-        <h2>{t("card.compose")}</h2>
-      </div>
+      <h2>{t("card.compose")}</h2>
       <p>{t("card.intro")}</p>
 
       {/* The card page in small: the message runs around the cutter. */}
@@ -174,9 +176,7 @@ const CardComposer = ({ preview, greeting, onChange, onBack }: Props) => {
             )}
           </Button>
           <div className="share-more">
-            <Button className="ghost" onClick={onBack} type="button">
-              {t("card.back")}
-            </Button>
+            {back}
             <Button
               className={canSend ? undefined : "primary"}
               onClick={() => window.open(link, "_blank", "noopener")}
@@ -200,12 +200,10 @@ const CardComposer = ({ preview, greeting, onChange, onBack }: Props) => {
         </>
       ) : (
         <div className="share-more">
-          <Button className="ghost" onClick={onBack} type="button">
-            {t("card.back")}
-          </Button>
+          {back}
           <Button
             className="primary"
-            onClick={() => setLink(greetingLink(greeting))}
+            onClick={() => setLink(greetingLink(greeting, lang))}
             type="button"
           >
             <CookieIcon icon={Check} roll={-8} size={48} />
