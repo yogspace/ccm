@@ -65,6 +65,7 @@ let scene: THREE.Scene;
 let camera: THREE.PerspectiveCamera;
 let frame = 0;
 let last = 0;
+let listening = false;
 
 const setup = () => {
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -85,6 +86,8 @@ const setup = () => {
   camera.position.set(0, 0, 5.4);
 
   reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (listening) return;
+  listening = true;
   window.addEventListener(
     "pointermove",
     (event) => {
@@ -94,6 +97,19 @@ const setup = () => {
     },
     { passive: true }
   );
+  // Give the GPU memory back when the page goes – iOS Safari frees it late –
+  // and set up anew if the page comes back from the back/forward cache.
+  window.addEventListener("pagehide", () => {
+    renderer?.forceContextLoss();
+    renderer?.dispose();
+    renderer = undefined;
+  });
+  window.addEventListener("pageshow", (event) => {
+    if (!event.persisted || renderer || entries.size === 0) return;
+    setup();
+    for (const entry of entries) entry.drawn = false;
+    wake();
+  });
 };
 
 const draw = (entry: Entry, time: number) => {

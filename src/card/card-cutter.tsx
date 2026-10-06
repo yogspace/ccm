@@ -8,6 +8,8 @@ type Props = {
   label: string;
   /** Wait (ms) before the cutter grows up out of the card. */
   delay?: number;
+  /** Not in sight (the card turned over): no frames are drawn. */
+  paused?: boolean;
 };
 
 const RISE_MS = 900;
@@ -23,8 +25,16 @@ const easeOutBack = (t: number) => {
  * The cutter lying on the card, seen from slightly in front: it grows up out
  * of the paper and then sways gently – the card itself leans with the pointer.
  */
-const CardCutter = ({ mesh, color, label, delay = 0 }: Props) => {
+const CardCutter = ({
+  mesh,
+  color,
+  label,
+  delay = 0,
+  paused = false,
+}: Props) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
 
   useEffect(() => {
     const container = containerRef.current;
@@ -73,6 +83,7 @@ const CardCutter = ({ mesh, color, label, delay = 0 }: Props) => {
 
     const start = performance.now() + delay;
     renderer.setAnimationLoop((time) => {
+      if (pausedRef.current) return;
       const t = Math.min(1, Math.max(0, (time - start) / RISE_MS));
       cutter.scale.z = still ? 1 : Math.max(0.001, easeOutBack(t));
       if (!still) sway.rotation.z = Math.sin(time / 2600) * SWAY;
@@ -89,12 +100,18 @@ const CardCutter = ({ mesh, color, label, delay = 0 }: Props) => {
     });
     observer.observe(container);
 
+    // Give the GPU memory back when the page goes – iOS Safari frees it late.
+    const release = () => renderer.forceContextLoss();
+    window.addEventListener("pagehide", release);
+
     return () => {
+      window.removeEventListener("pagehide", release);
       renderer.setAnimationLoop(null);
       observer.disconnect();
       geometry.dispose();
       material.dispose();
       renderer.dispose();
+      renderer.forceContextLoss();
       renderer.domElement.remove();
     };
   }, [mesh, color, delay]);

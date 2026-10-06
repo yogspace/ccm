@@ -248,7 +248,7 @@ const ShareCreation = ({ preview }: Props) => {
                 type="button"
               >
                 <CookieIcon icing="#ffc31f" icon={Gift} roll={-10} size={56} />
-                <span>
+                <span className="card-offer-text">
                   <strong>{t("card.share")}</strong>
                   <small>{t("card.shareHint")}</small>
                 </span>

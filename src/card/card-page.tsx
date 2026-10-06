@@ -53,6 +53,8 @@ const CardPage = () => {
   const [cutter, setCutter] =
     useState<Awaited<ReturnType<typeof loadCutter>>>(null);
   const [failed, setFailed] = useState(!hasShape);
+  /** Counts the tries – “Try again” starts another. */
+  const [attempt, setAttempt] = useState(0);
   /** Turned over: the cookie side up. Every turn bursts sprinkles again. */
   const [turns, setTurns] = useState(0);
   const flipped = turns % 2 === 1;
@@ -74,25 +76,42 @@ const CardPage = () => {
     ? t("card.for", { name: greeting.to })
     : t("card.forYou");
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: every try shapes it anew
   useEffect(() => {
     if (!hasShape) return;
+    let current = true;
+    setFailed(false);
     loadCutter(shared).then(
       (result) => {
+        if (!current) return;
         setCutter(result);
         setFailed(!result);
       },
       (error: unknown) => {
-        console.error(error);
-        setFailed(true);
+        console.error("The cutter could not be shaped", error);
+        if (current) setFailed(true);
       }
     );
-  }, []);
+    return () => {
+      current = false;
+    };
+  }, [attempt]);
 
   useEffect(() => {
     document.title = greeting.to
       ? t("card.titleFor", { name: greeting.to })
       : t("card.title");
   }, [t]);
+
+  // Back from the back/forward cache, its 3D views gave their memory away
+  // (card-cutter.tsx) – so start afresh.
+  useEffect(() => {
+    const back = (event: PageTransitionEvent) => {
+      if (event.persisted) window.location.reload();
+    };
+    window.addEventListener("pageshow", back);
+    return () => window.removeEventListener("pageshow", back);
+  }, []);
 
   // The card leans towards the pointer, as if held in the hand.
   useEffect(() => {
@@ -124,6 +143,7 @@ const CardPage = () => {
         className="greeting-turn-icon"
         icing="#2a44ff"
         icon={RotateCw}
+        idle={false}
         size={56}
       />
     </span>
@@ -185,11 +205,17 @@ const CardPage = () => {
                     delay={250}
                     label={t("card.cutterAlt", { name })}
                     mesh={mesh}
+                    paused={flipped}
                   />
                 ) : (
                   <span className="greeting-wait">
-                    <CookieIcon kind="star" size={88} spin={!failed} />
-                    <span>
+                    <CookieIcon
+                      idle={false}
+                      kind="star"
+                      size={88}
+                      spin={!failed}
+                    />
+                    <span aria-live="polite">
                       {failed
                         ? t(hasShape ? "card.failed" : "card.empty")
                         : t("card.loading")}
@@ -213,9 +239,11 @@ const CardPage = () => {
                 {cookie && (
                   <CookieIcon
                     className="greeting-cookie"
+                    // Still: drawn once, no frames while it lies there.
+                    idle={false}
                     interactive={false}
                     shape={cookie}
-                    size={420}
+                    size={320}
                     tilt={-0.5}
                   />
                 )}
@@ -239,6 +267,24 @@ const CardPage = () => {
         </p>
       )}
 
+      {failed && hasShape && (
+        <div className="greeting-actions">
+          <Button
+            className="primary"
+            onClick={() => setAttempt((count) => count + 1)}
+            type="button"
+          >
+            <CookieIcon
+              icing="#2a44ff"
+              icon={RotateCw}
+              idle={false}
+              roll={-10}
+              size={58}
+            />
+            {t("card.retry")}
+          </Button>
+        </div>
+      )}
       {!failed && (
         <>
           <div className="greeting-actions">
@@ -248,11 +294,17 @@ const CardPage = () => {
               onClick={() => save("3mf")}
               type="button"
             >
-              <CookieIcon icing="#2a44ff" icon={Download} roll={12} size={58} />
+              <CookieIcon
+                icing="#2a44ff"
+                icon={Download}
+                idle={false}
+                roll={12}
+                size={58}
+              />
               {t("card.download")}
             </Button>
             <Button disabled={!mesh} onClick={() => save("stl")} type="button">
-              <CookieIcon icon={Download} roll={-14} size={58} />
+              <CookieIcon icon={Download} idle={false} roll={-14} size={58} />
               {t("card.stl")}
             </Button>
           </div>
@@ -262,7 +314,12 @@ const CardPage = () => {
 
       <a className="greeting-cta" href="/">
         {t("card.makeOwn")}
-        <CookieIcon icing="#ff5fa8" icon={ArrowUpRight} size={40} />
+        <CookieIcon
+          icing="#ff5fa8"
+          icon={ArrowUpRight}
+          idle={false}
+          size={40}
+        />
       </a>
     </main>
   );

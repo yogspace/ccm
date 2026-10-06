@@ -157,6 +157,9 @@ export const traceOutline = (source: HTMLCanvasElement): Ring[] => {
 
   const { width, height } = canvas;
   const { data } = ctx.getImageData(0, 0, width, height);
+  // Free the pixels right away: Safari on iOS has a tight budget for canvas
+  // memory and frees it late – once it is used up, canvases stay blank.
+  canvas.width = canvas.height = 0;
   const values: number[] = new Array(width * height);
   let any = false;
   for (let i = 0; i < values.length; i++) {

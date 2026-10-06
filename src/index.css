@@ -2152,7 +2152,8 @@ button.card-offer {
   gap: 0.75rem;
   width: 100%;
   height: auto;
-  margin-top: 0.75rem;
+  /* Below it the buttons, then the sun's corner – it must not cover this. */
+  margin: 0.75rem 0 0.75rem;
   padding: 0.65rem 1rem 0.65rem 0.7rem;
   text-align: left;
   white-space: normal;
@@ -2165,7 +2166,8 @@ button.card-offer:hover:not(:disabled) {
   background: color-mix(in oklab, #ffc31f 36%, var(--surface));
 }
 
-.card-offer span {
+/* Only the text – the cookie icon keeps its hidden SVG hidden. */
+.card-offer-text {
   display: grid;
   gap: 0.1rem;
 }
