@@ -165,3 +165,12 @@ Reine Geometrie-Funktionen (`outline.ts` ohne Canvas-Teil, `cutter.ts`, Exporte)
   - Geometrie serverseitig mit derselben Pipeline (`outline.ts` → `cutter.ts` → `export/`). manifold-3d läuft auch in Node; nur das Rastern des SVG braucht dort einen Canvas-Ersatz (z. B. resvg).
   - Läuft als `/api` in diesem Stack (siehe Betrieb), als eigener Container: Das 128m-Limit gilt nur für den Static-Server.
   - Datenschutz-Text ergänzen: Bei der API geht das SVG an den Server.
+- **Direkt drucken lassen.** Neben den Downloads ein Button „Drucken lassen“: Der Ausstecher geht an einen Druckdienst, dort wählt man Material, Shop und Versand und bezahlt.
+  - Ablauf: Der Server speichert die erzeugte STL/3MF kurzzeitig (z. B. 24 h) unter einer zufälligen URL, legt damit beim Dienst eine Bestellkonfiguration an und leitet den Nutzer dorthin weiter. Braucht also denselben serverseitigen Speicher wie die API – deshalb zusammen planen.
+  - Prinzip wie bei [city-roads](https://anvaka.github.io/city-roads/) (Karte → Zazzle): Der Browser lädt die Datei an einen kleinen eigenen Endpunkt, der sie öffentlich ablegt und die URL zurückgibt; daraus wird ein Deep Link mit Partner-ID, der direkt auf der fertigen Bestellseite landet (dort `src/lib/getZazzleLink.js`, rund 30 Zeilen). Hier: STL-Upload in `ccm-api` + Link zum Druckdienst.
+  - **Craftcloud** (All3DP, München): Preisvergleich über 150+ Druckshops und Materialien. STL-URL rein, Konfigurations-Link (`app.craftcloud3d.com/configuration/…`) raus – so binden es z. B. Cults und Kiln an. Ob es ein Partner-/Provisionsmodell für vermittelte Bestellungen gibt, ist nicht öffentlich: bei Craftcloud anfragen.
+  - **Treatstock**: API mit Upload, Preisen und Bestellung (STL, PLY, 3MF); Nutzer landen per Redirect oder eingebettetem Widget beim Bestellen. Provision je abgeschlossener Bestellung. Upload nur serverseitig mit Partner-Key (über support@treatstock.com).
+  - Weniger passend: **Slant 3D** (Druckfarm-API für Firmen; wir wären selbst Verkäufer mit Bezahlung und Versand), **Shapeways** (API mit OAuth, eher Marktplatz).
+  - Empfehlung: erst Craftcloud (größte Auswahl, Sitz in Deutschland), Treatstock als Alternative mit klarer Provision.
+  - Hinweis im Dialog: PLA/PETG, für Lebensmittelkontakt nur kurz und gut gereinigt verwenden.
+  - Datenschutz-Text ergänzen: Beim Drucken lassen geht das Modell an den Server und an den Druckdienst.

@@ -75,7 +75,10 @@ When opening a 3MF, Bambu Studio reports “The 3mf file has invalid config, loa
 
 ## Planned
 
-An API you send an SVG to and get the finished cutter back from (with API tokens and a database), see the roadmap in [projects.md](projects.md).
+- An API you send an SVG to and get the finished cutter back from (with API tokens and a database).
+- “Get it printed”: hand the finished cutter straight to a print service (e.g. Craftcloud or Treatstock) to choose material and shop and order there.
+
+Details in the roadmap in [projects.md](projects.md).
 
 ## Development
 
