@@ -1,8 +1,7 @@
 import { type CSSProperties, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { DONATE_URL } from "../links";
 import CookieIcon from "./cookie-icon";
-
-const DONATE_URL = "https://paypal.me/yogspace";
 
 /** Sprinkles that shoot out of the sun on hover: angle, colour, delay. */
 const SPRINKLES = Array.from({ length: 14 }, (_, i) => ({

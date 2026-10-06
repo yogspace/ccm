@@ -19,20 +19,20 @@ type Props = {
 const THUMB = 34;
 
 /**
- * Schieberegler mit einem Schoko-Keks als Knopf (als Bild, nicht live in 3D).
- * Bedient wird ein unsichtbarer, echter Range-Input darüber – Tastatur,
- * Screenreader und Touch wie gewohnt.
+ * Slider with a chocolate chip cookie as its thumb (as an image, not live 3D).
+ * It is operated through an invisible, real range input on top – keyboard,
+ * screen readers and touch work as usual.
  *
- * Der Knopf folgt sofort einem eigenen Wert; die Änderung nach außen läuft
- * als Transition, damit teures Neuzeichnen dahinter ihn nicht ausbremst.
+ * The thumb follows its own value right away; the change goes out as a
+ * transition, so expensive re-rendering behind it does not slow it down.
  */
 const CookieSlider = ({ min, max, step, value, onChange, label }: Props) => {
   const [thumb, setThumb] = useState<string>();
-  // Jeder Keks liegt anders – sonst sehen alle Regler gleich aus.
+  // Every cookie lies differently – otherwise all sliders look the same.
   const [turn] = useState(() => Math.round(Math.random() * 360));
   const [current, setCurrent] = useState(value);
   const [outside, setOutside] = useState(value);
-  // Neuer Wert von außen (z. B. Zurücksetzen) übernimmt den Knopf.
+  // A new value from outside (e.g. reset) takes over the thumb.
   if (value !== outside) {
     setOutside(value);
     setCurrent(value);

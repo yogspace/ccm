@@ -1667,24 +1667,41 @@ button.hints-toggle {
 /* Fan of example pictures between editor and footer: cards like the share
    image, turning around a point far below them (gallery-fan.tsx). */
 .gallery {
-  --card: 11rem;
   position: relative;
-  height: calc(var(--card) * 1.45);
+  align-self: stretch;
+  height: calc(var(--fan-card) * 1.45);
 }
 
 .gallery-card {
   position: absolute;
   top: 0;
-  left: calc(50% - var(--card) / 2);
-  width: var(--card);
+  left: calc(50% - var(--fan-card) / 2);
+  width: var(--fan-card);
   aspect-ratio: 1;
   /* In card units – a percentage would be of the whole gallery's width. */
-  padding: calc(var(--card) * 0.06);
+  padding: calc(var(--fan-card) * 0.06);
   background: #2a44ff;
   border: 2px solid rgb(255 255 255 / 0.85);
   border-radius: 1.4rem;
   box-shadow: 0 1.2rem 2.5rem rgb(5 10 60 / 0.35);
   transform-origin: 50% 300%;
+}
+
+/* The end of the page: the fan floats, the share button sits in its own box
+   in front of the fan's lower edge. */
+.showcase {
+  --fan-card: 11rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.card.share-box {
+  position: relative;
+  z-index: 10;
+  flex-direction: row;
+  margin-top: calc(var(--fan-card) * -0.45);
+  padding: 1rem 1.25rem;
 }
 
 .gallery-card img {
@@ -1697,8 +1714,8 @@ button.hints-toggle {
 }
 
 @media (max-width: 40rem) {
-  .gallery {
-    --card: 7.5rem;
+  .showcase {
+    --fan-card: 7.5rem;
   }
 }
 
@@ -2078,6 +2095,40 @@ button.share-link[data-copied] {
   margin-top: 0.75rem;
   font-size: var(--fs-small);
   color: var(--muted);
+}
+
+/* “Buy me a cookie” at the end of the share dialog: sun cookie and text */
+.donate-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-top: 1.25rem;
+  padding: 0.75rem 1.1rem 0.75rem 0.75rem;
+  color: #0d1033;
+  text-decoration: none;
+  background: #ffe9a3;
+  border-radius: var(--radius);
+  transition: background 0.2s var(--ease);
+}
+
+.donate-banner:hover {
+  background: #ffdf7a;
+}
+
+.donate-banner span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.donate-banner small {
+  font-size: var(--fs-small);
+  color: rgb(13 16 51 / 0.7);
+}
+
+.donate-banner .cookie {
+  flex: none;
+  margin: -0.75rem -0.25rem -0.75rem 0;
 }
 
 .share-more {

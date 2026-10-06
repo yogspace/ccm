@@ -1,11 +1,11 @@
 /**
- * Zähler „x Kreationen erstellt“ über die Mini-API (api/server.mjs). Ist sie
- * nicht erreichbar (z. B. im Dev-Server ohne API), gibt es einfach keine Zahl.
+ * The “x creations made” counter via the mini API (api/server.mjs). If it is
+ * unreachable (e.g. in a dev server without the API), there is simply no number.
  */
 
 const SEEN_KEY = "ccm.counted";
 
-/** Kurzer Fingerabdruck einer Kreation (FNV-1a), damit sie pro Sitzung nur einmal zählt. */
+/** Short fingerprint of a creation (FNV-1a), so it counts only once per session. */
 const fingerprint = (text: string) => {
   let hash = 0x811c9dc5;
   for (let i = 0; i < text.length; i++) {
@@ -40,9 +40,9 @@ export const loadCreations = async () => {
 };
 
 /**
- * Zählt eine Kreation (Download oder Teilen). `key` beschreibt sie, z. B. der
- * Link-Hash – dieselbe Kreation zählt pro Sitzung nur einmal. Liefert die neue
- * Summe oder `null`.
+ * Counts a creation (download or share). `key` describes it, e.g. the link
+ * hash – the same creation counts only once per session. Returns the new total
+ * or `null`.
  */
 export const countCreation = async (key: string) => {
   const id = fingerprint(key);
@@ -54,7 +54,7 @@ export const countCreation = async (key: string) => {
       JSON.stringify([...known, id].slice(-200))
     );
   } catch {
-    // Ohne Storage zählt es eben öfter – kein Problem.
+    // Without storage it simply counts more often – no problem.
   }
   try {
     return await readCount(

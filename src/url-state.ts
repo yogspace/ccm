@@ -3,26 +3,26 @@ import { type CutterParams, defaultParams } from "./geometry/cutter";
 import type { Point, Ring } from "./geometry/outline";
 
 /**
- * Der komplette Zustand steckt im URL-Hash, damit Links geteilt werden können.
- * Der Hash geht nie an den Server – es wird nichts gespeichert.
+ * The complete state lives in the URL hash, so links can be shared. The hash
+ * never reaches the server – nothing is stored.
  *
- * Format: `#n=<Name>&size=90&…&s=<Zeichnung>`; Maße nur, wenn sie vom
- * Standard abweichen. Gespeichert wird die Zeichnung selbst (Striche und
- * importierte Flächen), damit sie nach dem Öffnen genauso aussieht.
+ * Format: `#n=<name>&size=90&…&s=<drawing>`; dimensions only when they differ
+ * from the defaults. The drawing itself is stored (strokes and imported
+ * areas), so it looks just the same after opening.
  */
 
-/** Ein Strich: geglättete Stiftpunkte in Zeichenflächen-Pixeln und Breite. */
+/** A stroke: smoothed pen points in drawing-area pixels, and its width. */
 export type Stroke = {
   width: number;
   points: Point[];
-  /** Radiergummi: nimmt Tinte weg, statt welche aufzutragen. */
+  /** Eraser: takes ink away instead of putting some down. */
   erase?: boolean;
 };
 
 export type Drawing = {
-  /** Fläche aus einem SVG-Import oder einem alten Link, Konturen normiert 0…1. */
+  /** Area from an SVG import or an old link, contours normalised to 0…1. */
   base: Ring[];
-  /** 0 = gefüllt; sonst innen entlang der Kontur in dieser Breite gezeichnet. */
+  /** 0 = filled; otherwise drawn along the inside of the contour in this width. */
   baseLine: number;
   strokes: Stroke[];
 };
@@ -32,7 +32,7 @@ export const emptyDrawing: Drawing = { base: [], baseLine: 0, strokes: [] };
 export const isEmptyDrawing = ({ base, strokes }: Drawing) =>
   base.length === 0 && strokes.length === 0;
 
-/** Strichbreite, mit der alte Links (nur Kontur) nachgezeichnet werden. */
+/** Stroke width used to redraw old links (contour only). */
 const LEGACY_LINE = 48;
 
 export type SharedState = {
@@ -40,25 +40,25 @@ export type SharedState = {
   params: CutterParams;
   drawing: Drawing;
   /**
-   * Nur bei alten Links (Version 1): die geteilte Ausstecher-Kontur, aus der
-   * der Ausstecher direkt entsteht. Bei neuen Links kommt sie aus der Zeichnung.
+   * Only for old links (version 1): the shared cutter contour the cutter is
+   * built from directly. For new links it comes from the drawing.
    */
   rings: Ring[];
 };
 
-/** Raster, auf das die Koordinaten gerundet werden (= Zeichenflächen-Pixel). */
+/** Grid the coordinates are rounded to (= drawing-area pixels). */
 const GRID = 1024;
-/** Douglas-Peucker-Toleranz in Rasterpunkten (≈ 0,1 mm bei 80 mm Größe). */
+/** Douglas-Peucker tolerance in grid points (≈ 0.1 mm at a size of 80 mm). */
 const TOLERANCE = 1;
-/** Striche auf 2 px gerundet – bei Strichstärken ab 6 px unsichtbar. */
+/** Strokes rounded to 2 px – invisible at brush sizes from 6 px. */
 const STROKE_STEP = 2;
-/** Je dicker der Strich, desto mehr darf die Mittellinie abweichen. */
+/** The thicker the stroke, the more its centre line may deviate. */
 const strokeTolerance = (width: number) =>
   Math.min(4, Math.max(1.5, width * 0.1));
-/** Formatversion: 1 = nur Kontur, 2 = Zeichnung, 3 = Zeichnung kompakt. */
+/** Format version: 1 = contour only, 2 = drawing, 3 = compact drawing. */
 const VERSION = 3;
 
-/** Douglas-Peucker für offene Linien: welche Punkte bleiben. */
+/** Douglas-Peucker for open lines: which points stay. */
 const keepPoints = (points: Point[], tolerance: number) => {
   const keep = new Uint8Array(points.length);
   keep[0] = 1;
@@ -73,7 +73,7 @@ const keepPoints = (points: Point[], tolerance: number) => {
     let index = -1;
     for (let i = first + 1; i < last; i++) {
       const [px, py] = points[i];
-      // Abstand zur Strecke; ist sie ein Punkt, zum Punkt.
+      // Distance to the segment; if it is a point, to that point.
       const distance =
         length > 0
           ? Math.abs((bx - ax) * (ay - py) - (ax - px) * (by - ay)) / length
@@ -98,8 +98,8 @@ export const simplifyLine = (points: Point[], tolerance: number) => {
 };
 
 /**
- * Douglas-Peucker für geschlossene Ringe: Anfang und Ende sind derselbe Punkt,
- * deshalb wird am entferntesten Punkt in zwei offene Hälften geteilt.
+ * Douglas-Peucker for closed rings: start and end are the same point, so the
+ * ring is split into two open halves at the farthest point.
  */
 const simplifyRing = (input: Point[], tolerance: number): Point[] => {
   const [fx, fy] = input[0];
@@ -122,7 +122,7 @@ const simplifyRing = (input: Point[], tolerance: number): Point[] => {
 };
 
 const writeVarint = (out: number[], value: number) => {
-  // ZigZag, damit kleine negative Deltas auch kurz bleiben.
+  // ZigZag, so small negative deltas stay short too.
   let v = value >= 0 ? value * 2 : -value * 2 - 1;
   while (v >= 0x80) {
     out.push((v & 0x7f) | 0x80);
@@ -154,12 +154,12 @@ const fromBase64Url = (text: string) =>
     c.charCodeAt(0)
   );
 
-/** Letzter geschriebener Punkt – Folgen schließen daran an. */
+/** Last written point – following sequences continue from it. */
 type Origin = { x: number; y: number };
 
 const origin = (): Origin => ({ x: 0, y: 0 });
 
-/** Punktfolge als Deltas – kurze Zahlen, die sich gut komprimieren lassen. */
+/** A point sequence as deltas – short numbers that compress well. */
 const writePoints = (out: number[], points: Point[], from: Origin) => {
   writeVarint(out, points.length);
   for (const [x, y] of points) {
@@ -203,7 +203,7 @@ export const encodeDrawing = ({ base, baseLine, strokes }: Drawing) => {
   const ringFrom = origin();
   for (const ring of rings) writePoints(out, ring, ringFrom);
   writeVarint(out, strokes.length);
-  // Jeder Strich beginnt relativ zum Ende des vorigen.
+  // Every stroke starts relative to the end of the previous one.
   const strokeFrom = origin();
   for (const { width, points, erase } of strokes) {
     const simplified = simplifyLine(points, strokeTolerance(width)).map(
@@ -212,7 +212,7 @@ export const encodeDrawing = ({ base, baseLine, strokes }: Drawing) => {
         Math.round(y / STROKE_STEP),
       ]
     );
-    // Radierer als negative Breite – alte Links haben nur positive.
+    // Erasers as negative widths – old links only have positive ones.
     writeVarint(out, Math.max(1, Math.round(width)) * (erase ? -1 : 1));
     writePoints(out, simplified, strokeFrom);
   }
@@ -228,13 +228,13 @@ export const decodeDrawing = (
   const bytes = inflateSync(fromBase64Url(text));
   const cursor = { at: 0 };
   const version = readVarint(bytes, cursor);
-  // Bis Version 2 begann jede Punktfolge bei 0/0.
+  // Up to version 2 every point sequence started at 0/0.
   const chained = version >= 3;
   const ringFrom = origin();
   const nextRing = () =>
     toRing(readPoints(bytes, cursor, chained ? ringFrom : origin()));
 
-  // Version 1: nur die Ausstecher-Kontur – wird innen nachgezeichnet.
+  // Version 1: only the cutter contour – it gets redrawn along the inside.
   if (version === 1) {
     const count = readVarint(bytes, cursor);
     const rings: Ring[] = [];

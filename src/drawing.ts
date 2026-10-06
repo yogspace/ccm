@@ -2,16 +2,16 @@ import { type Point, type Ring, traceOutline } from "./geometry/outline";
 import { type Drawing, type Stroke, simplifyLine } from "./url-state";
 
 /**
- * Helfer für die Zeichnung als Vektoren (Striche + Fläche aus einem Import):
- * malen, Objekte finden, verschieben und skalieren, Vorlagen platzieren.
+ * Helpers for the drawing as vectors (strokes + an area from an import):
+ * painting, finding objects, moving and scaling, placing templates.
  */
 
-/** Auflösung der Zeichenfläche (Pixel je Seite). */
+/** Resolution of the drawing area (pixels per side). */
 export const DRAW_RES = 1024;
 
-/** Raster, auf dem bestimmt wird, was sich berührt – fein genug für schmale Radier-Lücken. */
+/** Grid on which touching is decided – fine enough for narrow eraser gaps. */
 const GROUP_RES = 512;
-/** Ab dieser Deckkraft (0…255) zählt ein Pixel als Tinte. */
+/** From this opacity (0…255) on, a pixel counts as ink. */
 const INK = 40;
 
 const ringsPath = (rings: Ring[]) => {
@@ -27,8 +27,8 @@ const ringsPath = (rings: Ring[]) => {
 };
 
 /**
- * Malt eine Zeichnung: erst die Fläche, dann die Striche. Als Linienzug durch
- * die Punkte bleiben auch vereinfachte Striche (aus Links) nah am Original.
+ * Paints a drawing: first the area, then the strokes. As a polyline through the
+ * points, simplified strokes (from links) stay close to the original too.
  */
 export const paint = (ctx: CanvasRenderingContext2D, drawing: Drawing) => {
   ctx.fillStyle = "#000";
@@ -39,8 +39,8 @@ export const paint = (ctx: CanvasRenderingContext2D, drawing: Drawing) => {
     const path = ringsPath(drawing.base);
     if (drawing.baseLine === 0) ctx.fill(path, "evenodd");
     else {
-      // Alte Links: als Strich innen entlang der Kontur statt als Fläche – sieht
-      // aus wie gezeichnet, und die Außenkante bleibt exakt die geteilte Kontur.
+      // Old links: a stroke along the inside of the contour instead of an area –
+      // looks drawn, and the outer edge stays exactly the shared contour.
       ctx.save();
       ctx.clip(path);
       ctx.lineWidth = drawing.baseLine;
@@ -51,7 +51,7 @@ export const paint = (ctx: CanvasRenderingContext2D, drawing: Drawing) => {
   for (const { width, points, erase } of drawing.strokes) {
     const [first, ...rest] = points;
     if (!first) continue;
-    // Radierer stanzen aus, was bis dahin gemalt ist.
+    // Erasers punch out whatever is painted up to then.
     ctx.globalCompositeOperation = erase ? "destination-out" : "source-over";
     ctx.beginPath();
     ctx.arc(first[0], first[1], width / 2, 0, Math.PI * 2);
@@ -66,7 +66,7 @@ export const paint = (ctx: CanvasRenderingContext2D, drawing: Drawing) => {
   ctx.globalCompositeOperation = "source-over";
 };
 
-/** Ausgewählte Teile: Striche und Konturen der Importfläche (jeweils Indizes). */
+/** Selected parts: strokes and contours of the imported area (indices each). */
 export type Selection = { strokes: number[]; rings: number[] };
 
 export type Box = { x0: number; y0: number; x1: number; y1: number };
@@ -74,13 +74,13 @@ export type Box = { x0: number; y0: number; x1: number; y1: number };
 const isEmpty = (selection: Selection) =>
   selection.strokes.length === 0 && selection.rings.length === 0;
 
-/** Beides zusammen, ohne Doppelte – z. B. Auswahl plus Umschalt-Klick. */
+/** Both together, without duplicates – e.g. a selection plus a shift-click. */
 export const mergeSelections = (a: Selection, b: Selection): Selection => ({
   strokes: [...new Set([...a.strokes, ...b.strokes])].sort((x, y) => x - y),
   rings: [...new Set([...a.rings, ...b.rings])].sort((x, y) => x - y),
 });
 
-/** Rahmen um die Auswahl in Zeichenflächen-Pixeln, samt Strichbreite. */
+/** Box around the selection in drawing-area pixels, including stroke width. */
 export const selectionBox = (
   drawing: Drawing,
   selection: Selection
@@ -101,7 +101,7 @@ export const selectionBox = (
   };
   for (const index of selection.strokes) {
     const stroke = drawing.strokes[index];
-    // Radierer nehmen nur weg – sie zählen nicht zum Rahmen.
+    // Erasers only take away – they do not count towards the box.
     if (!stroke || stroke.erase) continue;
     for (const [x, y] of stroke.points) add(x, y, stroke.width / 2);
   }
@@ -113,7 +113,7 @@ export const selectionBox = (
   return Number.isFinite(box.x0) ? box : null;
 };
 
-/** Drehen (rad) und skalieren um (cx, cy), dann verschieben um (dx, dy) – in Pixeln. */
+/** Rotate (rad) and scale around (cx, cy), then move by (dx, dy) – in pixels. */
 export type Transform = {
   scale: number;
   angle?: number;
@@ -123,7 +123,7 @@ export type Transform = {
   dy: number;
 };
 
-/** Die Transformation als Abbildung eines Punkts. */
+/** The transform as a mapping of a point. */
 export const applyTransform = ({
   scale,
   angle = 0,
@@ -140,7 +140,7 @@ export const applyTransform = ({
   ];
 };
 
-/** Wendet die Transformation auf die Auswahl an; Strichbreiten skalieren mit. */
+/** Applies the transform to the selection; stroke widths scale along. */
 export const transformDrawing = (
   drawing: Drawing,
   selection: Selection,
@@ -150,8 +150,8 @@ export const transformDrawing = (
   const apply = applyTransform(transform);
   const chosen = new Set(selection.strokes);
   const rings = new Set(selection.rings);
-  // Die Linienbreite alter Links gilt für die ganze Fläche – nur mitskalieren,
-  // wenn alles davon ausgewählt ist.
+  // The line width of old links applies to the whole area – only scale it when
+  // all of it is selected.
   const wholeBase =
     drawing.base.length > 0 && rings.size === drawing.base.length;
   return {
@@ -167,7 +167,7 @@ export const transformDrawing = (
     strokes: drawing.strokes.map((stroke, index) =>
       chosen.has(index)
         ? {
-            // Alles übernehmen (auch „Radierer“), nur Lage und Breite ändern sich.
+            // Keep everything (also “erase”), only position and width change.
             ...stroke,
             width: Math.max(1, stroke.width * scale),
             points: stroke.points.map(apply),
@@ -201,7 +201,7 @@ const distanceToPath = (point: Point, path: Point[]) => {
   return best;
 };
 
-/** Punkte höchstens `step` Pixel auseinander – damit lange Geraden sich teilen lassen. */
+/** Points at most `step` pixels apart – so long straight lines can be split. */
 const densify = (points: Point[], step: number) => {
   const dense: Point[] = points.length > 0 ? [points[0]] : [];
   for (let i = 1; i < points.length; i++) {
@@ -232,11 +232,11 @@ const boxesOverlap = (a: Box, b: Box) =>
   a.x0 <= b.x1 && b.x0 <= a.x1 && a.y0 <= b.y1 && b.y0 <= a.y1;
 
 /**
- * Radieren wirklich wegnehmen: Striche werden dort gekürzt bzw. geteilt, wo der
- * Radierer sie berührt – so weit, dass auch die runden Enden der Reststücke an
- * der Radierkante aufhören. Was ganz weg ist, verschwindet aus der Zeichnung.
- * Eine importierte Fläche wird mit dem Radierer neu abgetastet. Der Radierer
- * selbst bleibt nirgends stehen – sonst wäre er ein unsichtbares Loch.
+ * Erasing really takes away: strokes are shortened or split where the eraser
+ * touches them – far enough that the round ends of the remaining pieces also
+ * stop at the eraser's edge. What is gone entirely disappears from the drawing.
+ * An imported area is traced again with the eraser applied. The eraser itself
+ * stays nowhere – otherwise it would be an invisible hole.
  */
 export const applyEraser = (drawing: Drawing, eraser: Stroke): Drawing => {
   const radius = eraser.width / 2;
@@ -249,7 +249,7 @@ export const applyEraser = (drawing: Drawing, eraser: Stroke): Drawing => {
       continue;
     }
     const dense = densify(stroke.points, 2);
-    // Ein Punkt bleibt nur, wenn auch seine runde Kappe den Radierer nicht erreicht.
+    // A point stays only if its round cap does not reach the eraser either.
     const keep = dense.map(
       (point) => distanceToPath(point, eraser.points) > radius + half
     );
@@ -282,8 +282,8 @@ export const applyEraser = (drawing: Drawing, eraser: Stroke): Drawing => {
   if (!baseBox || !boxesOverlap(baseBox, reachBox)) {
     return { ...drawing, strokes };
   }
-  // Die Importfläche wird mit dem Radierer neu abgetastet: Was weg ist, ist
-  // weg, und durchtrennte Teile werden zu eigenen Konturen.
+  // The imported area is traced again with the eraser: what is gone is gone,
+  // and pieces cut apart become contours of their own.
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = DRAW_RES;
   const ctx = canvas.getContext("2d");
@@ -302,7 +302,7 @@ export const applyEraser = (drawing: Drawing, eraser: Stroke): Drawing => {
   };
 };
 
-/** Setzt die Strichstärke der ausgewählten Striche (Radierer bleiben, wie sie sind). */
+/** Sets the width of the selected strokes (erasers stay as they are). */
 export const setStrokeWidth = (
   drawing: Drawing,
   selection: Selection,
@@ -317,7 +317,7 @@ export const setStrokeWidth = (
   };
 };
 
-/** Strichstärke der Auswahl (des ersten Strichs), sonst `null`. */
+/** Stroke width of the selection (of its first stroke), otherwise `null`. */
 export const selectionWidth = (drawing: Drawing, selection: Selection) => {
   const stroke = selection.strokes
     .map((index) => drawing.strokes[index])
@@ -325,7 +325,7 @@ export const selectionWidth = (drawing: Drawing, selection: Selection) => {
   return stroke ? stroke.width : null;
 };
 
-/** Entfernt die Auswahl aus der Zeichnung. */
+/** Removes the selection from the drawing. */
 export const removeSelection = (
   drawing: Drawing,
   selection: Selection
@@ -341,13 +341,13 @@ export const removeSelection = (
 };
 
 /**
- * Zerlegt die Zeichnung in Objekte: Was sich berührt, gehört zusammen. Dafür
- * wird sie klein gerastert; zusammenhängende Tinte ist ein Objekt, und Striche,
- * die durch dieselbe Tinte laufen, landen im selben.
+ * Splits the drawing into objects: what touches belongs together. For that it
+ * is rasterised small; connected ink is one object, and strokes running
+ * through the same ink end up in the same one.
  */
 const objectCache = new WeakMap<Drawing, ReturnType<typeof scanObjects>>();
 
-/** Objekte einer Zeichnung – je Zeichnung nur einmal gerastert (sie ist unveränderlich). */
+/** Objects of a drawing – rasterised only once per drawing (it is immutable). */
 const findObjects = (drawing: Drawing) => {
   let objects = objectCache.get(drawing);
   if (!objects) {
@@ -367,7 +367,7 @@ const scanObjects = (drawing: Drawing) => {
   paint(ctx, drawing);
   const { data } = ctx.getImageData(0, 0, GROUP_RES, GROUP_RES);
 
-  // Zusammenhängende Tinte markieren (8er-Nachbarschaft).
+  // Label connected ink (8-neighbourhood).
   const labels = new Int32Array(GROUP_RES * GROUP_RES);
   let count = 0;
   const stack: number[] = [];
@@ -402,7 +402,7 @@ const scanObjects = (drawing: Drawing) => {
     return root;
   };
 
-  /** Nächste Tinte um einen Punkt (Zeichenflächen-Pixel) im Umkreis `radius` (Raster). */
+  /** Nearest ink around a point (drawing-area pixels) within `radius` (grid). */
   const labelNear = ([px, py]: Point, radius: number) => {
     const gx = Math.round(px * toGrid);
     const gy = Math.round(py * toGrid);
@@ -418,7 +418,7 @@ const scanObjects = (drawing: Drawing) => {
     return 0;
   };
 
-  // Teile eines Elements verbinden (dünne Striche zerfallen im groben Raster).
+  // Join the parts of an element (thin strokes fall apart on the coarse grid).
   const labelOf = (points: Point[]) => {
     let first = 0;
     for (let i = 0; i < points.length; i += 3) {
@@ -432,14 +432,14 @@ const scanObjects = (drawing: Drawing) => {
   const strokeLabels = drawing.strokes.map((stroke) =>
     stroke.erase ? 0 : labelOf(stroke.points)
   );
-  // Jede Kontur der Importfläche für sich – so lassen sich getrennte Teile
-  // eines Imports einzeln greifen (Löcher hängen an ihrer Tinte).
+  // Every contour of the imported area on its own – so separate parts of an
+  // import can be grabbed one by one (holes stay with their ink).
   const ringLabels = drawing.base.map((ring) =>
     labelOf(ring.map(([x, y]): Point => [x * DRAW_RES, y * DRAW_RES]))
   );
 
-  // Ein Radierer gehört zu allen Objekten, an deren Tinte er entlangfährt –
-  // ohne sie zu verbinden: Wer ein Objekt durchradiert, bekommt zwei.
+  // An eraser belongs to every object whose ink it runs along – without joining
+  // them: erasing straight through an object leaves two.
   const eraserRoots = drawing.strokes.map((stroke) => {
     const roots = new Set<number>();
     if (!stroke.erase) return roots;
@@ -458,7 +458,7 @@ const scanObjects = (drawing: Drawing) => {
     return roots;
   });
 
-  /** Alles, was zu einer der Wurzeln gehört – samt der Radierer daran. */
+  /** Everything that belongs to one of the roots – including their erasers. */
   const collect = (roots: Set<number>): Selection => ({
     strokes: drawing.strokes.flatMap((stroke, index) => {
       if (stroke.erase) {
@@ -474,7 +474,7 @@ const scanObjects = (drawing: Drawing) => {
     ),
   });
 
-  /** Wurzeln der ausgewählten Tinte (ohne Radierer). */
+  /** Roots of the selected ink (without erasers). */
   const rootsOf = (selection: Selection) => {
     const roots = new Set<number>();
     for (const index of selection.strokes) {
@@ -488,9 +488,9 @@ const scanObjects = (drawing: Drawing) => {
     return roots;
   };
 
-  /** Rahmen der Tinte je Objekt (Raster), erst bei Bedarf berechnet. */
+  /** Ink box per object (grid), computed only when needed. */
   let rootBoxes: Map<number, Box> | null = null;
-  /** Wurzeln aller Objekte, deren Tinte ganz im Rechteck (Zeichenflächen-Pixel) liegt. */
+  /** Roots of all objects whose ink lies entirely in the rectangle (drawing-area pixels). */
   const rootsWithin = (area: Box) => {
     if (!rootBoxes) {
       rootBoxes = new Map();
@@ -511,7 +511,7 @@ const scanObjects = (drawing: Drawing) => {
     }
     const roots = new Set<number>();
     for (const [root, cells] of rootBoxes) {
-      // Mitten der Rasterzellen in Zeichenflächen-Pixeln
+      // Centres of the grid cells in drawing-area pixels
       if (
         (cells.x0 + 0.5) / toGrid >= area.x0 &&
         (cells.y0 + 0.5) / toGrid >= area.y0 &&
@@ -527,7 +527,7 @@ const scanObjects = (drawing: Drawing) => {
   return { labelNear, find, collect, rootsOf, rootsWithin, eraserRoots };
 };
 
-/** Das Objekt unter einem Punkt (Zeichenflächen-Pixel), sonst `null`. */
+/** The object under a point (drawing-area pixels), otherwise `null`. */
 export const objectAt = (
   drawing: Drawing,
   point: Point,
@@ -544,7 +544,7 @@ export const objectAt = (
   return isEmpty(selection) ? null : selection;
 };
 
-/** Alle Objekte, die ganz im Rechteck (Zeichenflächen-Pixel) liegen – Auswahl per Rahmen. */
+/** All objects lying entirely in the rectangle (drawing-area pixels) – box selection. */
 export const objectsWithin = (
   drawing: Drawing,
   area: Box
@@ -557,7 +557,7 @@ export const objectsWithin = (
   return isEmpty(selection) ? null : selection;
 };
 
-/** Erweitert eine Auswahl um alles, was sie berührt (z. B. nach dem Verschieben). */
+/** Extends a selection by everything it touches (e.g. after moving). */
 export const objectOf = (drawing: Drawing, selection: Selection): Selection => {
   const objects = findObjects(drawing);
   if (!objects) return selection;
@@ -566,10 +566,9 @@ export const objectOf = (drawing: Drawing, selection: Selection): Selection => {
 };
 
 /**
- * Vor dem Verschieben oder Löschen: Ein Radierer, der auch andere Objekte
- * berührt, wird verdoppelt – einer bleibt für die anderen, einer geht mit der
- * Auswahl. Die Kopie steht direkt hinter dem Original, also an derselben Stelle
- * in der Malreihenfolge.
+ * Before moving or deleting: an eraser that also touches other objects is
+ * duplicated – one stays for the others, one goes with the selection. The copy
+ * sits right after the original, so at the same place in the painting order.
  */
 export const detachErasers = (
   drawing: Drawing,
@@ -603,8 +602,8 @@ export const detachErasers = (
 };
 
 /**
- * Konturen einer Vorlage (normiert 0…1) als geschlossene Striche: zentriert
- * auf `center`, die längere Seite `size` Pixel groß.
+ * A template's contours (normalised 0…1) as closed strokes: centred on
+ * `center`, the longer side `size` pixels.
  */
 export const presetStrokes = (
   rings: Ring[],

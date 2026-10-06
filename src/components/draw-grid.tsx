@@ -3,18 +3,18 @@ import { useTranslation } from "react-i18next";
 import { numberFormat, type Unit } from "../units";
 
 type Props = {
-  /** Wie viele mm die Breite der Zeichenfläche im fertigen Ausstecher sind. */
+  /** How many mm the drawing area's width is in the finished cutter. */
   mmPerCanvas: number | null;
   unit: Unit;
 };
 
 const MM_PER_INCH = 25.4;
-/** Ohne Form gibt es keinen Maßstab – dann ein neutrales 8×8-Raster. */
+/** Without a shape there is no scale – then a neutral 8×8 grid. */
 const FALLBACK_DIVISIONS = 8;
-/** Beschriftungen zu nah an der Ecke stießen an die der anderen Achse. */
+/** Labels too close to the corner would run into the other axis's. */
 const LABEL_MARGIN = 0.08;
 
-/** Rundet auf 1, 2 oder 5 mal eine Zehnerpotenz. */
+/** Rounds to 1, 2 or 5 times a power of ten. */
 const niceStep = (raw: number) => {
   const power = 10 ** Math.floor(Math.log10(raw));
   const fraction = raw / power;
@@ -23,10 +23,10 @@ const niceStep = (raw: number) => {
   );
 };
 
-/** `index` bleibt beim Zoomen gleich – so werden Linien verschoben statt neu angelegt. */
+/** `index` stays the same when zooming – so lines move instead of being recreated. */
 type Tick = { index: number; pos: number; value: number; major: boolean };
 
-/** Striche ab 0 (Ecke unten links) bis zum Rand; `pos` von links bzw. unten (0…1). */
+/** Ticks from 0 (bottom left corner) to the edge; `pos` from the left or bottom (0…1). */
 const buildTicks = (span: number): Tick[] => {
   const step = niceStep(span / 8);
   const minor = step / 2;
@@ -40,9 +40,9 @@ const buildTicks = (span: number): Tick[] => {
 };
 
 /**
- * Koordinatensystem unter der Zeichnung, wie in der Schule: Ursprung unten
- * links, x nach rechts, y nach oben, in echten Maßen des Ausstechers. So lässt
- * sich ablesen, wo etwas liegt.
+ * Coordinate system under the drawing, like at school: origin bottom left,
+ * x to the right, y upwards, in the cutter's real dimensions – so you can read
+ * off where something is.
  */
 const DrawGrid = ({ mmPerCanvas, unit }: Props) => {
   const { i18n } = useTranslation();
@@ -56,7 +56,7 @@ const DrawGrid = ({ mmPerCanvas, unit }: Props) => {
         value: 0,
         major: true,
       }));
-  // Die 0 steht einmal in der Ecke; nichts zu nah an den Ecken.
+  // The 0 sits once in the corner; nothing too close to the corners.
   const labels = mmPerCanvas
     ? ticks.filter(
         ({ pos, major }) =>
@@ -81,7 +81,7 @@ const DrawGrid = ({ mmPerCanvas, unit }: Props) => {
               y1={0}
               y2={1}
             />
-            {/* Im SVG zeigt y nach unten – gezählt wird von unten. */}
+            {/* In SVG y points down – counted from the bottom. */}
             <line
               vectorEffect="non-scaling-stroke"
               x1={0}
@@ -91,7 +91,7 @@ const DrawGrid = ({ mmPerCanvas, unit }: Props) => {
             />
           </g>
         ))}
-        {/* Achsen: linker und unterer Rand */}
+        {/* Axes: left and bottom edge */}
         <g className="axis">
           <line vectorEffect="non-scaling-stroke" x1={0} x2={0} y1={0} y2={1} />
           <line vectorEffect="non-scaling-stroke" x1={0} x2={1} y1={1} y2={1} />

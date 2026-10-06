@@ -2,11 +2,11 @@ import { loadSilhouette, type Ring, traceOutline } from "./geometry/outline";
 import { simplifyLine } from "./url-state";
 
 /**
- * Vorlagen unter der Zeichenfläche: Jede SVG-Datei in src/presets/ wird
- * automatisch eine. Die Reihenfolge folgt dem Dateinamen; eine führende Zahl
- * („1-star.svg“) sortiert nur und gehört nicht zum Namen. Den angezeigten
- * Namen gibt es unter `presets.<name>` in den Übersetzungen, sonst den
- * Dateinamen.
+ * Templates next to the drawing area: every SVG file in src/presets/ becomes
+ * one automatically. The order follows the file name; a leading number
+ * (“1-star.svg”) only sorts and is not part of the name. The displayed name
+ * comes from `presets.<name>` in the translations, otherwise from the file
+ * name.
  */
 const files = import.meta.glob<string>("./presets/*.svg", {
   query: "?raw",
@@ -25,17 +25,17 @@ export const presets: Preset[] = Object.entries(files)
     markup,
   }));
 
-/** Lesbarer Name aus dem Dateinamen, falls es keine Übersetzung gibt. */
+/** Readable name from the file name, in case there is no translation. */
 export const fallbackName = (id: string) =>
   id.replace(/[-_]+/g, " ").replace(/^./, (c) => c.toUpperCase());
 
-/** Konturen (normiert 0…1, Seitenverhältnis erhalten) und ein SVG-Pfad im 24er-Raster für den Keks. */
+/** Contours (normalised to 0…1, aspect ratio kept) and an SVG path on a 24 grid for the card. */
 export type PresetShape = { rings: Ring[]; path: string };
 
 const SIZE = 512;
 const cache = new Map<string, Promise<PresetShape>>();
 
-/** Liest die Umrisse einer Vorlage – egal ob gefüllt oder als Linie gezeichnet. */
+/** Reads a template's outlines – whether it is filled or drawn as a line. */
 export const loadPreset = (preset: Preset) => {
   let pending = cache.get(preset.id);
   if (!pending) {
@@ -46,7 +46,7 @@ export const loadPreset = (preset: Preset) => {
         }),
         SIZE
       );
-      // Quadratisch einpassen, damit nichts verzerrt.
+      // Fit into a square so nothing gets distorted.
       const square = document.createElement("canvas");
       square.width = square.height = SIZE;
       const ctx = square.getContext("2d");

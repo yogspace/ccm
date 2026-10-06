@@ -5,3 +5,6 @@
  */
 export const PORTFOLIO_URL =
   "https://mxwr.de/?utm_source=ccm.mxwr.de&utm_medium=referral";
+
+/** “Buy me a cookie”: donations via PayPal (footer and share dialog). */
+export const DONATE_URL = "https://paypal.me/yogspace";

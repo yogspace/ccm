@@ -124,14 +124,19 @@ const App = () => {
 
           <div className="export">
             <PrintHints />
-            <ExportButtons>
-              <ShareCreation preview={preview} />
-            </ExportButtons>
+            <ExportButtons />
           </div>
         </section>
       </main>
 
-      <GalleryFan />
+      {/* The end of the page: the fan floats, and right in front of it the
+          creation can be shared. */}
+      <div className="showcase">
+        <GalleryFan />
+        <div className="card share-box">
+          <ShareCreation preview={preview} />
+        </div>
+      </div>
 
       <footer>
         <DonateBadge />

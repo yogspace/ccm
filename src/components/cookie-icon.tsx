@@ -10,21 +10,21 @@ import { type CookieHandle, registerCookie } from "../cookies/renderer";
 type Props = {
   size: number;
   className?: string;
-  /** Dreht sich dauerhaft, z. B. beim Laden. */
+  /** Keeps spinning, e.g. while loading. */
   spin?: boolean;
-  /** Tempo der Drehung in rad/s (Standard: schnell, wie beim Laden). */
+  /** Spin speed in rad/s (default: fast, as while loading). */
   spinSpeed?: number;
-  /** Sanftes Schweben im Leerlauf. */
+  /** Gentle floating while idle. */
   idle?: boolean;
-  /** Grunddrehung in Grad. */
+  /** Base rotation in degrees. */
   roll?: number;
-  /** Verzögerung (ms), bevor der Keks hereinwächst. */
+  /** Delay (ms) before the cookie grows in. */
   delay?: number;
-  /** Neigung nach hinten (rad); Standard: Sorten schräger als Icons. */
+  /** Backward tilt (rad); default: kinds tilt more than icons. */
   tilt?: number;
-  /** Aus: kein Mausblick, kein Drehen beim Hover – z. B. wenn Schrift darauf liegt. */
+  /** Off: no looking at the mouse, no turn on hover – e.g. when text lies on it. */
   interactive?: boolean;
-  /** Größe beim Einwachsen (0…1), z. B. damit Schrift darauf mitwächst. */
+  /** Size while growing in (0…1), e.g. so text on it grows along. */
   onGrow?: (scale: number) => void;
 } & (
   | { kind: CookieKind; icon?: never; icing?: never }
@@ -32,9 +32,9 @@ type Props = {
 );
 
 /**
- * Echter 3D-Keks als Icon: entweder eine Keks-Sorte oder ein Lucide-Icon in
- * Keksform. Schaut zur Maus, wenn sie in der Nähe ist, dreht sich beim Hover
- * über den umgebenden Button und gibt beim Klick kurz nach.
+ * A real 3D cookie as an icon: either a kind of cookie or a Lucide icon as a
+ * cookie. Looks at the mouse when it is near, turns on hover over the
+ * surrounding button and gives way briefly on click.
  */
 const CookieIcon = ({
   size,
@@ -55,12 +55,12 @@ const CookieIcon = ({
   const svgRef = useRef<HTMLSpanElement>(null);
   const handle = useRef<CookieHandle>(null);
   const iconName = Icon?.displayName ?? Icon?.name;
-  // Die Rollung ändert sich oft (Regler) – ohne den Keks neu aufzubauen.
+  // The roll changes often (sliders) – without rebuilding the cookie.
   const rollRef = useRef(roll);
   rollRef.current = roll;
   const delayRef = useRef(delay);
-  // Beim Registrieren gleich mitgeben – der Keks lädt asynchron, ein früheres
-  // setSpin würde sonst ins Leere gehen.
+  // Hand it over on registration – the cookie loads asynchronously, an earlier
+  // setSpin would otherwise go nowhere.
   const spinRef = useRef({ spin, spinSpeed });
   spinRef.current = { spin, spinSpeed };
   const onGrowRef = useRef(onGrow);
@@ -92,7 +92,7 @@ const CookieIcon = ({
       });
     });
 
-    // Der Keks reagiert auf seinen Button: Hover dreht, Klick drückt.
+    // The cookie reacts to its button: hover turns it, a click presses it.
     const button = interactive ? canvas.closest("button, summary, a") : null;
     const flip = () => handle.current?.flip();
     const press = () => handle.current?.press();

@@ -1,14 +1,14 @@
 .PHONY: deploy
 
-# Merged development → main und kehrt garantiert nach development zurück.
-# Ablauf:
-#   1. Working-Tree muss sauber sein (sonst brechen die Branch-Wechsel Änderungen
-#      ab oder verschleppen sie) → harte Vorbedingung.
-#   2. development pushen (der zu mergende Stand muss auf dem Remote sein).
-#   3. main auschecken, aktuellen main-Stand holen, development mergen, pushen.
-#   4. IMMER zurück zu development — auch wenn der Merge fehlschlägt (|| ... via
-#      trap-ähnlichem Muster: der Rückwechsel steht als eigener, immer laufender
-#      Schritt am Ende, Fehler im Merge stoppen vorher via `set -e`).
+# Merges development → main and is sure to return to development.
+# Steps:
+#   1. The working tree must be clean (otherwise switching branches aborts or
+#      drags changes along) → hard precondition.
+#   2. Push development (the state to merge must be on the remote).
+#   3. Check out main, pull the current main, merge development, push.
+#   4. ALWAYS back to development — even if the merge fails (|| ... in a
+#      trap-like pattern: switching back is its own step at the end that always
+#      runs; errors in the merge stop earlier via `set -e`).
 deploy:
 	@set -e; \
 	if [ -n "$$(git status --porcelain)" ]; then \

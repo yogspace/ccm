@@ -1,12 +1,12 @@
 /**
- * Zustand der App in einem Store (valtio): Komponenten lesen per
- * `useSnapshot(store)` genau das, was sie brauchen, und rendern nur neu, wenn
- * sich davon etwas ändert. Geändert wird über die Aktionen unten (oder direkt
- * am Proxy). Nebenwirkungen – Ausstecher im Worker, Link im Hash, Zähler,
- * Scroll-Sperre – verbindet `connectStore` einmal beim Start.
+ * The app's state in one store (valtio): components read exactly what they
+ * need via `useSnapshot(store)` and only re-render when that changes. Changes
+ * go through the actions below (or straight to the proxy). Side effects –
+ * cutter in the worker, link in the hash, counter, scroll lock – are hooked up
+ * once at start by `connectStore`.
  *
- * Große, unveränderliche Daten (Zeichnung, Konturen, Modell) liegen per `ref`
- * im Store: Sie werden nur als Ganzes ersetzt, nie verfolgt oder kopiert.
+ * Large immutable data (drawing, contours, model) sits in the store via `ref`:
+ * it is only ever replaced as a whole, never tracked or copied.
  */
 
 import { useMemo } from "react";
@@ -23,52 +23,52 @@ import { type Drawing, readHash, writeHash } from "./url-state";
 
 export type ErrorKey = keyof (typeof de)["errors"];
 
-/** Per `ref` abgelegt: valtio verfolgt es nicht, Snapshots geben es unverändert heraus. */
+/** Stored via `ref`: valtio does not track it, snapshots hand it out unchanged. */
 type Ref<T extends object> = ReturnType<typeof ref<T>>;
 
-/** Werkzeug: malen, radieren oder Formen verschieben. */
+/** Tool: draw, erase or move shapes. */
 export type Tool = "pen" | "eraser" | "move";
 
 type Cutter = {
-  /** Die Geometrie-Engine im Worker ist geladen. */
+  /** The geometry engine in the worker has loaded. */
   ready: boolean;
   mesh: Ref<MeshData> | null;
-  /** Finale Kontur, normiert auf 0…1 – als Overlay über der Zeichnung. */
+  /** Final contour, normalised to 0…1 – as an overlay on the drawing. */
   outline: Ref<Ring[]>;
   error?: "engine" | "build";
 };
 
 type State = {
-  /** Name der Kreation – für Dateinamen, Teilen und den Link. */
+  /** Name of the creation – for file names, sharing and the link. */
   name: string;
   params: CutterParams;
-  /** Was gemalt wurde, als Vektoren – das wird geteilt. */
+  /** What was drawn, as vectors – this is what gets shared. */
   drawing: Ref<Drawing>;
-  /** Die abgetastete Kontur der Zeichnung, daraus entsteht der Ausstecher. */
+  /** The traced contour of the drawing – the cutter is made from it. */
   rings: Ref<Ring[]>;
-  /** Fehler beim Lesen der Zeichnung oder einer Datei. */
+  /** Error while reading the drawing or a file. */
   inputError?: ErrorKey;
   cutter: Cutter;
   unit: Unit;
   tool: Tool;
-  /** Strichstärke in Pixeln der Zeichenfläche. */
+  /** Brush size in pixels of the drawing area. */
   brush: number;
-  /** Drehteller der 3D-Ansicht. */
+  /** Turntable of the 3D view. */
   autoRotate: boolean;
-  /** Zeichenfläche vergrößert. */
+  /** Drawing area enlarged. */
   expanded: boolean;
-  /** „x Kreationen erstellt“, `null` solange (oder falls) die API nicht antwortet. */
+  /** “x creations made”, `null` while (or if) the API does not answer. */
   creations: number | null;
-  /** Offene Fenster (Impressum, Teilen) – solange > 0 scrollt die Seite nicht. */
+  /** Open dialogs (imprint, sharing) – while > 0 the page does not scroll. */
   dialogs: number;
 };
 
-/** Zustand aus einem geteilten Link – einmal beim Laden gelesen. */
+/** State from a shared link – read once on load. */
 const shared = readHash(window.location.hash);
 
 /**
- * Womit die Zeichenfläche startet. Alte Links bringen nur die Kontur mit,
- * neue die Zeichnung – dann entsteht die Kontur erst durch Abtasten (`trace`).
+ * What the drawing area starts with. Old links bring only the contour, new
+ * ones the drawing – then the contour comes from tracing it (`trace`).
  */
 export const initial = {
   drawing: shared.drawing,
@@ -90,7 +90,7 @@ export const store = proxy<State>({
   dialogs: 0,
 });
 
-// ---------- Aktionen ----------
+// ---------- Actions ----------
 
 export const setName = (name: string) => {
   store.name = name;
@@ -112,7 +112,7 @@ export const setUnit = (unit: Unit) => {
   storeUnit(unit);
 };
 
-/** Nach jedem Strich, Import, Rückgängig oder Löschen: Zeichnung merken, Kontur abtasten. */
+/** After every stroke, import, undo or clear: keep the drawing, trace the contour. */
 export const drawingChanged = (canvas: HTMLCanvasElement, drawing: Drawing) => {
   store.drawing = ref(drawing);
   try {
@@ -132,15 +132,15 @@ export const toggleAutoRotate = () => {
   store.autoRotate = !store.autoRotate;
 };
 
-/** Wer die 3D-Ansicht selbst dreht, beendet den Drehteller. */
+/** Turning the 3D view yourself stops the turntable. */
 export const stopAutoRotate = () => {
   store.autoRotate = false;
 };
 
 /**
- * Layoutwechsel per View Transition animieren, wo der Browser es kann. Dafür
- * muss React synchron rendern – wer `expanded` liest, abonniert es deshalb mit
- * `useSnapshot(store, { sync: true })`.
+ * Animate the layout switch with a view transition where the browser can. For
+ * that React must render synchronously – so whoever reads `expanded`
+ * subscribes with `useSnapshot(store, { sync: true })`.
  */
 export const toggleExpanded = () => {
   const toggle = () =>
@@ -151,7 +151,7 @@ export const toggleExpanded = () => {
   else toggle();
 };
 
-/** Ein Fenster geht auf bzw. zu – solange eins offen ist, scrollt die Seite nicht. */
+/** A dialog opens or closes – while one is open, the page does not scroll. */
 export const dialogOpened = () => {
   store.dialogs += 1;
 };
@@ -160,7 +160,7 @@ export const dialogClosed = () => {
   store.dialogs = Math.max(0, store.dialogs - 1);
 };
 
-/** Link mit der aktuellen Zeichnung. */
+/** Link with the current drawing. */
 const currentHash = () =>
   writeHash({
     name: store.name,
@@ -168,15 +168,15 @@ const currentHash = () =>
     drawing: store.drawing,
   });
 
-/** Oben wird die Seite geteilt: ohne Sprachpfad, Empfänger landen in ihrer Sprache. */
+/** At the top the page is shared: without a language path, recipients land in their own language. */
 export const pageUrl = () => `${window.location.origin}/`;
 
-/** Unten die Kreation: Link mit Zeichnung, ebenfalls ohne Sprachpfad. */
+/** Below, the creation: a link with the drawing, also without a language path. */
 export const creationUrl = () => `${window.location.origin}/${currentHash()}`;
 
 /**
- * „x Kreationen erstellt“: Downloads und geteilte Kreationen zählen auf dem
- * Server mit; dieselbe Kreation nur einmal pro Sitzung.
+ * “x creations made”: downloads and shared creations are counted on the
+ * server; the same creation only once per session.
  */
 export const trackCreation = () => {
   countCreation(currentHash()).then((total) => {
@@ -184,15 +184,15 @@ export const trackCreation = () => {
   });
 };
 
-// ---------- Abgeleitetes ----------
+// ---------- Derived ----------
 
-/** Fehler zum Anzeigen: erst die Eingabe, dann der Ausstecher. */
+/** The error to show: the input first, then the cutter. */
 export const useError = () => {
   const { inputError, cutter } = useSnapshot(store);
   return inputError ?? cutter.error;
 };
 
-/** Maßstab fürs Koordinatensystem: so viele mm ist die Zeichenfläche breit. */
+/** Scale for the coordinate system: this many mm is the drawing area wide. */
 export const useMmPerCanvas = () => {
   const { cutter, params } = useSnapshot(store);
   const { outline } = cutter;
@@ -210,21 +210,21 @@ export const useMmPerCanvas = () => {
         maxY = Math.max(maxY, y);
       }
     }
-    // Ohne Form: Annahme, dass die Zeichnung etwa 70 % der Fläche füllt.
+    // Without a shape: assume the drawing fills about 70 % of the area.
     const extent = Math.max(maxX - minX, maxY - minY);
     return size / (extent > 0 ? extent : 0.7);
   }, [outline, size]);
 };
 
-// ---------- Nebenwirkungen ----------
+// ---------- Side effects ----------
 
 /**
- * Verbindet den Store mit der Außenwelt; liefert das Aufräumen (für useEffect).
- * - Der Ausstecher entsteht in einem Web Worker, damit Zeichnen und Regler
- *   flüssig bleiben. Antworten auf veraltete Aufträge werden verworfen.
- * - Der Link in der Adresszeile folgt dem Zustand, damit er sich jederzeit
- *   teilen lässt – erst wenn sich eine Weile nichts tut.
- * - Der Zähler wird geladen, offene Fenster sperren das Scrollen.
+ * Connects the store to the outside world; returns the cleanup (for useEffect).
+ * - The cutter is built in a web worker, so drawing and sliders stay smooth.
+ *   Answers to outdated jobs are dropped.
+ * - The link in the address bar follows the state, so it can be shared any
+ *   time – once nothing has happened for a while.
+ * - The counter is loaded, open dialogs lock scrolling.
  */
 export const connectStore = () => {
   const worker = new Worker(
@@ -245,7 +245,7 @@ export const connectStore = () => {
     } else store.cutter.error = "build";
   };
   const build = () => {
-    // Kopie der Maße: Den Proxy selbst kann postMessage nicht klonen.
+    // A copy of the dimensions: postMessage cannot clone the proxy itself.
     const request: CutterRequest = {
       id: ++latest,
       rings: store.rings,
@@ -270,8 +270,8 @@ export const connectStore = () => {
   const lockScroll = () =>
     document.documentElement.toggleAttribute("data-locked", store.dialogs > 0);
 
-  // Änderungen kommen gebündelt an. Was sich geändert hat, zeigt der
-  // Vergleich der Snapshots: Unveränderte Teile behalten ihre Identität.
+  // Changes arrive batched. What changed shows from comparing snapshots:
+  // unchanged parts keep their identity.
   let last = snapshot(store);
   const unsubscribe = subscribe(store, () => {
     const next = snapshot(store);

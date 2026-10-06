@@ -3,6 +3,7 @@ import { type RefObject, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { download } from "../export/download";
+import { DONATE_URL } from "../links";
 import {
   creationUrl,
   dialogClosed,
@@ -15,7 +16,7 @@ import CookieIcon from "./cookie-icon";
 import type { PreviewHandle } from "./preview-3d";
 
 type Props = {
-  /** Die 3D-Ansicht – sie rendert das Bild von oben. */
+  /** The 3D view – it renders the picture from above. */
   preview: RefObject<PreviewHandle | null>;
 };
 
@@ -24,8 +25,8 @@ const MARGIN = 60;
 const CARD = { x: MARGIN, y: MARGIN, w: SIZE - 2 * MARGIN, h: 880 };
 
 /**
- * Teilen-Bild im Look der App: blauer Grund, weiße Karte mit dem Ausstecher
- * von oben, darunter Name und Adresse.
+ * Share picture in the app's look: blue background, a white card with the
+ * cutter from above, below it the name and address.
  */
 const composeImage = async (preview: PreviewHandle, name: string) => {
   const render = preview.renderTop(CARD.w, CARD.h);
@@ -65,9 +66,9 @@ const composeImage = async (preview: PreviewHandle, name: string) => {
 type Shared = { url: string; file: File | null; image: string | null };
 
 /**
- * „Kreation teilen“: öffnet ein Fenster mit dem Bild, wie der Ausstecher gerade
- * aussieht, darunter den Link (Klick kopiert ihn) – dazu Bild speichern und,
- * wo der Browser es kann, Bild samt Text und Link teilen.
+ * “Share creation”: opens a window with the picture of how the cutter looks
+ * right now, below it the link (a click copies it) – plus saving the picture
+ * and, where the browser can, sharing it together with text and link.
  */
 const ShareCreation = ({ preview }: Props) => {
   const { t } = useTranslation();
@@ -75,7 +76,7 @@ const ShareCreation = ({ preview }: Props) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [shared, setShared] = useState<Shared | null>(null);
   const [copied, setCopied] = useState(false);
-  /** Nach „Bild teilen“: Hinweis, dass Text und Link auch kopiert sind. */
+  /** After “Share image”: a note that text and link were copied too. */
   const [textCopied, setTextCopied] = useState(false);
   const title = name.trim() || "Cookie Cutter Maker";
 
@@ -85,7 +86,7 @@ const ShareCreation = ({ preview }: Props) => {
     return () => clearTimeout(timer);
   }, [copied]);
 
-  // Bild-URL wieder freigeben, wenn ein neues kommt oder das Fenster weg ist.
+  // Release the image URL when a new one comes or the window is gone.
   useEffect(() => {
     const image = shared?.image;
     return () => {
@@ -107,7 +108,7 @@ const ShareCreation = ({ preview }: Props) => {
     setTextCopied(false);
     dialogRef.current?.showModal();
     dialogOpened();
-    // Teilen zählt die Kreation.
+    // Sharing counts the creation.
     trackCreation();
   };
 
@@ -125,9 +126,9 @@ const ShareCreation = ({ preview }: Props) => {
     if (!shared?.file) return;
     // The link on its own line, so it does not stick to the text.
     const text = `${t("share.text")}\n${shared.url}`;
-    // Manche Apps (z. B. Signal) übernehmen nur das Bild und lassen den Text
-    // fallen – deshalb liegt er samt Link auch in der Zwischenablage. Beides
-    // direkt im Klick aufrufen, sonst verfällt die Erlaubnis dafür.
+    // Some apps (e.g. Signal) take only the image and drop the text – so it is
+    // on the clipboard as well, link included. Call both right in the click,
+    // otherwise the permission for it expires.
     navigator.clipboard
       ?.writeText(text)
       .then(() => setTextCopied(true))
@@ -135,7 +136,7 @@ const ShareCreation = ({ preview }: Props) => {
     navigator
       .share({ files: [shared.file], title, text })
       .catch((error: unknown) => {
-        // Abbrechen im Teilen-Menü ist kein Fehler.
+        // Cancelling the share menu is not an error.
         if (!(error instanceof DOMException && error.name === "AbortError")) {
           console.error(error);
         }
@@ -157,7 +158,7 @@ const ShareCreation = ({ preview }: Props) => {
         <CookieIcon icing="#ff5fa8" icon={Share2} roll={10} size={52} />
         {t("share.creation")}
       </Button>
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: Escape schließt den Dialog nativ, der Klick ist nur für den Hintergrund */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: Escape closes the dialog natively, the click is only for the backdrop */}
       <dialog
         aria-label={t("share.creation")}
         className="legal share-sheet"
@@ -187,7 +188,7 @@ const ShareCreation = ({ preview }: Props) => {
             />
           )}
           <p>{t("share.creationText")}</p>
-          {/* Der Link selbst ist der Knopf: Klick kopiert ihn. */}
+          {/* The link itself is the button: a click copies it. */}
           <Button
             aria-label={copied ? t("share.copied") : t("share.copy")}
             className="share-link"
@@ -229,6 +230,19 @@ const ShareCreation = ({ preview }: Props) => {
             )}
           </div>
           {textCopied && <p className="share-note">{t("share.textCopied")}</p>}
+          {/* While they are happy with their cutter: a cookie for the maker. */}
+          <a
+            className="donate-banner"
+            href={DONATE_URL}
+            rel="noopener"
+            target="_blank"
+          >
+            <CookieIcon kind="sun" roll={-10} size={64} />
+            <span>
+              <strong>{t("share.donate")}</strong>
+              <small>{t("footer.donateLabel")}</small>
+            </span>
+          </a>
         </div>
       </dialog>
     </>

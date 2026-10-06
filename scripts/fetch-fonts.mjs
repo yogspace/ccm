@@ -1,10 +1,10 @@
-// Lädt die Schrift Pally (Indian Type Foundry, ITF Free Font License) von
-// Fontshare nach public/fonts/. Die Lizenz erlaubt Self-Hosting für die eigene
-// Website, aber keine Weitergabe – deshalb liegen die Dateien nicht im Git
-// (public/fonts/ ist ignoriert), sondern werden vor dev/build geholt.
+// Downloads the Pally font (Indian Type Foundry, ITF Free Font License) from
+// Fontshare into public/fonts/. The licence allows self-hosting for your own
+// website but no redistribution – so the files are not in git (public/fonts/
+// is ignored) but fetched before dev/build.
 //
-// Schlägt der Download fehl, bricht der Build nicht ab: Die Seite nutzt dann
-// die Systemschrift.
+// If the download fails, the build does not stop: the page then uses the
+// system font.
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";

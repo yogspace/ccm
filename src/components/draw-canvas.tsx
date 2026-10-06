@@ -63,9 +63,9 @@ type Pen = { x: number; y: number };
 
 type Snapshot = { image: ImageData; drawing: Drawing };
 
-/** Eine laufende Verschiebe-Geste; transformiert wird immer ab `start`. */
+/** A move gesture in progress; the transform always starts from `start`. */
 type Gesture = {
-  /** `scale` an den Ecken dreht und skaliert zugleich. */
+  /** `scale` at the corners rotates and scales at once. */
   kind: "drag" | "scale" | "pinch";
   start: Drawing;
   selection: Selection;
@@ -77,24 +77,24 @@ type Gesture = {
 };
 
 const RES = DRAW_RES;
-/** Anteil, um den der Strich pro Sample zur echten Stiftposition aufholt. */
+/** Share by which the stroke catches up with the real pen position per sample. */
 const FOLLOW = 0.35;
 const HISTORY = 40;
-/** Rand um importierte SVGs, damit sie nicht an der Kante kleben. */
+/** Margin around imported SVGs, so they do not stick to the edge. */
 const IMPORT_MARGIN = 0.1;
-/** So nah (CSS-Pixel) muss man ein Objekt oder einen Anfasser treffen. */
+/** This close (CSS pixels) you must hit an object or a handle. */
 const HIT = 12;
-/** Kleinste Größe (Pixel der Zeichenfläche), auf die man ein Objekt skalieren kann. */
+/** Smallest size (drawing-area pixels) an object can be scaled down to. */
 const MIN_SIZE = 16;
-/** Mit Umschalttaste rastet die Drehung in diesen Schritten ein … */
+/** With shift, rotation snaps in these steps … */
 const ROTATE_STEP = Math.PI / 12;
-/** … sonst nur nahe 0°, 90°, 180°, 270°, damit Gerades gerade bleibt. */
+/** … otherwise only near 0°, 90°, 180°, 270°, so straight stays straight. */
 const ROTATE_MAGNET = (4 * Math.PI) / 180;
 
-/** Rahmen der Auswahl: Mitte, Größe, Drehung – in Pixeln der Zeichenfläche. */
+/** Frame of the selection: centre, size, rotation – in drawing-area pixels. */
 type Frame = { cx: number; cy: number; w: number; h: number; angle: number };
 
-/** Rahmen eines Kastens, optional so transformiert wie das Objekt darin. */
+/** Frame of a box, optionally transformed like the object in it. */
 const frameOf = (box: Box, transform?: Transform): Frame => {
   const middle: Point = [(box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2];
   const [cx, cy] = transform ? applyTransform(transform)(middle) : middle;
@@ -130,7 +130,7 @@ const inside = (box: Box, [x, y]: Point, reach: number) =>
   x <= box.x1 + reach &&
   y >= box.y0 - reach &&
   y <= box.y1 + reach;
-/** Rechteck zwischen zwei Punkten, egal in welche Richtung gezogen. */
+/** Rectangle between two points, whichever way it was dragged. */
 const boxBetween = (a: Point, b: Point): Box => ({
   x0: Math.min(a[0], b[0]),
   y0: Math.min(a[1], b[1]),
@@ -144,16 +144,16 @@ const corners = (box: Box): Point[] => [
   [box.x0, box.y1],
 ];
 
-/** Skalierung so begrenzen, dass das Objekt weder verschwindet noch explodiert. */
+/** Limit the scale so the object neither vanishes nor explodes. */
 const clampScale = (box: Box, scale: number) => {
   const size = Math.max(box.x1 - box.x0, box.y1 - box.y0, 1);
   return Math.min(Math.max(scale, MIN_SIZE / size), (RES * 1.5) / size);
 };
 
 /**
- * Zeichenfläche mit Werkzeugen und Vorlagen. Werkzeug, Pinselstärke, Einheit
- * und die fertige Kontur kommen aus dem Store, jede Änderung der Zeichnung geht
- * dorthin zurück. Gesten, Auswahl und Rückgängig bleiben hier lokal.
+ * Drawing area with tools and templates. Tool, brush size, unit and the final
+ * contour come from the store, every change of the drawing goes back there.
+ * Gestures, selection and undo stay local here.
  */
 const DrawCanvas = () => {
   const { t } = useTranslation();
@@ -171,13 +171,13 @@ const DrawCanvas = () => {
   const brushCursorRef = useRef<HTMLSpanElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const pen = useRef<{ smoothed: Pen; mid: Pen; points: Point[] } | null>(null);
-  /** Was gemalt wurde, als Vektoren – das wird geteilt und verschoben. */
+  /** What was drawn, as vectors – this is shared and moved. */
   const drawing = useRef<Drawing>(initial.drawing);
   const history = useRef<Snapshot[]>([]);
-  /** Rückgängig Gemachtes, für Wiederholen – jede neue Aktion leert es. */
+  /** What was undone, for redo – every new action clears it. */
   const future = useRef<Snapshot[]>([]);
   const gesture = useRef<Gesture | null>(null);
-  /** Auswahl per Rahmen: Startpunkt und – mit Umschalttaste – die Auswahl davor. */
+  /** Box selection: start point and – with shift – the selection before it. */
   const marquee = useRef<{ origin: Point; base: Selection | null } | null>(
     null
   );
@@ -188,16 +188,16 @@ const DrawCanvas = () => {
   const mode = tool === "move" ? "move" : "draw";
   const [selection, setSelection] = useState<Selection | null>(null);
   const [box, setBox] = useState<Box | null>(null);
-  /** Während einer Geste: der mitgedrehte Rahmen (sonst folgt er `box`). */
+  /** During a gesture: the frame turned along (otherwise it follows `box`). */
   const [gestureFrame, setGestureFrame] = useState<Frame | null>(null);
   const [shapes, setShapes] = useState<Record<string, PresetShape>>({});
   const [empty, setEmpty] = useState(isEmptyDrawing(initial.drawing));
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [dragging, setDragging] = useState(false);
-  // Der Hinweis verschwindet schon beim Ansetzen des Stifts, nicht erst danach.
+  // The hint disappears as soon as the pen touches down, not only afterwards.
   const [penDown, setPenDown] = useState(false);
-  // Für Listener außerhalb von React (Mausrad, Tastatur): immer der neueste Stand.
+  // For listeners outside React (wheel, keyboard): always the latest state.
   const live = useRef({ mode, selection, box });
   live.current = { mode, selection, box };
 
@@ -226,7 +226,7 @@ const DrawCanvas = () => {
     setCanRedo(false);
   };
 
-  /** Stellt einen gespeicherten Stand wieder her. */
+  /** Restores a saved state. */
   const restore = (state: Snapshot) => {
     const ctx = context();
     if (!ctx) return;
@@ -238,7 +238,7 @@ const DrawCanvas = () => {
 
   const snapshot = () => remember(capture());
 
-  /** Malt die ganze Zeichnung neu aus den Vektoren. */
+  /** Repaints the whole drawing from the vectors. */
   const repaint = () => {
     const ctx = context();
     if (!ctx) return;
@@ -251,12 +251,12 @@ const DrawCanvas = () => {
     const nextBox = next ? selectionBox(drawing.current, next) : null;
     setBox(nextBox);
     live.current = { ...live.current, selection: next, box: nextBox };
-    // Der Regler zeigt die Strichstärke der Auswahl (und ändert sie).
+    // The slider shows the selection's stroke width (and changes it).
     const width = next ? selectionWidth(drawing.current, next) : null;
     if (width) store.brush = Math.round(Math.min(64, Math.max(6, width)));
   };
 
-  /** Pinselstärke; mit Auswahl im Verschiebe-Modus auch deren Striche. */
+  /** Brush size; with a selection in move mode its strokes too. */
   const changeBrush = (value: number) => {
     store.brush = value;
     const { mode: current, selection: chosen } = live.current;
@@ -269,7 +269,7 @@ const DrawCanvas = () => {
     const nextBox = selectionBox(drawing.current, chosen);
     setBox(nextBox);
     live.current = { ...live.current, box: nextBox };
-    // Eine Reglerbewegung = ein Schritt fürs Rückgängig, dann neu berechnen.
+    // One slider move = one undo step, then recompute.
     const timer = window.setTimeout(() => {
       widthEdit.current = null;
       remember(before);
@@ -313,7 +313,7 @@ const DrawCanvas = () => {
     const current = live.current.selection;
     if (!current) return;
     snapshot();
-    // Geteilte Radierer bleiben für die anderen Objekte erhalten.
+    // Shared erasers stay for the other objects.
     const detached = detachErasers(drawing.current, current);
     drawing.current = removeSelection(detached.drawing, detached.selection);
     repaint();
@@ -333,7 +333,7 @@ const DrawCanvas = () => {
       snapshot();
       ctx.clearRect(0, 0, RES, RES);
       ctx.drawImage(silhouette, (RES - w) / 2, (RES - h) / 2, w, h);
-      // Geteilt wird die Silhouette als Fläche, nicht das SVG selbst.
+      // The silhouette is shared as an area, not the SVG itself.
       const canvas = canvasRef.current;
       drawing.current = {
         base: canvas ? traceOutline(canvas) : [],
@@ -348,9 +348,9 @@ const DrawCanvas = () => {
   };
 
   /**
-   * Fügt eine Vorlage als Umriss in Pinselstärke ein – groß auf leerer Fläche,
-   * sonst kleiner in der Mitte (z. B. als Loch in einer Form) – und wählt sie
-   * zum Verschieben aus.
+   * Inserts a template as an outline in brush width – large on an empty area,
+   * otherwise smaller in the middle (e.g. as a hole in a shape) – and selects
+   * it for moving.
    */
   const insertPreset = async (preset: Preset) => {
     try {
@@ -372,7 +372,7 @@ const DrawCanvas = () => {
       repaint();
       commit();
       store.tool = "move";
-      // Nur die Vorlage – sie verschmilzt erst, wenn man sie loslässt und neu wählt.
+      // Only the template – it merges only once you let go and select again.
       select({ strokes: strokes.map((_, i) => first + i), rings: [] });
     } catch (error) {
       importFailed(error);
@@ -386,7 +386,7 @@ const DrawCanvas = () => {
     select(null);
     hideBrush();
   };
-  // Stabil für die memoisierte Werkzeugauswahl, ruft aber immer die aktuelle Fassung.
+  // Stable for the memoised tool picker, yet always calls the current version.
   const chooseToolRef = useRef(chooseTool);
   chooseToolRef.current = chooseTool;
   const onChooseTool = useCallback(
@@ -394,7 +394,7 @@ const DrawCanvas = () => {
     []
   );
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: nur beim Start
+  // biome-ignore lint/correctness/useExhaustiveDependencies: on start only
   useEffect(() => {
     const ctx = context();
     if (!ctx || isEmptyDrawing(initial.drawing)) return;
@@ -402,13 +402,13 @@ const DrawCanvas = () => {
     if (initial.trace) commit();
   }, []);
 
-  // Die Zeichenfläche ist das größte Quadrat, das neben bzw. über den Leisten
-  // Platz hat. Was die Leisten brauchen (Raster minus Fläche), wird gemessen
-  // statt geschätzt – je nach Platz stehen sie daneben oder brechen darunter um.
-  // Beide Maße werden jedes Mal frisch gelesen: Der Observer meldet Raster und
-  // Fläche nicht immer zusammen, alte Werte ließen die Größe hin- und
-  // herspringen. Berechnete Maße statt getBoundingClientRect, damit
-  // Transforms (Fläche beim Drop) nicht mitzählen.
+  // The drawing area is the largest square that fits next to or above the
+  // bars. What the bars need (grid minus area) is measured, not guessed –
+  // depending on room they sit beside it or wrap below. Both sizes are read
+  // fresh every time: the observer does not always report grid and area
+  // together, and stale values made the size jump back and forth. Computed
+  // sizes instead of getBoundingClientRect, so transforms (area on drop) do
+  // not count.
   useEffect(() => {
     const area = areaRef.current;
     const grid = gridRef.current;
@@ -427,7 +427,7 @@ const DrawCanvas = () => {
     return () => observer.disconnect();
   }, []);
 
-  // Umrisse der Vorlagen für ihre Karten laden.
+  // Load the templates' outlines for their cards.
   useEffect(() => {
     let cancelled = false;
     for (const preset of presets) {
@@ -447,7 +447,7 @@ const DrawCanvas = () => {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      // ⌘/Strg+Z rückgängig, mit Umschalt (oder Strg+Y) wiederholen.
+      // ⌘/Ctrl+Z undoes, with shift (or Ctrl+Y) redoes.
       const key = event.key.toLowerCase();
       if ((event.metaKey || event.ctrlKey) && (key === "z" || key === "y")) {
         event.preventDefault();
@@ -455,7 +455,7 @@ const DrawCanvas = () => {
         else undo();
         return;
       }
-      // Im Dateinamen-Feld u. Ä. gehören die Tasten dem Feld.
+      // In the name field and the like, the keys belong to the field.
       const target = event.target as HTMLElement | null;
       if (target?.closest("input, textarea, [contenteditable]")) return;
       if (live.current.mode !== "move" || !live.current.selection) return;
@@ -469,8 +469,8 @@ const DrawCanvas = () => {
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  // Mausrad skaliert die Auswahl; React hängt Wheel-Listener passiv an, daher
-  // direkt am Element, damit die Seite dabei nicht scrollt.
+  // The wheel scales the selection; React attaches wheel listeners passively,
+  // so it sits directly on the element, keeping the page from scrolling.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -494,7 +494,7 @@ const DrawCanvas = () => {
       const nextBox = selectionBox(drawing.current, chosen);
       setBox(nextBox);
       live.current = { ...live.current, box: nextBox };
-      // Erst wenn das Rad ruht: ein Schritt fürs Rückgängig, dann neu berechnen.
+      // Once the wheel rests: one undo step, then recompute.
       const timer = window.setTimeout(() => {
         wheel.current = null;
         remember(before);
@@ -523,7 +523,7 @@ const DrawCanvas = () => {
     return [x, y];
   };
 
-  // ---------- Malen ----------
+  // ---------- Painting ----------
 
   const draw = (path: (ctx: CanvasRenderingContext2D) => void) => {
     const ctx = context();
@@ -547,8 +547,8 @@ const DrawCanvas = () => {
     setPenDown(true);
     const point = toCanvas(event, event.currentTarget.getBoundingClientRect());
     pen.current = { smoothed: point, mid: point, points: [[point.x, point.y]] };
-    // Ein Tipp ohne Bewegung ergibt einen Punkt. Als Kreis gefüllt, weil Safari
-    // Linien der Länge null mit runden Enden nicht zeichnet.
+    // A tap without moving makes a dot. Filled as a circle, because Safari does
+    // not draw zero-length lines with round caps.
     const ctx = context();
     if (!ctx) return;
     ctx.globalCompositeOperation =
@@ -567,13 +567,13 @@ const DrawCanvas = () => {
     const samples = event.nativeEvent.getCoalescedEvents?.() ?? [];
     for (const sample of samples.length > 0 ? samples : [event]) {
       const raw = toCanvas(sample, rect);
-      // Stiftposition nachziehen lassen, damit Zittern verschwindet …
+      // Let the pen position lag behind, so jitter disappears …
       const previous = state.smoothed;
       const smoothed = {
         x: previous.x + (raw.x - previous.x) * FOLLOW,
         y: previous.y + (raw.y - previous.y) * FOLLOW,
       };
-      // … und zwischen den Mittelpunkten als Kurve statt als Gerade zeichnen.
+      // … and draw between the midpoints as a curve instead of a line.
       const mid = {
         x: (previous.x + smoothed.x) / 2,
         y: (previous.y + smoothed.y) / 2,
@@ -600,7 +600,7 @@ const DrawCanvas = () => {
     pen.current = null;
     const stroke: Stroke = { width: brush, points: state.points };
     if (tool === "eraser") {
-      // Radiertes wirklich entfernen und aus dem Modell neu malen.
+      // Really remove what was erased and repaint from the model.
       drawing.current = applyEraser(drawing.current, stroke);
       repaint();
     } else {
@@ -612,7 +612,7 @@ const DrawCanvas = () => {
     commit();
   };
 
-  // ---------- Verschieben & Skalieren ----------
+  // ---------- Moving & scaling ----------
 
   const tolerance = (rect: DOMRect) => (HIT * RES) / rect.width;
 
@@ -624,14 +624,14 @@ const DrawCanvas = () => {
     pointers.current.set(event.pointerId, point);
     const current = gesture.current;
 
-    // Ein zweiter Finger bricht den Rahmen ab.
+    // A second finger cancels the box.
     if (marquee.current && pointers.current.size > 1) {
       marquee.current = null;
       setMarqueeBox(null);
       return;
     }
 
-    // Zweiter Finger: Zwei-Finger-Geste skaliert, dreht und verschiebt.
+    // Second finger: the two-finger gesture scales, rotates and moves.
     if (current && pointers.current.size === 2) {
       const [a, b] = [...pointers.current.values()];
       gesture.current = {
@@ -661,8 +661,8 @@ const DrawCanvas = () => {
         before,
         changed: false,
       };
-      // Ecken drehen und skalieren, innen verschieben – die Auswahl bleibt
-      // dabei, wie sie ist (auch wenn sie etwas berührt).
+      // Corners rotate and scale, inside moves – the selection stays as it is
+      // (even if it touches something).
       if (corners(box).some((corner) => distance(corner, point) <= reach)) {
         gesture.current = { kind: "scale", ...start };
         return;
@@ -674,8 +674,8 @@ const DrawCanvas = () => {
     }
     const found = objectAt(drawing.current, point, reach);
     if (!found) {
-      // Freie Fläche: Rahmen aufziehen – mit Umschalttaste kommt dazu, was
-      // er einfängt, sonst ersetzt es die Auswahl.
+      // Empty space: drag a box – with shift what it catches is added,
+      // otherwise it replaces the selection.
       if (!event.shiftKey) select(null);
       marquee.current = {
         origin: point,
@@ -684,10 +684,10 @@ const DrawCanvas = () => {
       setMarqueeBox(boxBetween(point, point));
       return;
     }
-    // Mit Umschalttaste kommt das Objekt zur Auswahl dazu.
+    // With shift the object is added to the selection.
     const wanted =
       event.shiftKey && selection ? mergeSelections(selection, found) : found;
-    // Radierer, die auch andere Objekte betreffen, werden für dieses verdoppelt.
+    // Erasers that also affect other objects are duplicated for this one.
     const detached = detachErasers(drawing.current, wanted);
     drawing.current = detached.drawing;
     const hit = detached.selection;
@@ -721,8 +721,8 @@ const DrawCanvas = () => {
       return;
     }
 
-    // Ohne Geste nur den Zeiger anpassen: Anfasser, Ecke, Objekt – oder
-    // ein Fadenkreuz, wo man einen Rahmen aufziehen kann.
+    // Without a gesture only adjust the pointer: handle, corner, object – or a
+    // crosshair where a box can be dragged.
     if (!current) {
       const reach = tolerance(rect);
       const corner = box
@@ -790,7 +790,7 @@ const DrawCanvas = () => {
   const release = (event: PointerEvent<HTMLCanvasElement>) => {
     pointers.current.delete(event.pointerId);
 
-    // Rahmen loslassen: wählt alles, was ganz darin liegt.
+    // Releasing the box selects everything entirely inside it.
     const area = marquee.current;
     if (area) {
       marquee.current = null;
@@ -813,7 +813,7 @@ const DrawCanvas = () => {
 
     const current = gesture.current;
     if (!current) return;
-    // Ein Finger bleibt liegen: von hier aus weiter verschieben.
+    // One finger stays down: keep moving from here.
     if (current.kind === "pinch" && pointers.current.size === 1) {
       const [rest] = [...pointers.current.values()];
       gesture.current = {
@@ -832,12 +832,12 @@ const DrawCanvas = () => {
     if (!current.changed) return;
     remember(current.before);
     commit();
-    // Die Auswahl bleibt für weitere Korrekturen; was sich jetzt berührt,
-    // gehört beim nächsten Antippen zusammen.
+    // The selection stays for further corrections; what touches now belongs
+    // together on the next tap.
     select(current.selection);
   };
 
-  // ---------- Pinselvorschau ----------
+  // ---------- Brush preview ----------
 
   const hideBrush = () => {
     if (brushCursorRef.current) brushCursorRef.current.style.opacity = "0";
@@ -847,7 +847,7 @@ const DrawCanvas = () => {
     const cursor = brushCursorRef.current;
     const stage = stageRef.current;
     if (!cursor || !stage) return;
-    // Nur mit Maus oder Stift – auf Touch gibt es kein Hover.
+    // Only with mouse or pen – touch has no hover.
     if (mode !== "draw" || event.pointerType === "touch") {
       hideBrush();
       return;
@@ -873,10 +873,10 @@ const DrawCanvas = () => {
 
   return (
     <div className="draw-area" ref={areaRef}>
-      {/* Ein Raster für Fläche und Leisten: Ist Platz daneben, stehen die
-          Werkzeuge links und die Vorlagen rechts, sonst alles darunter (CSS). */}
+      {/* One grid for area and bars: with room beside it, tools go left and
+          templates right, otherwise everything goes below (CSS). */}
       <div className="draw-grid" ref={gridRef}>
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: reine Drop-Fläche, Import geht auch über den Button */}
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: a pure drop zone, importing also works via the button */}
         <div
           className="stage paper"
           data-dragging={dragging || undefined}
@@ -937,7 +937,7 @@ const DrawCanvas = () => {
               <i />
             </div>
           )}
-          {/* Rahmen, der gerade aufgezogen wird */}
+          {/* The box being dragged */}
           {mode === "move" && marqueeBox && (
             <div
               aria-hidden
@@ -950,7 +950,7 @@ const DrawCanvas = () => {
               }}
             />
           )}
-          {/* X an der Auswahl: entfernt sie (wie Entf) */}
+          {/* X at the selection: removes it (like Delete) */}
           {mode === "move" && box && !gestureFrame && (
             <Button
               aria-label={t("draw.removeSelection")}
@@ -994,7 +994,7 @@ const DrawCanvas = () => {
         <div className="tool-options">
           {mode === "draw" || selection ? (
             <div className="brush">
-              {/* Vorschau der Strichstärke */}
+              {/* Preview of the brush size */}
               <span
                 aria-hidden
                 className="brush-dot"
@@ -1052,12 +1052,12 @@ const DrawCanvas = () => {
           </Button>
         </div>
 
-        {/* Vorlagen: Überschrift, scrollbare Karten, darunter SVG hochladen */}
+        {/* Templates: heading, scrollable cards, upload SVG below */}
         <div className="templates">
           <span aria-hidden className="presets-label">
             {t("draw.presets")}
           </span>
-          {/* biome-ignore lint/a11y/useSemanticElements: Gruppe von Buttons, kein Formular */}
+          {/* biome-ignore lint/a11y/useSemanticElements: a group of buttons, not a form */}
           <div
             aria-label={t("draw.presets")}
             className="preset-strip"
@@ -1092,7 +1092,7 @@ const DrawCanvas = () => {
             type="button"
           >
             <CookieIcon icing="#2a44ff" icon={Upload} roll={10} size={58} />
-            {/* Neben der Fläche bleibt nur der Keks, der Text ist dann unsichtbar. */}
+            {/* Beside the area only the cookie stays, the text is then invisible. */}
             <span className="upload-label">{t("draw.upload")}</span>
           </Button>
           <input
@@ -1112,5 +1112,5 @@ const DrawCanvas = () => {
   );
 };
 
-// Ohne Props: rendert nur neu, wenn sich im Store etwas ändert, das sie liest.
+// No props: re-renders only when something it reads in the store changes.
 export default memo(DrawCanvas);

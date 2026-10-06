@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-/** Die Keks-Icons der App. */
+/** The app's cookie icons. */
 export type CookieKind =
   | "bite"
   | "chip"
@@ -25,7 +25,7 @@ const DEPTH = 0.16;
 const BEVEL = 0.13;
 const TOP = DEPTH + BEVEL;
 
-/** Deterministischer Zufall, damit jeder Keks immer gleich aussieht. */
+/** Deterministic randomness, so every cookie always looks the same. */
 const seeded = (seed: number) => {
   let state = seed;
   return () => {
@@ -36,7 +36,7 @@ const seeded = (seed: number) => {
 
 let doughCache: { map: THREE.Texture; bumpMap: THREE.Texture } | undefined;
 
-/** Teig-Textur: Farbschwankungen und gebräunte Sprenkel, dazu eine Bump-Map. */
+/** Dough texture: colour variations and browned specks, plus a bump map. */
 const doughTextures = () => {
   if (doughCache) return doughCache;
   const random = seeded(5);
@@ -90,7 +90,7 @@ const doughTextures = () => {
   return doughCache;
 };
 
-/** Normiert eine Kontur auf Breite/Höhe ≈ 2 um den Ursprung. */
+/** Normalises a contour to width/height ≈ 2 around the origin. */
 const normalize = (points: THREE.Vector2[]) => {
   const box = new THREE.Box2().setFromPoints(points);
   const center = box.getCenter(new THREE.Vector2());
@@ -105,7 +105,7 @@ const circle = (n = 160) =>
     return new THREE.Vector2(Math.cos(angle), Math.sin(angle));
   });
 
-/** Rund mit Biss: Punkte in den Bisskreisen auf deren Rand schieben. */
+/** Round with a bite: push points inside the bite circles onto their edge. */
 const bitten = () => {
   const bites = [
     { c: new THREE.Vector2(0.86, 0.62), r: 0.36 },
@@ -136,7 +136,7 @@ const heart = () => {
   );
 };
 
-/** Stern mit abgerundeten Spitzen. */
+/** Star with rounded tips. */
 const star = (spikes = 5, inner = 0.52) => {
   const corners = Array.from({ length: spikes * 2 }, (_, i) => {
     const angle = Math.PI / 2 + (i / (spikes * 2)) * Math.PI * 2;
@@ -174,7 +174,7 @@ const inside = (points: THREE.Vector2[], p: THREE.Vector2) => {
   return hit;
 };
 
-/** Zufällige, nicht zu dicht liegende Punkte innerhalb der Kontur. */
+/** Random points inside the contour, not too close together. */
 const scatter = (
   points: THREE.Vector2[],
   count: number,
@@ -254,7 +254,7 @@ const build = (kind: OutlineKind) => {
     return group;
   }
 
-  // Zuckerguss: etwas kleinere Form, glänzend, mit Streuseln.
+  // Icing: a slightly smaller shape, glossy, with sprinkles.
   const icingColor = kind === "heart" ? "#ff5fa8" : "#ffffff";
   const icingOutline = outline.map((p) => p.clone().multiplyScalar(0.84));
   const icing = new THREE.Mesh(
@@ -300,7 +300,7 @@ const build = (kind: OutlineKind) => {
   return group;
 };
 
-/** Kontur eines SVG (Alpha > 50 %), normiert auf ±1 (viewBox 24, y nach oben). */
+/** Contour of an SVG (alpha > 50 %), normalised to ±1 (viewBox 24, y up). */
 const traceSvg = async (markup: string) => {
   const RES = 128;
   const image = new Image();
@@ -332,7 +332,7 @@ const traceSvg = async (markup: string) => {
   );
 };
 
-/** Polygone (Außenring + Löcher) als Three-Shapes. */
+/** Polygons (outer ring + holes) as three.js shapes. */
 const toShapes = (polygons: THREE.Vector2[][][]) =>
   polygons.map(([outer, ...holes]) => {
     const shape = new THREE.Shape(outer);
@@ -344,12 +344,12 @@ const svg = (body: string) =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="128" height="128">${body}</svg>`;
 
 type SvgCookie = {
-  /** SVG des Teigs (alles Deckende wird Keks). */
+  /** SVG of the dough (everything opaque becomes cookie). */
   dough: string;
-  /** SVG des Zuckergusses obendrauf. */
+  /** SVG of the icing on top. */
   glaze: string;
   glazeColor: string;
-  /** Färbt den Teig ein, z. B. dunkler für Lebkuchen. */
+  /** Tints the dough, e.g. darker for gingerbread. */
   tint?: string;
   depth?: number;
 };
@@ -446,7 +446,7 @@ const FLOWER: SvgCookie = {
   depth: 0.12,
 };
 
-/** Sternförmiger Kranz um die Mitte (im 24er-Raster der SVGs). */
+/** Star-shaped ring around the centre (on the SVGs' 24 grid). */
 const burst = (rays: number, outer: number, inner: number) =>
   Array.from({ length: rays * 2 }, (_, i) => {
     const radius = i % 2 ? inner : outer;
@@ -454,7 +454,7 @@ const burst = (rays: number, outer: number, inner: number) =>
     return `${(12 + radius * Math.cos(angle)).toFixed(2)},${(12 + radius * Math.sin(angle)).toFixed(2)}`;
   }).join(" ");
 
-/** Sonne mit gelbem Guss – trägt den Spendenlink. */
+/** Sun with yellow icing – carries the donation link. */
 const SUN: SvgCookie = {
   dough: svg(
     `<polygon fill="#000" stroke="#000" stroke-width="0.6" stroke-linejoin="round" points="${burst(16, 11.2, 9.3)}"/>`
@@ -468,7 +468,7 @@ const SUN: SvgCookie = {
 
 const cache = new Map<CookieKind, Promise<THREE.Group>>();
 
-/** Liefert einen Keks; Geometrien und Materialien werden zwischen Kopien geteilt. */
+/** Returns a cookie; geometries and materials are shared between copies. */
 export const createCookie = (kind: CookieKind) => {
   let original = cache.get(kind);
   if (!original) {
@@ -487,7 +487,7 @@ export const createCookie = (kind: CookieKind) => {
 
 const iconCache = new Map<string, Promise<THREE.Group>>();
 
-/** Lucide-Icon mit eigener Strichstärke als SVG-Markup. */
+/** Lucide icon with its own stroke width as SVG markup. */
 const iconMarkup = (icon: SVGSVGElement, strokeWidth: number) => {
   const clone = icon.cloneNode(true) as SVGSVGElement;
   clone.setAttribute("width", "128");
@@ -498,8 +498,8 @@ const iconMarkup = (icon: SVGSVGElement, strokeWidth: number) => {
 };
 
 /**
- * Keks in Form eines Icons: die Icon-Linie dick als Teig, darauf dieselbe
- * Linie dünner als Zuckerguss.
+ * Cookie in the shape of an icon: the icon's line thick as dough, on top the
+ * same line thinner as icing.
  */
 export const createIconCookie = (
   icon: SVGSVGElement,

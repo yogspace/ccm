@@ -3,13 +3,13 @@ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { type CookieKind, createCookie } from "./models";
 
 /**
- * Rendert die 3D-Keks-Icons. Jeder Keks hat seine eigene Canvas an seiner
- * Stelle im Layout; nur der WebGL-Kontext wird geteilt, weil Browser nur
- * wenige davon erlauben. Pro Frame wird jeder sichtbare, sich bewegende Keks
- * einzeln gerendert und in seine Canvas kopiert.
+ * Renders the 3D cookie icons. Every cookie has its own canvas in its place in
+ * the layout; only the WebGL context is shared, because browsers allow just a
+ * few. Each frame, every visible moving cookie is rendered on its own and
+ * copied into its canvas.
  */
 
-/** Ab dieser Entfernung (px) reagiert ein Keks auf die Maus. */
+/** From this distance (px) on, a cookie reacts to the mouse. */
 const NEAR = 220;
 const MAX_TURN = 0.75;
 
@@ -17,7 +17,7 @@ type Spring = { value: number; velocity: number; target: number };
 
 const spring = (value = 0): Spring => ({ value, velocity: 0, target: value });
 
-/** Gedämpfte Feder – überschwingt leicht, das wirkt lebendig. */
+/** Damped spring – overshoots slightly, which feels alive. */
 const step = (s: Spring, dt: number, stiffness = 170, damping = 14) => {
   const force = stiffness * (s.target - s.value) - damping * s.velocity;
   s.velocity += force * dt;
@@ -31,26 +31,26 @@ type Entry = {
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
   object: THREE.Object3D;
-  /** Grundneigung, damit die Kekse räumlich wirken. */
+  /** Base tilt, so the cookies look three-dimensional. */
   tilt: number;
-  /** Grunddrehung in der Bildebene. */
+  /** Base rotation in the image plane. */
   roll: number;
-  /** Sanftes Schweben im Leerlauf (kostet pro Frame ein Rendern). */
+  /** Gentle floating while idle (costs a render per frame). */
   idle: boolean;
-  /** Schaut zur Maus, wenn sie in der Nähe ist. */
+  /** Looks at the mouse when it is near. */
   follow: boolean;
   turnX: Spring;
   turnY: Spring;
   flip: Spring;
   squash: Spring;
-  /** Einwachsen beim Laden, 0 → 1. */
+  /** Growing in on load, 0 → 1. */
   appear: Spring;
-  /** Ab hier wächst der Keks (performance.now()-Zeit). */
+  /** From here on the cookie grows (performance.now() time). */
   appearAt: number;
-  /** Meldet beim Einwachsen jeden Frame die Größe (0…1), zuletzt genau 1. */
+  /** Reports the size (0…1) every frame while growing in, finally exactly 1. */
   onGrow?: (scale: number) => void;
   spin: boolean;
-  /** Drehgeschwindigkeit in der Bildebene (rad/ms), solange `spin` an ist. */
+  /** Spin speed in the image plane (rad/ms) while `spin` is on. */
   spinSpeed: number;
   phase: number;
   visible: boolean;
@@ -106,7 +106,7 @@ const draw = (entry: Entry, time: number) => {
   }
   const bufferHeight = renderer.domElement.height;
 
-  // Sanftes Schweben, Mausblick, Drehung beim Hover, Stauchen beim Klick.
+  // Gentle floating, looking at the mouse, turning on hover, squashing on click.
   const idle =
     entry.idle && !reduceMotion ? Math.sin(time / 900 + entry.phase) * 0.06 : 0;
   object.rotation.set(
@@ -157,7 +157,7 @@ const tick = (time: number) => {
     const dx = pointer.x - (rect.left + rect.width / 2);
     const dy = pointer.y - (rect.top + rect.height / 2);
     const distance = Math.hypot(dx, dy);
-    // Nur in der Nähe schaut der Keks zur Maus, sonst federt er zurück.
+    // Only when near does the cookie look at the mouse, otherwise it springs back.
     const near = entry.follow && !reduceMotion && distance < NEAR;
     const strength = near ? 1 - distance / NEAR : 0;
     entry.turnY.target = near
@@ -170,7 +170,7 @@ const tick = (time: number) => {
     for (const s of [entry.turnX, entry.turnY]) step(s, dt);
     step(entry.flip, dt, 90, 11);
     step(entry.squash, dt, 380, 18);
-    // Kritisch gedämpft: wächst weich herein, ohne aufzuploppen.
+    // Critically damped: grows in softly without popping.
     const waiting = time < entry.appearAt;
     if (!waiting) step(entry.appear, dt, 120, 22);
     if (entry.onGrow) {
@@ -179,7 +179,7 @@ const tick = (time: number) => {
       if (done) entry.onGrow = undefined;
     }
     if (settled(entry.flip)) {
-      // Nach einer vollen Drehung wieder bei 0 anfangen.
+      // Start again at 0 after a full turn.
       entry.flip.value %= Math.PI * 2;
       entry.flip.target = entry.flip.value;
     }
@@ -206,11 +206,11 @@ const wake = () => {
 
 export type CookieHandle = {
   setSpin: (spin: boolean) => void;
-  /** Grunddrehung in der Bildebene (rad), z. B. rollende Regler-Knöpfe. */
+  /** Base rotation in the image plane (rad), e.g. rolling slider thumbs. */
   setRoll: (roll: number) => void;
-  /** Einmal um die eigene Achse – beim Hover über den zugehörigen Button. */
+  /** Once around its own axis – on hover over its button. */
   flip: () => void;
-  /** Kurz zusammendrücken – beim Klick. */
+  /** Squash briefly – on click. */
   press: () => void;
   dispose: () => void;
 };
@@ -218,7 +218,7 @@ export type CookieHandle = {
 export const registerCookie = (
   canvas: HTMLCanvasElement,
   object: THREE.Object3D,
-  /** `delay` (ms) verzögert das Einwachsen, z. B. für nacheinander erscheinende Kekse. */
+  /** `delay` (ms) delays growing in, e.g. for cookies appearing one after another. */
   {
     tilt = -0.55,
     roll = 0,
@@ -236,7 +236,7 @@ export const registerCookie = (
     delay?: number;
     spin?: boolean;
     spinSpeed?: number;
-    /** Größe beim Einwachsen (0…1), z. B. damit Schrift darauf mitwächst. */
+    /** Size while growing in (0…1), e.g. so text on it grows along. */
     onGrow?: (scale: number) => void;
   } = {}
 ): CookieHandle => {
@@ -302,8 +302,8 @@ export const registerCookie = (
 const imageCache = new Map<string, Promise<string>>();
 
 /**
- * Einmal gerenderter Keks als Bild (Data-URL) – für Stellen, an denen Live-3D
- * zu viel wäre, z. B. die Regler-Knöpfe. Fast von oben, damit er rund wirkt.
+ * A cookie rendered once as an image (data URL) – for places where live 3D
+ * would be too much, e.g. the slider thumbs. Almost from above, so it looks round.
  */
 export const cookieImage = (kind: CookieKind, pixels: number) => {
   const key = `${kind}:${pixels}`;

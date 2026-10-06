@@ -1,23 +1,23 @@
 import type { CrossSection, Manifold, ManifoldToplevel } from "manifold-3d";
 import type { Point, Ring } from "./outline";
 
-/** Alle Maße in Millimetern. */
+/** All dimensions in millimetres. */
 export type CutterParams = {
-  /** Längste Seite der Kontur. */
+  /** Longest side of the contour. */
   size: number;
-  /** Klingenhöhe ab Oberkante Falz. */
+  /** Blade height above the top of the flange. */
   bladeHeight: number;
-  /** Wandstärke unten an der Falz. */
+  /** Wall thickness at the bottom, at the flange. */
   wall: number;
-  /** Wandstärke oben an der Schneide. */
+  /** Wall thickness at the top, at the cutting edge. */
   edge: number;
-  /** Bereich unter der Schneide, in dem die Wand dünner wird. */
+  /** Zone below the cutting edge in which the wall gets thinner. */
   taper: number;
   flangeWidth: number;
   flangeHeight: number;
-  /** Schließt Lücken bis zu diesem Radius (morphologisches Closing). */
+  /** Closes gaps up to this radius (morphological closing). */
   smoothing: number;
-  /** 1 = Formen in Formen werden zu inneren Klingen (Löcher), 0 = nur außen. */
+  /** 1 = shapes inside shapes become inner blades (holes), 0 = outside only. */
   cutouts: number;
   /** Width of the bridges that hold inner blades. */
   bridgeWidth: number;
@@ -28,7 +28,7 @@ export const defaultParams: CutterParams = {
   bladeHeight: 15,
   wall: 1.2,
   edge: 0.6,
-  // Kurz halten: Je länger der dünne Bereich, desto leichter bricht die Schneide.
+  // Keep it short: the longer the thin zone, the easier the edge breaks.
   taper: 1.6,
   flangeWidth: 5,
   flangeHeight: 2,
@@ -38,20 +38,20 @@ export const defaultParams: CutterParams = {
 };
 
 export type Cutter = {
-  /** Gehört dem Aufrufer, der es mit `delete()` freigeben muss. */
+  /** Belongs to the caller, who must free it with `delete()`. */
   manifold: Manifold;
-  /** Finale Kontur in denselben normierten Koordinaten wie die Eingabe. */
+  /** Final contour in the same normalised coordinates as the input. */
   outline: Ring[];
 };
 
-/** Schichthöhe, in der die Verjüngung abgestuft wird – im Druck unsichtbar. */
+/** Layer height in which the taper is stepped – invisible in print. */
 const LAYER = 0.2;
-/** Stufen überlappen minimal, sonst bleiben sie getrennte Teile im Export. */
+/** Steps overlap a tiny bit, otherwise they stay separate parts in the export. */
 const OVERLAP = 0.01;
 const SEGMENTS = 48;
-/** Außen: Teile unter diesem Anteil der Gesamtfläche gelten als Krümel. */
+/** Outside: parts below this share of the total area count as crumbs. */
 const MIN_ISLAND_SHARE = 0.01;
-/** Innen (Löcher, Formen in Formen) zählt die echte Größe, nicht der Anteil (mm²). */
+/** Inside (holes, shapes in shapes) the real size counts, not the share (mm²). */
 const MIN_INNER_AREA = 6;
 /** Height of a bridge in the middle; towards the walls it rises. */
 const BRIDGE_MID_HEIGHT = 3;
@@ -61,24 +61,24 @@ const BRIDGE_MID_HEIGHT = 3;
  */
 const BRIDGE_CLEARANCE = 9;
 /**
- * Wie stark die Enden ausgestellt sind, wächst mit der Spannweite – kurze Stege
- * bleiben schlank statt zum Klotz zu werden.
+ * How much higher the ends are grows with the span – short bridges stay low
+ * instead of turning into a block.
  */
 const BRIDGE_RISE_PER_MM = 0.25;
-/** Etwa ein Steg je so viel mm Umfang der inneren Form, mindestens zwei. */
+/** About one bridge per this many mm of the inner shape's perimeter, at least two. */
 const BRIDGE_SPACING = 45;
-/** Abstand der Stellen, an denen ein Steg ansetzen darf (mm). */
+/** Spacing of the spots where a bridge may start (mm). */
 const BRIDGE_SAMPLE = 1.5;
-/** Wie viel mm Steglänge ein mm näher an der Mitte seines Abschnitts wert ist. */
+/** How many mm of bridge length one mm closer to the middle of its section is worth. */
 const BRIDGE_SPREAD = 0.6;
-/** So weit (Grad) darf ein Steg von der Senkrechten auf die innere Form abweichen. */
+/** How far (degrees) a bridge may deviate from square to the inner shape. */
 const BRIDGE_MAX_TILT = 35;
 /**
- * Näher (mm) sollen sich Stege nicht kommen – sonst verschmelzen sie samt
- * ihren ausgestellten Enden zu einem Klotz.
+ * Bridges should not come closer (mm, plus twice their width) – otherwise they
+ * merge into a block together with their fillets.
  */
 const BRIDGE_GAP = 6;
-/** Radius (mm) der Hohlkehlen, mit denen die Stege in die Wände übergehen. */
+/** Radius (mm) of the fillets with which bridges blend into the walls. */
 const BRIDGE_FILLET = 2.5;
 
 const signedArea = (ring: Ring) => {
@@ -91,7 +91,7 @@ const signedArea = (ring: Ring) => {
   return area / 2;
 };
 
-/** Punkt-in-Polygon (Strahlverfahren). */
+/** Point in polygon (ray casting). */
 const contains = (ring: Ring, [x, y]: Point) => {
   let inside = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
@@ -150,7 +150,7 @@ const segmentsCross = (a: Point, b: Point, c: Point, d: Point) => {
   return d1 * d2 < 0 && d3 * d4 < 0;
 };
 
-/** Abstand zweier Strecken (0, wenn sie sich kreuzen). */
+/** Distance between two segments (0 if they cross). */
 const segmentDistance = (a: Point, b: Point, c: Point, d: Point) => {
   if (segmentsCross(a, b, c, d)) return 0;
   const gap = (p: Point, from: Point, to: Point) => {
@@ -187,7 +187,7 @@ const rayHitAt = (from: Point, [dx, dy]: Point, ring: Ring) => {
   return { distance: nearest, square };
 };
 
-/** Wie weit ein Strahl von `from` in Richtung `dir` (Länge 1) bis zum Ring kommt. */
+/** How far a ray from `from` in direction `dir` (unit length) gets until it hits the ring. */
 const rayHit = (from: Point, [dx, dy]: Point, ring: Ring) => {
   let nearest = Infinity;
   for (let i = 0; i < ring.length; i++) {
@@ -206,7 +206,7 @@ const rayHit = (from: Point, [dx, dy]: Point, ring: Ring) => {
   return nearest;
 };
 
-/** Punkte im Abstand `step` entlang eines geschlossenen Rings. */
+/** Points every `step` along a closed ring. */
 const resample = (ring: Ring, step: number) => {
   const points: Point[] = [];
   let carry = 0;
@@ -234,13 +234,13 @@ const perimeter = (ring: Ring) =>
 type Island = {
   ring: Ring;
   area: number;
-  /** Index der Insel, in deren Innerem diese liegt, sonst -1. */
+  /** Index of the island this one lies inside, otherwise -1. */
   parent: number;
-  /** 0 = außen, 1 = Loch darin, 2 = Keks im Loch … */
+  /** 0 = outside, 1 = hole in it, 2 = cookie in the hole … */
   depth: number;
 };
 
-/** Ordnet die Außenkonturen der Inseln: Welche liegt in welcher? */
+/** Orders the islands' outer contours: which lies inside which? */
 const nestIslands = (exteriors: Ring[]): Island[] => {
   const islands: Island[] = exteriors.map((ring) => ({
     ring,
@@ -254,7 +254,7 @@ const nestIslands = (exteriors: Ring[]): Island[] => {
       if (i === j || other.area <= island.area || other.area >= smallest) {
         continue;
       }
-      // Außenkonturen schneiden sich nie – ein Punkt genügt.
+      // Outer contours never cross – one point is enough.
       if (contains(other.ring, island.ring[0])) {
         smallest = other.area;
         island.parent = j;
@@ -270,11 +270,11 @@ const nestIslands = (exteriors: Ring[]): Island[] => {
 type Bridge = { from: Point; to: Point; length: number };
 
 /**
- * Wo die Stege einer inneren Form ansetzen: gleichmäßig über ihren Umfang
- * verteilt, jeweils etwa senkrecht von ihr weg (wie Speichen) zur
- * umschließenden Kontur, ohne eine andere Kontur zu kreuzen. Nimmt die schon
- * gesetzten Stege (`taken`) mit, damit keiner mit einem anderen zusammenläuft.
- * Liefert Strecken von innen nach außen.
+ * Where the bridges of an inner shape start: spread evenly over its perimeter,
+ * each running roughly square away from it (like spokes) to the enclosing
+ * contour, without crossing another contour. Takes the bridges already placed
+ * (`taken`) into account, so none runs into another. Returns segments from
+ * inside to outside.
  */
 const placeBridges = (
   inner: Ring,
@@ -291,7 +291,7 @@ const placeBridges = (
   );
   const blockers = [inner, ...obstacles];
   const maxTilt = Math.cos((BRIDGE_MAX_TILT * Math.PI) / 180);
-  /** Kreuzt die Strecke eine Kontur? Etwas gekürzt, damit die Enden nicht zählen. */
+  /** Does the segment cross a contour? Slightly shortened, so the ends do not count. */
   const crosses = (from: Point, to: Point, length: number) => {
     const ux = (to[0] - from[0]) / (length || 1);
     const uy = (to[1] - from[1]) / (length || 1);
@@ -305,7 +305,7 @@ const placeBridges = (
   };
 
   const candidates = samples.map((from, i): Bridge | null => {
-    // Nach außen zeigende Senkrechte (Ringe laufen gegen den Uhrzeigersinn).
+    // Outward normal (rings run counter-clockwise).
     const before = samples[(i - 1 + samples.length) % samples.length];
     const after = samples[(i + 1) % samples.length];
     const tx = after[0] - before[0];
@@ -327,7 +327,7 @@ const placeBridges = (
         length: reach,
       });
     }
-    // … oder zur nächsten Stelle, solange das nicht zu schräg ist.
+    // … or to the nearest spot, as long as that is not too oblique.
     const to = closestOnRing(from, outer);
     const length = Math.hypot(to[0] - from[0], to[1] - from[1]);
     const facing =
@@ -342,7 +342,7 @@ const placeBridges = (
     );
   });
 
-  /** Zu nah an einem anderen Steg? Stege derselben Form dürfen nur nicht zusammenlaufen. */
+  /** Too close to another bridge? Bridges of the same shape just must not converge. */
   const crowded = (bridge: Bridge, others: Bridge[], own: Bridge[]) =>
     others.some(
       (other) =>
@@ -367,9 +367,8 @@ const placeBridges = (
       );
     });
 
-  // Umfang in `count` gleiche Abschnitte teilen und je Abschnitt den besten
-  // Steg nehmen; den Versatz der Abschnitte so wählen, dass die Stege
-  // insgesamt am kürzesten sind.
+  // Split the perimeter into `count` equal sections and take the best bridge
+  // in each; choose the sections' offset so the bridges are shortest overall.
   let best: Bridge[] = [];
   let bestScore = Infinity;
   const tries = 12;
@@ -383,8 +382,8 @@ const placeBridges = (
       const end = Math.floor(
         ((part + 1 + offset / tries) / count) * samples.length
       );
-      // Kurz, aber möglichst mittig im Abschnitt und mit Abstand zu den
-      // anderen – nur wenn es gar nicht anders geht, auch dicht daneben.
+      // Short, but as central in the section as possible and apart from the
+      // others – close to one only if there is no other way.
       const middle = (start + end) / 2;
       let choice: Bridge | undefined;
       let choiceCost = Infinity;
@@ -410,6 +409,26 @@ const placeBridges = (
     if (score < bestScore) {
       bestScore = score;
       best = picked;
+    }
+  }
+  return best;
+};
+
+type Neighbour = { from: Point; to: Point; distance: number };
+
+/** The closest pair of points between an island's contour and its neighbours'. */
+const nearestNeighbour = (
+  island: { ring: Ring },
+  others: { ring: Ring }[]
+): Neighbour | null => {
+  let best: Neighbour | null = null;
+  for (const other of others) {
+    for (const point of island.ring) {
+      const to = closestOnRing(point, other.ring);
+      const distance = Math.hypot(to[0] - point[0], to[1] - point[1]);
+      if (!best || distance < best.distance) {
+        best = { from: point, to, distance };
+      }
     }
   }
   return best;
@@ -468,7 +487,7 @@ const nearestOn = (segments: number[], x: number, y: number) => {
   return { distance: Math.sqrt(best), inside };
 };
 
-/** Abbildung der normierten Konturen (y nach unten) auf mm, zentriert, y nach oben. */
+/** Maps the normalised contours (y down) to mm, centred, y up. */
 const fitToSize = (rings: Ring[], size: number) => {
   let minX = Infinity;
   let minY = Infinity;
@@ -492,13 +511,13 @@ const fitToSize = (rings: Ring[], size: number) => {
 };
 
 /**
- * Baut aus den Konturen der Zeichnung den Ausstecher. Gedruckt wird Falz unten,
- * Schneide oben; die Kante zum Keks bleibt senkrecht, verjüngt wird nur auf der
- * anderen Seite.
+ * Builds the cutter from the drawing's contours. It prints flange down, cutting
+ * edge up; the face towards the cookie stays vertical, the taper is only on the
+ * other side.
  *
- * Das Innere eines Strichs wird gefüllt. Liegt eine eigene Form in einer
- * anderen, wird sie (mit `cutouts`) zur inneren Klinge, die ein Loch schneidet,
- * und über Stege auf Höhe der Falz mit der umschließenden Klinge verbunden.
+ * The inside of a stroke is filled. If a shape lies inside another, it becomes
+ * (with `cutouts`) an inner blade that cuts a hole, joined to the enclosing
+ * blade by bridges at flange level.
  */
 export const buildCutter = (
   wasm: ManifoldToplevel,
@@ -528,8 +547,8 @@ export const buildCutter = (
       shape = grow(grow(shape, params.smoothing), -params.smoothing);
     }
 
-    // Erst nach dem Schließen der Lücken die Löcher der Striche verwerfen: Ein
-    // fast geschlossener Strich soll ein Ring werden, kein doppelter Ausstecher.
+    // Drop the strokes' holes only after closing the gaps: an almost closed
+    // stroke should become a ring, not a double cutter.
     const { flangeHeight, bladeHeight, wall, edge } = params;
     const all = nestIslands(
       shape.toPolygons().filter((ring) => signedArea(ring) > 0)
@@ -546,7 +565,7 @@ export const buildCutter = (
       }
       if (island.parent >= 0 && !kept.has(island.parent)) return false;
       if (island.depth > 0 && !params.cutouts) return false;
-      // Löcher, in die keine Wand mehr passt, bleiben Keks.
+      // Holes too small for a wall stay cookie.
       if (island.depth % 2 === 1) {
         const room = grow(
           track(new CrossSection([island.ring], "Positive")),
@@ -556,13 +575,13 @@ export const buildCutter = (
       }
       return true;
     };
-    // Eltern sind immer größer – nach Fläche absteigend ist die Reihenfolge richtig.
+    // Parents are always larger – sorted by area descending, the order is right.
     const order = [...all.keys()].sort((a, b) => all[b].area - all[a].area);
     for (const i of order) if (keep(i)) kept.add(i);
     const islands = [...kept].map((i) => all[i]);
     if (islands.length === 0) return null;
 
-    // Abwechselnd Keks und Loch: genau das ergibt „even-odd“.
+    // Alternating cookie and hole: exactly what “even-odd” gives.
     shape = track(
       track(
         new CrossSection(
@@ -573,7 +592,7 @@ export const buildCutter = (
     );
     if (shape.isEmpty()) return null;
 
-    /** Wand der Dicke `thickness` um den Keks, von `z` bis `z + height`. */
+    /** Wall of thickness `thickness` around the cookie, from `z` to `z + height`. */
     const band = (thickness: number, height: number, z = 0) => {
       const ring = track(grow(shape, thickness).subtract(shape));
       return track(track(ring.extrude(height)).translate(0, 0, z));
@@ -658,6 +677,8 @@ export const buildCutter = (
       );
     };
     const taken: Bridge[] = [];
+    /** Flat links between neighbouring holes, keyed by their end points. */
+    const links = new Map<string, Neighbour>();
     for (const [index, island] of islands.entries()) {
       if (island.depth === 0) continue;
       const parent = all[island.parent];
@@ -682,8 +703,37 @@ export const buildCutter = (
         // Wider bridges keep proportionally more distance.
         BRIDGE_GAP + 2 * bridgeWidth
       );
-      taken.push(...placed);
-      for (const { from, to } of placed) {
+      // Every hole keeps an arched bridge to a wall – the shortest. A further
+      // one gives way to a flat link at flange height when a neighbouring
+      // hole's flange is closer than the wall; flanges that already touch
+      // need none. (Flanges sit on top in use, above the dough.)
+      const arched = [...placed].sort((a, b) => a.length - b.length);
+      if (island.depth % 2 === 1 && arched.length > 1) {
+        const neighbour = nearestNeighbour(
+          island,
+          islands.filter(
+            (other) =>
+              other !== island &&
+              other.depth === island.depth &&
+              other.parent === island.parent
+          )
+        );
+        if (neighbour) {
+          const reachable =
+            neighbour.distance - params.flangeWidth < arched[1].length;
+          if (reachable) {
+            arched.splice(1);
+            const key = [neighbour.from, neighbour.to]
+              .map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`)
+              .sort()
+              .join("|");
+            const apart = neighbour.distance > 2 * params.flangeWidth;
+            if (apart && !links.has(key)) links.set(key, neighbour);
+          }
+        }
+      }
+      taken.push(...arched);
+      for (const { from, to } of arched) {
         const span = Math.hypot(to[0] - from[0], to[1] - from[1]);
         if (span <= 0) continue;
         const dir: Point = [(to[0] - from[0]) / span, (to[1] - from[1]) / span];
@@ -809,6 +859,24 @@ export const buildCutter = (
           null
         );
         if (main && !main.isEmpty()) parts.push(main);
+      }
+    }
+
+    // Flat links: a band between two holes at flange height, reaching into
+    // both walls, never over an opening.
+    const cookieAndWalls = grow(shape, wall);
+    for (const { from, to, distance } of links.values()) {
+      const dir: Point = [
+        (to[0] - from[0]) / distance,
+        (to[1] - from[1]) / distance,
+      ];
+      const band = track(
+        strip(from, dir, -wall, distance + wall, bridgeWidth).intersect(
+          cookieAndWalls
+        )
+      );
+      if (!band.isEmpty()) {
+        parts.push(track(band.extrude(Math.max(flangeHeight, 1))));
       }
     }
 

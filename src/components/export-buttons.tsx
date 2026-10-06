@@ -1,5 +1,4 @@
 import { Download } from "lucide-react";
-import type { PropsWithChildren } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { download } from "../export/download";
@@ -22,8 +21,8 @@ const slugify = (text: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-/** Downloads as STL and 3MF; `children` come first (e.g. “Share creation”). Every download counts the creation. */
-const ExportButtons = ({ children }: PropsWithChildren) => {
+/** Downloads as STL and 3MF. Every download counts the creation. */
+const ExportButtons = () => {
   const { t } = useTranslation();
   const { cutter, name, params } = useSnapshot(store);
   const { mesh } = cutter;
@@ -33,7 +32,6 @@ const ExportButtons = ({ children }: PropsWithChildren) => {
 
   return (
     <div className="actions">
-      {children}
       <Button
         disabled={!mesh}
         onClick={() => {

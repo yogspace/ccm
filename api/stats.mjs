@@ -1,14 +1,14 @@
-// Zähler „x Kreationen erstellt“: Logik für den API-Container (server.mjs) und
-// den Vite-Dev-Server (vite.config.ts). Gespeichert wird nur eine Zahl in
-// <dataDir>/stats.json, nichts über die Besucher.
+// The “x creations made” counter: logic for the API container (server.mjs) and
+// the Vite dev server (vite.config.ts). Only a number is stored, in
+// <dataDir>/stats.json – nothing about the visitors.
 //
 //   GET  /api/stats            → { "creations": 1234 }
-//   POST /api/stats/creation   → zählt eins hoch, liefert die neue Summe
+//   POST /api/stats/creation   → counts one up, returns the new total
 
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-/** Gegen Hochzählen per Skript: so viele Kreationen je IP und Stunde. */
+/** Against counting up by script: this many creations per IP and hour. */
 const LIMIT_PER_HOUR = 30;
 
 export const createStats = (dataDir) => {
@@ -19,10 +19,10 @@ export const createStats = (dataDir) => {
   try {
     stats = { ...stats, ...JSON.parse(readFileSync(file, "utf8")) };
   } catch {
-    // Erster Start oder kaputte Datei: bei 0 anfangen.
+    // First start or a broken file: start at 0.
   }
 
-  // Schreiben gebündelt und atomar (erst temporär, dann umbenennen).
+  // Writes are batched and atomic (first to a temp file, then renamed).
   let pending = false;
   const flush = () => {
     if (!pending) return;
@@ -37,7 +37,7 @@ export const createStats = (dataDir) => {
     setTimeout(flush, 1000).unref();
   };
 
-  // IP-Adressen nur kurz im Arbeitsspeicher, stündlich vergessen.
+  // IP addresses only briefly in memory, forgotten every hour.
   let recent = new Map();
   setInterval(() => {
     recent = new Map();
@@ -56,7 +56,7 @@ export const createStats = (dataDir) => {
     response.end(JSON.stringify(body));
   };
 
-  /** Beantwortet die Zähler-Routen; `false`, wenn die Anfrage nicht dazugehört. */
+  /** Answers the counter routes; `false` if the request is not one of them. */
   const handle = (request, response) => {
     const path = (request.url ?? "").split("?")[0];
     if (path === "/api/stats" && request.method === "GET") {
@@ -64,7 +64,7 @@ export const createStats = (dataDir) => {
       return true;
     }
     if (path === "/api/stats/creation" && request.method === "POST") {
-      // Den Body braucht es nicht – trotzdem lesen, damit die Verbindung sauber endet.
+      // The body is not needed – read it anyway so the connection ends cleanly.
       request.resume();
       const ip = clientIp(request);
       const count = recent.get(ip) ?? 0;

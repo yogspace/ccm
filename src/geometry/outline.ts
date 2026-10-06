@@ -3,7 +3,7 @@ import { contours } from "d3-contour";
 export type Point = [number, number];
 export type Ring = Point[];
 
-/** Fehler im Eingabebild; `code` ist ein Übersetzungsschlüssel unter `errors`. */
+/** Error in the input image; `code` is a translation key under `errors`. */
 export class InputError extends Error {
   code: "invalidSvg" | "noCanvas" | "empty";
 
@@ -13,13 +13,13 @@ export class InputError extends Error {
   }
 }
 
-/** Auflösung, auf der die Kontur gesucht wird (die Zeichenfläche ist größer). */
+/** Resolution at which the contour is traced (the drawing area is larger). */
 const TRACE_RES = 512;
 const PAD = 2;
 /**
- * So dick (Pixel bei der Importgröße) werden Linien im zweiten Versuch
- * gezeichnet, wenn ein SVG nur aus Haarlinien besteht – dünner fände die
- * Kontursuche nichts.
+ * How thick (pixels at import size) lines are drawn on the second attempt when
+ * an SVG consists of hairlines only – any thinner and tracing would find
+ * nothing.
  */
 const MIN_LINE = 10;
 
@@ -30,9 +30,8 @@ const context2d = (canvas: HTMLCanvasElement) => {
 };
 
 /**
- * Gibt SVGs eine feste Pixelgröße, damit sie scharf und im richtigen
- * Seitenverhältnis gerendert werden. Mit `thicken` werden alle Linien
- * mindestens `MIN_LINE` Pixel dick.
+ * Gives SVGs a fixed pixel size, so they render sharp and in the right aspect
+ * ratio. With `thicken` all lines become at least `MIN_LINE` pixels thick.
  */
 export const prepareSvg = (text: string, size: number, thicken = false) => {
   const doc = new DOMParser().parseFromString(text, "image/svg+xml");
@@ -55,7 +54,7 @@ export const prepareSvg = (text: string, size: number, thicken = false) => {
   }
 
   if (thicken) {
-    // Strichstärke in Einheiten der viewBox: so viele Einheiten sind MIN_LINE Pixel.
+    // Stroke width in viewBox units: this many units are MIN_LINE pixels.
     const extent =
       viewBox?.length === 4
         ? Math.max(viewBox[2], viewBox[3])
@@ -72,11 +71,11 @@ export const prepareSvg = (text: string, size: number, thicken = false) => {
 };
 
 /**
- * Rendert ein Bild und macht daraus schwarze Tinte auf transparentem Grund:
- * dunkel = Form, hell = Hintergrund (weiße Hintergründe, häufig bei PNGs,
- * dürfen nicht zur Form werden). Ist aber fast alles Gemalte hell – etwa
- * weiße Linien auf transparentem Grund –, zählt einfach alles Gemalte; außer
- * es bedeckt fast das ganze Bild, dann ist es eben doch nur Hintergrund.
+ * Renders an image and turns it into black ink on a transparent background:
+ * dark = shape, light = background (white backgrounds, common in PNGs, must not
+ * become the shape). If almost everything painted is light, though – white
+ * lines on a transparent background, say – everything painted counts; unless
+ * it covers almost the whole image, then it is background after all.
  */
 const renderInk = async (blob: Blob) => {
   const url = URL.createObjectURL(blob);
@@ -120,10 +119,10 @@ const renderInk = async (blob: Blob) => {
 };
 
 /**
- * Lädt ein SVG (oder PNG) als schwarze Silhouette auf transparentem Grund,
- * passend für die Zeichenfläche. Besteht ein SVG nur aus Haarlinien, werden
- * sie für einen zweiten Versuch dicker gezeichnet. Bleibt nichts übrig, gibt
- * es einen Fehler statt einer leeren Fläche.
+ * Loads an SVG (or PNG) as a black silhouette on a transparent background, to
+ * fit the drawing area. If an SVG consists of hairlines only, they are drawn
+ * thicker on a second attempt. If nothing is left, there is an error instead
+ * of an empty area.
  */
 export const loadSilhouette = async (file: File, size: number) => {
   const isSvg = file.type === "image/svg+xml" || /\.svg$/i.test(file.name);
@@ -144,15 +143,15 @@ export const loadSilhouette = async (file: File, size: number) => {
 };
 
 /**
- * Sucht auf dem Alpha-Kanal der Zeichnung alle Konturen (äußere Ringe und
- * Löcher). Koordinaten normiert auf 0…1, y zeigt nach unten wie im Canvas.
+ * Finds all contours (outer rings and holes) on the drawing's alpha channel.
+ * Coordinates normalised to 0…1, y points down as in the canvas.
  */
 export const traceOutline = (source: HTMLCanvasElement): Ring[] => {
   const canvas = document.createElement("canvas");
   canvas.width = TRACE_RES + 2 * PAD;
   canvas.height = TRACE_RES + 2 * PAD;
   const ctx = context2d(canvas);
-  // Leichtes Weichzeichnen glättet zittrige Striche.
+  // A slight blur smooths shaky strokes.
   ctx.filter = "blur(1.5px)";
   ctx.drawImage(source, PAD, PAD, TRACE_RES, TRACE_RES);
 

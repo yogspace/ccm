@@ -5,9 +5,9 @@ import { useSnapshot } from "valtio";
 import type { MeshData } from "../geometry/mesh";
 import { stopAutoRotate, store } from "../store";
 
-/** Von außen: ein Bild des Ausstechers aus der Vogelperspektive rendern. */
+/** From outside: render a picture of the cutter from a bird's eye view. */
 export type PreviewHandle = {
-  /** Transparentes Bild der Größe width × height, oder `null` ohne Modell. */
+  /** Transparent picture of size width × height, or `null` without a model. */
   renderTop: (width: number, height: number) => HTMLCanvasElement | null;
 };
 
@@ -20,16 +20,16 @@ type View = {
   controls: OrbitControls;
   object: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
   rise: () => void;
-  /** Drehteller an/aus. */
+  /** Turntable on/off. */
   spin: { on: boolean };
 };
 
-/** Drehteller-Tempo in rad/s – eine Umdrehung in gut 20 Sekunden. */
+/** Turntable speed in rad/s – one turn in a good 20 seconds. */
 const SPIN_SPEED = 0.3;
 
 const RISE_MS = 700;
 
-/** Filamentfarben – jeder neue Ausstecher bekommt eine andere. */
+/** Filament colours – every new cutter gets a different one. */
 const FILAMENTS = [
   "#2a44ff", // Luminous Blue
   "#ff6a1f", // Energy Orange
@@ -54,8 +54,8 @@ const reducedMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /**
- * Rendert den Ausstecher wie in der Vorschau (Schneide oben) von schräg oben –
- * mit eigenem, kurzlebigem Renderer.
+ * Renders the cutter as in the preview (cutting edge up) from slightly above –
+ * with its own short-lived renderer.
  */
 const renderTopView = (
   geometry: THREE.BufferGeometry,
@@ -95,7 +95,7 @@ const renderTopView = (
   const fit = Math.min(1, width / height);
   const distance =
     (radius / Math.sin(THREE.MathUtils.degToRad(14))) * (1.08 / fit);
-  // Leicht schräg von vorn, damit die Wände Tiefe bekommen.
+  // Slightly from the front, so the walls get some depth.
   const tilt = THREE.MathUtils.degToRad(18);
   camera.position.set(0, -distance * Math.sin(tilt), distance * Math.cos(tilt));
   camera.lookAt(0, 0, size.z / 2);
@@ -112,9 +112,9 @@ const renderTopView = (
 };
 
 /**
- * 3D-Ansicht des Ausstechers. Liest Modell, Kontur und Drehteller aus dem
- * Store; eine neue Kontur (neues Motiv) lässt das Modell neu aus dem Boden
- * wachsen. Wer selbst dreht, beendet den Drehteller.
+ * 3D view of the cutter. Reads model, contour and turntable from the store; a
+ * new contour (a new motif) lets the model grow from the floor again. Turning
+ * it yourself stops the turntable.
  */
 const Preview3d = ({ ref }: Props) => {
   const { cutter, rings: shape, autoRotate } = useSnapshot(store);
@@ -187,7 +187,7 @@ const Preview3d = ({ ref }: Props) => {
 
     let riseStart = -Infinity;
     const rise = () => {
-      // Jeder neue Ausstecher wechselt sofort die Farbe, ohne Überblendung.
+      // Every new cutter switches colour right away, without a cross-fade.
       filament = pickFilament(filament);
       material.color.set(filament);
       // New shape: reset the turntable so it starts aligned like the drawing.
@@ -236,7 +236,7 @@ const Preview3d = ({ ref }: Props) => {
     }
   }, [autoRotate]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reagiert bewusst nur auf neue Motive
+  // biome-ignore lint/correctness/useExhaustiveDependencies: deliberately reacts to new motifs only
   useEffect(() => {
     pendingRise.current = true;
   }, [shape]);
@@ -254,7 +254,7 @@ const Preview3d = ({ ref }: Props) => {
       "position",
       new THREE.BufferAttribute(mesh.positions, 3)
     );
-    // Ohne Normalen: Flat Shading berechnet sie im Shader aus den Flächen.
+    // No normals: flat shading computes them in the shader from the faces.
     object.geometry.setIndex(new THREE.BufferAttribute(mesh.indices, 1));
 
     if (pendingRise.current) {
@@ -262,13 +262,13 @@ const Preview3d = ({ ref }: Props) => {
       rise();
     }
 
-    // Kamera nur nachführen, wenn sich die Größe deutlich ändert.
+    // Only move the camera when the size changes noticeably.
     const size = Math.max(...mesh.dimensions);
     if (Math.abs(size - fittedSize.current) > size * 0.3) {
       fittedSize.current = size;
       const height = mesh.dimensions[2];
       controls.target.set(0, 0, height / 3);
-      // Von vorne: Der Ausstecher steht wie die Zeichnung (oben = hinten).
+      // From the front: the cutter stands like the drawing (top = back).
       camera.position.set(0, -size * 1.45, size * 1.15 + height);
     }
   }, [mesh]);

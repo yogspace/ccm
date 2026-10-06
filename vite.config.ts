@@ -8,7 +8,7 @@ import { createStats } from "./api/stats.mjs";
 const SITE = "https://ccm.mxwr.de";
 type Lang = "de" | "en";
 
-/** Texte für Suchmaschinen und Link-Vorschauen, je Sprache. */
+/** Texts for search engines and link previews, per language. */
 const SEO: Record<
   Lang,
   {
@@ -112,9 +112,9 @@ const localize = (html: string, lang: Lang) =>
     );
 
 /**
- * Eine Seite je Sprache: /de/ und /en/ mit eigenen Texten für Google und
- * Link-Vorschauen. Die Wurzel (und der Dev-Server) bekommt Englisch; „/“
- * leitet der Server je nach Browsersprache weiter (siehe Caddyfile).
+ * One page per language: /de/ and /en/ with their own texts for Google and
+ * link previews. The root (and the dev server) gets English; the server
+ * redirects “/” by browser language (see Caddyfile).
  */
 const localizedPages = (): Plugin => {
   let outDir = "dist";
@@ -130,7 +130,7 @@ const localizedPages = (): Plugin => {
       try {
         html = readFileSync(file, "utf8");
       } catch {
-        return; // z. B. SSR-Builds ohne index.html
+        return; // e.g. SSR builds without index.html
       }
       for (const lang of ["de", "en"] as const) {
         mkdirSync(join(outDir, lang), { recursive: true });
@@ -141,8 +141,8 @@ const localizedPages = (): Plugin => {
 };
 
 /**
- * Zähler „x Kreationen erstellt“ auch im Dev-Server und in der Vorschau – mit
- * derselben Logik wie der API-Container, Daten lokal in api/.data/.
+ * The “x creations made” counter in the dev server and preview too – with the
+ * same logic as the API container, data locally in api/.data/.
  */
 const statsApi = (): Plugin => {
   const stats = createStats(
@@ -166,9 +166,9 @@ const statsApi = (): Plugin => {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), localizedPages(), statsApi()],
-  // manifold-3d lädt sein WASM selbst und enthält Node-Zweige, die der
-  // Dependency-Prebundler nicht anfassen soll.
+  // manifold-3d loads its WASM itself and has Node branches the dependency
+  // pre-bundler should not touch.
   optimizeDeps: { exclude: ["manifold-3d"] },
-  // Der Geometrie-Worker lädt manifold per dynamischem Import – das geht nur als ES-Modul.
+  // The geometry worker loads manifold via dynamic import – that only works as an ES module.
   worker: { format: "es" },
 });
