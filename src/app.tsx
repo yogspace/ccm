@@ -110,14 +110,19 @@ const App = () => {
             </div>
           </div>
 
-          <div className="stage viewer paper">
-            <Preview3d ref={preview} />
-            {!mesh && (
-              <div className="stage-hint">
-                <CookieIcon kind="star" size={120} spin={!ready} />
-                <span>{ready ? t("preview.empty") : t("preview.loading")}</span>
-              </div>
-            )}
+          {/* The slot takes the room left; the view in it stays roughly square. */}
+          <div className="viewer-slot">
+            <div className="stage viewer paper">
+              <Preview3d ref={preview} />
+              {!mesh && (
+                <div className="stage-hint">
+                  <CookieIcon kind="star" size={120} spin={!ready} />
+                  <span>
+                    {ready ? t("preview.empty") : t("preview.loading")}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
           <ParameterPanel />

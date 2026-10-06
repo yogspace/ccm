@@ -9,17 +9,20 @@
  * it is only ever replaced as a whole, never tracked or copied.
  */
 
-import { useMemo } from "react";
 import { flushSync } from "react-dom";
 import { proxy, ref, snapshot, subscribe, useSnapshot } from "valtio";
-import { type CutterParams, defaultParams } from "./geometry/cutter";
+import {
+  type CutterParams,
+  defaultParams,
+  SIZE_RANGE,
+} from "./geometry/cutter";
 import type { CutterRequest, CutterResponse } from "./geometry/cutter-worker";
 import type { MeshData } from "./geometry/mesh";
 import { InputError, type Ring, traceOutline } from "./geometry/outline";
 import type { de } from "./i18n/de";
 import { countCreation, loadCreations } from "./stats";
 import { initialUnit, storeUnit, type Unit } from "./units";
-import { type Drawing, readHash, writeHash } from "./url-state";
+import { type Drawing, isEmptyDrawing, readHash, writeHash } from "./url-state";
 
 type ErrorKey = keyof (typeof de)["errors"];
 
@@ -61,7 +64,37 @@ type State = {
   creations: number | null;
   /** Open dialogs (imprint, sharing) – while > 0 the page does not scroll. */
   dialogs: number;
+  /**
+   * Scale: how many mm the drawing area is wide. It stays put while drawing –
+   * then `params.size` follows what was drawn; moving the size slider changes
+   * it instead (the grid zooms).
+   */
+  sheet: number;
 };
+
+/** Longest side of a set of contours (normalised 0…1), 0 if there are none. */
+const extentOf = (rings: Ring[]) => {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const ring of rings) {
+    for (const [x, y] of ring) {
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    }
+  }
+  return Math.max(0, maxX - minX, maxY - minY);
+};
+
+/** Without a shape: assume a drawing will fill about 70 % of the area. */
+const EMPTY_SHARE = 0.7;
+
+/** The scale at which `size` is the longest side of these contours. */
+const sheetFor = (size: number, rings: Ring[]) =>
+  size / (extentOf(rings) || EMPTY_SHARE);
 
 /** State from a shared link – read once on load. */
 const shared = readHash(window.location.hash);
@@ -88,7 +121,15 @@ export const store = proxy<State>({
   expanded: false,
   creations: null,
   dialogs: 0,
+  sheet: sheetFor(shared.params.size, shared.rings),
 });
+
+/**
+ * A shared drawing (not just a contour) is traced only once the drawing area
+ * paints it: that first trace sets the scale from the link's size instead of
+ * changing the size.
+ */
+let calibrating = initial.trace && !isEmptyDrawing(shared.drawing);
 
 // ---------- Actions ----------
 
@@ -101,10 +142,13 @@ export const setParam = <K extends keyof CutterParams>(
   value: CutterParams[K]
 ) => {
   store.params[key] = value;
+  // A new size scales what was drawn: the grid zooms.
+  if (key === "size") store.sheet = sheetFor(value, store.rings);
 };
 
 export const resetParams = () => {
   store.params = { ...defaultParams };
+  store.sheet = sheetFor(defaultParams.size, store.rings);
 };
 
 export const setUnit = (unit: Unit) => {
@@ -112,12 +156,30 @@ export const setUnit = (unit: Unit) => {
   storeUnit(unit);
 };
 
-/** After every stroke, import, undo or clear: keep the drawing, trace the contour. */
+/**
+ * After every stroke, import, undo or clear: keep the drawing, trace the
+ * contour. The grid keeps its scale – what measures 50 mm on it becomes a
+ * 50 mm cutter, so the size follows the drawing (within the slider's range).
+ */
 export const drawingChanged = (canvas: HTMLCanvasElement, drawing: Drawing) => {
   store.drawing = ref(drawing);
   try {
-    store.rings = ref(traceOutline(canvas));
+    const rings = traceOutline(canvas);
+    store.rings = ref(rings);
     store.inputError = undefined;
+    const extent = extentOf(rings);
+    if (extent === 0) return;
+    if (calibrating) {
+      calibrating = false;
+      store.sheet = store.params.size / extent;
+      return;
+    }
+    // Small is fine (even a first dot); only beyond the maximum does the grid
+    // have to give way.
+    const size = Math.max(0.1, Math.round(extent * store.sheet * 10) / 10);
+    const clamped = Math.min(SIZE_RANGE.max, size);
+    store.params.size = clamped;
+    if (clamped !== size) store.sheet = clamped / extent;
   } catch (cause) {
     store.inputError = cause instanceof InputError ? cause.code : "read";
   }
@@ -193,28 +255,7 @@ export const useError = () => {
 };
 
 /** Scale for the coordinate system: this many mm is the drawing area wide. */
-export const useMmPerCanvas = () => {
-  const { cutter, params } = useSnapshot(store);
-  const { outline } = cutter;
-  const { size } = params;
-  return useMemo(() => {
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-    for (const ring of outline) {
-      for (const [x, y] of ring) {
-        minX = Math.min(minX, x);
-        minY = Math.min(minY, y);
-        maxX = Math.max(maxX, x);
-        maxY = Math.max(maxY, y);
-      }
-    }
-    // Without a shape: assume the drawing fills about 70 % of the area.
-    const extent = Math.max(maxX - minX, maxY - minY);
-    return size / (extent > 0 ? extent : 0.7);
-  }, [outline, size]);
-};
+export const useMmPerCanvas = () => useSnapshot(store).sheet;
 
 // ---------- Side effects ----------
 

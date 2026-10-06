@@ -2,7 +2,11 @@ import { Check, RotateCcw } from "lucide-react";
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
-import { type CutterParams, defaultParams } from "../geometry/cutter";
+import {
+  type CutterParams,
+  defaultParams,
+  SIZE_RANGE,
+} from "../geometry/cutter";
 import { resetParams, setParam, store } from "../store";
 import { formatLength } from "../units";
 import Button from "./button";
@@ -17,7 +21,7 @@ type Field = {
 };
 
 const fields: Field[] = [
-  { key: "size", min: 30, max: 200, step: 1 },
+  { key: "size", ...SIZE_RANGE, step: 1 },
   { key: "bladeHeight", min: 8, max: 30, step: 0.5 },
   { key: "wall", min: 0.8, max: 2.4, step: 0.1 },
   { key: "edge", min: 0.4, max: 1.2, step: 0.1 },
@@ -113,24 +117,25 @@ const ParameterPanel = () => {
           {slider(bridgeField)}
         </div>
       </div>
-      <div className="params-grid">
-        {/* The cutter is used upside down – mirrored, text on the cookie reads right. */}
+      <div className="params-grid">{fields.map(slider)}</div>
+      {/* At the bottom: mirroring (the cutter is used upside down – mirrored,
+          text on the cookie reads right) and reset. */}
+      <div className="params-foot">
         <Toggle
           hint={t("params.mirrorHint")}
           label={t("params.mirror")}
           name="mirror"
         />
+        <Button
+          className="ghost reset"
+          disabled={!changed}
+          onClick={resetParams}
+          type="button"
+        >
+          <CookieIcon icing="#ff5fa8" icon={RotateCcw} roll={-14} size={44} />
+          {t("params.reset")}
+        </Button>
       </div>
-      <div className="params-grid">{fields.map(slider)}</div>
-      <Button
-        className="ghost reset"
-        disabled={!changed}
-        onClick={resetParams}
-        type="button"
-      >
-        <CookieIcon icing="#ff5fa8" icon={RotateCcw} roll={-14} size={44} />
-        {t("params.reset")}
-      </Button>
     </div>
   );
 };

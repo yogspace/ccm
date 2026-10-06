@@ -524,10 +524,6 @@ input[type="range"]:active::-moz-range-thumb {
     "cutter";
 }
 
-.layout[data-expanded] .viewer {
-  aspect-ratio: 16 / 9;
-}
-
 .layout[data-expanded] .cutter-card {
   animation: none;
 }
@@ -540,6 +536,8 @@ input[type="range"]:active::-moz-range-thumb {
   .layout:not([data-expanded]) {
     flex: 1;
     grid-template-rows: auto 1fr;
+    /* The editor fills the first screen; the fan and footer follow below. */
+    min-height: calc(100dvh - 8.5rem);
   }
 
   .layout:not([data-expanded]) .draw-area {
@@ -855,18 +853,49 @@ input[type="range"]:active::-moz-range-thumb {
 
 /* In the 3D view the floor grid takes over, dots would be doubled. It fills
    the height left next to the drawing area. */
-.stage.viewer {
+/* The 3D view stays roughly square – between 4:5 and 7:5 – instead of
+   stretching: it takes the height left next to the sliders (at least 20rem),
+   centred in its slot. */
+.viewer-slot {
+  display: grid;
   flex: 1 1 0;
-  min-height: 15rem;
+  place-items: center;
+  min-height: 20rem;
+  container-type: size;
+}
+
+.stage.viewer {
+  width: min(100cqw, 140cqh);
+  height: min(100cqh, 125cqw);
   aspect-ratio: auto;
   background-image: none;
 }
 
 @media (max-width: 56rem) {
-  .stage.viewer {
+  .viewer-slot {
     flex: none;
+    min-height: 0;
+    container-type: inline-size;
+  }
+
+  .stage.viewer {
+    width: 100%;
+    height: auto;
     aspect-ratio: 1;
   }
+}
+
+/* Enlarged: below the drawing, at most 44rem wide. */
+.layout[data-expanded] .viewer-slot {
+  flex: none;
+  min-height: 0;
+  container-type: inline-size;
+}
+
+.layout[data-expanded] .stage.viewer {
+  width: min(100%, 44rem);
+  height: auto;
+  aspect-ratio: 5 / 4;
 }
 
 .preview {
@@ -1476,10 +1505,14 @@ button.remove-chip {
   color: var(--muted);
 }
 
-/* Reset sits on its own line, not stretched; the checkbox shares its row
-   (a grid like the sliders) with the bridge width. */
-.params > .reset {
-  align-self: flex-start;
+/* The cutouts checkbox shares its row (a grid like the sliders) with the
+   bridge width; mirroring and reset sit at the bottom. */
+.params-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
 }
 
 .params-grid > .checkbox {
