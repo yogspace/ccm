@@ -19,6 +19,8 @@ export type CutterParams = {
   smoothing: number;
   /** 1 = Formen in Formen werden zu inneren Klingen (Löcher), 0 = nur außen. */
   cutouts: number;
+  /** Width of the bridges that hold inner blades. */
+  bridgeWidth: number;
 };
 
 export const defaultParams: CutterParams = {
@@ -32,6 +34,7 @@ export const defaultParams: CutterParams = {
   flangeHeight: 2,
   smoothing: 1,
   cutouts: 1,
+  bridgeWidth: 3,
 };
 
 export type Cutter = {
@@ -50,12 +53,13 @@ const SEGMENTS = 48;
 const MIN_ISLAND_SHARE = 0.01;
 /** Innen (Löcher, Formen in Formen) zählt die echte Größe, nicht der Anteil (mm²). */
 const MIN_INNER_AREA = 6;
-/** Bridges between inner and outer blades (mm): this wide … */
-const BRIDGE_WIDTH = 3;
-/** Höhe in der Mitte des Stegs; an den Wänden wird er höher (siehe bridgeProfile). */
+/** Height of a bridge in the middle; towards the walls it rises. */
 const BRIDGE_MID_HEIGHT = 3;
-/** Anteil der Gesamthöhe, bis zu dem der Steg an den Wänden höchstens hochgeht. */
-const BRIDGE_END_SHARE = 0.45;
+/**
+ * Room (mm) the bridges always leave below the cutting edge for the dough –
+ * nothing of them may press into the cookie.
+ */
+const BRIDGE_CLEARANCE = 9;
 /**
  * Wie stark die Enden ausgestellt sind, wächst mit der Spannweite – kurze Stege
  * bleiben schlank statt zum Klotz zu werden.
@@ -73,7 +77,7 @@ const BRIDGE_MAX_TILT = 35;
  * Näher (mm) sollen sich Stege nicht kommen – sonst verschmelzen sie samt
  * ihren ausgestellten Enden zu einem Klotz.
  */
-const BRIDGE_GAP = 12;
+const BRIDGE_GAP = 6;
 /** Radius (mm) der Hohlkehlen, mit denen die Stege in die Wände übergehen. */
 const BRIDGE_FILLET = 2.5;
 
@@ -276,7 +280,8 @@ const placeBridges = (
   inner: Ring,
   outer: Ring,
   obstacles: Ring[],
-  taken: Bridge[]
+  taken: Bridge[],
+  gap: number
 ) => {
   const samples = resample(inner, BRIDGE_SAMPLE);
   if (samples.length < 3) return [];
@@ -341,17 +346,24 @@ const placeBridges = (
   const crowded = (bridge: Bridge, others: Bridge[], own: Bridge[]) =>
     others.some(
       (other) =>
-        segmentDistance(bridge.from, bridge.to, other.from, other.to) <
-        BRIDGE_GAP
+        segmentDistance(bridge.from, bridge.to, other.from, other.to) < gap
     ) ||
     own.some((other) => {
       const apart = Math.hypot(
         bridge.from[0] - other.from[0],
         bridge.from[1] - other.from[1]
       );
+      // Spokes of a small shape start close together – fine, as long as they
+      // spread out: they must neither converge nor run side by side, so
+      // their far ends are at least the gap apart.
+      const ends = Math.hypot(
+        bridge.to[0] - other.to[0],
+        bridge.to[1] - other.to[1]
+      );
       return (
+        ends < gap ||
         segmentDistance(bridge.from, bridge.to, other.from, other.to) <
-        0.9 * Math.min(BRIDGE_GAP, apart)
+          0.9 * Math.min(gap, apart)
       );
     });
 
@@ -427,9 +439,14 @@ const segmentsNear = (
   return segments;
 };
 
-/** Distance from a point to the nearest of these segments (Infinity if none). */
-const distanceTo = (segments: number[], x: number, y: number) => {
+/**
+ * Distance from a point to the nearest of these segments (Infinity if none),
+ * and whether it lies inside the ring they belong to – rings run counter-
+ * clockwise, so inside is to the left of the nearest segment.
+ */
+const nearestOn = (segments: number[], x: number, y: number) => {
   let best = Infinity;
+  let inside = false;
   for (let i = 0; i < segments.length; i += 4) {
     const ax = segments[i];
     const ay = segments[i + 1];
@@ -443,9 +460,12 @@ const distanceTo = (segments: number[], x: number, y: number) => {
     const ex = ax + t * dx - x;
     const ey = ay + t * dy - y;
     const distance = ex * ex + ey * ey;
-    if (distance < best) best = distance;
+    if (distance < best) {
+      best = distance;
+      inside = dx * (y - ay) - dy * (x - ax) > 0;
+    }
   }
-  return Math.sqrt(best);
+  return { distance: Math.sqrt(best), inside };
 };
 
 /** Abbildung der normierten Konturen (y nach unten) auf mm, zentriert, y nach oben. */
@@ -571,34 +591,26 @@ export const buildCutter = (
         band(thickness, LAYER + OVERLAP, taperTop + i * LAYER - OVERLAP)
       );
     }
-    // Die Falz läuft außen herum – und um jede innere Form: um ein Loch auf
-    // der Keksseite (im Gebrauch oben, über dem Teig), um Keks im Loch nach
-    // außen ins Loch. So verbinden sich nahe Formen über die Falz miteinander
-    // und mit dem Rand und stützen sich gegenseitig.
+    // The flange runs around the outside – and around every inner blade, but
+    // there only over cookie and walls (on top in use, above the dough), never
+    // over an opening: what a hole cuts out must still drop out. Close inner
+    // shapes join up over their flanges and with the rim, supporting each
+    // other.
     if (params.flangeWidth > wall) {
+      const width = params.flangeWidth;
       const pieces = islands.map((island) => {
         const area = track(new CrossSection([island.ring], "Positive"));
-        if (island.depth === 0) {
-          return track(grow(area, params.flangeWidth).subtract(area));
-        }
-        const parent = track(
-          new CrossSection([all[island.parent].ring], "Positive")
-        );
-        // Ein Stück in die eigene Wand hinein, damit beides verschmilzt; nie
-        // über die Falz der umschließenden Form hinaus.
-        return island.depth % 2 === 1
-          ? track(
-              track(
-                grow(area, params.flangeWidth).subtract(grow(area, -wall))
-              ).intersect(grow(parent, params.flangeWidth))
-            )
-          : track(
-              track(grow(area, params.flangeWidth).subtract(area)).intersect(
-                parent
-              )
-            );
+        return island.depth === 0
+          ? track(grow(area, width).subtract(area))
+          : track(grow(area, width).subtract(grow(area, -width)));
       });
-      const flange = track(CrossSection.union(pieces));
+      const outer = pieces.filter((_, i) => islands[i].depth === 0);
+      const inner = pieces.filter((_, i) => islands[i].depth > 0);
+      const flange = track(
+        track(CrossSection.union(outer)).add(
+          track(track(CrossSection.union(inner)).intersect(grow(shape, wall)))
+        )
+      );
       parts.push(track(flange.extrude(flangeHeight)));
     }
 
@@ -608,11 +620,11 @@ export const buildCutter = (
     // corners at the walls are rounded off (by the real distance to the wall,
     // so also where it is oblique or curved), and these fillets slope down
     // away from the bridge like a fillet would – no edge where it joins.
-    const maxEndHeight = Math.max(BRIDGE_MID_HEIGHT, top * BRIDGE_END_SHARE);
-    const midHeight = Math.min(
-      maxEndHeight,
-      Math.max(BRIDGE_MID_HEIGHT, flangeHeight + 1)
-    );
+    const bridgeWidth = Math.max(1, params.bridgeWidth);
+    const midHeight = Math.max(BRIDGE_MID_HEIGHT, flangeHeight + 1);
+    // Highest point of a bridge, fillet included: the dough needs its room.
+    const ceiling = Math.max(midHeight + 1, top - BRIDGE_CLEARANCE);
+    const riseHeight = Math.min(BRIDGE_FILLET, (ceiling - midHeight) / 2);
     // Long enough to reach through any wall, then cut to the wall faces.
     const extend = wall + 2;
     const soft = (section: CrossSection, delta: number) =>
@@ -662,16 +674,23 @@ export const buildCutter = (
           ? grow(parentArea, wall).subtract(grow(childArea, -wall))
           : parentArea.subtract(childArea)
       );
-      const placed = placeBridges(island.ring, parent.ring, obstacles, taken);
+      const placed = placeBridges(
+        island.ring,
+        parent.ring,
+        obstacles,
+        taken,
+        // Wider bridges keep proportionally more distance.
+        BRIDGE_GAP + 2 * bridgeWidth
+      );
       taken.push(...placed);
       for (const { from, to } of placed) {
         const span = Math.hypot(to[0] - from[0], to[1] - from[1]);
         if (span <= 0) continue;
         const dir: Point = [(to[0] - from[0]) / span, (to[1] - from[1]) / span];
         const [nx, ny] = [-dir[1], dir[0]];
-        const half = BRIDGE_WIDTH / 2;
+        const half = bridgeWidth / 2;
         const band0 = track(
-          strip(from, dir, -extend, span + extend, BRIDGE_WIDTH).intersect(
+          strip(from, dir, -extend, span + extend, bridgeWidth).intersect(
             allowed
           )
         );
@@ -715,33 +734,48 @@ export const buildCutter = (
         );
 
         const endHeight = Math.min(
-          maxEndHeight,
+          ceiling - riseHeight,
           midHeight + span * BRIDGE_RISE_PER_MM
         );
         // Height field over the plan, from the real distance to the two wall
-        // faces the bridge joins: an arch that runs vertically into each wall
-        // (also a curved one) and is lowest in the middle; beside the band the
-        // fillets slope down like a fillet. A cookie inside a hole has both
-        // walls on the bridge side of its contours.
+        // faces the bridge joins: sagging like a rope towards the middle, and
+        // at each wall (also a curved one) a fillet that sweeps steeply up
+        // into it; beside the band the fillets slope down. Inside a wall
+        // everything is at full height, so no ridge forms at its face. A
+        // cookie inside a hole has both walls on the bridge side of its
+        // contours.
         const inset = island.depth % 2 === 0 ? wall : 0;
         const gap = Math.max(span - 2 * inset, 1);
         const { min, max } = footprint.bounds();
         const reach = gap / 2 + inset + 1;
-        const faces = [island.ring, parent.ring].map((ring) =>
-          segmentsNear(ring, min, max, reach)
-        );
+        // Beyond the child contour lies its wall for a hole, the cookie for a
+        // cookie in a hole – either way not the gap; beyond the parent's too.
+        const faces = [
+          {
+            segments: segmentsNear(island.ring, min, max, reach),
+            beyondInside: true,
+          },
+          {
+            segments: segmentsNear(parent.ring, min, max, reach),
+            beyondInside: false,
+          },
+        ];
         const height = (x: number, y: number) => {
-          const d = Math.max(
-            0,
-            Math.min(...faces.map((face) => distanceTo(face, x, y))) - inset
-          );
-          const cos = 1 - 2 * Math.min(0.5, d / gap);
-          let h =
-            endHeight - (endHeight - midHeight) * Math.sqrt(1 - cos * cos);
+          let d = Infinity;
+          for (const { segments, beyondInside } of faces) {
+            const { distance, inside } = nearestOn(segments, x, y);
+            d = Math.min(d, inside === beyondInside ? 0 : distance);
+          }
+          d = Math.max(0, d - inset);
+          const t = Math.min(0.5, d / gap);
+          const sag = midHeight + (endHeight - midHeight) * (1 - 2 * t) ** 2;
+          const rise =
+            d < BRIDGE_FILLET ? riseHeight * (1 - d / BRIDGE_FILLET) ** 2 : 0;
+          let h = sag + rise;
           const side = Math.abs((x - from[0]) * nx + (y - from[1]) * ny);
           if (side > half) {
             const s = Math.min(1, (side - half) / BRIDGE_FILLET);
-            h = Math.min(h, endHeight * (1 - s) ** 2);
+            h *= (1 - s) ** 2;
           }
           return Math.max(h, 0.3);
         };
@@ -752,7 +786,7 @@ export const buildCutter = (
           dir,
           -extend - 2 * BRIDGE_FILLET,
           span + extend + 2 * BRIDGE_FILLET,
-          BRIDGE_WIDTH + 2 * BRIDGE_FILLET
+          bridgeWidth + 2 * BRIDGE_FILLET
         );
         const bar = track(
           track(
@@ -778,8 +812,13 @@ export const buildCutter = (
       }
     }
 
+    // Rounding can leave zero-volume splinters as parts of their own; real
+    // separate pieces (e.g. letters side by side) are far larger. The result
+    // is composed fresh: it belongs to the caller, not to `garbage`.
+    const pieces = track(Manifold.union(parts)).decompose();
+    garbage.push(...pieces);
     return {
-      manifold: Manifold.union(parts),
+      manifold: Manifold.compose(pieces.filter((piece) => piece.volume() > 1)),
       outline: shape.toPolygons().map((ring) => ring.map(fromMm)),
     };
   } finally {

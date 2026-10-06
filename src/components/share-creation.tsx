@@ -123,7 +123,8 @@ const ShareCreation = ({ preview }: Props) => {
 
   const shareImage = () => {
     if (!shared?.file) return;
-    const text = `${t("share.text")} ${shared.url}`;
+    // The link on its own line, so it does not stick to the text.
+    const text = `${t("share.text")}\n${shared.url}`;
     // Manche Apps (z. B. Signal) übernehmen nur das Bild und lassen den Text
     // fallen – deshalb liegt er samt Link auch in der Zwischenablage. Beides
     // direkt im Klick aufrufen, sonst verfällt die Erlaubnis dafür.

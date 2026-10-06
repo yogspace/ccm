@@ -34,7 +34,8 @@ const SharePanel = () => {
     try {
       await navigator.share({
         title: name.trim() || "Cookie Cutter Maker",
-        text: t("share.pageText"),
+        // Apps append the link – on its own line, not stuck to the text.
+        text: `${t("share.pageText")}\n`,
         url: pageUrl(),
       });
     } catch (error) {

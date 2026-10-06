@@ -51,6 +51,7 @@ export const en: typeof de = {
     flangeWidth: "Rim width",
     flangeHeight: "Rim height",
     smoothing: "Close gaps",
+    bridgeWidth: "Bridge width",
     cutouts: "Cut out inner shapes",
     cutoutsHint:
       "A shape inside another becomes a hole, held by bridges at the rim.",

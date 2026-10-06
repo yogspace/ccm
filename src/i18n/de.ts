@@ -51,6 +51,7 @@ export const de = {
     flangeWidth: "Falz-Breite",
     flangeHeight: "Falz-Höhe",
     smoothing: "Lücken schließen",
+    bridgeWidth: "Stegbreite",
     cutouts: "Innere Formen ausschneiden",
     cutoutsHint:
       "Eine Form innerhalb einer anderen wird zum Loch, verbunden über Stege an der Falz.",

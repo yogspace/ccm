@@ -1487,10 +1487,28 @@ button.remove-chip {
   color: var(--muted);
 }
 
-/* Checkbox und Zurücksetzen stehen in eigenen Zeilen, nicht gedehnt. */
-.params > .checkbox,
+/* Reset sits on its own line, not stretched; the checkbox shares its row
+   (a grid like the sliders) with the bridge width. */
 .params > .reset {
   align-self: flex-start;
+}
+
+.params-grid > .checkbox {
+  align-self: center;
+}
+
+.bridge-width {
+  transition:
+    opacity 0.3s var(--ease),
+    visibility 0s;
+}
+
+.bridge-width[data-off] {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.3s var(--ease),
+    visibility 0s 0.3s;
 }
 
 .params-grid {
