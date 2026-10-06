@@ -74,6 +74,8 @@ export const inspect = (
     const slits = track(open.subtract(wide))
       .decompose()
       .map(track)
+      // Offsetting curves leaves dust along them – not a slit.
+      .filter((slit) => slit.area() > 0.05)
       .filter((slit) => !track(slit.intersect(near)).isEmpty())
       .map((slit) => {
         const { min, max } = slit.bounds();

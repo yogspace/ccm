@@ -233,9 +233,10 @@ export const buildCutter = (
     // the dough), never over an opening: what a hole cuts out must still drop
     // out. Every flange keeps its width. Plus the flat links, their corners
     // rounded off where they meet a flange or wall. Hairline gaps between
-    // inner flanges and small pockets in the plate are closed – they print
-    // badly and catch crumbs.
+    // inner flanges are closed, pockets enclosed by the plate rounded off or,
+    // if small, closed – they print badly and catch crumbs.
     const cookieAndWalls = grow(shape, wall);
+    const walls = track(cookieAndWalls.subtract(shape));
     const outer: CrossSection[] = [];
     const inner: CrossSection[] = [];
     const links: CrossSection[] = [];
@@ -270,6 +271,7 @@ export const buildCutter = (
       if (!link.isEmpty()) links.push(link);
     }
     const pieces = [...outer, ...inner, ...links];
+    let plate: CrossSection | null = null;
     if (pieces.length > 0) {
       const joined = track(CrossSection.union(pieces));
       /** What closing by `radius` adds over the cookie. */
@@ -295,11 +297,23 @@ export const buildCutter = (
       const filled = track(
         track(joined.add(fillets)).add(track(CrossSection.union(hairlines)))
       );
-      const pockets = track(shape.subtract(filled))
+      // Cookie along the outside is open to the rim, a pocket is not.
+      const roots = track(
+        CrossSection.union(
+          islands.filter(({ depth }) => depth === 0).map(areaOf)
+        )
+      );
+      const rim = track(grow(roots, 0.05).subtract(grow(roots, -0.05)));
+      const plugs = track(shape.subtract(filled))
         .decompose()
         .map(track)
-        .filter((pocket) => pocket.area() < POCKET);
-      const plate = track(filled.add(track(CrossSection.union(pockets))));
+        .filter((pocket) => track(pocket.intersect(rim)).isEmpty())
+        .map((pocket) =>
+          pocket.area() < POCKET
+            ? pocket
+            : track(pocket.subtract(grow(grow(pocket, -FILLET), FILLET)))
+        );
+      plate = track(filled.add(track(CrossSection.union(plugs))));
       parts.push(track(plate.extrude(flangeHeight)));
     }
 
@@ -310,7 +324,8 @@ export const buildCutter = (
       midHeight,
       ceiling: Math.max(midHeight + 1, top - BRIDGE_CLEARANCE),
       wall,
-      walls: track(grow(shape, wall).subtract(shape)),
+      // Bridges blend into walls and flanges alike.
+      walls: plate ? track(walls.add(plate)) : walls,
     };
     for (const { from, to, start, end, kind } of connections) {
       if (kind !== "arch" || !start.parent) continue;

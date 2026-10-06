@@ -75,7 +75,7 @@ export type ArchStyle = {
   /** Highest point, fillet included – the dough needs its room. */
   ceiling: number;
   wall: number;
-  /** All walls in plan. */
+  /** All walls in plan, and the flange plate – what bridges blend into. */
   walls: CrossSection;
 };
 

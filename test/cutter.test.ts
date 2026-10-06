@@ -33,9 +33,17 @@ type Case = {
   maxArches?: number;
 };
 
+/** Short gaps are linked flat – no arches at all. */
+const flatOnly = new Set(["star with a star hole", "slot along the wall"]);
+
 const cases: Case[] = [
-  ...Object.entries(shapes).map(([name, rings]) => ({ name, rings })),
-  { name: "poop (drawn)", ...fixture("poop") },
+  ...Object.entries(shapes).map(([name, rings]) => ({
+    name,
+    rings,
+    maxArches: flatOnly.has(name) ? 0 : undefined,
+  })),
+  // Eyes and mouth linked flat, hung from two arches.
+  { name: "poop (drawn)", ...fixture("poop"), maxArches: 2 },
   {
     name: "poop, wide bridges",
     ...fixture("poop"),
@@ -46,8 +54,9 @@ const cases: Case[] = [
     ...fixture("poop"),
     params: { ...fixture("poop").params, wall: 0.8 },
   },
-  // Eyes, nose and teeth close together: one plate, flat to the jaw.
-  { name: "skull (drawn)", ...fixture("skull"), maxArches: 0 },
+  // Eyes, nose and teeth close together: linked flat into one piece, held
+  // flat at the jaw and the cheek, by one arch on the far side.
+  { name: "skull (drawn)", ...fixture("skull"), maxArches: 1 },
 ];
 
 const build = (rings: Ring[], overrides: Partial<CutterParams> = {}) => {

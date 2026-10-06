@@ -50,7 +50,7 @@ const SAMPLE = 1.5;
 const CONTACT_SAMPLE = 1;
 /** How far (degrees) a connection may deviate from square to its contours. */
 const MAX_TILT = 35;
-/** About one support per this many mm of an inner contour, 2 to 4. */
+/** About one support per this many mm around a group (its hull), 2 to 4. */
 const SPACING = 45;
 /** Groups up to this size (mm) are held well enough at a single spot. */
 const SMALL_GROUP = 10;
@@ -93,6 +93,28 @@ const box = (ring: Ring) => {
     maxY = Math.max(maxY, y);
   }
   return { minX, minY, maxX, maxY };
+};
+
+/** Convex hull (monotone chain), counter-clockwise. */
+const hull = (points: Point[]): Ring => {
+  const sorted = [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o: Point, a: Point, b: Point) =>
+    (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const half = (from: Point[]) => {
+    const chain: Point[] = [];
+    for (const point of from) {
+      while (
+        chain.length >= 2 &&
+        cross(chain[chain.length - 2], chain[chain.length - 1], point) <= 0
+      ) {
+        chain.pop();
+      }
+      chain.push(point);
+    }
+    chain.pop();
+    return chain;
+  };
+  return [...half(sorted), ...half([...sorted].reverse())];
 };
 
 /** Gap between the bounding boxes of two rings (0 if they overlap). */
@@ -159,7 +181,7 @@ const angleBetween = (a: number, b: number) => {
  *    first (like a minimum spanning tree). Where a flange comes close to
  *    the wall, that is a short flat link.
  * 3. Then each group gets further supports until they spread around it:
- *    two at least 90° apart, more for large holes. Again the cheapest:
+ *    two at least 90° apart, more for large groups. Again the cheapest:
  *    short, about square to both contours, flat rather than arched, and not
  *    crowding another connection.
  *
@@ -238,11 +260,11 @@ const planInside = (
       Math.max(...bounds.map((b) => b.maxY)) -
         Math.min(...bounds.map((b) => b.minY))
     );
-    const longest = Math.max(...members.map(({ ring }) => perimeter(ring)));
+    const around = perimeter(hull(members.flatMap(({ ring }) => ring)));
     const needed =
       extent <= SMALL_GROUP
         ? 1
-        : Math.max(2, Math.min(4, Math.round(longest / SPACING)));
+        : Math.max(2, Math.min(4, Math.round(around / SPACING)));
     const group: Group = {
       members,
       center,
