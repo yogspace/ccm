@@ -7,6 +7,7 @@ import {
   type PointerEvent,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -409,19 +410,32 @@ const DrawCanvas = () => {
   // together, and stale values made the size jump back and forth. Computed
   // sizes instead of getBoundingClientRect, so transforms (area on drop) do
   // not count.
-  useEffect(() => {
+  useLayoutEffect(() => {
     const area = areaRef.current;
     const grid = gridRef.current;
     const stage = stageRef.current;
     if (!area || !grid || !stage) return;
-    const observer = new ResizeObserver(() => {
+    /** Sets the measured sizes; `true` if they changed. */
+    const measure = () => {
       const outer = getComputedStyle(grid);
       const inner = getComputedStyle(stage);
       const chrome = (key: "width" | "height") =>
         `${(Number.parseFloat(outer[key]) - Number.parseFloat(inner[key])).toFixed(2)}px`;
-      area.style.setProperty("--chrome-w", chrome("width"));
-      area.style.setProperty("--chrome-h", chrome("height"));
-    });
+      const width = chrome("width");
+      const height = chrome("height");
+      const changed =
+        area.style.getPropertyValue("--chrome-w") !== width ||
+        area.style.getPropertyValue("--chrome-h") !== height;
+      area.style.setProperty("--chrome-w", width);
+      area.style.setProperty("--chrome-h", height);
+      return changed;
+    };
+    // Right away, before the first paint – the observer only reports once
+    // the main thread is free (at start it is busy with the 3D cookies), and
+    // until then the guessed sizes would show. Bars that wrap depend on the
+    // size, so measure until it settles.
+    for (let i = 0; i < 3 && measure(); i++);
+    const observer = new ResizeObserver(() => measure());
     observer.observe(grid);
     observer.observe(stage);
     return () => observer.disconnect();
