@@ -47,8 +47,6 @@ export const Legal: GlobalConfig = {
       type: "richText",
       localized: true,
       required: true,
-      // Looks like the dialog (custom.scss): Pally, the same sizes and colours.
-      admin: { className: "legal-editor" },
       editor: lexicalEditor({
         features: [
           ParagraphFeature(),

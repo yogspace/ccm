@@ -1,7 +1,11 @@
 "use client";
 
 import { useBlockComponentContext } from "@payloadcms/richtext-lexical/client";
-import { useEffect, useState } from "react";
+import {
+  $getNearestNodeFromDOMNode,
+  getNearestEditorFromDOMNode,
+} from "@payloadcms/richtext-lexical/lexical";
+import { useEffect, useRef, useState } from "react";
 import type { SiteAddress, SiteLinks } from "../site-defaults";
 
 /**
@@ -87,17 +91,45 @@ export const ContactFormBlockPreview = () => {
   );
 };
 
+/**
+ * The fields of the inline block a label sits in. The label component gets
+ * none and is rendered outside the block's context, so it asks Lexical: the
+ * nearest node to its own DOM element – and again after every edit.
+ */
+const useInlineFields = <T,>() => {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [fields, setFields] = useState<Partial<T>>({});
+  useEffect(() => {
+    const dom = ref.current;
+    const editor = dom && getNearestEditorFromDOMNode(dom);
+    if (!(dom && editor)) return;
+    const read = () =>
+      editor.read(() => {
+        const node = $getNearestNodeFromDOMNode(dom) as {
+          getFields?: () => Partial<T>;
+        } | null;
+        setFields(node?.getFields?.() ?? {});
+      });
+    read();
+    return editor.registerUpdateListener(read);
+  }, []);
+  return [ref, fields] as const;
+};
+
 /** A site link inside a sentence: the linked words, with a little arrow. */
-export const SiteLinkLabel = ({
-  formData,
-}: {
-  formData?: { label?: string; link?: keyof SiteLinks };
-}) => {
+export const SiteLinkLabel = () => {
+  const [ref, { label, link }] = useInlineFields<{
+    label: string;
+    link: keyof SiteLinks;
+  }>();
   const site = useSite();
-  const url = formData?.link ? site?.links?.[formData.link] : undefined;
   return (
-    <span className="legal-preview-link" title={url}>
-      {formData?.label || "Site link"} ↗
+    <span
+      className="legal-preview-link"
+      ref={ref}
+      title={link && site?.links?.[link]}
+    >
+      {label || "Site link"} ↗
     </span>
   );
 };

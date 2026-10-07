@@ -29,7 +29,7 @@ The geometry is built entirely in the browser. The server ([Next.js](https://nex
 - Example gallery: pictures uploaded in the admin; five are drawn at random on every load
 - German/English (i18next) under `/de` and `/en` with their own texts for search engines; `/` redirects by browser language. The interface texts can be edited in the admin (see below)
 - Anonymous statistics without cookies: page views (page, coarse source, device class, OS, browser) and actions (downloads, sharing, cards, imports) on our own server – no IP, no identifier, nothing linking two rows, deleted after 90 days; Global Privacy Control is respected. Evaluated in the admin, optionally as a mail report (see below)
-- Light/dark mode, imprint & privacy as a dialog, animations with `motion`, no scrolling behind open dialogs
+- Light/dark mode, imprint & privacy as a dialog – written in the admin as rich text, with the contact form in it – animations with `motion`, no scrolling behind open dialogs
 - State in one store ([valtio](https://valtio.dev)): components read what they need themselves instead of having it passed down
 - Favicon/icons, Open Graph images (en/de), manifest, `robots.txt`, `sitemap.xml` and JSON-LD
 
@@ -66,7 +66,9 @@ src/
   translations/               the Translations global: fields from the keys (tree.ts), seeding (seed.ts), reading for the pages (texts.ts)
   payload.config.ts           Payload: MongoDB, collections, globals, seeding at start
   collections/                templates, gallery (uploads), users (admin login), page-views, actions
-  globals/                    analytics (the statistics in the admin, mail report, own devices), translations
+  globals/                    site (links, address), legal (imprint & privacy, rich text), translations, analytics (statistics, mail report, own devices)
+  legal/                      the legal text's blocks, its rendering on the server, its seed (the text as it stood in the code)
+  site-defaults.ts, site-context.ts   links and address before the CMS (seed and fallback); the links in the browser
   fields/                     admin views: analytics/ (overview, visitors, actions, range), visit-matrix, buttons
   stats/                      statistics on the server: device classes, sources, exclusion, auth, mail, page names
   analytics.ts                sends page views and actions (sendBeacon)
@@ -136,6 +138,17 @@ In the admin under **Analytics**: page views and actions over a time range (toda
 - **Own devices:** in the sidebar “Don't count this device” – once per device, logged in; afterwards it is not counted even logged out. Logged-in admins are never counted.
 - **Contact form:** in the imprint (dialog) – mailed to `MAIL_CONTACT_RECIPIENT` via Resend, nothing stored; a honeypot and a rate limit (5 per 10 minutes and IP, in memory only) against abuse.
 - **Mail report:** in the sidebar daily, weekly or monthly (off by default), “Send the report now” to try it. Needs `CRON_SECRET`, `RESEND_API_KEY`, `MAIL_FROM` and `MAIL_STATS_RECIPIENT` in the server's `.env` and the cron job (`bash scripts/setup-cron.sh` on the server, once); the route also prunes rows older than 90 days.
+
+### Imprint, privacy and links
+
+- **Site:** the links (mxwr.de in the footer and on the card, MakerWorld, PayPal, GitHub) and the address – in one place.
+- **Imprint & privacy:** the dialog behind “Imprint & privacy” as rich text, German and English. The editor has what the dialog draws – big headings (h2) for the parts, small ones (h3) for the sections, paragraphs, bold, italic, lists, links – and looks like it (Pally, the same sizes). Its own blocks:
+  - **Address** – the address from Site, shown where the block sits (twice in the imprint, kept once).
+  - **Contact form** – the real form (`/next/contact`).
+  - **Site link** (inline) – linked words in a sentence pointing to one of Site's links (“GitHub”, “PayPal”).
+  - **Last updated** (inline) – the date the text was last saved, in the reader's language.
+
+At the first start both are seeded with what stood in the code; without a database the page shows exactly that.
 
 ### Interface texts
 

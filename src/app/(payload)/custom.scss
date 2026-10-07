@@ -63,19 +63,21 @@
 }
 
 // The legal text's editor looks like the dialog it fills (.legal in the app's
-// index.css): Pally, big h2, small h3, muted paragraphs.
-.legal-editor {
+// index.css): Pally, big h2, small h3, muted paragraphs. It is the only rich
+// text in this admin.
+.rich-text-lexical {
   --font-serif: var(--font-body);
 
+  // In px: the admin counts in 13 px rems, the dialog in 16 px ones.
   .LexicalEditorTheme__h2 {
-    font-size: 1.6rem;
+    font-size: 26px;
     line-height: 1.2;
     letter-spacing: -0.015em;
     margin-block: 1.6em 0.4em;
   }
 
   .LexicalEditorTheme__h3 {
-    font-size: 1rem;
+    font-size: 16px;
     font-weight: 700;
     margin-block: 1.1em 0.25em;
   }

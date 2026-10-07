@@ -165,7 +165,7 @@ Reine Geometrie-Funktionen (`outline.ts` ohne Canvas-Teil, `cutter.ts`, Exporte)
 - **Phase 1 umgesetzt auf dem Branch `next`, noch nicht ausgerollt:**
   - `/de`, `/en`, `/de/card`, `/en/card`, Weiterleitung von `/` und `/card` per Next-Proxy; Meta-Texte und JSON-LD über `generateMetadata`.
   - Payload mit MongoDB (eigener Container): Statistik (Seitenaufrufe, Aktionen, Auswertung im Admin, eigene Geräte ausnehmen, Mail-Report per Cron), Oberflächentexte als Translations-Global, Vorlagen und Galerie als Uploads.
-  - Kontaktformular im Impressum (Resend), statt auf mxwr.de zu verweisen.
+  - Impressum und Datenschutz als Richtext im CMS (Global „Legal“) mit eigenen Blöcken: Anschrift und Links aus dem Global „Site“, Kontaktformular (Resend), „Stand“-Datum.
   - Revalidierung über Cache-Tags (`expire: 0`, `/next/revalidate-all`), Sync-Skripte für Datenbank und Uploads.
   - Keksleiste mit Animationen beim Befüllen (Flug ins Glas, Krümel).
 - **Vor dem Ausrollen auf dem Server:** `/opt/apps/ccm/.env` anlegen (siehe `.env.example`), erster Admin über `PAYLOAD_ADMIN_EMAIL`/`PASSWORD`, Vorlagen und Galerie im Admin hochladen, Resend-Absender, `scripts/setup-cron.sh`. Das alte Volume `ccm_ccm-data` (Zähler) kann danach weg.
