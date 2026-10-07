@@ -1,65 +1,101 @@
-import { memo, useLayoutEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import CookieIcon from "../components/cookie-icon";
 import type { CookieShape } from "../cookies/models";
 
-/** x and y in % of the page, size in px. */
+/** Centre in px within the layer, size in px. */
 type Spot = { x: number; y: number; size: number; roll: number };
 
-/** Room kept free above the dock and the “made by” (px). */
-const CLEARANCE = 16;
+/** Air between the ring's letters and the cookies, and around the text (px). */
+const GAP = 14;
+/** What the cookies must never lie on: the texts and the dock. */
+const KEEP_CLEAR = [
+  ".greeting-to",
+  ".greeting-from",
+  ".greeting-dock",
+  ".greeting-credit",
+];
+
+const overlaps = (a: DOMRect, b: DOMRect) =>
+  a.left < b.right + GAP &&
+  a.right > b.left - GAP &&
+  a.top < b.bottom + GAP &&
+  a.bottom > b.top - GAP;
 
 /**
- * Random spots along the left and right edges, alternating sides, so the card
- * in the middle stays free – and every cookie entirely above `floor` (px from
- * the top): never under or on the dock and the credit at the bottom.
+ * A circle of cookies around the card, just outside the ring of words –
+ * evenly spaced, leaving out every place that would lie on a text or the
+ * dock, or outside the screen. On a phone the ring fills the width, so only
+ * the places above and below it can stay – often none, and that is fine.
  */
-const place = (count: number, height: number, floor: number): Spot[] => {
+const place = (layer: DOMRect): Spot[] => {
+  const ring = document.querySelector(".greeting .ring-text text");
+  const stage = document.querySelector(".greeting-stage");
+  if (!(ring && stage)) return [];
+  const box = stage.getBoundingClientRect();
+  const cx = box.left + box.width / 2;
+  const cy = box.top + box.height / 2;
+  const letters = ring.getBoundingClientRect();
+  const outer = Math.max(letters.width, letters.height) / 2;
+  // Few and big.
+  const size = Math.min(150, Math.max(84, box.width * 0.21));
+  const radius = outer + GAP + size / 2;
+  const count = Math.max(
+    4,
+    Math.min(10, Math.floor((2 * Math.PI * radius) / (size * 1.9)))
+  );
+  const clear = KEEP_CLEAR.flatMap((selector) => {
+    const element = document.querySelector(selector);
+    return element ? [element.getBoundingClientRect()] : [];
+  });
+
   const spots: Spot[] = [];
-  for (let guard = 0; spots.length < count && guard < 400; guard++) {
-    const left = spots.length % 2 === 0;
-    const size = 80 + Math.random() * 70;
-    const top = size / 2 + 12;
-    const bottom = floor - size / 2 - CLEARANCE;
-    if (bottom <= top) break;
-    const spot = {
-      x: left ? Math.random() * 14 : 86 + Math.random() * 14,
-      y: ((top + Math.random() * (bottom - top)) / height) * 100,
+  for (let i = 0; i < count; i++) {
+    // Starting half a step from the top: the top is the heading's anyway.
+    const angle = ((i + 0.5) / count) * Math.PI * 2 - Math.PI / 2;
+    const x = cx + Math.cos(angle) * radius;
+    const y = cy + Math.sin(angle) * radius;
+    const cookie = new DOMRect(x - size / 2, y - size / 2, size, size);
+    const onScreen =
+      cookie.left >= layer.left &&
+      cookie.right <= layer.right &&
+      cookie.top >= layer.top &&
+      cookie.bottom <= layer.bottom;
+    if (!onScreen || clear.some((rect) => overlaps(cookie, rect))) continue;
+    spots.push({
+      x: x - layer.left,
+      y: y - layer.top,
       size,
       roll: Math.random() * 60 - 30,
-    };
-    const free = spots.every(
-      (other) =>
-        Math.abs(other.x - spot.x) > 30 || Math.abs(other.y - spot.y) > 22
-    );
-    if (free) spots.push(spot);
+    });
   }
   return spots;
 };
 
 /**
- * The cookie the card's cutter bakes, a few times in the background – like
- * the editor's background cookies they look at the mouse when it comes near,
- * and grow in one after another once the card is there. Placed once the page
- * stands, above the dock; fewer on phones, where the card page has to stay
- * light.
+ * The cookie the card's cutter bakes, in a circle around the card – like the
+ * editor's background cookies they look at the mouse when it comes near, and
+ * grow in one after another once the card is there. Laid out anew when the
+ * screen changes (a phone turned).
  */
 const CardCookies = ({ shape }: { shape: CookieShape }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [spots, setSpots] = useState<Spot[]>([]);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     const layer = ref.current;
     if (!layer) return;
-    const box = layer.getBoundingClientRect();
-    // The highest of what sits at the bottom: the dock and the credit.
-    const floor = Math.min(
-      box.height,
-      ...[".greeting-dock", ".greeting-credit"].flatMap((selector) => {
-        const element = document.querySelector(selector);
-        return element ? [element.getBoundingClientRect().top - box.top] : [];
-      })
-    );
-    setSpots(place(window.innerWidth < 640 ? 3 : 6, box.height, floor));
+    let timer = 0;
+    const layout = () => setSpots(place(layer.getBoundingClientRect()));
+    // After the card has settled in; again, calmly, after every resize.
+    const observer = new ResizeObserver(() => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(layout, 200);
+    });
+    observer.observe(layer);
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(timer);
+    };
   }, []);
 
   return (
@@ -67,11 +103,11 @@ const CardCookies = ({ shape }: { shape: CookieShape }) => {
       {spots.map((spot, i) => (
         <div
           className="greeting-cookie-spot"
-          key={`${spot.x}-${spot.y}`}
-          style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
+          key={`${Math.round(spot.x)}-${Math.round(spot.y)}`}
+          style={{ left: spot.x, top: spot.y }}
         >
           <CookieIcon
-            delay={700 + i * 260}
+            delay={500 + i * 140}
             idle={false}
             roll={spot.roll}
             shape={shape}
