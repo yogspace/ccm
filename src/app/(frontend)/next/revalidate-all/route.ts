@@ -7,8 +7,8 @@ import { denyUnlessAuthorized } from "@/stats/auth";
 /**
  * Expires every cached CMS content at once – after `pnpm payload:db:sync`
  * (the database changed under the app's feet) or by hand. Allowed with
- * `?secret=` (REVALIDATE_SECRET, otherwise PAYLOAD_SECRET) or for a logged-in
- * admin.
+ * `?secret=` (REVALIDATE_SECRET – its own, never PAYLOAD_SECRET, which signs
+ * the admin logins and has no business in a URL) or for a logged-in admin.
  */
 export const dynamic = "force-dynamic";
 
@@ -16,7 +16,7 @@ export const GET = async (request: Request) => {
   const payload = await getPayload({ config: configPromise });
   const denied = await denyUnlessAuthorized(request, {
     payload,
-    secret: process.env.REVALIDATE_SECRET ?? process.env.PAYLOAD_SECRET,
+    secret: process.env.REVALIDATE_SECRET,
   });
   if (denied) return denied;
 

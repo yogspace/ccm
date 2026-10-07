@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientIp, rateLimit } from "@/stats/rate-limit";
 import { sendMail } from "@/stats/send-mail";
 
 /**
@@ -10,32 +11,14 @@ export const dynamic = "force-dynamic";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// A simple rate limit in memory (one container): at most this many messages
-// per IP and window. The IP stays in memory for the window, never on disk.
-const LIMIT = 5;
-const WINDOW_MS = 10 * 60 * 1000;
-const hits = new Map<string, number[]>();
-
-const limited = (ip: string, now: number) => {
-  const recent = (hits.get(ip) ?? []).filter((t) => now - t < WINDOW_MS);
-  recent.push(now);
-  hits.set(ip, recent);
-  // Forget whoever has been quiet for a window.
-  if (hits.size > 1000) {
-    for (const [key, times] of hits) {
-      if (times.every((t) => now - t >= WINDOW_MS)) hits.delete(key);
-    }
-  }
-  return recent.length > LIMIT;
-};
+// At most five messages per IP in ten minutes.
+const tooMany = rateLimit({ limit: 5, windowMs: 10 * 60 * 1000 });
 
 const text = (value: unknown) =>
   typeof value === "string" ? value.trim() : "";
 
 export const POST = async (request: Request) => {
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  if (limited(ip, Date.now())) {
+  if (tooMany(clientIp(request))) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 

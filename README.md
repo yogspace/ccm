@@ -129,7 +129,7 @@ pnpm build        # → .next/ (standalone)
 
 The first admin comes from `PAYLOAD_ADMIN_EMAIL`/`PAYLOAD_ADMIN_PASSWORD` in `.env` (created at start while there is no user). After changing collections or globals: `pnpm generate:types`; after adding admin components: `pnpm generate:importmap`.
 
-`pnpm payload:sync` copies production to the local setup (over SSH – the host alias from `SYNC_REMOTE` in `.env`): `payload:media:sync` the uploads into `media/` (rsync, only what changed), `payload:db:sync` the database – `mongodump` into a temp file, checked, then `mongorestore --drop` – and finally `payload:db:revalidate`, so the running dev server drops its cached content.
+`pnpm payload:sync` copies production to the local setup (over SSH – the host alias from `SYNC_REMOTE` in `.env`): `payload:media:sync` the uploads into `media/` (rsync, only what changed), `payload:db:sync` the database – `mongodump` into a temp file, checked, then `mongorestore --drop` – and finally `payload:db:revalidate`, so the running dev server drops its cached content (with `REVALIDATE_SECRET` from `.env`).
 
 ### Statistics
 

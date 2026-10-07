@@ -6,6 +6,7 @@ import {
   osLabel,
   sourceOf,
 } from "@/stats/device-class";
+import { clientIp, rateLimit } from "@/stats/rate-limit";
 
 /**
  * Anonymous page-view beacon (analytics.ts). Stores ONLY coarse dimensions –
@@ -16,7 +17,12 @@ export const dynamic = "force-dynamic";
 
 const ok = () => new NextResponse(null, { status: 204 });
 
+// More than anyone clicks in a minute – so nobody can fill the statistics.
+// Beyond it the beacon is answered as usual, just not counted.
+const tooMany = rateLimit({ limit: 60, windowMs: 60 * 1000 });
+
 export const POST = async (request: Request) => {
+  if (tooMany(clientIp(request))) return ok();
   const payload = await counting(request);
   if (!payload) return ok();
 

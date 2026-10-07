@@ -16,7 +16,7 @@
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "payload:db:sync": "bash scripts/sync-db.sh",
-    "payload:db:revalidate": "curl -sf \"http://localhost:3000/next/revalidate-all?secret=$(grep -E '^PAYLOAD_SECRET=' .env | cut -d= -f2-)\" || true",
+    "payload:db:revalidate": "curl -sf \"http://localhost:3000/next/revalidate-all?secret=$(grep -E '^REVALIDATE_SECRET=' .env | cut -d= -f2-)\" || true",
     "payload:media:sync": "bash scripts/sync-media.sh",
     "payload:sync": "pnpm payload:media:sync && pnpm payload:db:sync"
   },
