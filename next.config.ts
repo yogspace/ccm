@@ -9,8 +9,29 @@ const nextConfig: NextConfig = {
   agentRules: false,
   // Dev only: the dev server may be opened from a phone in the LAN.
   allowedDevOrigins: ["192.168.*.*", "10.*.*.*"],
+  // No "X-Powered-By" – it only tells others what to probe for.
+  poweredByHeader: false,
   async headers() {
     return [
+      // Everywhere the usual protection. Framed only by itself and by
+      // mxwr.de (which may embed the maker) – no other page can lay the site
+      // or the admin under its own (clickjacking).
+      {
+        source: "/:path*",
+        headers: [
+          { key: "Strict-Transport-Security", value: "max-age=31536000" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Content-Security-Policy",
+            value: "frame-ancestors 'self' https://mxwr.de",
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+        ],
+      },
       // Internal routes (statistics beacons, cron) belong in no index.
       {
         source: "/next/:path*",
