@@ -20,8 +20,12 @@ import { memo, useEffect, useRef, useState } from "react";
 import type { CookieKind } from "../cookies/models";
 import CookieIcon from "./cookie-icon";
 
-/** Without the bitten cookie – that one is reserved for the logo. */
-const KINDS: CookieKind[] = ["chip", "heart", "star", "flower", "gingerbread"];
+/**
+ * Without the bitten cookie – reserved for the logo – and without the
+ * chocolate chip one: that one belongs to the UI (slider thumbs, cookie jar,
+ * “save as cookie”).
+ */
+const KINDS: CookieKind[] = ["heart", "star", "flower", "gingerbread"];
 const ICONS: LucideIcon[] = [
   Anchor,
   Cake,
