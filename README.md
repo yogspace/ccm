@@ -137,7 +137,7 @@ In the admin under **Analytics**: page views and actions over a time range (toda
 
 - **Own devices:** in the sidebar “Don't count this device” – once per device, logged in; afterwards it is not counted even logged out. Logged-in admins are never counted.
 - **Contact form:** in the imprint (dialog) – mailed to `MAIL_CONTACT_RECIPIENT` via Resend, nothing stored; a honeypot and a rate limit (5 per 10 minutes and IP, in memory only) against abuse.
-- **Mail report:** in the sidebar daily, weekly or monthly (off by default), “Send the report now” to try it. Needs `CRON_SECRET`, `RESEND_API_KEY`, `MAIL_FROM` and `MAIL_STATS_RECIPIENT` in the server's `.env`; the cron job is installed by every deploy. The route also prunes rows older than 90 days.
+- **Mail report:** in the sidebar daily, weekly or monthly (off by default), “Send the report now” to try it. Needs the secrets `CRON_SECRET`, `RESEND_API_KEY`, `MAIL_FROM` and `MAIL_STATS_RECIPIENT`; the cron job is installed by every deploy. The route also prunes rows older than 90 days.
 
 ### Imprint, privacy and links
 
@@ -166,7 +166,7 @@ A push to `main` → GitHub Actions ([`deploy.yml`](.github/workflows/deploy.yml
 
 1. **verify:** Biome + TypeScript + geometry tests
 2. **build:** Docker image (Next.js standalone, see [`Dockerfile`](Dockerfile)) → `ghcr.io/yogspace/ccm`
-3. **deploy:** via SSH to the Hetzner server, `/opt/apps/ccm`: checks that `.env` is there, `docker compose pull && up -d --remove-orphans`, then installs the mail report's cron job (`scripts/setup-cron.sh`, idempotent)
+3. **deploy:** via SSH to the Hetzner server, `/opt/apps/ccm`: writes `.env` from the secrets (stops if the essential ones are missing), `docker compose pull && up -d --remove-orphans`, then installs the mail report's cron job (`scripts/setup-cron.sh`, idempotent)
 
 Two services (see [`docker-compose.yml`](docker-compose.yml)): `ccm` speaks plain HTTP on `:3000`, keeps the uploads in the `media` volume and is attached to the external Docker network `web` – HTTPS and domain routing are handled by the central proxy stack (repo `proxy`, `/opt/apps/proxy`). `mongo` only lives in the internal network, its data in the `mongo_data` volume; pinned to 8.2.9 with shadow stacks off (see the comment there).
 
@@ -177,18 +177,24 @@ Two services (see [`docker-compose.yml`](docker-compose.yml)): `ccm` speaks plai
 | `HETZNER_HOST` | server IP |
 | `HETZNER_USER` | SSH user |
 | `HETZNER_SSH_KEY` | private SSH key |
+| `NEXT_PUBLIC_SERVER_URL` | `https://ccm.mxwr.de` |
+| `PAYLOAD_SECRET` | `openssl rand -hex 32` |
+| `CRON_SECRET` | `openssl rand -hex 32` (mail report) |
+| `RESEND_API_KEY` | Resend API key (contact form, mail report) |
+| `MAIL_FROM` | sender on a domain verified at Resend |
+| `MAIL_CONTACT_RECIPIENT` | who gets the contact form's messages |
+| `MAIL_STATS_RECIPIENT` | who gets the mail report |
 
-All three with the same values as for the other apps on the server.
-
-Runtime variables are in `/opt/apps/ccm/.env` on the server (see [`.env.example`](.env.example)); without the file the deploy stops and the running version stays.
+The three `HETZNER_*` with the same values as for the other apps on the server. The rest is written to `/opt/apps/ccm/.env` on every deploy (see [`.env.example`](.env.example)) – change a value here, then deploy; edits to the file on the server don't last. Without `NEXT_PUBLIC_SERVER_URL` or `PAYLOAD_SECRET` the deploy stops and the running version stays.
 
 ### Server, once
 
 ```bash
 sudo mkdir -p /opt/apps/ccm && sudo chown deploy: /opt/apps/ccm
 git clone <repo-url> /opt/apps/ccm
-cp /opt/apps/ccm/.env.example /opt/apps/ccm/.env   # fill in: secrets, first admin, mail
 ```
+
+The `.env` comes with the first deploy (secrets above). For the very first admin add `PAYLOAD_ADMIN_EMAIL`/`PAYLOAD_ADMIN_PASSWORD` to it by hand once and restart – the next deploy drops them again.
 
 Prerequisite: the `web` network and the proxy stack are running (see repo `proxy`).
 
