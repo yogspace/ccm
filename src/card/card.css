@@ -22,6 +22,8 @@ html:has(.greeting) {
   grid-template-rows:
     1fr auto minmax(0, min(100vw - 2rem, 38rem)) auto auto auto
     1fr auto;
+  /* One column, never wider than the screen – whatever is inside. */
+  grid-template-columns: minmax(0, 1fr);
   justify-items: center;
   align-items: center;
   row-gap: clamp(0.3rem, 1.5dvh, 0.9rem);
@@ -391,11 +393,14 @@ button.greeting-flip[data-flipped] .greeting-back {
   animation: greet-rise 0.9s var(--ease) 0.8s both;
 }
 
-/* Phones: the 3MF across, STL and the picture's two side by side below. */
+/* Phones: the 3MF across; STL, share and save side by side below it, each
+   its cookie above its word – so all three fit. */
 @media (max-width: 30rem) {
   .greeting-actions {
+    --cookie-scale: 0.8;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
     width: 100%;
   }
 
@@ -403,8 +408,16 @@ button.greeting-flip[data-flipped] .greeting-back {
     grid-column: 1 / -1;
   }
 
-  .greeting-actions button {
-    padding-inline: 0.6rem 0.9rem;
+  .greeting-actions button:not(.primary) {
+    flex-direction: column;
+    gap: 0.1rem;
+    height: auto;
+    padding: 0.55rem 0.3rem 0.5rem;
+    font-size: var(--fs-small);
+  }
+
+  .greeting-actions button:not(.primary) .cookie {
+    margin: -0.6rem 0 -0.4rem;
   }
 }
 
