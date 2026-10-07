@@ -82,12 +82,32 @@ const CookieIcon = ({
   onGrowRef.current = onGrow;
   const onHandleRef = useRef(onHandle);
   onHandleRef.current = onHandle;
+  // What it was registered with last, and how far it had grown in: registered
+  // anew with nothing changed (hot reload, strict mode), it goes on from
+  // there instead of popping in again – otherwise every icon flickers.
+  const last = useRef<{ key: unknown[]; appear: number } | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     let cancelled = false;
     const svg = svgRef.current?.querySelector("svg");
+    const key = [
+      kind,
+      iconName,
+      icing,
+      shape,
+      idle,
+      tilt,
+      interactive,
+      grown,
+      side,
+    ];
+    const previous = last.current;
+    const from =
+      previous?.key.every((value, i) => Object.is(value, key[i])) === true
+        ? 0
+        : 0;
 
     // A baked creation is its own; the others share their geometry.
     const baked = kind === undefined && shape ? createShapeCookie(shape) : null;
@@ -109,6 +129,7 @@ const CookieIcon = ({
         follow: interactive,
         delay: delayRef.current,
         grown,
+        from,
         spin: spinRef.current.spin,
         spinSpeed: spinRef.current.spinSpeed / 1000,
         onGrow: (scale) => onGrowRef.current?.(scale),
@@ -125,6 +146,7 @@ const CookieIcon = ({
 
     return () => {
       cancelled = true;
+      last.current = { key, appear: handle.current?.appearance() ?? from };
       button?.removeEventListener("pointerenter", flip);
       button?.removeEventListener("pointerdown", press);
       handle.current?.dispose();

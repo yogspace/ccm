@@ -90,13 +90,18 @@ const CardCutter = ({
       renderer.render(scene, camera);
     });
 
+    // A new size empties the canvas – so draw again right away, in the same
+    // frame (also while the card lies turned over and the loop rests).
     const observer = new ResizeObserver(() => {
       const { clientWidth, clientHeight } = container;
+      const size = renderer.getSize(new THREE.Vector2());
+      if (size.x === clientWidth && size.y === clientHeight) return;
       renderer.setSize(clientWidth, clientHeight);
       camera.aspect = clientWidth / Math.max(clientHeight, 1);
       // Narrow views pull back, so it never gets cut off at the sides.
       camera.zoom = Math.min(1, camera.aspect);
       camera.updateProjectionMatrix();
+      renderer.render(scene, camera);
     });
     observer.observe(container);
 

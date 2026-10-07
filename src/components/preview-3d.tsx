@@ -149,11 +149,16 @@ const Preview3d = ({ ref }: Props) => {
       renderer.render(scene, camera);
     });
 
+    // A new size empties the canvas – so draw again right away, in the same
+    // frame; otherwise it shows blank until the next one (it flickers).
     const observer = new ResizeObserver(() => {
       const { clientWidth, clientHeight } = container;
+      const size = renderer.getSize(new THREE.Vector2());
+      if (size.x === clientWidth && size.y === clientHeight) return;
       renderer.setSize(clientWidth, clientHeight);
       camera.aspect = clientWidth / Math.max(clientHeight, 1);
       camera.updateProjectionMatrix();
+      renderer.render(scene, camera);
     });
     observer.observe(container);
 
