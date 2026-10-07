@@ -20,7 +20,7 @@ import { toThreeMf } from "../export/three-mf";
 import { filamentFor } from "../filaments";
 import { readGreeting } from "../greeting";
 import { drawingKey } from "../hash-text";
-import { PORTFOLIO_URL } from "../links";
+import { MXWR_URL } from "../links";
 import { renderMeshTop } from "../render-top";
 import { formatLength, initialUnit } from "../units";
 import { isEmptyDrawing, readHash } from "../url-state";
@@ -401,7 +401,7 @@ const CardPage = () => {
       </div>
       <a
         className="greeting-credit"
-        href={PORTFOLIO_URL}
+        href={MXWR_URL}
         rel="noopener"
         target="_blank"
       >

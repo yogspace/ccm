@@ -7,11 +7,20 @@
 # database stays untouched. A streaming `ssh … | mongorestore --drop` would
 # swallow the dump's exit code and could drop the local data half-way.
 #
-# Needs: the SSH alias (DB_SYNC_REMOTE, default portfolio-server) and the
-# local MongoDB from docker-compose.dev.yml running.
+# Needs: the server's SSH host alias (SYNC_REMOTE in .env) and the local
+# MongoDB from docker-compose.dev.yml running.
 set -euo pipefail
 
-REMOTE="${DB_SYNC_REMOTE:-portfolio-server}"
+# The server's SSH host alias: SYNC_REMOTE from the environment or the local
+# .env (never in the repo).
+if [ -z "${SYNC_REMOTE:-}" ] && [ -f .env ]; then
+  SYNC_REMOTE="$(grep -E '^SYNC_REMOTE=' .env | head -1 | cut -d= -f2- | tr -d '"'"'"'')"
+fi
+if [ -z "${SYNC_REMOTE:-}" ]; then
+  echo "✗ SYNC_REMOTE is not set – the server's SSH host alias, in .env." >&2
+  exit 1
+fi
+REMOTE="$SYNC_REMOTE"
 DEV_COMPOSE="${DB_SYNC_DEV_COMPOSE:-docker-compose.dev.yml}"
 
 tmp="$(mktemp -t ccm-dump.XXXXXX)"

@@ -164,9 +164,9 @@ Reine Geometrie-Funktionen (`outline.ts` ohne Canvas-Teil, `cutter.ts`, Exporte)
 - **Phase 0 bestanden:** Editor, Geometrie-Worker und manifold-WASM laufen unter Next 16 (Turbopack), ebenso die Kartenseite; Produktions-Build und Docker-Image (331 MB, ~135 MB RAM) gehen.
 - **Phase 1 umgesetzt auf dem Branch `next`, noch nicht ausgerollt:**
   - `/de`, `/en`, `/de/card`, `/en/card`, Weiterleitung von `/` und `/card` per Next-Proxy; Meta-Texte und JSON-LD über `generateMetadata`.
-  - Payload mit MongoDB (eigener Container wie im Portfolio): Statistik wie im Portfolio (Seitenaufrufe, Aktionen, Auswertung im Admin, eigene Geräte ausnehmen, Mail-Report per Cron), Oberflächentexte als Translations-Global, Vorlagen und Galerie als Uploads.
+  - Payload mit MongoDB (eigener Container): Statistik (Seitenaufrufe, Aktionen, Auswertung im Admin, eigene Geräte ausnehmen, Mail-Report per Cron), Oberflächentexte als Translations-Global, Vorlagen und Galerie als Uploads.
   - Kontaktformular im Impressum (Resend), statt auf mxwr.de zu verweisen.
-  - Revalidierung wie im Portfolio (Cache-Tags, `expire: 0`, `/next/revalidate-all`), Sync-Skripte für Datenbank und Uploads.
+  - Revalidierung über Cache-Tags (`expire: 0`, `/next/revalidate-all`), Sync-Skripte für Datenbank und Uploads.
   - Keksleiste mit Animationen beim Befüllen (Flug ins Glas, Krümel).
 - **Vor dem Ausrollen auf dem Server:** `/opt/apps/ccm/.env` anlegen (siehe `.env.example`), erster Admin über `PAYLOAD_ADMIN_EMAIL`/`PASSWORD`, Vorlagen und Galerie im Admin hochladen, Resend-Absender, `scripts/setup-cron.sh`. Das alte Volume `ccm_ccm-data` (Zähler) kann danach weg.
 
@@ -174,8 +174,8 @@ Reine Geometrie-Funktionen (`outline.ts` ohne Canvas-Teil, `cutter.ts`, Exporte)
 
 - **Die Roadmap braucht ein Backend:** Kurzlinks, API mit Tokens, „Drucken lassen“ (Datei ablegen), später Shop, Galerie, vielleicht Accounts.
 - **Echte Link-Vorschauen:** Heute steckt alles im Hash, und der erreicht den Server nie. Deshalb kann eine Vorschau in WhatsApp oder iMessage nichts Persönliches zeigen. Mit Kurzlinks bekommt jede Karte und jede Kreation ihren eigenen Titel und ihr eigenes Vorschaubild („Eine Karte für Carla“ mit dem Ausstecher).
-- **Anonyme Statistik wie im Portfolio:** ohne Cookies, ohne IP, Auswertung im Admin, optional als Mail. Der Zähler im Footer ist dafür entfallen.
-- **Derselbe Stack wie das Portfolio** (Next 16, Payload 3.89): ein Werkzeugkasten. Bewährte Teile lassen sich übernehmen: `PageViews` mit `/next/track`, `ShortLinks`, Cron-Digest, Dockerfile mit Next standalone.
+- **Anonyme Statistik:** ohne Cookies, ohne IP, Auswertung im Admin, optional als Mail. Der Zähler im Footer ist dafür entfallen.
+- **Bewährter Stack** (Next 16, Payload 3.89): Statistik mit `/next/track`, Cron-Digest, Dockerfile mit Next standalone – später Kurzlinks.
 
 ### Was bleibt
 
@@ -197,12 +197,12 @@ Reine Geometrie-Funktionen (`outline.ts` ohne Canvas-Teil, `cutter.ts`, Exporte)
   - `users`: nur Admin, später API-Keys für Partner
   - `short-links`: Code, gespeicherter Hash, Typ (Kreation oder Karte), Vorschaubild, Aufrufe, Datum. Keine Personendaten außer dem, was jemand selbst in die Karte schreibt.
   - `templates`, `gallery`: Vorlagen (SVG) und Galeriebilder als Uploads ✓
-  - `page-views`, `actions` und das Global `analytics` wie im Portfolio ✓; Global `translations` ✓
+  - `page-views`, `actions` und das Global `analytics` ✓; Global `translations` ✓
   - später `media`: die Vorschaubilder der Kurzlinks
   - später `api-tokens` (gehasht, mit Kontingent) und `orders` (Shop)
-- **Datenbank:** MongoDB als eigener Container (entschieden 2026-10-07): schemalos, also keine Migrationen, wenn aus neuen Text-Keys neue Felder im Translations-Global werden; Sync und Muster 1:1 wie im Portfolio. Die Mongo des Portfolios wird nie mitbenutzt.
+- **Datenbank:** MongoDB als eigener Container (entschieden 2026-10-07): schemalos, also keine Migrationen, wenn aus neuen Text-Keys neue Felder im Translations-Global werden. Keine andere App teilt sie.
 - **Betrieb:**
-  - Dockerfile wie im Portfolio (Next standalone).
+  - Dockerfile mit Next standalone.
   - Compose mit `ccm` und `mongo`, Volumes `mongo_data` und `media`.
   - `ccm-api` und das Caddyfile im Container entfallen, Next liefert alles selbst aus.
   - `mem_limit` 512m je Dienst.
@@ -237,7 +237,7 @@ Reine Geometrie-Funktionen (`outline.ts` ohne Canvas-Teil, `cutter.ts`, Exporte)
   - Missbrauch begrenzen: Rate-Limit pro IP, ohne die IP zu speichern
 
 **Phase 3 – API und Druckdienst**
-- API-Tokens (gehasht, mit Kontingent) und `POST /api/v1/cutters`: SVG rein, 3MF oder STL raus. manifold läuft in Node, das Rastern übernimmt `@napi-rs/canvas` wie im Portfolio.
+- API-Tokens (gehasht, mit Kontingent) und `POST /api/v1/cutters`: SVG rein, 3MF oder STL raus. manifold läuft in Node, das Rastern übernimmt `@napi-rs/canvas`.
 - „Drucken lassen“: STL kurz ablegen, Konfiguration bei Craftcloud anlegen, weiterleiten (siehe Roadmap).
 
 **Phase 4 – Shop (noch offen)**
@@ -249,14 +249,14 @@ Reine Geometrie-Funktionen (`outline.ts` ohne Canvas-Teil, `cutter.ts`, Exporte)
 - **Worker und WASM im Next-Bundler:** Das ist das Hauptrisiko, deshalb steht der Probelauf zuerst.
 - **Ressourcen:** Mit Payload-Admin und Next werden Image, Build-Zeit und RAM größer. Nach dem Upgrade auf CX33 ist das unkritisch.
 - **Datenschutz-Versprechen:** Bisher galt „nichts auf dem Server“. Mit Kurzlinks stimmt das nicht mehr ganz, Datenschutztext und README müssen es ehrlich sagen.
-- **Backups:** Datenbank und Uploads liegen in Volumes. Die Hetzner-Backups decken sie ab, dazu `pnpm payload:sync` auf den Mac wie beim Portfolio.
+- **Backups:** Datenbank und Uploads liegen in Volumes. Die Hetzner-Backups decken sie ab, dazu `pnpm payload:sync` auf den Mac.
 
 ### Offene Entscheidungen
 
 1. ~~**Datenbank:**~~ MongoDB, eigener Container (entschieden).
 2. **Kurzlinks:** immer oder nur auf Wunsch? Empfehlung: Karten immer kurz (wegen der Vorschau), Kreationen wahlweise. Hash-Links bleiben gültig.
 3. **Accounts:** Bleibt es beim Admin-Login für dich, oder sollen später auch Nutzer Konten haben, etwa für eine Galerie?
-4. ~~**Code mit dem Portfolio teilen?**~~ Nein: die Muster kopiert (Statistik, Translations, Revalidierung, Sync). Zwei Apps bleiben unabhängig deploybar.
+4. ~~**Code mit anderen Apps teilen?**~~ Nein: Muster übernehmen statt gemeinsamer Pakete. Die Apps bleiben unabhängig deploybar.
 
 ## Roadmap
 

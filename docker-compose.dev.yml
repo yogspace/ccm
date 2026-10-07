@@ -1,5 +1,6 @@
-# Local MongoDB for `pnpm dev` – on 27018, so it does not collide with the
-# portfolio's (27017). Start: docker compose -f docker-compose.dev.yml up -d
+# Local MongoDB for `pnpm dev` – on 27018, so it does not collide with another
+# MongoDB on the default port (27017).
+# Start: docker compose -f docker-compose.dev.yml up -d
 services:
   mongo:
     image: mongo:8

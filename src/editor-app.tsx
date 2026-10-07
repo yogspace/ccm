@@ -25,7 +25,7 @@ import PrintHints from "./components/print-hints";
 import SettingsBar from "./components/settings-bar";
 import ShareCreation from "./components/share-creation";
 import SharePanel from "./components/share-panel";
-import { PORTFOLIO_URL } from "./links";
+import { MXWR_URL } from "./links";
 import { connectStore, store, toggleAutoRotate, toggleExpanded } from "./store";
 import { formatLength } from "./units";
 
@@ -153,7 +153,7 @@ const App = () => {
       <footer>
         <DonateBadge />
         <span className="footer-links">
-          <a href={PORTFOLIO_URL} rel="noopener" target="_blank">
+          <a href={MXWR_URL} rel="noopener" target="_blank">
             mxwr.de
             <CookieIcon icon={ArrowUpRight} size={40} />
           </a>

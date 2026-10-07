@@ -20,7 +20,7 @@ services:
       mongo:
         condition: service_healthy
     # Next + Payload take ~200 MB; room for spikes, and the other apps on the
-    # server (portfolio among others) stay safe.
+    # server stay safe.
     mem_limit: 512m
     logging:
       driver: json-file
@@ -34,7 +34,7 @@ services:
   # Statistics and interface texts (Payload). Only in the internal network –
   # not reachable from outside; `pnpm payload:db:sync` goes over SSH.
   mongo:
-    # Pinned like the portfolio's: Linux ≥ 6.19 (the host runs 7.0) turns on
+    # Pinned: Linux ≥ 6.19 (the host runs 7.0) turns on
     # CET shadow stacks, and MongoDB 8.x coroutines swap the stack pointer by
     # hand → SIGSEGV crash loop (MongoDB SERVER-121912). Workaround: shadow
     # stacks off for mongod (GLIBC_TUNABLES). Do NOT switch to `mongo:8.0` –

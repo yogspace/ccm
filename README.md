@@ -28,7 +28,7 @@ The geometry is built entirely in the browser. The server ([Next.js](https://nex
 - Share as a card: in the share dialog, add who it is for, who it is from and a message (a little preview shows it running around the cutter) and get a link to the card's own page – one screen without scrolling: the cutter in 3D on a card, the message turning around it, 3MF/STL to download and a way to the maker. A click turns the card over – on its back lies the cookie it bakes. Like every link, it all lives in the hash
 - Example gallery: pictures uploaded in the admin; five are drawn at random on every load
 - German/English (i18next) under `/de` and `/en` with their own texts for search engines; `/` redirects by browser language. The interface texts can be edited in the admin (see below)
-- Anonymous statistics without cookies, like the portfolio's: page views (page, coarse source, device class, OS, browser) and actions (downloads, sharing, cards, imports) on our own server – no IP, no identifier, nothing linking two rows, deleted after 90 days; Global Privacy Control is respected. Evaluated in the admin, optionally as a mail report (see below)
+- Anonymous statistics without cookies: page views (page, coarse source, device class, OS, browser) and actions (downloads, sharing, cards, imports) on our own server – no IP, no identifier, nothing linking two rows, deleted after 90 days; Global Privacy Control is respected. Evaluated in the admin, optionally as a mail report (see below)
 - Light/dark mode, imprint & privacy as a dialog, animations with `motion`, no scrolling behind open dialogs
 - State in one store ([valtio](https://valtio.dev)): components read what they need themselves instead of having it passed down
 - Favicon/icons, Open Graph images (en/de), manifest, `robots.txt`, `sitemap.xml` and JSON-LD
@@ -50,7 +50,7 @@ src/
   drawing.ts                  the drawing as vectors: painting, finding objects, moving/rotating/scaling, erasing
   presets.ts                  a template's outline from its SVG
   content.ts, assets.ts       templates and gallery pictures from the CMS; the editor gets them through a context
-  cache.ts, media.ts          cache tags and their expiry (like the portfolio's); where uploads are kept
+  cache.ts, media.ts          cache tags and their expiry; where uploads are kept
   geometry/
     outline.ts                raster → contour (d3-contour), SVG import as a silhouette
     cutter.ts                 contour + parameters → Manifold (wall, taper, flange plate), puts it all together; also the cookie's icing
@@ -127,7 +127,7 @@ pnpm build        # → .next/ (standalone)
 
 The first admin comes from `PAYLOAD_ADMIN_EMAIL`/`PAYLOAD_ADMIN_PASSWORD` in `.env` (created at start while there is no user). After changing collections or globals: `pnpm generate:types`; after adding admin components: `pnpm generate:importmap`.
 
-`pnpm payload:sync` copies production to the local setup (over SSH, `portfolio-server`): `payload:media:sync` the uploads into `media/` (rsync, only what changed), `payload:db:sync` the database – `mongodump` into a temp file, checked, then `mongorestore --drop` – and finally `payload:db:revalidate`, so the running dev server drops its cached content. Other hosts via `DB_SYNC_REMOTE`/`MEDIA_SYNC_REMOTE`.
+`pnpm payload:sync` copies production to the local setup (over SSH – the host alias from `SYNC_REMOTE` in `.env`): `payload:media:sync` the uploads into `media/` (rsync, only what changed), `payload:db:sync` the database – `mongodump` into a temp file, checked, then `mongorestore --drop` – and finally `payload:db:revalidate`, so the running dev server drops its cached content.
 
 ### Statistics
 
@@ -155,7 +155,7 @@ A push to `main` → GitHub Actions ([`deploy.yml`](.github/workflows/deploy.yml
 2. **build:** Docker image (Next.js standalone, see [`Dockerfile`](Dockerfile)) → `ghcr.io/yogspace/ccm`
 3. **deploy:** via SSH to the Hetzner server, `/opt/apps/ccm`: `docker compose pull && up -d --remove-orphans`
 
-Two services (see [`docker-compose.yml`](docker-compose.yml)): `ccm` speaks plain HTTP on `:3000`, keeps the uploads in the `media` volume and is attached to the external Docker network `web` – HTTPS and domain routing are handled by the central proxy stack (repo `proxy`, `/opt/apps/proxy`). `mongo` only lives in the internal network, its data in the `mongo_data` volume; pinned to 8.2.9 with shadow stacks off, like the portfolio's (see the comment there).
+Two services (see [`docker-compose.yml`](docker-compose.yml)): `ccm` speaks plain HTTP on `:3000`, keeps the uploads in the `media` volume and is attached to the external Docker network `web` – HTTPS and domain routing are handled by the central proxy stack (repo `proxy`, `/opt/apps/proxy`). `mongo` only lives in the internal network, its data in the `mongo_data` volume; pinned to 8.2.9 with shadow stacks off (see the comment there).
 
 ### Secrets (Settings → Secrets → Actions)
 
@@ -165,7 +165,7 @@ Two services (see [`docker-compose.yml`](docker-compose.yml)): `ccm` speaks plai
 | `HETZNER_USER` | SSH user |
 | `HETZNER_SSH_KEY` | private SSH key |
 
-All three with the same values as in the portfolio repo.
+All three with the same values as for the other apps on the server.
 
 Runtime variables are in `/opt/apps/ccm/.env` on the server (see [`.env.example`](.env.example)); without the file the deploy stops and the running version stays.
 
