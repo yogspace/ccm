@@ -47,12 +47,16 @@ export interface Config {
   };
   fallbackLocale: ('false' | 'none' | 'null') | false | null | ('de' | 'en') | ('de' | 'en')[];
   globals: {
-    analytics: Analytics;
+    site: Site;
+    legal: Legal;
     translations: Translation;
+    analytics: Analytics;
   };
   globalsSelect: {
-    analytics: AnalyticsSelect<false> | AnalyticsSelect<true>;
+    site: SiteSelect<false> | SiteSelect<true>;
+    legal: LegalSelect<false> | LegalSelect<true>;
     translations: TranslationsSelect<false> | TranslationsSelect<true>;
+    analytics: AnalyticsSelect<false> | AnalyticsSelect<true>;
   };
   locale: 'de' | 'en';
   widgets: {
@@ -434,22 +438,66 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   createdAt?: T;
 }
 /**
- * Anonymous page views and actions (no IP, no cookies). The time range in the sidebar applies to every section.
+ * Links in the footer, on the greeting card and in the legal text, and the address in the legal text.
  *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "analytics".
+ * via the `definition` "site".
  */
-export interface Analytics {
+export interface Site {
   id: string;
+  links: {
+    /**
+     * The footer's “mxwr.de” and the card's “made by”. Keep the utm part – it shows where visits came from.
+     */
+    website: string;
+    /**
+     * The footer's “MakerWorld”.
+     */
+    makerworld: string;
+    /**
+     * The sun cookie and “Buy me a cookie”.
+     */
+    donate: string;
+    /**
+     * Where the source code is.
+     */
+    source: string;
+  };
   /**
-   * "Off" disables the report. Takes effect without a redeploy.
+   * Shown wherever the legal text has an “Address” block (§ 5 DDG, § 18 MStV).
    */
-  reportInterval?: ('off' | 'daily' | 'weekly' | 'monthly') | null;
-  /**
-   * Set automatically whenever a report has gone out.
-   */
-  lastDigestAt?: string | null;
-  analyticsExcludeToken?: string | null;
+  address: {
+    name: string;
+    street: string;
+    city: string;
+    country: string;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * The dialog behind “Imprint & privacy”. Address and links come from “Site”; switch the language at the top.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "legal".
+ */
+export interface Legal {
+  id: string;
+  content: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1055,13 +1103,56 @@ export interface Translation {
   createdAt?: string | null;
 }
 /**
+ * Anonymous page views and actions (no IP, no cookies). The time range in the sidebar applies to every section.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "analytics_select".
+ * via the `definition` "analytics".
  */
-export interface AnalyticsSelect<T extends boolean = true> {
-  reportInterval?: T;
-  lastDigestAt?: T;
-  analyticsExcludeToken?: T;
+export interface Analytics {
+  id: string;
+  /**
+   * "Off" disables the report. Takes effect without a redeploy.
+   */
+  reportInterval?: ('off' | 'daily' | 'weekly' | 'monthly') | null;
+  /**
+   * Set automatically whenever a report has gone out.
+   */
+  lastDigestAt?: string | null;
+  analyticsExcludeToken?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site_select".
+ */
+export interface SiteSelect<T extends boolean = true> {
+  links?:
+    | T
+    | {
+        website?: T;
+        makerworld?: T;
+        donate?: T;
+        source?: T;
+      };
+  address?:
+    | T
+    | {
+        name?: T;
+        street?: T;
+        city?: T;
+        country?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "legal_select".
+ */
+export interface LegalSelect<T extends boolean = true> {
+  content?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -1268,6 +1359,18 @@ export interface TranslationsSelect<T extends boolean = true> {
   tagline?: T;
   title?: T;
   unit?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "analytics_select".
+ */
+export interface AnalyticsSelect<T extends boolean = true> {
+  reportInterval?: T;
+  lastDigestAt?: T;
+  analyticsExcludeToken?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

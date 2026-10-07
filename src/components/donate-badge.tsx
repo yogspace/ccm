@@ -1,6 +1,6 @@
 import { type CSSProperties, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { DONATE_URL } from "../links";
+import { useSiteLinks } from "../site-context";
 import CookieIcon from "./cookie-icon";
 
 /** Sprinkles that shoot out of the sun on hover: angle, colour, delay. */
@@ -16,6 +16,7 @@ const SPRINKLES = Array.from({ length: 14 }, (_, i) => ({
  */
 const DonateBadge = ({ delay = 0 }: { delay?: number }) => {
   const { t } = useTranslation();
+  const { donate } = useSiteLinks();
   // The text grows in with the sun (directly on the element, without a re-render).
   const textRef = useRef<HTMLSpanElement>(null);
 
@@ -23,7 +24,7 @@ const DonateBadge = ({ delay = 0 }: { delay?: number }) => {
     <a
       aria-label={t("footer.donateLabel")}
       className="donate"
-      href={DONATE_URL}
+      href={donate}
       rel="noopener"
       target="_blank"
       title={t("footer.donateLabel")}

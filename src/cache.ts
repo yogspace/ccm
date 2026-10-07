@@ -9,6 +9,8 @@ export const TAGS = {
   texts: "translations",
   gallery: "gallery",
   templates: "templates",
+  site: "site",
+  legal: "legal",
 } as const;
 
 /**

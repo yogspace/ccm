@@ -20,8 +20,8 @@ import { toThreeMf } from "../export/three-mf";
 import { filamentFor } from "../filaments";
 import { readGreeting } from "../greeting";
 import { drawingKey } from "../hash-text";
-import { MXWR_URL } from "../links";
 import { renderMeshTop } from "../render-top";
+import { useSiteLinks } from "../site-context";
 import { formatLength, initialUnit } from "../units";
 import { isEmptyDrawing, readHash } from "../url-state";
 import CardCutter from "./card-cutter";
@@ -56,6 +56,7 @@ const still = () =>
  */
 const CardPage = () => {
   const { t, i18n } = useTranslation();
+  const links = useSiteLinks();
   const [cutter, setCutter] =
     useState<Awaited<ReturnType<typeof loadCutter>>>(null);
   const [failed, setFailed] = useState(!hasShape);
@@ -401,7 +402,7 @@ const CardPage = () => {
       </div>
       <a
         className="greeting-credit"
-        href={MXWR_URL}
+        href={links.website}
         rel="noopener"
         target="_blank"
       >

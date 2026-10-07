@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { trackView } from "../analytics";
 import { setupI18n } from "../i18n";
+import { SiteLinksContext } from "../site-context";
+import type { SiteLinks } from "../site-defaults";
 import type { Texts } from "../translations/defaults";
 import CardPage from "./card-page";
 
@@ -15,13 +17,19 @@ const fontReady = Promise.race([
 ]);
 
 /** The greeting card in the browser – loaded by card-root.tsx. */
-const CardEntry = ({ texts }: { texts: Texts }) => {
+export type CardProps = { texts: Texts; links: SiteLinks };
+
+const CardEntry = ({ texts, links }: CardProps) => {
   setupI18n(texts);
   const [ready, setReady] = useState(false);
   useEffect(() => {
     fontReady.finally(() => setReady(true));
   }, []);
-  return ready ? <CardPage /> : null;
+  return ready ? (
+    <SiteLinksContext value={links}>
+      <CardPage />
+    </SiteLinksContext>
+  ) : null;
 };
 
 export default CardEntry;

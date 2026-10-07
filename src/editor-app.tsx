@@ -25,7 +25,7 @@ import PrintHints from "./components/print-hints";
 import SettingsBar from "./components/settings-bar";
 import ShareCreation from "./components/share-creation";
 import SharePanel from "./components/share-panel";
-import { MXWR_URL } from "./links";
+import { useSiteLinks } from "./site-context";
 import { connectStore, store, toggleAutoRotate, toggleExpanded } from "./store";
 import { formatLength } from "./units";
 
@@ -34,6 +34,7 @@ import { formatLength } from "./units";
  * themselves – here only what the frame shows directly.
  */
 const App = () => {
+  const links = useSiteLinks();
   const { t, i18n } = useTranslation();
   // Synchronous, so the switch animates as a view transition (toggleExpanded).
   const { expanded } = useSnapshot(store, { sync: true });
@@ -153,18 +154,14 @@ const App = () => {
       <footer>
         <DonateBadge />
         <span className="footer-links">
-          <a href={MXWR_URL} rel="noopener" target="_blank">
+          <a href={links.website} rel="noopener" target="_blank">
             mxwr.de
             <CookieIcon icon={ArrowUpRight} size={40} />
           </a>
           <span aria-hidden className="sep">
             ·
           </span>
-          <a
-            href="https://makerworld.com/@yogspace"
-            rel="noopener"
-            target="_blank"
-          >
+          <a href={links.makerworld} rel="noopener" target="_blank">
             MakerWorld
             <CookieIcon icing="#5fb36b" icon={ArrowUpRight} size={40} />
           </a>

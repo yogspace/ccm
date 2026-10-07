@@ -1,3 +1,5 @@
+"use client";
+
 import { Check, Send } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { type FormEvent, useId, useState } from "react";

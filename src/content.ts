@@ -1,11 +1,15 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import configPromise from "@payload-config";
+import type { SerializedEditorState } from "@payloadcms/richtext-lexical/lexical";
 import { unstable_cache } from "next/cache";
 import { getPayload } from "payload";
 import type { Assets, Preset } from "./assets";
 import { TAGS } from "./cache";
+import { legalSeed } from "./legal/seed-content";
 import { MEDIA_DIR } from "./media";
+import { LOCALES, type Locale } from "./seo";
+import { SITE_DEFAULTS, type Site } from "./site-defaults";
 
 /** “1-star.svg” → “Star” – in case a template has no name in a language. */
 const nameFromFile = (file: string) =>
@@ -89,3 +93,64 @@ export const getAssets = async (): Promise<Assets> => {
   ]);
   return { presets, gallery };
 };
+
+/** Links and address from the “Site” global. */
+const readSite = unstable_cache(
+  async (): Promise<Site> => {
+    const payload = await getPayload({ config: configPromise });
+    const site = await payload.findGlobal({
+      slug: "site",
+      depth: 0,
+      overrideAccess: true,
+    });
+    return {
+      links: { ...SITE_DEFAULTS.links, ...site.links },
+      address: { ...SITE_DEFAULTS.address, ...site.address },
+    };
+  },
+  ["site"],
+  { tags: [TAGS.site] }
+);
+
+/** Links and address – the code's ones without a database. */
+export const getSite = (): Promise<Site> =>
+  readSite().catch(() => SITE_DEFAULTS);
+
+export type LegalText = {
+  content: Record<Locale, SerializedEditorState>;
+  updatedAt: string | null;
+};
+
+/** The legal text in both languages. */
+const readLegal = unstable_cache(
+  async (): Promise<LegalText> => {
+    const payload = await getPayload({ config: configPromise });
+    const legal = await payload.findGlobal({
+      slug: "legal",
+      locale: "all",
+      depth: 0,
+      overrideAccess: true,
+    });
+    // With locale "all" a localized field comes as { de, en }.
+    const content = (legal.content ?? {}) as unknown as Partial<
+      Record<Locale, SerializedEditorState>
+    >;
+    return {
+      content: Object.fromEntries(
+        LOCALES.map((locale) => [locale, content[locale] ?? legalSeed(locale)])
+      ) as LegalText["content"],
+      updatedAt: legal.updatedAt ?? null,
+    };
+  },
+  ["legal"],
+  { tags: [TAGS.legal] }
+);
+
+/** The legal text – as it stood in the code without a database. */
+export const getLegal = (): Promise<LegalText> =>
+  readLegal().catch(() => ({
+    content: Object.fromEntries(
+      LOCALES.map((locale) => [locale, legalSeed(locale)])
+    ) as unknown as LegalText["content"],
+    updatedAt: null,
+  }));
