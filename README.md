@@ -117,7 +117,7 @@ Details in the roadmap in [projects.md](projects.md).
 ```bash
 pnpm install
 cp .env.example .env                              # then fill in PAYLOAD_SECRET (openssl rand -hex 32)
-docker compose -f docker-compose.dev.yml up -d    # local MongoDB on 27018
+make up-db                                        # local MongoDB on 27018 (make down-db stops it)
 pnpm dev          # http://localhost:3000, admin at /admin
 pnpm lint         # Biome (format + lint)
 pnpm typecheck    # Next's route types + TypeScript

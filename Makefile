@@ -1,4 +1,12 @@
-.PHONY: deploy
+.PHONY: deploy up-db down-db
+
+# The local MongoDB for `pnpm dev` (docker-compose.dev.yml, port 27018) –
+# start it before working, stop it when done. The data stays in its volume.
+up-db:
+	docker compose -f docker-compose.dev.yml up -d
+
+down-db:
+	docker compose -f docker-compose.dev.yml down
 
 # Merges development → main and is sure to return to development.
 # Steps:
