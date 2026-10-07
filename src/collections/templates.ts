@@ -23,6 +23,7 @@ export const Templates: CollectionConfig = {
     delete: authenticated,
   },
   admin: {
+    group: "Content",
     description:
       "SVG templates next to the drawing area, in this order (drag & drop). Name them in both languages (locale at the top).",
     useAsTitle: "name",

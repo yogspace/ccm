@@ -23,6 +23,7 @@ export const Gallery: CollectionConfig = {
     delete: authenticated,
   },
   admin: {
+    group: "Content",
     description:
       "Pictures for the fan above the footer – five are drawn at random on every load. Square ones fit best.",
     defaultColumns: ["filename", "alt", "updatedAt"],

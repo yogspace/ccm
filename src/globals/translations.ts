@@ -26,6 +26,7 @@ const revalidateTexts: GlobalAfterChangeHook = ({ doc, context }) => {
 export const Translations: GlobalConfig = {
   slug: "translations",
   label: "Translations",
+  admin: { group: "Content" },
   access: {
     read: () => true,
     update: authenticated,

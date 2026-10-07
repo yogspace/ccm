@@ -38,6 +38,7 @@ export const Legal: GlobalConfig = {
   access: { read: () => true, update: authenticated },
   hooks: expireOnChange(TAGS.legal),
   admin: {
+    group: "Content",
     description:
       "The dialog behind “Imprint & privacy”. Address and links come from “Site”; switch the language at the top.",
   },

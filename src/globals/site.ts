@@ -31,6 +31,7 @@ export const Site: GlobalConfig = {
   access: { read: () => true, update: authenticated },
   hooks: expireOnChange(TAGS.site),
   admin: {
+    group: "Settings",
     description:
       "Links in the footer, on the greeting card and in the legal text, and the address in the legal text.",
   },
