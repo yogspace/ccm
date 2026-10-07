@@ -1,4 +1,4 @@
-import { ArrowUpRight, Download, RotateCw } from "lucide-react";
+import { ArrowUpRight, Download, RotateCw, Share2 } from "lucide-react";
 import {
   type CSSProperties,
   useEffect,
@@ -8,6 +8,7 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import Button from "../components/button";
+import { paintCardPicture } from "../components/card-image";
 import CookieIcon from "../components/cookie-icon";
 import RingText from "../components/ring-text";
 import { cookieSeed } from "../cookie-jar";
@@ -18,6 +19,8 @@ import { toThreeMf } from "../export/three-mf";
 import { filamentFor } from "../filaments";
 import { readGreeting } from "../greeting";
 import { drawingKey } from "../hash-text";
+import { PORTFOLIO_URL } from "../links";
+import { renderMeshTop } from "../render-top";
 import { countCreation } from "../stats";
 import { formatLength, initialUnit } from "../units";
 import { isEmptyDrawing, readHash } from "../url-state";
@@ -38,6 +41,9 @@ const SPRINKLES = Array.from({ length: 12 }, (_, i) => ({
   color: ["#ff5fa8", "#ffffff", "#ffc31f", "#ff6a1f", "#5fb36b"][i % 5],
   reach: 34 + (i % 3) * 5,
 }));
+
+/** Pause (ms) before painting the picture – the card lands first. */
+const PICTURE_DELAY = 1500;
 
 const still = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -75,6 +81,14 @@ const CardPage = () => {
   const heading = greeting.to
     ? t("card.for", { name: greeting.to })
     : t("card.forYou");
+  const sizeLabel = formatLength(
+    shared.params.size,
+    unit,
+    lang,
+    unit === "in" ? 1 : 0
+  );
+  /** The card as a picture, painted ahead: Safari only shares right in the click. */
+  const [picture, setPicture] = useState<File | null>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: every try shapes it anew
   useEffect(() => {
@@ -96,6 +110,49 @@ const CardPage = () => {
       current = false;
     };
   }, [attempt]);
+
+  // Paint the picture once the cutter is there – after the card has landed.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: painted once per cutter
+  useEffect(() => {
+    if (!mesh) return;
+    let current = true;
+    const timer = setTimeout(async () => {
+      const cutterView = renderMeshTop(mesh, filament, 900, 788);
+      const blob = await paintCardPicture({
+        cutter: cutterView,
+        heading,
+        from: greeting.from ? t("card.fromName", { name: greeting.from }) : "",
+        ring: greeting.message || t("card.ring"),
+        name,
+        size: sizeLabel,
+        site: "ccm.mxwr.de",
+      });
+      if (cutterView) cutterView.width = cutterView.height = 0;
+      if (!current || !blob) return;
+      const file = `${fileBase(name, shared.params.size)}-${t("card.fileSuffix")}.png`;
+      setPicture(new File([blob], file, { type: "image/png" }));
+    }, PICTURE_DELAY);
+    return () => {
+      current = false;
+      clearTimeout(timer);
+    };
+  }, [mesh, t]);
+
+  const canSharePicture =
+    !!picture && !!navigator.canShare?.({ files: [picture] });
+
+  const sharePicture = () => {
+    if (!picture) return;
+    if (!canSharePicture) {
+      download(picture, picture.name);
+      return;
+    }
+    navigator.share({ files: [picture], title: heading }).catch((error) => {
+      if (!(error instanceof DOMException && error.name === "AbortError")) {
+        console.error(error);
+      }
+    });
+  };
 
   useEffect(() => {
     document.title = greeting.to
@@ -224,14 +281,7 @@ const CardPage = () => {
                 )}
                 <span className="greeting-name" hidden={!hasShape}>
                   <span>{name}</span>
-                  <small>
-                    {formatLength(
-                      shared.params.size,
-                      unit,
-                      lang,
-                      unit === "in" ? 1 : 0
-                    )}
-                  </small>
+                  <small>{sizeLabel}</small>
                 </span>
                 {cookie && turnSticker}
               </span>
@@ -267,59 +317,91 @@ const CardPage = () => {
         </p>
       )}
 
-      {failed && hasShape && (
-        <div className="greeting-actions">
-          <Button
-            className="primary"
-            onClick={() => setAttempt((count) => count + 1)}
-            type="button"
-          >
-            <CookieIcon
-              icing="#2a44ff"
-              icon={RotateCw}
-              idle={false}
-              roll={-10}
-              size={58}
-            />
-            {t("card.retry")}
-          </Button>
-        </div>
-      )}
-      {!failed && (
-        <>
+      {/* Below the card, set apart: what to do with it. */}
+      <div className="greeting-dock">
+        {failed && hasShape && (
           <div className="greeting-actions">
             <Button
               className="primary"
-              disabled={!mesh}
-              onClick={() => save("3mf")}
+              onClick={() => setAttempt((count) => count + 1)}
               type="button"
             >
               <CookieIcon
                 icing="#2a44ff"
-                icon={Download}
+                icon={RotateCw}
                 idle={false}
-                roll={12}
+                roll={-10}
                 size={58}
               />
-              {t("card.download")}
-            </Button>
-            <Button disabled={!mesh} onClick={() => save("stl")} type="button">
-              <CookieIcon icon={Download} idle={false} roll={-14} size={58} />
-              {t("card.stl")}
+              {t("card.retry")}
             </Button>
           </div>
-          <p className="greeting-hint">{t("card.printHint")}</p>
-        </>
-      )}
+        )}
+        {!failed && (
+          <>
+            <div className="greeting-actions">
+              <Button
+                className="primary"
+                disabled={!mesh}
+                onClick={() => save("3mf")}
+                type="button"
+              >
+                <CookieIcon
+                  icing="#2a44ff"
+                  icon={Download}
+                  idle={false}
+                  roll={12}
+                  size={58}
+                />
+                {t("card.download")}
+              </Button>
+              <Button
+                disabled={!mesh}
+                onClick={() => save("stl")}
+                type="button"
+              >
+                <CookieIcon icon={Download} idle={false} roll={-14} size={58} />
+                {t("card.stl")}
+              </Button>
+              <Button
+                disabled={!picture}
+                onClick={sharePicture}
+                title={t("card.pictureHint")}
+                type="button"
+              >
+                <CookieIcon
+                  icing="#ff5fa8"
+                  icon={canSharePicture ? Share2 : Download}
+                  idle={false}
+                  roll={10}
+                  size={58}
+                />
+                {canSharePicture
+                  ? t("card.sharePicture")
+                  : t("card.savePicture")}
+              </Button>
+            </div>
+            <p className="greeting-hint">{t("card.printHint")}</p>
+          </>
+        )}
 
-      <a className="greeting-cta" href={`/${lang}/`}>
-        {t("card.makeOwn")}
-        <CookieIcon
-          icing="#ff5fa8"
-          icon={ArrowUpRight}
-          idle={false}
-          size={40}
-        />
+        <a className="greeting-cta" href={`/${lang}/`}>
+          {t("card.makeOwn")}
+          <CookieIcon
+            icing="#ff5fa8"
+            icon={ArrowUpRight}
+            idle={false}
+            size={40}
+          />
+        </a>
+      </div>
+      <a
+        className="greeting-credit"
+        href={PORTFOLIO_URL}
+        rel="noopener"
+        target="_blank"
+      >
+        made by Max Weber
       </a>
     </main>
   );

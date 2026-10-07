@@ -674,6 +674,19 @@ input[type="range"]:active::-moz-range-thumb {
   paint-order: stroke fill;
 }
 
+/* A long name: one line, cut with “…”, the buttons beside it stay. */
+.card-head .card-title {
+  display: block;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  /* Room for descenders, which overflow would cut off. */
+  padding-block: 0.12em;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .dims {
   display: inline-flex;
   align-items: center;
@@ -2252,6 +2265,8 @@ button.composer-back {
   position: absolute;
   inset: 22.5%;
   display: grid;
+  /* A long name is cut, it does not widen the card. */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto;
   padding: 3cqw 3.5cqw 3.5cqw;
   background: #fffdf8;

@@ -85,6 +85,21 @@ const HISTORY = 40;
 const IMPORT_MARGIN = 0.1;
 /** This close (CSS pixels) you must hit an object or a handle. */
 const HIT = 12;
+/**
+ * No new stroke while the page scrolls, nor this long (ms) after it – on
+ * phones it glides on, and the tap that stops it should not leave a dot.
+ */
+const SCROLL_CALM = 300;
+
+/** When the page (or anything in it) last scrolled. */
+let lastScroll = -Infinity;
+window.addEventListener(
+  "scroll",
+  () => {
+    lastScroll = performance.now();
+  },
+  { capture: true, passive: true }
+);
 /** Smallest size (drawing-area pixels) an object can be scaled down to. */
 const MIN_SIZE = 16;
 /** With shift, rotation snaps in these steps … */
@@ -556,6 +571,9 @@ const DrawCanvas = () => {
 
   const start = (event: PointerEvent<HTMLCanvasElement>) => {
     if (event.button !== 0) return;
+    // A finger landing while the page still glides wanted to stop it, not draw.
+    const scrolling = performance.now() - lastScroll < SCROLL_CALM;
+    if (scrolling && event.pointerType !== "mouse") return;
     event.currentTarget.setPointerCapture(event.pointerId);
     snapshot();
     setPenDown(true);

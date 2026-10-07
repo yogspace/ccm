@@ -1,7 +1,8 @@
 import { memo, useId, useMemo } from "react";
 
 /** Radius of the ring in the 100 × 100 view box; the letters stand on it. */
-const RADIUS = 45;
+export const RING_RADIUS = 45;
+const RADIUS = RING_RADIUS;
 const AROUND = 2 * Math.PI * RADIUS;
 /** Non-breaking spaces: SVG text would collapse ordinary ones. */
 const SEPARATOR = "\u00a0\u00a0\u00a0✦\u00a0\u00a0\u00a0";
@@ -24,7 +25,7 @@ const widthOf = (text: string) => {
  * Lays a text all the way around the ring: as large as fits, a short one
  * repeated until the ring closes; the letter spacing evens out the rest.
  */
-const layout = (text: string) => {
+export const ringLayout = (text: string) => {
   const unit = `${text.trim()}${SEPARATOR}`;
   const width = widthOf(unit);
   const copies = Math.max(1, Math.floor(AROUND / (width * LARGEST)));
@@ -39,7 +40,7 @@ type Props = { text: string; className?: string };
 /** Text running once around a circle, like on a stamp. Decorative only. */
 const RingText = ({ text, className }: Props) => {
   const id = useId();
-  const { content, size, spacing } = useMemo(() => layout(text), [text]);
+  const { content, size, spacing } = useMemo(() => ringLayout(text), [text]);
   const r = RADIUS;
 
   return (

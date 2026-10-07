@@ -37,7 +37,7 @@ const App = () => {
   const { t, i18n } = useTranslation();
   // Synchronous, so the switch animates as a view transition (toggleExpanded).
   const { expanded } = useSnapshot(store, { sync: true });
-  const { cutter, unit, autoRotate, creations } = useSnapshot(store);
+  const { cutter, unit, autoRotate, creations, name } = useSnapshot(store);
   const { ready, mesh } = cutter;
   const preview = useRef<PreviewHandle>(null);
 
@@ -58,7 +58,10 @@ const App = () => {
 
         <section className="card shape-card">
           <div className="card-head">
-            <h2>{t("steps.shape")}</h2>
+            {/* The creation's name once there is one – on one line. */}
+            <h2 className="card-title" title={name.trim() || undefined}>
+              {name.trim() || t("steps.shape")}
+            </h2>
             <Button
               aria-label={t(expanded ? "draw.shrink" : "draw.expand")}
               aria-pressed={expanded}
