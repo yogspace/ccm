@@ -91,9 +91,20 @@ jobs:
 
             cd /opt/apps/ccm
 
+            # The runtime settings live only on the server (see .env.example).
+            # Without them stop here – the running version stays.
+            if [ ! -f .env ]; then
+              echo "✗ /opt/apps/ccm/.env is missing – see .env.example."
+              exit 1
+            fi
+
             git fetch origin main
             git reset --hard origin/main
 
             docker compose pull
             docker compose up -d --remove-orphans
             docker image prune -f
+
+            # The mail report's cron job – idempotent, so on every deploy. Not
+            # worth failing the deploy over.
+            bash scripts/setup-cron.sh || echo "⚠ Cron job not installed."

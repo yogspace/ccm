@@ -3,7 +3,8 @@
 # (/next/cron/stats-digest): once a day; the route itself decides from the
 # interval set in the admin whether a report is due, and prunes old rows.
 #
-# Runs ON THE HETZNER SERVER (not locally):
+# Runs ON THE HETZNER SERVER (not locally) – by the deploy pipeline after
+# every deploy, or by hand:
 #   cd /opt/apps/ccm && bash scripts/setup-cron.sh
 #
 # The app has no port on the host – it is only reachable in the Docker network
