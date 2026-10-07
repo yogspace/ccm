@@ -35,11 +35,7 @@ import {
   transformDrawing,
 } from "../drawing";
 import { loadSilhouette, type Point, traceOutline } from "../geometry/outline";
-import {
-  loadPreset,
-  type Preset,
-  type PresetShape,
-} from "../presets";
+import { loadPreset, type Preset, type PresetShape } from "../presets";
 import {
   drawingChanged,
   importFailed,

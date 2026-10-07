@@ -1,6 +1,7 @@
 import configPromise from "@payload-config";
 import { unstable_cache } from "next/cache";
 import { getPayload } from "payload";
+import { TAGS } from "../cache";
 import { LOCALES, type Locale } from "../seo";
 import {
   defaultsFor,
@@ -8,7 +9,6 @@ import {
   TRANSLATION_KEYS,
   unflatten,
 } from "./defaults";
-import { TAGS } from "../cache";
 import { flattenTranslations } from "./tree";
 
 type Stored = Record<Locale, Record<string, string>>;

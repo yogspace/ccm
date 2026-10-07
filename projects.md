@@ -140,13 +140,13 @@ Reine Geometrie-Funktionen (`outline.ts` ohne Canvas-Teil, `cutter.ts`, Exporte)
 - **Commits ohne `Co-Authored-By`- oder sonstige Claude-Signatur.** Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`).
 - README bei neuen Features/Struktur-Änderungen mitpflegen.
 - Gearbeitet wird auf `development`; ausgerollt wird mit `make deploy` (merged nach `main` → Pipeline → https://ccm.mxwr.de).
-- Keine laufenden Dev-Server von Max beenden oder deren Ports belegen. Für eigene Prüfungen `pnpm build` + `pnpm preview --port <freier Port>` und wieder beenden.
+- Keine laufenden Dev-Server von Max beenden oder deren Ports belegen. Für eigene Prüfungen `pnpm dev --port <freier Port>` (bzw. `pnpm build` + `pnpm start -p <freier Port>`) und wieder beenden.
 
 ## Betrieb
 
 - Deploy, Server, Proxy und Domains: Server-Handbuch im Repo `yogspace/proxy`.
-- Container-Limit `mem_limit: 128m` gilt nur für den Static-Server; die Geometrie läuft im Browser des Nutzers.
-- Wird später doch ein Backend nötig (z. B. Designs teilen), gehört es in diesen Stack (`/api` im selben Repo), nicht in eine allgemeine `api.mxwr.de`. Genau das ist jetzt geplant: siehe „Umbau auf Next.js + Payload“.
+- Zwei Dienste: `ccm` (Next + Payload, `mem_limit: 512m`, im Betrieb ~135 MB) und `mongo` (8.2.9, `mem_limit: 512m`, kleiner WiredTiger-Cache). Die Geometrie läuft weiter im Browser des Nutzers.
+- Backend-Funktionen gehören in diesen Stack (Payload im selben Repo), nicht in eine allgemeine `api.mxwr.de`.
 
 ## Reihenfolge
 
@@ -157,13 +157,24 @@ Reine Geometrie-Funktionen (`outline.ts` ohne Canvas-Teil, `cutter.ts`, Exporte)
 5. SVG-Upload.
 6. Feinschliff: Druckhinweise, Mobil, Dark Mode, README.
 
-## Umbau auf Next.js + Payload (Plan, Stand 2026-10-07)
+## Umbau auf Next.js + Payload (Stand 2026-10-07)
+
+### Stand
+
+- **Phase 0 bestanden:** Editor, Geometrie-Worker und manifold-WASM laufen unter Next 16 (Turbopack), ebenso die Kartenseite; Produktions-Build und Docker-Image (331 MB, ~135 MB RAM) gehen.
+- **Phase 1 umgesetzt auf dem Branch `next`, noch nicht ausgerollt:**
+  - `/de`, `/en`, `/de/card`, `/en/card`, Weiterleitung von `/` und `/card` per Next-Proxy; Meta-Texte und JSON-LD über `generateMetadata`.
+  - Payload mit MongoDB (eigener Container wie im Portfolio): Statistik wie im Portfolio (Seitenaufrufe, Aktionen, Auswertung im Admin, eigene Geräte ausnehmen, Mail-Report per Cron), Oberflächentexte als Translations-Global, Vorlagen und Galerie als Uploads.
+  - Kontaktformular im Impressum (Resend), statt auf mxwr.de zu verweisen.
+  - Revalidierung wie im Portfolio (Cache-Tags, `expire: 0`, `/next/revalidate-all`), Sync-Skripte für Datenbank und Uploads.
+  - Keksleiste mit Animationen beim Befüllen (Flug ins Glas, Krümel).
+- **Vor dem Ausrollen auf dem Server:** `/opt/apps/ccm/.env` anlegen (siehe `.env.example`), erster Admin über `PAYLOAD_ADMIN_EMAIL`/`PASSWORD`, Vorlagen und Galerie im Admin hochladen, Resend-Absender, `scripts/setup-cron.sh`. Das alte Volume `ccm_ccm-data` (Zähler) kann danach weg.
 
 ### Warum
 
 - **Die Roadmap braucht ein Backend:** Kurzlinks, API mit Tokens, „Drucken lassen“ (Datei ablegen), später Shop, Galerie, vielleicht Accounts.
 - **Echte Link-Vorschauen:** Heute steckt alles im Hash, und der erreicht den Server nie. Deshalb kann eine Vorschau in WhatsApp oder iMessage nichts Persönliches zeigen. Mit Kurzlinks bekommt jede Karte und jede Kreation ihren eigenen Titel und ihr eigenes Vorschaubild („Eine Karte für Carla“ mit dem Ausstecher).
-- **Anonyme Statistik:** gibt es seit 2026-10-07 schon ohne Umbau (`api/analytics.mjs`, `pnpm stats`): ohne Cookies, ohne IP, nur Tagessummen. Der Zähler im Footer ist dafür entfallen. Beim Umbau zieht sie nach Payload um.
+- **Anonyme Statistik wie im Portfolio:** ohne Cookies, ohne IP, Auswertung im Admin, optional als Mail. Der Zähler im Footer ist dafür entfallen.
 - **Derselbe Stack wie das Portfolio** (Next 16, Payload 3.89): ein Werkzeugkasten. Bewährte Teile lassen sich übernehmen: `PageViews` mit `/next/track`, `ShortLinks`, Cron-Digest, Dockerfile mit Next standalone.
 
 ### Was bleibt
@@ -185,15 +196,16 @@ Reine Geometrie-Funktionen (`outline.ts` ohne Canvas-Teil, `cutter.ts`, Exporte)
 - **Payload-Collections:**
   - `users`: nur Admin, später API-Keys für Partner
   - `short-links`: Code, gespeicherter Hash, Typ (Kreation oder Karte), Vorschaubild, Aufrufe, Datum. Keine Personendaten außer dem, was jemand selbst in die Karte schreibt.
-  - `media`: die Vorschaubilder der Kurzlinks
-  - `page-views` bzw. Tagessummen wie heute in `analytics.json` (ersetzt `api/analytics.mjs`)
+  - `templates`, `gallery`: Vorlagen (SVG) und Galeriebilder als Uploads ✓
+  - `page-views`, `actions` und das Global `analytics` wie im Portfolio ✓; Global `translations` ✓
+  - später `media`: die Vorschaubilder der Kurzlinks
   - später `api-tokens` (gehasht, mit Kontingent) und `orders` (Shop)
-- **Datenbank:** SQLite (`@payloadcms/db-sqlite`) im Volume `ccm-data`. Laut Server-Handbuch lieber das als eine zweite Mongo, und es braucht kaum RAM. Die Mongo des Portfolios wird nie mitbenutzt. Wechsel auf Postgres später möglich (Payload abstrahiert die Datenbank), falls Shop oder Last es verlangen.
+- **Datenbank:** MongoDB als eigener Container (entschieden 2026-10-07): schemalos, also keine Migrationen, wenn aus neuen Text-Keys neue Felder im Translations-Global werden; Sync und Muster 1:1 wie im Portfolio. Die Mongo des Portfolios wird nie mitbenutzt.
 - **Betrieb:**
   - Dockerfile wie im Portfolio (Next standalone).
-  - Compose mit nur einem Dienst `ccm` und den Volumes `ccm-data` (SQLite, Uploads) und `next_cache`.
+  - Compose mit `ccm` und `mongo`, Volumes `mongo_data` und `media`.
   - `ccm-api` und das Caddyfile im Container entfallen, Next liefert alles selbst aus.
-  - `mem_limit` etwa 512m (Portfolio-App heute ~225 MB).
+  - `mem_limit` 512m je Dienst.
 
 ### Phasen
 
@@ -209,7 +221,7 @@ Reine Geometrie-Funktionen (`outline.ts` ohne Canvas-Teil, `cutter.ts`, Exporte)
 - `/de` und `/en`, Spracherkennung, SEO-Texte und Vorschaubild über `generateMetadata` (ersetzt das Vite-Plugin `localizedPages`), `sitemap` und `robots`.
 - Kartenseite, Keksleiste, Teilen-Dialog, Statistik über Payload (ersetzt `api/server.mjs` und den Dienst `ccm-api`).
 - Testfälle speichern (Alt+Shift+F) als Route, die es nur in der Entwicklung gibt.
-- Pipeline: verify (Biome, TypeScript, Vitest), dann build (Image), dann deploy. Compose ohne `ccm-api`. Tagessummen aus `analytics.json` übernehmen.
+- Pipeline: verify (Biome, TypeScript, Vitest), dann build (Image), dann deploy. Compose ohne `ccm-api`.
 - **Abnahme:**
   - alle bisherigen Links öffnen gleich
   - Tests grün
@@ -223,7 +235,6 @@ Reine Geometrie-Funktionen (`outline.ts` ohne Canvas-Teil, `cutter.ts`, Exporte)
   - Text anpassen
   - Löschfrist, z. B. ein Jahr ohne Aufruf
   - Missbrauch begrenzen: Rate-Limit pro IP, ohne die IP zu speichern
-- Wochen-Digest der Statistik per Mail (Resend), wie im Portfolio.
 
 **Phase 3 – API und Druckdienst**
 - API-Tokens (gehasht, mit Kontingent) und `POST /api/v1/cutters`: SVG rein, 3MF oder STL raus. manifold läuft in Node, das Rastern übernimmt `@napi-rs/canvas` wie im Portfolio.
@@ -238,14 +249,14 @@ Reine Geometrie-Funktionen (`outline.ts` ohne Canvas-Teil, `cutter.ts`, Exporte)
 - **Worker und WASM im Next-Bundler:** Das ist das Hauptrisiko, deshalb steht der Probelauf zuerst.
 - **Ressourcen:** Mit Payload-Admin und Next werden Image, Build-Zeit und RAM größer. Nach dem Upgrade auf CX33 ist das unkritisch.
 - **Datenschutz-Versprechen:** Bisher galt „nichts auf dem Server“. Mit Kurzlinks stimmt das nicht mehr ganz, Datenschutztext und README müssen es ehrlich sagen.
-- **Backups:** SQLite liegt im Volume. Die Hetzner-Backups decken es ab, dazu gelegentlich ein Export auf den Mac wie beim Portfolio.
+- **Backups:** Datenbank und Uploads liegen in Volumes. Die Hetzner-Backups decken sie ab, dazu `pnpm payload:sync` auf den Mac wie beim Portfolio.
 
 ### Offene Entscheidungen
 
-1. **Datenbank:** SQLite (Empfehlung) oder Mongo wie im Portfolio?
+1. ~~**Datenbank:**~~ MongoDB, eigener Container (entschieden).
 2. **Kurzlinks:** immer oder nur auf Wunsch? Empfehlung: Karten immer kurz (wegen der Vorschau), Kreationen wahlweise. Hash-Links bleiben gültig.
 3. **Accounts:** Bleibt es beim Admin-Login für dich, oder sollen später auch Nutzer Konten haben, etwa für eine Galerie?
-4. **Code mit dem Portfolio teilen?** Empfehlung: Nein, die Muster kopieren statt gemeinsamer Pakete. Zwei Apps bleiben unabhängig deploybar.
+4. ~~**Code mit dem Portfolio teilen?**~~ Nein: die Muster kopiert (Statistik, Translations, Revalidierung, Sync). Zwei Apps bleiben unabhängig deploybar.
 
 ## Roadmap
 

@@ -61,9 +61,7 @@
         "useFilenamingConvention": {
           "level": "error",
           "options": {
-            "filenameCases": [
-              "kebab-case"
-            ]
+            "filenameCases": ["kebab-case"]
           }
         }
       },
@@ -75,12 +73,7 @@
         "noConsole": {
           "level": "warn",
           "options": {
-            "allow": [
-              "assert",
-              "error",
-              "info",
-              "warn"
-            ]
+            "allow": ["assert", "error", "info", "warn"]
           }
         }
       },

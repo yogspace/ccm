@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getAssets } from "@/content";
 import EditorRoot from "@/editor-root";
 import {
   editorMetadata,
@@ -7,7 +8,6 @@ import {
   type Locale,
   noscriptText,
 } from "@/seo";
-import { getAssets } from "@/content";
 import { getTexts } from "@/translations/texts";
 
 // Rendered per request: texts, templates and gallery come from the admin
