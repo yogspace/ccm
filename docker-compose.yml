@@ -26,7 +26,9 @@ services:
     volumes:
       - ./api:/app/api:ro
       - ccm-data:/data
-    mem_limit: 64m
+    # Node alone takes ~50 MB at start – room for spikes, still tiny next to
+    # the server's 8 GB.
+    mem_limit: 128m
     logging:
       driver: json-file
       options:
