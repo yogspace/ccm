@@ -1,118 +1,622 @@
-import { memo, useEffect, useRef, useState } from "react";
+import {
+  memo,
+  type PointerEvent as ReactPointerEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import CookieIcon from "../components/cookie-icon";
 import type { CookieShape } from "../cookies/models";
-
-/** Centre in px within the layer, size in px. */
-type Spot = { x: number; y: number; size: number; roll: number };
-
-/** Air between the ring's letters and the cookies, and around the text (px). */
-const GAP = 14;
-/** What the cookies must never lie on: the texts and the dock. */
-const KEEP_CLEAR = [
-  ".greeting-to",
-  ".greeting-from",
-  ".greeting-dock",
-  ".greeting-credit",
-];
-
-const overlaps = (a: DOMRect, b: DOMRect) =>
-  a.left < b.right + GAP &&
-  a.right > b.left - GAP &&
-  a.top < b.bottom + GAP &&
-  a.bottom > b.top - GAP;
+import type { CookieHandle } from "../cookies/renderer";
 
 /**
- * A circle of cookies around the card, just outside the ring of words –
- * evenly spaced, leaving out every place that would lie on a text or the
- * dock, or outside the screen. On a phone the ring fills the width, so only
- * the places above and below it can stay – often none, and that is fine.
+ * The card's own cookies raining down left and right of it – a little physics
+ * toy in the background of the card page.
+ *
+ * The bottom of the page is the floor, a line level with the top of the dock.
+ * A few big cookies drop in from the top in the empty columns beside the card,
+ * one after another – heavy, without a bounce – tip over and lie flat on the
+ * floor or on each other. Any cookie can be grabbed: it hangs from the spot
+ * where it was taken and swings at the hand while dragged; let go, it flies
+ * on with the swing, turns over in the air, knocks against the card and the
+ * walls and falls again. Once everything lies still the simulation sleeps.
+ * Each is baked on its own: icing and sprinkles differ.
+ *
+ * The physics is seen from the side: a cookie is a stick between two points
+ * (Verlet integration). Against other cookies it is as thick as it is, against
+ * the floor, the walls and the card as tall as it looks from a little above –
+ * so piles lie close and nothing floats. The 3D cookie is turned to match,
+ * really, not as a picture: lying it shows its icing, standing its edge,
+ * upside down its bottom. Positions go straight to the elements, the turn
+ * straight to the renderer – no React render per frame. Where there is no
+ * room beside the card (phones), no rain.
  */
-const place = (layer: DOMRect): Spot[] => {
-  const ring = document.querySelector(".greeting .ring-text text");
-  const stage = document.querySelector(".greeting-stage");
-  if (!(ring && stage)) return [];
-  const box = stage.getBoundingClientRect();
-  const cx = box.left + box.width / 2;
-  const cy = box.top + box.height / 2;
-  const letters = ring.getBoundingClientRect();
-  const outer = Math.max(letters.width, letters.height) / 2;
-  // Few and big.
-  const size = Math.min(150, Math.max(84, box.width * 0.21));
-  const radius = outer + GAP + size / 2;
-  const count = Math.max(
-    4,
-    Math.min(10, Math.floor((2 * Math.PI * radius) / (size * 1.9)))
-  );
-  const clear = KEEP_CLEAR.flatMap((selector) => {
-    const element = document.querySelector(selector);
-    return element ? [element.getBoundingClientRect()] : [];
-  });
 
-  const spots: Spot[] = [];
-  for (let i = 0; i < count; i++) {
-    // Starting half a step from the top: the top is the heading's anyway.
-    const angle = ((i + 0.5) / count) * Math.PI * 2 - Math.PI / 2;
-    const x = cx + Math.cos(angle) * radius;
-    const y = cy + Math.sin(angle) * radius;
-    const cookie = new DOMRect(x - size / 2, y - size / 2, size, size);
-    const onScreen =
-      cookie.left >= layer.left &&
-      cookie.right <= layer.right &&
-      cookie.top >= layer.top &&
-      cookie.bottom <= layer.bottom;
-    if (!onScreen || clear.some((rect) => overlaps(cookie, rect))) continue;
-    spots.push({
-      x: x - layer.left,
-      y: y - layer.top,
-      size,
-      roll: Math.random() * 60 - 30,
-    });
-  }
-  return spots;
+/** A point now and one step ago – its speed is the difference. */
+type Point = { x: number; y: number; px: number; py: number };
+/** Left and right edge (px) of an empty column beside the card. */
+type Column = [number, number];
+type Scene = { floor: number; columns: Column[] };
+
+type Cookie = {
+  /** The stick's ends, edge to edge through the middle of its thickness. */
+  a: Point;
+  b: Point;
+  /** Its canvas (px). */
+  size: number;
+  /** The stick's length. */
+  length: number;
+  /** Half its thickness: how close other cookies come. */
+  body: number;
+  /** Radius of its outline against floor, walls and card … */
+  outline: number;
+  /** … at these spots along the stick (0: a, 1: b). */
+  spots: number[];
+  /** Not yet dropped in: waits until this time (ms). */
+  dropAt: number;
+  held: boolean;
+  /** While held: the spot on the stick hanging from the hand (0: a, 1: b) … */
+  grip: number;
+  /** … where the hand wants it, and where it was at the frame's start. */
+  hand: { x: number; y: number };
+  handFrom: { x: number; y: number };
+  /** Recent hand positions – for the throw. */
+  trail: { x: number; y: number; t: number }[];
+};
+
+/** A spot on a cookie's stick (0: end a, 1: end b) – null: the world. */
+type Contact = { cookie: Cookie; at: number } | null;
+
+const PER_SIDE = 3;
+/**
+ * Their canvas (px) – always full size: where the columns are too narrow for
+ * it, no cookies at all rather than small ones.
+ */
+const SIZE = 200;
+/** Not all alike: sizes and how each lies turned about its middle. */
+const SCALES = [1.08, 0.94, 1, 0.88, 1.04, 0.96];
+const ROLLS = [12, -40, 75, 160, -110, 30];
+const sizeOf = (i: number) => Math.round(SIZE * SCALES[i]);
+const GRAVITY = 5200; // px/s² – cookies are heavy
+const STEP = 1 / 120; // s
+/** Rounds of stick and collisions per step – stiffer piles. */
+const ROUNDS = 4;
+/** Friction: below this share of the press, touching things stick … */
+const STICK = 0.9;
+/** … above it they slide, held back by this share. */
+const SLIDE = 0.5;
+/** Air: a little speed lost per step. */
+const AIR = 0.999;
+/** Air while held: it swings at the hand a few times, then hangs. */
+const HELD_AIR = 0.993;
+const MAX_THROW = 2600; // px/s
+/** Below this speed (px/s) for a while, everything counts as resting. */
+const REST = 10;
+/** How far the camera looks down at the cookies (the renderer's tilt). */
+const SIDE_TILT = -1.2;
+
+/**
+ * A cookie's measures from its canvas, which it fills to about three
+ * quarters. Seen a little from above, lying it looks 0.27 of its width tall
+ * below its middle, standing 0.53 – an outline of three round spots along
+ * the stick matches both.
+ */
+const measures = (size: number) => {
+  const width = size * 0.76;
+  const thickness = width * 0.19;
+  const length = width - thickness;
+  const reach = (width * 0.26) / length;
+  return {
+    length,
+    body: thickness / 2,
+    outline: width * 0.27,
+    spots: [0.5 - reach, 0.5, 0.5 + reach],
+  };
+};
+
+const rect = (selector: string, origin: DOMRect) => {
+  const box = document.querySelector(selector)?.getBoundingClientRect();
+  return box
+    ? new DOMRect(
+        box.left - origin.left,
+        box.top - origin.top,
+        box.width,
+        box.height
+      )
+    : null;
+};
+
+/** Floor and columns from the layout – null without room. */
+const measure = (layer: DOMRect): Scene | null => {
+  const dock = rect(".greeting-dock", layer);
+  const stage = rect(".greeting-stage", layer);
+  if (!(dock && stage)) return null;
+  const left = Math.min(dock.left, stage.left);
+  const right = Math.max(dock.right, stage.right);
+  const narrowest = Math.min(left, layer.width - right);
+  if (narrowest < SIZE * 0.85) return null;
+  return {
+    floor: dock.top,
+    columns: [
+      [0, left],
+      [right, layer.width],
+    ],
+  };
+};
+
+const angleOf = ({ a, b }: Cookie) => Math.atan2(b.y - a.y, b.x - a.x);
+
+/** How easily a contact's spot moves – the world not at all. */
+const ease = (contact: Contact) =>
+  contact ? (1 - contact.at) ** 2 + contact.at ** 2 : 0;
+
+/** Each end of the contact's stick with its share of the spot. */
+const ends = (contact: Contact, act: (p: Point, share: number) => void) => {
+  if (!contact) return;
+  act(contact.cookie.a, 1 - contact.at);
+  act(contact.cookie.b, contact.at);
+};
+
+/** How far a contact's spot moved this step – the world stays put. */
+const movedAt = (contact: Contact) => {
+  if (!contact) return { x: 0, y: 0 };
+  const { a, b } = contact.cookie;
+  const at = contact.at;
+  return {
+    x: (a.x - a.px) * (1 - at) + (b.x - b.px) * at,
+    y: (a.y - a.py) * (1 - at) + (b.y - b.py) * at,
+  };
 };
 
 /**
- * The cookie the card's cutter bakes, in a circle around the card – like the
- * editor's background cookies they look at the mouse when it comes near, and
- * grow in one after another once the card is there. Laid out anew when the
- * screen changes (a phone turned).
+ * Two things touching – a spot on a cookie and one on another, or the world
+ * (null) – along the normal (nx, ny) from two to one, `depth` too close:
+ * pushed apart, and how far they slid along each other this step taken back
+ * – all of it while that is little next to how hard they press (they stick),
+ * else part of it. Moving positions, not speeds, so it holds piles still and
+ * never flings anything; no bounce – cookies are heavy. Shared by how easily
+ * each moves: the world not at all.
  */
-const CardCookies = ({ shape }: { shape: CookieShape }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const [spots, setSpots] = useState<Spot[]>([]);
+const resolve = (
+  one: Contact,
+  two: Contact,
+  nx: number,
+  ny: number,
+  depth: number
+) => {
+  const total = ease(one) + ease(two);
+  if (total === 0) return;
+  const first = movedAt(one);
+  const second = movedAt(two);
+  const along = (second.x - first.x) * ny + (first.y - second.y) * nx;
+  const slide = Math.abs(along);
+  const back =
+    slide < depth * STICK
+      ? along
+      : along * Math.min(1, (depth * SLIDE) / slide);
+  // Apart along the normal, back along the surface (-ny, nx).
+  const dx = (nx * depth + ny * back) / total;
+  const dy = (ny * depth - nx * back) / total;
+  ends(one, (p, share) => {
+    p.x += dx * share;
+    p.y += dy * share;
+  });
+  ends(two, (p, share) => {
+    p.x -= dx * share;
+    p.y -= dy * share;
+  });
+};
 
+/** Keeps the stick at its length, both ends moving half the way. */
+const keep = ({ a, b, length }: Cookie) => {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const distance = Math.hypot(dx, dy) || 1e-6;
+  const shift = ((distance - length) / distance) * 0.5;
+  a.x += dx * shift;
+  a.y += dy * shift;
+  b.x -= dx * shift;
+  b.y -= dy * shift;
+};
+
+/**
+ * Pulls the held spot to the hand – the ends by their share, so the rest
+ * hangs from it and swings: held at its edge the cookie dangles, held in the
+ * middle it stays level.
+ */
+const hang = (cookie: Cookie, x: number, y: number) => {
+  const { a, b, grip } = cookie;
+  const dx = x - (a.x + (b.x - a.x) * grip);
+  const dy = y - (a.y + (b.y - a.y) * grip);
+  const total = (1 - grip) ** 2 + grip ** 2;
+  a.x += (dx * (1 - grip)) / total;
+  a.y += (dy * (1 - grip)) / total;
+  b.x += (dx * grip) / total;
+  b.y += (dy * grip) / total;
+};
+
+/** The ends of one cookie against the stick of another. */
+const touchEnds = (one: Cookie, two: Cookie) => {
+  const reach = one.body + two.body;
+  const dx = two.b.x - two.a.x;
+  const dy = two.b.y - two.a.y;
+  const span = dx * dx + dy * dy || 1e-6;
+  for (const [end, at] of [
+    [one.a, 0],
+    [one.b, 1],
+  ] as const) {
+    const t = Math.max(
+      0,
+      Math.min(1, ((end.x - two.a.x) * dx + (end.y - two.a.y) * dy) / span)
+    );
+    let nx = end.x - (two.a.x + dx * t);
+    let ny = end.y - (two.a.y + dy * t);
+    const distance = Math.hypot(nx, ny);
+    if (distance >= reach) continue;
+    if (distance < 1e-6) {
+      // Right on the stick: out to the side facing up.
+      const across = Math.sqrt(span);
+      nx = dy / across;
+      ny = -dx / across;
+      if (ny > 0) {
+        nx = -nx;
+        ny = -ny;
+      }
+    } else {
+      nx /= distance;
+      ny /= distance;
+    }
+    resolve(
+      { cookie: one, at },
+      { cookie: two, at: t },
+      nx,
+      ny,
+      reach - distance
+    );
+  }
+};
+
+/** The outline's spots against floor, walls and card. */
+const touchWorld = (
+  cookie: Cookie,
+  floor: number,
+  width: number,
+  card: DOMRect | null
+) => {
+  const { a, b, outline } = cookie;
+  for (const at of cookie.spots) {
+    const contact = { cookie, at };
+    const x = a.x + (b.x - a.x) * at;
+    const y = a.y + (b.y - a.y) * at;
+    if (y > floor - outline) resolve(contact, null, 0, -1, y - floor + outline);
+    if (x < outline) resolve(contact, null, 1, 0, outline - x);
+    else if (x > width - outline) {
+      resolve(contact, null, -1, 0, x - width + outline);
+    }
+    if (!card) continue;
+    if (x > card.left && x < card.right && y > card.top && y < card.bottom) {
+      resolve(contact, null, 0, -1, y - card.top + outline);
+      continue;
+    }
+    const nx = x - Math.max(card.left, Math.min(card.right, x));
+    const ny = y - Math.max(card.top, Math.min(card.bottom, y));
+    const distance = Math.hypot(nx, ny);
+    if (distance < outline && distance > 1e-6) {
+      resolve(contact, null, nx / distance, ny / distance, outline - distance);
+    }
+  }
+};
+
+const CardCookies = ({ shape }: { shape: CookieShape }) => {
+  const layerRef = useRef<HTMLDivElement>(null);
+  const cookieRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const handles = useRef<(CookieHandle | null)[]>([]);
+  const cookies = useRef<Cookie[]>([]);
+  const wake = useRef<() => void>(() => undefined);
+  const [scene, setScene] = useState<Scene | null>(null);
+  const [held, setHeld] = useState<number | null>(null);
+  const count = scene ? PER_SIDE * 2 : 0;
+  // Each baked on its own – its own icing colour, its own sprinkles.
+  const shapes = useMemo(
+    () => SCALES.map((_, i) => ({ ...shape, seed: shape.seed + i * 7919 })),
+    [shape]
+  );
+
+  // Measure, and again on every resize: the floor moves, the cookies stay.
   useEffect(() => {
-    const layer = ref.current;
+    const layer = layerRef.current;
     if (!layer) return;
-    let timer = 0;
-    const layout = () => setSpots(place(layer.getBoundingClientRect()));
-    // After the card has settled in; again, calmly, after every resize.
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      setScene(measure(layer.getBoundingClientRect()));
+      wake.current();
+    };
     const observer = new ResizeObserver(() => {
-      window.clearTimeout(timer);
-      timer = window.setTimeout(layout, 200);
+      if (!frame) frame = requestAnimationFrame(update);
     });
     observer.observe(layer);
     return () => {
       observer.disconnect();
-      window.clearTimeout(timer);
+      cancelAnimationFrame(frame);
     };
   }, []);
 
+  // The simulation – started once there is room.
+  useEffect(() => {
+    const layer = layerRef.current;
+    if (!(layer && scene)) return;
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const now = performance.now();
+    const { floor, columns } = scene;
+    const fall = GRAVITY * STEP * STEP;
+
+    // Above the screen, left and right by turns, each at its own slant.
+    if (cookies.current.length !== count) {
+      cookies.current = Array.from({ length: count }, (_, i) => {
+        const size = sizeOf(i);
+        const shape = measures(size);
+        const [from, to] = columns[i % 2];
+        const margin = size * 0.45;
+        const x =
+          to - from > margin * 2
+            ? from + margin + Math.random() * (to - from - margin * 2)
+            : (from + to) / 2;
+        const y = -size / 2;
+        const angle = (Math.random() - 0.5) * 1.4;
+        const half = shape.length / 2;
+        const end = (sign: number): Point => {
+          const px = x + Math.cos(angle) * half * sign;
+          const py = y + Math.sin(angle) * half * sign;
+          return { x: px, y: py, px, py };
+        };
+        return {
+          ...shape,
+          a: end(-1),
+          b: end(1),
+          size,
+          dropAt: now + 500 + i * 380 + Math.random() * 160,
+          held: false,
+          grip: 0.5,
+          hand: { x, y },
+          handFrom: { x, y },
+          trail: [],
+        };
+      });
+    }
+
+    let restingFor = 0;
+    let last = now;
+    /** Time not yet simulated (s) – less than a step. */
+    let owed = 0;
+    let frame = 0;
+    let running = false;
+
+    /** `along`: how far into this frame's hand movement (0…1) the step is. */
+    const step = (
+      time: number,
+      card: DOMRect | null,
+      width: number,
+      along: number
+    ) => {
+      const live = cookies.current.filter((cookie) => time >= cookie.dropAt);
+      for (const cookie of live) {
+        const air = cookie.held ? HELD_AIR : AIR;
+        for (const p of [cookie.a, cookie.b]) {
+          let vx = (p.x - p.px) * air;
+          let vy = (p.y - p.py) * air + fall;
+          // Never faster than a cookie is thick – nothing passes through.
+          const speed = Math.hypot(vx, vy);
+          const limit = cookie.body * 1.8;
+          if (speed > limit) {
+            vx *= limit / speed;
+            vy *= limit / speed;
+          }
+          p.px = p.x;
+          p.py = p.y;
+          p.x += vx;
+          p.y += vy;
+        }
+      }
+      for (let round = 0; round < ROUNDS; round++) {
+        for (const cookie of live) keep(cookie);
+        for (let i = 0; i < live.length; i++) {
+          for (let j = i + 1; j < live.length; j++) {
+            touchEnds(live[i], live[j]);
+            touchEnds(live[j], live[i]);
+          }
+        }
+        for (const cookie of live) touchWorld(cookie, floor, width, card);
+        // The hand has the last word.
+        for (const cookie of live) {
+          if (!cookie.held) continue;
+          const { hand, handFrom } = cookie;
+          hang(
+            cookie,
+            handFrom.x + (hand.x - handFrom.x) * along,
+            handFrom.y + (hand.y - handFrom.y) * along
+          );
+        }
+      }
+    };
+
+    const draw = () => {
+      cookies.current.forEach((cookie, i) => {
+        const element = cookieRefs.current[i];
+        if (!element) return;
+        const x = (cookie.a.x + cookie.b.x) / 2;
+        const y = (cookie.a.y + cookie.b.y) / 2;
+        element.style.transform = `translate(${x - cookie.size / 2}px, ${y - cookie.size / 2}px)`;
+        element.style.visibility = y > -cookie.size / 2 ? "visible" : "hidden";
+        handles.current[i]?.setSide(angleOf(cookie));
+      });
+    };
+
+    const tick = (time: number) => {
+      const origin = layer.getBoundingClientRect();
+      const card = rect(".greeting-card", origin);
+      // Fixed steps, at most a quarter second's worth after a pause; the
+      // hand's movement spread over them, so a swing stays smooth.
+      owed = Math.min(0.25, owed + (time - last) / 1000);
+      last = time;
+      const steps = Math.floor(owed / STEP);
+      owed -= steps * STEP;
+      for (let k = 1; k <= steps; k++) {
+        step(time, card, origin.width, k / steps);
+      }
+      if (steps > 0) {
+        for (const cookie of cookies.current) cookie.handFrom = cookie.hand;
+      }
+      draw();
+      const moving = cookies.current.some(
+        (cookie) =>
+          cookie.held ||
+          time < cookie.dropAt ||
+          [cookie.a, cookie.b].some(
+            (p) => Math.hypot(p.x - p.px, p.y - p.py) / STEP > REST
+          )
+      );
+      restingFor = moving ? 0 : restingFor + 1;
+      // Asleep after half a second of stillness – until woken.
+      if (restingFor > 30) {
+        running = false;
+        return;
+      }
+      frame = requestAnimationFrame(tick);
+    };
+
+    wake.current = () => {
+      restingFor = 0;
+      if (running) return;
+      running = true;
+      last = performance.now();
+      owed = 0;
+      frame = requestAnimationFrame(tick);
+    };
+
+    if (still) {
+      // No falling: settle them at once, then show them lying there.
+      for (const cookie of cookies.current) cookie.dropAt = 0;
+      const origin = layer.getBoundingClientRect();
+      const card = rect(".greeting-card", origin);
+      for (let i = 0; i < 900; i++) step(now, card, origin.width, 1);
+      draw();
+    } else {
+      wake.current();
+    }
+    return () => {
+      cancelAnimationFrame(frame);
+      running = false;
+    };
+  }, [scene, count]);
+
+  // Grab, swing, throw.
+  const grab =
+    (index: number) => (event: ReactPointerEvent<HTMLDivElement>) => {
+      const cookie = cookies.current[index];
+      const layer = layerRef.current;
+      if (!(cookie && layer)) return;
+      const target = event.currentTarget;
+      target.setPointerCapture(event.pointerId);
+      const at = (pointer: { clientX: number; clientY: number }) => {
+        const origin = layer.getBoundingClientRect();
+        return {
+          x: pointer.clientX - origin.left,
+          y: pointer.clientY - origin.top,
+        };
+      };
+      // The spot on the stick nearest the hand hangs from it – as far from the
+      // hand as it was taken, so nothing jumps.
+      const { a, b } = cookie;
+      const pointer = at(event);
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      cookie.grip = Math.max(
+        0,
+        Math.min(
+          1,
+          ((pointer.x - a.x) * dx + (pointer.y - a.y) * dy) /
+            (dx * dx + dy * dy || 1e-6)
+        )
+      );
+      const spot = { x: a.x + dx * cookie.grip, y: a.y + dy * cookie.grip };
+      const offset = { x: pointer.x - spot.x, y: pointer.y - spot.y };
+      cookie.hand = spot;
+      cookie.handFrom = spot;
+      cookie.trail = [{ ...spot, t: performance.now() }];
+      cookie.held = true;
+      setHeld(index);
+      wake.current();
+
+      const move = (moved: PointerEvent) => {
+        const { x, y } = at(moved);
+        cookie.hand = { x: x - offset.x, y: y - offset.y };
+        cookie.trail = [
+          ...cookie.trail.slice(-5),
+          { ...cookie.hand, t: performance.now() },
+        ];
+        wake.current();
+      };
+      const release = () => {
+        // Flies on as the hand last moved – turning as it swung.
+        const now = performance.now();
+        const recent = cookie.trail.filter((entry) => now - entry.t < 100);
+        const first = recent[0];
+        const end = recent[recent.length - 1];
+        const seconds = first && end ? (end.t - first.t) / 1000 : 0;
+        if (first && end && seconds > 0.01) {
+          const clamp = (v: number) =>
+            Math.max(-MAX_THROW, Math.min(MAX_THROW, v));
+          const vx = clamp((end.x - first.x) / seconds) * STEP;
+          const vy = clamp((end.y - first.y) / seconds) * STEP;
+          const moved = movedAt({ cookie, at: cookie.grip });
+          for (const p of [cookie.a, cookie.b]) {
+            p.px -= vx - moved.x;
+            p.py -= vy - moved.y;
+          }
+        }
+        cookie.held = false;
+        setHeld(null);
+        wake.current();
+        target.removeEventListener("pointermove", move);
+        target.removeEventListener("pointerup", release);
+        target.removeEventListener("pointercancel", release);
+      };
+      target.addEventListener("pointermove", move);
+      target.addEventListener("pointerup", release);
+      target.addEventListener("pointercancel", release);
+    };
+
   return (
-    <div aria-hidden className="greeting-cookies" ref={ref}>
-      {spots.map((spot, i) => (
+    <div aria-hidden className="greeting-cookies" ref={layerRef}>
+      {/* The floor: the bottom of the page, level with the dock. */}
+      {scene && <div className="greeting-floor" style={{ top: scene.floor }} />}
+      {Array.from({ length: count }, (_, i) => (
         <div
           className="greeting-cookie-spot"
-          key={`${Math.round(spot.x)}-${Math.round(spot.y)}`}
-          style={{ left: spot.x, top: spot.y }}
+          data-held={held === i || undefined}
+          key={i}
+          onPointerDown={grab(i)}
+          ref={(element) => {
+            cookieRefs.current[i] = element;
+          }}
+          style={{ visibility: "hidden" }}
         >
           <CookieIcon
-            delay={500 + i * 140}
+            grown
             idle={false}
-            roll={spot.roll}
-            shape={shape}
-            size={Math.round(spot.size)}
-            tilt={-0.45}
+            interactive={false}
+            onHandle={(handle) => {
+              handles.current[i] = handle;
+              const cookie = cookies.current[i];
+              if (handle && cookie) handle.setSide(angleOf(cookie));
+            }}
+            roll={ROLLS[i]}
+            shape={shapes[i]}
+            side
+            size={sizeOf(i)}
+            tilt={SIDE_TILT}
           />
         </div>
       ))}

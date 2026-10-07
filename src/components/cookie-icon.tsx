@@ -29,6 +29,10 @@ type Props = {
   tilt?: number;
   /** Off: no looking at the mouse, no turn on hover – e.g. when text lies on it. */
   interactive?: boolean;
+  /** Seen from the side, like a coin on a table – turned via the handle. */
+  side?: boolean;
+  /** The renderer's handle once the cookie is there (null when it goes). */
+  onHandle?: (handle: CookieHandle | null) => void;
   /** Size while growing in (0…1), e.g. so text on it grows along. */
   onGrow?: (scale: number) => void;
 } & (
@@ -54,7 +58,9 @@ const CookieIcon = ({
   grown = false,
   tilt,
   interactive = true,
+  side = false,
   onGrow,
+  onHandle,
   kind,
   icon: Icon,
   icing = "#ffffff",
@@ -74,6 +80,8 @@ const CookieIcon = ({
   spinRef.current = { spin, spinSpeed };
   const onGrowRef = useRef(onGrow);
   onGrowRef.current = onGrow;
+  const onHandleRef = useRef(onHandle);
+  onHandleRef.current = onHandle;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -96,6 +104,7 @@ const CookieIcon = ({
       handle.current = registerCookie(canvas, cookie, {
         tilt: tilt ?? (kind ? -0.55 : -0.2),
         roll: (rollRef.current * Math.PI) / 180,
+        side,
         idle,
         follow: interactive,
         delay: delayRef.current,
@@ -104,6 +113,7 @@ const CookieIcon = ({
         spinSpeed: spinRef.current.spinSpeed / 1000,
         onGrow: (scale) => onGrowRef.current?.(scale),
       });
+      onHandleRef.current?.(handle.current);
     });
 
     // The cookie reacts to its button: hover turns it, a click presses it.
@@ -119,9 +129,10 @@ const CookieIcon = ({
       button?.removeEventListener("pointerdown", press);
       handle.current?.dispose();
       handle.current = null;
+      onHandleRef.current?.(null);
       if (baked) disposeCookie(baked);
     };
-  }, [kind, iconName, icing, shape, idle, tilt, interactive, grown]);
+  }, [kind, iconName, icing, shape, idle, tilt, interactive, grown, side]);
 
   useEffect(() => {
     handle.current?.setRoll((roll * Math.PI) / 180);

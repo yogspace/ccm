@@ -140,13 +140,11 @@ const CardPage = () => {
     };
   }, [mesh, t]);
 
-  const canSharePicture =
-    !!picture && !!navigator.canShare?.({ files: [picture] });
-
+  // Always “Share” – where files can't be shared, the picture downloads.
   const sharePicture = () => {
     if (!picture) return;
     trackEvent("card-picture");
-    if (!canSharePicture) {
+    if (!navigator.canShare?.({ files: [picture] })) {
       download(picture, picture.name);
       return;
     }
@@ -379,14 +377,12 @@ const CardPage = () => {
               >
                 <CookieIcon
                   icing="#ff5fa8"
-                  icon={canSharePicture ? Share2 : Download}
+                  icon={Share2}
                   idle={false}
                   roll={10}
                   size={58}
                 />
-                {canSharePicture
-                  ? t("card.sharePicture")
-                  : t("card.savePicture")}
+                {t("card.sharePicture")}
               </Button>
             </div>
             <p className="greeting-hint">{t("card.printHint")}</p>

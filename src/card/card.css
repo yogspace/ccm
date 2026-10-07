@@ -33,19 +33,63 @@ html:has(.greeting) {
   isolation: isolate;
 }
 
-/* The card's own cookie in the background (card-cookies.tsx): behind
-   everything, at the edges – the middle belongs to the card. */
+/* The cookies raining down beside the card (card-cookies.tsx). No stacking
+   context of its own: each cookie lies behind the content by itself – and
+   the one being dragged can float above everything. */
 .greeting-cookies {
   position: absolute;
   inset: 0;
-  z-index: -1;
   overflow: hidden;
   pointer-events: none;
 }
 
+/* Positioned by the physics (transform), so they start at the corner. */
 .greeting-cookie-spot {
   position: absolute;
-  translate: -50% -50%;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  will-change: transform;
+}
+
+.greeting-cookie-spot[data-held] {
+  z-index: 5;
+  cursor: grabbing;
+}
+
+.greeting-cookie-spot .cookie {
+  display: block;
+  margin: 0;
+}
+
+/* The floor: a light line level with the top of the dock – the cookies
+   lie on it. */
+.greeting-floor {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: -1;
+  border-top: 1px solid rgb(255 255 255 / 0.22);
+}
+
+/* The rows above the cookies span the whole width, invisibly – they let
+   clicks through to the cookies behind them; only the card (it turns over)
+   and the dock take them. */
+.greeting-to,
+.greeting-slot,
+.greeting-stage,
+.greeting-from {
+  pointer-events: none;
+}
+
+.greeting-card {
+  pointer-events: auto;
 }
 
 /* Light from behind the card, a neon glow rising from below. */

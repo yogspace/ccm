@@ -35,6 +35,15 @@ type Entry = {
   tilt: number;
   /** Base rotation in the image plane. */
   roll: number;
+  /**
+   * Seen from the side instead, like a coin on a table (the card page's
+   * physics): lying on its back, turned upright by this angle (rad, clockwise
+   * on screen), the camera looking down at it by `tilt`; `roll` turns it
+   * about its own middle. null: the usual pose.
+   */
+  side: number | null;
+  /** Seen from the side: how far its thickness's middle lies above its back. */
+  middle: number;
   /** Gentle floating while idle (costs a render per frame). */
   idle: boolean;
   /** Looks at the mouse when it is near. */
@@ -66,6 +75,9 @@ let camera: THREE.PerspectiveCamera;
 let frame = 0;
 let last = 0;
 let listening = false;
+const AXIS_X = new THREE.Vector3(1, 0, 0);
+const AXIS_Z = new THREE.Vector3(0, 0, 1);
+const turn = new THREE.Quaternion();
 
 const setup = () => {
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -125,12 +137,24 @@ const draw = (entry: Entry, time: number) => {
   // Gentle floating, looking at the mouse, turning on hover, squashing on click.
   const idle =
     entry.idle && !reduceMotion ? Math.sin(time / 900 + entry.phase) * 0.06 : 0;
-  object.rotation.set(
-    entry.tilt + entry.turnX.value + idle,
-    entry.turnY.value + entry.flip.value,
-    entry.roll +
-      (entry.spin && !reduceMotion ? time * entry.spinSpeed : idle * 0.5)
-  );
+  if (entry.side === null) {
+    object.position.set(0, 0, 0);
+    object.rotation.set(
+      entry.tilt + entry.turnX.value + idle,
+      entry.turnY.value + entry.flip.value,
+      entry.roll +
+        (entry.spin && !reduceMotion ? time * entry.spinSpeed : idle * 0.5)
+    );
+  } else {
+    // Camera looking down · turned upright · on its back · about its middle.
+    object.quaternion
+      .setFromAxisAngle(AXIS_X, entry.tilt + Math.PI / 2)
+      .multiply(turn.setFromAxisAngle(AXIS_Z, -entry.side))
+      .multiply(turn.setFromAxisAngle(AXIS_X, -Math.PI / 2))
+      .multiply(turn.setFromAxisAngle(AXIS_Z, entry.roll));
+    // Turned about the middle of its thickness, not about its back.
+    object.position.set(0, 0, -entry.middle).applyQuaternion(object.quaternion);
+  }
   const grow = Math.max(entry.appear.value, 1e-3);
   object.scale.set(
     (1 + entry.squash.value * 0.5) * grow,
@@ -224,6 +248,11 @@ export type CookieHandle = {
   setSpin: (spin: boolean) => void;
   /** Base rotation in the image plane (rad), e.g. rolling slider thumbs. */
   setRoll: (roll: number) => void;
+  /**
+   * Turned upright when seen from the side (rad, clockwise) – drawn at once,
+   * so it stays in step with where the caller puts the canvas this frame.
+   */
+  setSide: (angle: number) => void;
   /** Once around its own axis – on hover over its button. */
   flip: () => void;
   /** Squash briefly – on click. */
@@ -238,6 +267,7 @@ export const registerCookie = (
   {
     tilt = -0.55,
     roll = 0,
+    side = false,
     idle = true,
     follow = true,
     delay = 0,
@@ -248,6 +278,8 @@ export const registerCookie = (
   }: {
     tilt?: number;
     roll?: number;
+    /** Seen from the side, see `Entry.side` – upright at first. */
+    side?: boolean;
     idle?: boolean;
     follow?: boolean;
     delay?: number;
@@ -261,12 +293,22 @@ export const registerCookie = (
 ): CookieHandle => {
   if (!renderer) setup();
   const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+  let middle = 0;
+  if (side) {
+    object.rotation.set(0, 0, 0);
+    object.updateMatrixWorld(true);
+    middle = new THREE.Box3()
+      .setFromObject(object)
+      .getCenter(new THREE.Vector3()).z;
+  }
   const entry: Entry = {
     canvas,
     ctx,
     object,
     tilt,
     roll,
+    side: side ? 0 : null,
+    middle,
     idle,
     follow,
     turnX: spring(),
@@ -296,6 +338,16 @@ export const registerCookie = (
       entry.roll = roll;
       entry.drawn = false;
       wake();
+    },
+    setSide: (angle) => {
+      if (entry.side === angle) return;
+      entry.side = angle;
+      if (entry.visible && entry.appear.value >= 1)
+        draw(entry, performance.now());
+      else {
+        entry.drawn = false;
+        wake();
+      }
     },
     setSpin: (spin) => {
       entry.spin = spin;
@@ -339,6 +391,8 @@ export const cookieImage = (kind: CookieKind, pixels: number) => {
           object,
           tilt: -0.2,
           roll: 0,
+          side: null,
+          middle: 0,
           idle: false,
           follow: false,
           turnX: spring(),
