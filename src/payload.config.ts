@@ -49,7 +49,8 @@ export default buildConfig({
     supportedLanguages: { de, en },
     fallbackLanguage: "de",
   },
-  collections: [Templates, Gallery, Users, PageViews, Actions],
+  // The admin's groups follow this order: Users, then Content, then Settings.
+  collections: [Users, Templates, Gallery, PageViews, Actions],
   globals: [Site, Legal, Translations, Analytics],
   // The legal text brings its own editor (globals/legal.ts); this is the
   // default for any other rich text.

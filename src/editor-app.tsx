@@ -22,9 +22,8 @@ import Masthead from "./components/masthead";
 import ParameterPanel from "./components/parameter-panel";
 import Preview3d, { type PreviewHandle } from "./components/preview-3d";
 import PrintHints from "./components/print-hints";
-import SettingsBar from "./components/settings-bar";
 import ShareCreation from "./components/share-creation";
-import SharePanel from "./components/share-panel";
+import TitleField from "./components/title-field";
 import { useSiteLinks } from "./site-context";
 import { connectStore, store, toggleAutoRotate, toggleExpanded } from "./store";
 import { formatLength } from "./units";
@@ -38,7 +37,7 @@ const App = () => {
   const { t, i18n } = useTranslation();
   // Synchronous, so the switch animates as a view transition (toggleExpanded).
   const { expanded } = useSnapshot(store, { sync: true });
-  const { cutter, unit, autoRotate, name } = useSnapshot(store);
+  const { cutter, unit, autoRotate } = useSnapshot(store);
   const { ready, mesh } = cutter;
   const preview = useRef<PreviewHandle>(null);
 
@@ -53,16 +52,10 @@ const App = () => {
       <Masthead />
 
       <main className="layout" data-expanded={expanded || undefined}>
-        <SettingsBar>
-          <SharePanel />
-        </SettingsBar>
-
         <section className="card shape-card">
           <div className="card-head">
-            {/* The creation's name once there is one – on one line. */}
-            <h2 className="card-title" title={name.trim() || undefined}>
-              {name.trim() || t("steps.shape")}
-            </h2>
+            {/* The title is the creation's name – written right here. */}
+            <TitleField />
             <Button
               aria-label={t(expanded ? "draw.shrink" : "draw.expand")}
               aria-pressed={expanded}

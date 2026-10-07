@@ -362,6 +362,14 @@ input[type="range"]:active::-moz-range-thumb {
   min-width: 0;
 }
 
+/* The title and, right behind it, sharing the page. */
+.masthead-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
+}
+
 .masthead h1 {
   font-size: var(--fs-display);
   font-weight: 700;
@@ -472,21 +480,15 @@ input[type="range"]:active::-moz-range-thumb {
   border-color: transparent;
 }
 
-/* Desktop: bar above shape and cutter, everything at window height. The
-   drawing area follows the height, the 3D view fills the rest. */
+/* Desktop: shape and cutter side by side, at window height. The drawing
+   area follows the height, the 3D view fills the rest. */
 .layout {
-  --stage-size: min(100%, max(24rem, calc(100dvh - 28.5rem)));
+  --stage-size: min(100%, max(24rem, calc(100dvh - 23rem)));
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-areas:
-    "bar bar"
-    "shape cutter";
+  grid-template-areas: "shape cutter";
   gap: 1.5rem;
   align-items: stretch;
-}
-
-.bar {
-  grid-area: bar;
 }
 
 .shape-card {
@@ -519,7 +521,6 @@ input[type="range"]:active::-moz-range-thumb {
   --stage-size: min(100%, 60rem);
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas:
-    "bar"
     "shape"
     "cutter";
 }
@@ -532,10 +533,10 @@ input[type="range"]:active::-moz-range-thumb {
    largest square that fits its card; the 3D view fills the rest next to the
    sliders. */
 @media (width > 56rem) {
-  /* Fills exactly the height left beside header, bar and footer. */
+  /* Fills exactly the height left beside header and footer. */
   .layout:not([data-expanded]) {
     flex: 1;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: minmax(0, 1fr);
     /* The editor fills the first screen; the fan and footer follow below. */
     min-height: calc(100dvh - 8.5rem);
   }
@@ -588,7 +589,6 @@ input[type="range"]:active::-moz-range-thumb {
     --stage-size: 100%;
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
-      "bar"
       "shape"
       "cutter";
   }
@@ -674,17 +674,97 @@ input[type="range"]:active::-moz-range-thumb {
   paint-order: stroke fill;
 }
 
-/* A long name: one line, cut with “…”, the buttons beside it stay. */
-.card-head .card-title {
-  display: block;
-  flex: 0 1 auto;
+/* The drawing card's title is the name field (title-field.tsx): a field
+   from the start – the field colours, “Shape” as the placeholder and a pencil
+   – in the title's type. A long name stays on one line, cut with “…”. */
+.title-field {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
   min-width: 0;
-  overflow: hidden;
-  /* Room for descenders, which overflow would cut off. */
-  padding-block: 0.12em;
-  line-height: 1.1;
+  max-width: 28rem;
+}
+
+input.card-title {
+  width: 100%;
+  min-width: 0;
+  height: 2.9rem;
+  /* Room on the right for the pencil or the cross. */
+  padding: 0 2.9rem 0 0.8rem;
+  font: inherit;
+  font-size: var(--fs-title);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  /* The field's colours – readable on its light ground in both modes. */
+  color: var(--field-text);
+  -webkit-text-stroke: 0.02em currentColor;
+  paint-order: stroke fill;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  background: var(--field);
+  border: 0;
+  border-radius: 0.75rem;
+  outline: 2px solid transparent;
+  transition:
+    background 0.2s var(--ease),
+    outline-color 0.2s var(--ease);
+}
+
+input.card-title::placeholder {
+  color: var(--field-muted);
+  -webkit-text-stroke: 0;
+  opacity: 1;
+}
+
+input.card-title:hover {
+  background: color-mix(in oklab, var(--field) 92%, var(--field-text));
+}
+
+input.card-title:focus {
+  outline-color: var(--accent);
+}
+
+/* Focused and empty: the hint to type a name, a little smaller. */
+input.card-title:focus::placeholder {
+  font-size: var(--fs-body);
+}
+
+.title-pencil,
+button.title-clear {
+  position: absolute;
+  right: 0.45rem;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+}
+
+/* The pencil only says “write here” – a click goes through to the field. */
+.title-pencil {
+  pointer-events: none;
+}
+
+.cookie.title-pencil-icon {
+  margin: -0.25rem;
+}
+
+button.title-clear {
+  background: transparent;
+  transition:
+    opacity 0.2s var(--ease),
+    scale 0.3s var(--ease-spring),
+    background 0.2s var(--ease);
+}
+
+button.title-clear:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--field-text) 8%, transparent);
+}
+
+@starting-style {
+  button.title-clear {
+    opacity: 0;
+    scale: 0.6;
+  }
 }
 
 .dims {
@@ -1393,98 +1473,6 @@ button.remove-chip {
   left: 0;
 }
 
-/* ---------- Bar: name, sharing ---------- */
-
-.card.bar {
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem 2.5rem;
-  padding: 1.1rem 1.5rem 1.1rem 1.75rem;
-}
-
-@media (max-width: 40rem) {
-  .card.bar {
-    padding-inline: 1rem;
-  }
-}
-
-/* On one line slimmer, the fields inside sit concentrically. On phones the
-   bar wraps. */
-@media (width > 40rem) {
-  .card.bar {
-    padding: 0.8rem;
-  }
-}
-
-.bar-field {
-  position: relative;
-  display: flex;
-  flex: 1 1 18rem;
-  align-items: center;
-  min-width: 0;
-  gap: 1.1rem;
-  max-width: 30rem;
-  font-size: var(--fs-body);
-  color: var(--muted);
-}
-
-.bar-field input {
-  flex: 1;
-  min-width: 0;
-  height: 2.6rem;
-  padding: 0 1.25rem;
-  font: inherit;
-  font-weight: 700;
-  color: var(--field-text);
-  background: var(--field);
-  border: 0;
-  border-radius: 0.6rem;
-  outline: 2px solid transparent;
-  transition:
-    outline-color 0.2s var(--ease),
-    background 0.2s var(--ease);
-}
-
-.bar-field input::placeholder {
-  font-weight: 500;
-  color: var(--field-muted);
-}
-
-.bar-field input:focus {
-  background: var(--paper);
-  outline-color: var(--accent);
-}
-
-/* Room on the right for the cross that clears the name */
-.bar-field input:not(:placeholder-shown) {
-  padding-right: 3rem;
-}
-
-button.bar-clear {
-  position: absolute;
-  right: 0.3rem;
-  width: 2rem;
-  height: 2rem;
-  background: transparent;
-  transition:
-    opacity 0.2s var(--ease),
-    scale 0.3s var(--ease-spring),
-    background 0.2s var(--ease);
-}
-
-button.bar-clear:hover:not(:disabled) {
-  background: color-mix(in oklab, var(--field-text) 8%, transparent);
-}
-
-@starting-style {
-  button.bar-clear {
-    opacity: 0;
-    scale: 0.6;
-  }
-}
-
 /* ---------- Dimensions below the 3D view ---------- */
 
 .params {
@@ -1557,8 +1545,10 @@ button.bar-clear:hover:not(:disabled) {
   gap: 0.75rem 1.5rem;
 }
 
-.params-grid > .checkbox {
-  align-self: center;
+/* The checkbox in a slider's place (parameter-panel.tsx): like the slider,
+   no height of its own – centred on the line where the track runs. */
+.toggle-param .checkbox {
+  height: 0;
 }
 
 .bridge-width {
@@ -1941,31 +1931,33 @@ footer a.donate:hover,
   align-self: stretch;
 }
 
-/* Sharing, on the right of the bar – also when it wraps on phones */
+/* Sharing the page, right behind the title in the header: no button, just
+   a link on the blue page – its cookie and its words. */
 .share {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem 1.25rem;
-  margin-left: auto;
   transition: opacity 0.2s var(--ease);
 }
 
 .share button.copy {
-  height: 2.6rem;
-  padding: 0 1.25rem 0 0.9rem;
-  color: var(--accent-text);
-  background: var(--accent);
-  border-color: var(--accent);
+  height: auto;
+  gap: 0.35rem;
+  padding: 0;
+  font-weight: 700;
+  color: var(--on-page);
+  background: transparent;
+  border: 0;
 }
 
 .share button.copy:hover:not(:disabled) {
-  background: color-mix(in oklab, var(--accent) 86%, #000);
+  background: transparent;
+  text-decoration: underline;
+  text-decoration-thickness: 0.1em;
+  text-underline-offset: 0.2em;
 }
 
 .share button.copy[data-copied] {
-  background: var(--success);
-  border-color: var(--success);
+  color: var(--on-page-muted);
 }
 
 button.link {

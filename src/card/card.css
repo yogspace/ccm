@@ -33,6 +33,21 @@ html:has(.greeting) {
   isolation: isolate;
 }
 
+/* The card's own cookie in the background (card-cookies.tsx): behind
+   everything, at the edges – the middle belongs to the card. */
+.greeting-cookies {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.greeting-cookie-spot {
+  position: absolute;
+  translate: -50% -50%;
+}
+
 /* Light from behind the card, a neon glow rising from below. */
 .greeting::before {
   content: "";

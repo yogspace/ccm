@@ -7,6 +7,7 @@ import { setUnit, store } from "../store";
 import { units } from "../units";
 import CookieIcon from "./cookie-icon";
 import Segmented from "./segmented";
+import SharePanel from "./share-panel";
 
 const unitOptions = units.map((option) => ({ value: option, label: option }));
 const languageOptions = languages.map((lng) => ({
@@ -15,7 +16,8 @@ const languageOptions = languages.map((lng) => ({
 }));
 
 /**
- * Header with logo, title and the switches for unit and language. Memoised:
+ * Header with logo, title – sharing the page right behind it – and the
+ * switches for unit and language. Memoised:
  * the gliding markers measure the layout on every render – that should not
  * happen on every slider move.
  */
@@ -27,7 +29,10 @@ const Masthead = () => {
     <header className="masthead">
       <CookieIcon className="logo" kind="bite" roll={-18} size={100} />
       <div className="masthead-text">
-        <h1>Cookie Cutter Maker</h1>
+        <div className="masthead-title">
+          <h1>Cookie Cutter Maker</h1>
+          <SharePanel />
+        </div>
         <p>{t("tagline")}</p>
       </div>
       <div className="switches">

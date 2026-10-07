@@ -24,6 +24,7 @@ import { renderMeshTop } from "../render-top";
 import { useSiteLinks } from "../site-context";
 import { formatLength, initialUnit } from "../units";
 import { isEmptyDrawing, readHash } from "../url-state";
+import CardCookies from "./card-cookies";
 import CardCutter from "./card-cutter";
 import { loadCutter } from "./load-cutter";
 
@@ -217,6 +218,8 @@ const CardPage = () => {
 
   return (
     <main className="greeting">
+      {/* The card's own cookie, a few times in the background. */}
+      {cookie && <CardCookies shape={cookie} />}
       <h1
         className="greeting-to"
         // Long names get smaller instead of taking several lines.

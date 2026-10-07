@@ -6,7 +6,10 @@ import { pageUrl, store } from "../store";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
 
-/** Sharing the page itself: the system share menu where there is one, otherwise copying the link. */
+/**
+ * Sharing the page itself, right behind the title in the header: the system
+ * share menu where there is one, otherwise copying the link.
+ */
 const SharePanel = () => {
   const { t } = useTranslation();
   const { name } = useSnapshot(store);

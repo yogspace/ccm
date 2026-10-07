@@ -101,12 +101,19 @@ const ParameterPanel = () => {
       <h3>{t("params.title")}</h3>
       <div className="params-grid">
         {/* Shapes inside shapes become holes – or, as before, only the
-            outside counts. */}
-        <Toggle
-          hint={t("params.cutoutsHint")}
-          label={t("params.cutouts")}
-          name="cutouts"
-        />
+            outside counts. Built like a slider (an empty label line, then
+            the checkbox where the track is), so it lines up with the bridge
+            width's slider beside it. */}
+        <div className="param toggle-param">
+          <span aria-hidden className="param-head">
+            &nbsp;
+          </span>
+          <Toggle
+            hint={t("params.cutoutsHint")}
+            label={t("params.cutouts")}
+            name="cutouts"
+          />
+        </div>
         {/* Always laid out (no jump), faded out and inert while unticked. */}
         <div
           aria-hidden={!cutouts}
