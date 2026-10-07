@@ -253,8 +253,6 @@ export type CookieHandle = {
    * so it stays in step with where the caller puts the canvas this frame.
    */
   setSide: (angle: number) => void;
-  /** How far it has grown in (0…1). */
-  appearance: () => number;
   /** Once around its own axis – on hover over its button. */
   flip: () => void;
   /** Squash briefly – on click. */
@@ -276,7 +274,6 @@ export const registerCookie = (
     spin = false,
     spinSpeed = 1 / 260,
     grown = false,
-    from = 0,
     onGrow,
   }: {
     tilt?: number;
@@ -290,11 +287,6 @@ export const registerCookie = (
     spinSpeed?: number;
     /** There at full size right away – no growing in (e.g. a flying copy). */
     grown?: boolean;
-    /**
-     * Goes on growing in from here (0…1) – the same cookie registered anew
-     * (hot reload, strict mode), so it doesn't pop in again from nothing.
-     */
-    from?: number;
     /** Size while growing in (0…1), e.g. so text on it grows along. */
     onGrow?: (scale: number) => void;
   } = {}
@@ -323,8 +315,8 @@ export const registerCookie = (
     turnY: spring(),
     flip: spring(),
     squash: spring(),
-    appear: { value: reduceMotion || grown ? 1 : from, velocity: 0, target: 1 },
-    appearAt: performance.now() + (reduceMotion || from > 0 ? 0 : delay),
+    appear: { value: reduceMotion || grown ? 1 : 0, velocity: 0, target: 1 },
+    appearAt: performance.now() + (reduceMotion ? 0 : delay),
     onGrow,
     spin,
     spinSpeed,
@@ -361,7 +353,6 @@ export const registerCookie = (
       entry.spin = spin;
       wake();
     },
-    appearance: () => entry.appear.value,
     flip: () => {
       if (reduceMotion) return;
       entry.flip.target += Math.PI * 2;
