@@ -146,19 +146,37 @@ const CardPage = () => {
     };
   }, [mesh, t]);
 
-  // Always there – where files can't be shared, the picture downloads.
+  const [copied, setCopied] = useState(false);
+
+  // The picture with the card's link, the link on its own line. Some apps
+  // take only the picture and drop the text – so it goes on the clipboard as
+  // well (both right in the click, before the permission for it expires).
+  // Where files can't be shared, just the link; without a share menu at all,
+  // the link is copied.
   const sharePicture = () => {
-    if (!picture) return;
+    const url = window.location.href;
+    const text = `${heading}\n${url}`;
     trackEvent("card-picture");
-    if (!navigator.canShare?.({ files: [picture] })) {
-      download(picture, picture.name);
-      return;
-    }
-    navigator.share({ files: [picture], title: heading }).catch((error) => {
+    const failed = (error: unknown) => {
+      // Cancelling the share menu is not an error.
       if (!(error instanceof DOMException && error.name === "AbortError")) {
         console.error(error);
       }
-    });
+    };
+    if (picture && navigator.canShare?.({ files: [picture], text })) {
+      navigator.clipboard?.writeText(text).catch(() => undefined);
+      navigator.share({ files: [picture], title: heading, text }).catch(failed);
+    } else if (typeof navigator.share === "function") {
+      navigator.share({ title: heading, url }).catch(failed);
+    } else {
+      navigator.clipboard
+        .writeText(url)
+        .then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        })
+        .catch(() => window.prompt(t("share.copy"), url));
+    }
   };
 
   const savePicture = () => {
@@ -394,7 +412,7 @@ const CardPage = () => {
                   roll={10}
                   size={58}
                 />
-                {t("card.pictureShare")}
+                {copied ? t("share.copied") : t("card.pictureShare")}
               </Button>
               <Button
                 disabled={!picture}

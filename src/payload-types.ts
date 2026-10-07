@@ -867,6 +867,10 @@ export interface Translation {
      */
     bambu?: string | null;
     /**
+     * DE: Für Teig am besten lebensmittelechtes Filament. Von Hand lauwarm spülen, nicht in die Spülmaschine: PLA verzieht sich ab etwa 55 °C, und in den Druckrillen bleiben gern Teigreste hängen.  ·  EN: For dough, food-safe filament is best. Wash by hand in lukewarm water, not in the dishwasher: PLA warps from about 55 °C, and dough likes to stick in the print lines.
+     */
+    foodSafe?: string | null;
+    /**
      * DE: PLA, 0,2 mm Schichthöhe  ·  EN: PLA, 0.2 mm layer height
      */
     material?: string | null;
@@ -1279,6 +1283,7 @@ export interface TranslationsSelect<T extends boolean = true> {
     | T
     | {
         bambu?: T;
+        foodSafe?: T;
         material?: T;
         orientation?: T;
         slicer?: T;

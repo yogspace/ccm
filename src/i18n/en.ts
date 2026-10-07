@@ -64,6 +64,8 @@ export const en: typeof de = {
   hints: {
     title: "Printing tips",
     material: "PLA, 0.2 mm layer height",
+    foodSafe:
+      "For dough, food-safe filament is best. Wash by hand in lukewarm water, not in the dishwasher: PLA warps from about 55 °C, and dough likes to stick in the print lines.",
     orientation: "Rim sits on the print bed",
     supports: "No supports needed",
     slicer: "Just import it into Bambu Studio",

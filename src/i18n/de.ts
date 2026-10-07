@@ -64,6 +64,8 @@ export const de = {
   hints: {
     title: "Druckhinweise",
     material: "PLA, 0,2 mm Schichthöhe",
+    foodSafe:
+      "Für Teig am besten lebensmittelechtes Filament. Von Hand lauwarm spülen, nicht in die Spülmaschine: PLA verzieht sich ab etwa 55 °C, und in den Druckrillen bleiben gern Teigreste hängen.",
     orientation: "Falz liegt auf dem Druckbett",
     supports: "Keine Stützen nötig",
     slicer: "In Bambu Studio einfach importieren",

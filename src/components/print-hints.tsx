@@ -23,6 +23,7 @@ const PrintHints = () => {
       <div className="popup hints" id="print-hints" popover="auto">
         <ul>
           <li>{t("hints.material")}</li>
+          <li>{t("hints.foodSafe")}</li>
           <li>{t("hints.orientation")}</li>
           <li>{t("hints.supports")}</li>
           <li>{t("hints.slicer")}</li>
