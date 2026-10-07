@@ -24,7 +24,7 @@ export const listenForFixtures = () => {
     const rings = store.rings.map((ring) =>
       ring.map(([x, y]) => [round(x), round(y)])
     );
-    const response = await fetch("/__fixture", {
+    const response = await fetch("/next/fixture", {
       method: "POST",
       body: JSON.stringify({ name, ...params, rings }),
     });

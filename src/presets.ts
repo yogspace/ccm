@@ -1,33 +1,13 @@
+/**
+ * Templates next to the drawing area – uploaded in the admin (collection
+ * “Templates”, see content.ts) with their names. Whether a shape is filled or
+ * drawn as a line does not matter: its outline is inserted.
+ */
+import type { Preset } from "./assets";
 import { loadSilhouette, type Ring, traceOutline } from "./geometry/outline";
 import { simplifyLine } from "./url-state";
 
-/**
- * Templates next to the drawing area: every SVG file in src/presets/ becomes
- * one automatically. The order follows the file name; a leading number
- * (“1-star.svg”) only sorts and is not part of the name. The displayed name
- * comes from `presets.<name>` in the translations, otherwise from the file
- * name.
- */
-const files = import.meta.glob<string>("./presets/*.svg", {
-  query: "?raw",
-  import: "default",
-  eager: true,
-});
-
-export type Preset = { id: string; markup: string };
-
-export const presets: Preset[] = Object.entries(files)
-  .sort(([a], [b]) => a.localeCompare(b, "en", { numeric: true }))
-  .map(([path, markup]) => ({
-    id: (path.split("/").pop() ?? path)
-      .replace(/\.svg$/i, "")
-      .replace(/^\d+[-_ ]*/, ""),
-    markup,
-  }));
-
-/** Readable name from the file name, in case there is no translation. */
-export const fallbackName = (id: string) =>
-  id.replace(/[-_]+/g, " ").replace(/^./, (c) => c.toUpperCase());
+export type { Preset };
 
 /** Contours (normalised to 0…1, aspect ratio kept) and an SVG path on a 24 grid for the card. */
 export type PresetShape = { rings: Ring[]; path: string };

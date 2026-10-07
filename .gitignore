@@ -30,5 +30,16 @@ public/fonts/
 # Local Claude Code settings (permissions etc.)
 .claude/
 
-# Local data of the mini API (in production in the Docker volume)
-api/.data/
+# Next.js
+.next/
+next-env.d.ts
+*.tsbuildinfo
+
+# Copied from manifold-3d by scripts/prepare.mjs (always the installed version)
+public/manifold.wasm
+
+# Environment (see .env.example)
+.env
+
+# Uploads (gallery, templates) – locally; on the server the media volume
+media/

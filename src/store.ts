@@ -2,7 +2,7 @@
  * The app's state in one store (valtio): components read exactly what they
  * need via `useSnapshot(store)` and only re-render when that changes. Changes
  * go through the actions below (or straight to the proxy). Side effects –
- * cutter in the worker, link in the hash, counter, scroll lock – are hooked up
+ * cutter in the worker, link in the hash, cookie jar, scroll lock – are hooked up
  * once at start by `connectStore`.
  *
  * Large immutable data (drawing, contours, model) sits in the store via `ref`:
@@ -30,7 +30,6 @@ import type { MeshData } from "./geometry/mesh";
 import { InputError, type Ring, traceOutline } from "./geometry/outline";
 import { type Greeting, greetingUrl } from "./greeting";
 import type { de } from "./i18n/de";
-import { countCreation, loadCreations } from "./stats";
 import { initialUnit, storeUnit, type Unit } from "./units";
 import { type Drawing, isEmptyDrawing, readHash, writeHash } from "./url-state";
 
@@ -72,8 +71,6 @@ type State = {
   autoRotate: boolean;
   /** Drawing area enlarged. */
   expanded: boolean;
-  /** “x creations made”, `null` while (or if) the API does not answer. */
-  creations: number | null;
   /** Open dialogs (imprint, sharing) – while > 0 the page does not scroll. */
   dialogs: number;
   /**
@@ -138,7 +135,6 @@ export const store = proxy<State>({
   brush: 24,
   autoRotate: true,
   expanded: false,
-  creations: null,
   dialogs: 0,
   sheet: sheetFor(shared.params.size, shared.rings),
   jar: ref(savedCookies),
@@ -266,9 +262,10 @@ export const greetingLink = (greeting: Greeting, lang: string) =>
  * Keeps the creation on screen as a cookie in the bar (the newest first; the
  * same creation only once) and opens the bar.
  */
+/** Keeps the creation as a cookie in the bar; its hash, or null if none yet. */
 export const saveCookie = () => {
   const { mesh, outline, icing } = store.cutter;
-  if (!mesh || outline.length === 0) return;
+  if (!mesh || outline.length === 0) return null;
   const hash = currentHash();
   const cookie = bakeCookie({
     hash,
@@ -285,6 +282,7 @@ export const saveCookie = () => {
   );
   store.lastSaved = hash;
   setJarOpen(true);
+  return hash;
 };
 
 /** Eats a cookie: it leaves the bar for good. */
@@ -303,16 +301,6 @@ export const openCookie = (hash: string) => {
   const { pathname, search } = window.location;
   window.history.pushState(null, "", `${pathname}${search}${hash}`);
   window.location.reload();
-};
-
-/**
- * “x creations made”: downloads and shared creations are counted on the
- * server; the same creation only once per session.
- */
-export const trackCreation = () => {
-  countCreation(currentHash()).then((total) => {
-    if (total !== null) store.creations = total;
-  });
 };
 
 // ---------- Derived ----------
@@ -334,7 +322,7 @@ export const useMmPerCanvas = () => useSnapshot(store).sheet;
  *   Answers to outdated jobs are dropped.
  * - The link in the address bar follows the state, so it can be shared any
  *   time – once nothing has happened for a while.
- * - The counter is loaded, open dialogs lock scrolling.
+ * - Open dialogs lock scrolling.
  */
 export const connectStore = () => {
   const worker = new Worker(
@@ -397,9 +385,6 @@ export const connectStore = () => {
   build();
   writeLink();
   lockScroll();
-  loadCreations().then((count) => {
-    store.creations = count;
-  });
 
   return () => {
     unsubscribe();

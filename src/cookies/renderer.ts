@@ -243,6 +243,7 @@ export const registerCookie = (
     delay = 0,
     spin = false,
     spinSpeed = 1 / 260,
+    grown = false,
     onGrow,
   }: {
     tilt?: number;
@@ -252,6 +253,8 @@ export const registerCookie = (
     delay?: number;
     spin?: boolean;
     spinSpeed?: number;
+    /** There at full size right away – no growing in (e.g. a flying copy). */
+    grown?: boolean;
     /** Size while growing in (0…1), e.g. so text on it grows along. */
     onGrow?: (scale: number) => void;
   } = {}
@@ -270,7 +273,7 @@ export const registerCookie = (
     turnY: spring(),
     flip: spring(),
     squash: spring(),
-    appear: { value: reduceMotion ? 1 : 0, velocity: 0, target: 1 },
+    appear: { value: reduceMotion || grown ? 1 : 0, velocity: 0, target: 1 },
     appearAt: performance.now() + (reduceMotion ? 0 : delay),
     onGrow,
     spin,

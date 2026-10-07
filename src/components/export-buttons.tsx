@@ -2,18 +2,20 @@ import { Download } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
+import { trackEvent } from "../analytics";
+import { launchCookie, launchSpot } from "../cookie-flight";
 import { cookieSeed } from "../cookie-jar";
 import { download } from "../export/download";
 import { fileBase } from "../export/file-name";
 import { toStl } from "../export/stl";
 import { toThreeMf } from "../export/three-mf";
-import { saveCookie, store, trackCreation } from "../store";
+import { saveCookie, store } from "../store";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
 
 /**
  * Keeping the creation as a cookie, and downloads as STL and 3MF. Every
- * download counts the creation – and keeps it as a cookie, too.
+ * download keeps it as a cookie, too.
  */
 const ExportButtons = () => {
   const { t } = useTranslation();
@@ -38,19 +40,26 @@ const ExportButtons = () => {
     return () => clearTimeout(timer);
   }, [saved]);
 
-  const save = (file: Blob, extension: string) => {
+  /** Keeps the cookie and sends it flying from the button into the bar. */
+  const keep = (button: HTMLElement) => {
+    const hash = saveCookie();
+    if (hash) launchCookie(launchSpot(button), hash);
+  };
+
+  const save = (button: HTMLElement, file: Blob, extension: "3mf" | "stl") => {
     download(file, `${fileName}.${extension}`);
-    trackCreation();
-    saveCookie();
+    trackEvent(`download-${extension}`);
+    keep(button);
   };
 
   return (
     <div className="actions">
       <Button
         disabled={!mesh}
-        onClick={() => {
-          saveCookie();
+        onClick={(event) => {
+          keep(event.currentTarget);
           setSaved(true);
+          trackEvent("cookie-saved");
         }}
         title={t("jar.saveHint")}
         type="button"
@@ -64,7 +73,9 @@ const ExportButtons = () => {
       </Button>
       <Button
         disabled={!mesh}
-        onClick={() => mesh && save(toStl(mesh), "stl")}
+        onClick={(event) =>
+          mesh && save(event.currentTarget, toStl(mesh), "stl")
+        }
         type="button"
       >
         <CookieIcon icing="#2a44ff" icon={Download} roll={-14} size={58} />
@@ -73,7 +84,9 @@ const ExportButtons = () => {
       <Button
         className="primary"
         disabled={!mesh}
-        onClick={() => mesh && save(toThreeMf(mesh, title), "3mf")}
+        onClick={(event) =>
+          mesh && save(event.currentTarget, toThreeMf(mesh, title), "3mf")
+        }
         type="button"
       >
         <CookieIcon icon={Download} roll={12} size={58} />

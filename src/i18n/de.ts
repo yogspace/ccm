@@ -30,12 +30,6 @@ export const de = {
     removeSelection: "Ausgewählte Form entfernen (Entf)",
     insert: "{{name}} einfügen",
   },
-  presets: {
-    star: "Stern",
-    circle: "Kreis",
-    square: "Quadrat",
-    heart: "Herz",
-  },
   preview: {
     empty: "Hier erscheint dein Ausstecher.",
     loading: "Lade Geometrie-Engine …",
@@ -159,13 +153,25 @@ export const de = {
   legal: {
     close: "Schließen",
   },
+  contact: {
+    title: "Kontakt",
+    intro: "Schreib mir – ich antworte per E-Mail.",
+    name: "Name",
+    email: "E-Mail",
+    message: "Nachricht",
+    send: "Senden",
+    sending: "Wird gesendet …",
+    sent: "Danke! Deine Nachricht ist unterwegs.",
+    invalid:
+      "Bitte gib deinen Namen, eine gültige E-Mail-Adresse und eine Nachricht an.",
+    rateLimited: "Zu viele Nachrichten – bitte versuch es später noch einmal.",
+    error: "Das hat nicht geklappt. Bitte versuch es später noch einmal.",
+  },
   footer: {
     imprint: "Impressum & Datenschutz",
     donateTop: "Spendier mir",
     donateMain: "’nen Keks",
     donateLabel: "Mit PayPal einen Keks spendieren",
-    creations_one: "{{formatted}} Kreation erstellt",
-    creations_other: "{{formatted}} Kreationen erstellt",
   },
   errors: {
     engine: "Geometrie-Engine konnte nicht geladen werden.",

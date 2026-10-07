@@ -12,10 +12,13 @@
       "**",
       "!!**/node_modules",
       "!!**/dist",
+      "!!**/.next",
+      "!!**/importMap.js",
+      "!!**/payload-types.ts",
+      "!!**/next-env.d.ts",
       "!!**/pnpm-lock.yaml",
       "!!**/Dockerfile*",
-      "!!**/Caddyfile*",
-      "!!src/presets"
+      "!!**/Caddyfile*"
     ]
   },
   "assist": {
@@ -57,7 +60,11 @@
         "noParameterAssign": "error",
         "useFilenamingConvention": {
           "level": "error",
-          "options": { "filenameCases": ["kebab-case"] }
+          "options": {
+            "filenameCases": [
+              "kebab-case"
+            ]
+          }
         }
       },
       "suspicious": {
@@ -68,7 +75,12 @@
         "noConsole": {
           "level": "warn",
           "options": {
-            "allow": ["assert", "error", "info", "warn"]
+            "allow": [
+              "assert",
+              "error",
+              "info",
+              "warn"
+            ]
           }
         }
       },
@@ -79,7 +91,8 @@
       },
       "performance": {
         "noAccumulatingSpread": "warn",
-        "noDelete": "error"
+        "noDelete": "error",
+        "noImgElement": "off"
       }
     }
   },

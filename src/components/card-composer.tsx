@@ -2,6 +2,7 @@ import { ArrowLeft, ArrowUpRight, Check, Copy, Share2 } from "lucide-react";
 import { type RefObject, useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
+import { trackEvent } from "../analytics";
 import { filamentFor } from "../filaments";
 import { GREETING_LIMITS, type Greeting } from "../greeting";
 import { drawingKey } from "../hash-text";
@@ -203,7 +204,10 @@ const CardComposer = ({ preview, greeting, onChange, onBack }: Props) => {
           {back}
           <Button
             className="primary"
-            onClick={() => setLink(greetingLink(greeting, lang))}
+            onClick={() => {
+              setLink(greetingLink(greeting, lang));
+              trackEvent("card-created");
+            }}
             type="button"
           >
             <CookieIcon icon={Check} roll={-8} size={48} />

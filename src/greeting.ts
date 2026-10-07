@@ -1,5 +1,5 @@
 /**
- * A creation sent as a greeting card: its own page (/card/) with the cutter in
+ * A creation sent as a greeting card: its own page (/de/card) with the cutter in
  * the middle, the message running around it and the files to download. Like
  * every link, everything lives in the hash – the creation as usual, plus who
  * it is for, who it is from and the message. Nothing is stored.
@@ -14,7 +14,7 @@ const KEYS = { to: "to", from: "from", message: "m" } as const;
 
 /**
  * Link to the card for a creation's hash (`#n=…&s=…`) – in the sender's
- * language, which the message is written in too: `/de/card/#…`.
+ * language, which the message is written in too: `/de/card#…`.
  */
 export const greetingUrl = (
   creationHash: string,
@@ -26,7 +26,7 @@ export const greetingUrl = (
     const value = greeting[field].trim();
     if (value) query.set(KEYS[field], value);
   }
-  return `${window.location.origin}/${lang}/card/#${query}`;
+  return `${window.location.origin}/${lang}/card#${query}`;
 };
 
 export const readGreeting = (hash: string): Greeting => {

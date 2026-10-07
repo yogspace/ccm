@@ -30,12 +30,6 @@ export const en: typeof de = {
     removeSelection: "Remove the selected shape (Del)",
     insert: "Insert {{name}}",
   },
-  presets: {
-    star: "Star",
-    circle: "Circle",
-    square: "Square",
-    heart: "Heart",
-  },
   preview: {
     empty: "Your cookie cutter will appear here.",
     loading: "Loading geometry engine …",
@@ -157,13 +151,24 @@ export const en: typeof de = {
   legal: {
     close: "Close",
   },
+  contact: {
+    title: "Contact",
+    intro: "Write to me – I'll answer by email.",
+    name: "Name",
+    email: "Email",
+    message: "Message",
+    send: "Send",
+    sending: "Sending …",
+    sent: "Thanks! Your message is on its way.",
+    invalid: "Please enter your name, a valid email address and a message.",
+    rateLimited: "Too many messages – please try again later.",
+    error: "That didn't work. Please try again later.",
+  },
   footer: {
     imprint: "Imprint & privacy",
     donateTop: "Buy me",
     donateMain: "a cookie",
     donateLabel: "Buy me a cookie via PayPal",
-    creations_one: "{{formatted}} creation made",
-    creations_other: "{{formatted}} creations made",
   },
   errors: {
     engine: "The geometry engine could not be loaded.",

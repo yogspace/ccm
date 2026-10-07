@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { trackEvent } from "../analytics";
 import Button from "../components/button";
 import { paintCardPicture } from "../components/card-image";
 import CookieIcon from "../components/cookie-icon";
@@ -21,7 +22,6 @@ import { readGreeting } from "../greeting";
 import { drawingKey } from "../hash-text";
 import { PORTFOLIO_URL } from "../links";
 import { renderMeshTop } from "../render-top";
-import { countCreation } from "../stats";
 import { formatLength, initialUnit } from "../units";
 import { isEmptyDrawing, readHash } from "../url-state";
 import CardCutter from "./card-cutter";
@@ -143,6 +143,7 @@ const CardPage = () => {
 
   const sharePicture = () => {
     if (!picture) return;
+    trackEvent("card-picture");
     if (!canSharePicture) {
       download(picture, picture.name);
       return;
@@ -210,7 +211,7 @@ const CardPage = () => {
     if (!mesh) return;
     const file = `${fileBase(name, shared.params.size)}.${format}`;
     download(format === "3mf" ? toThreeMf(mesh, name) : toStl(mesh), file);
-    countCreation(hash);
+    trackEvent(format === "3mf" ? "card-download-3mf" : "card-download-stl");
   };
 
   return (
@@ -252,7 +253,10 @@ const CardPage = () => {
               className="greeting-flip"
               data-flipped={flipped || undefined}
               disabled={!cookie}
-              onClick={() => setTurns((count) => count + 1)}
+              onClick={() => {
+                setTurns((count) => count + 1);
+                if (turns === 0) trackEvent("card-turned");
+              }}
               type="button"
             >
               <span className="greeting-paper greeting-front">
@@ -385,7 +389,7 @@ const CardPage = () => {
           </>
         )}
 
-        <a className="greeting-cta" href={`/${lang}/`}>
+        <a className="greeting-cta" href={`/${lang}`}>
           {t("card.makeOwn")}
           <CookieIcon
             icing="#ff5fa8"

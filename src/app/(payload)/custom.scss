@@ -1,0 +1,63 @@
+// The admin in the app's colours (src/index.css): a warm cream ground
+// instead of grey, ink text, the app's blue as the accent – and Pally.
+// One ramp each, from the app's tokens; Payload turns the steps around in
+// dark mode, so the ground becomes ink and the blue stays the blue.
+
+@font-face {
+  font-family: "Pally";
+  src: url("/fonts/Pally-Variable.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-body: "Pally", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --color-base-0: rgb(255, 253, 248);
+  --color-base-50: rgb(248, 242, 230);
+  --color-base-100: rgb(242, 232, 213);
+  --color-base-150: rgb(233, 223, 203);
+  --color-base-200: rgb(219, 210, 196);
+  --color-base-250: rgb(206, 198, 188);
+  --color-base-300: rgb(192, 185, 181);
+  --color-base-350: rgb(179, 173, 174);
+  --color-base-400: rgb(165, 160, 167);
+  --color-base-450: rgb(152, 148, 159);
+  --color-base-500: rgb(138, 135, 152);
+  --color-base-550: rgb(126, 123, 142);
+  --color-base-600: rgb(113, 111, 132);
+  --color-base-650: rgb(100, 99, 122);
+  --color-base-700: rgb(88, 87, 112);
+  --color-base-750: rgb(76, 76, 102);
+  --color-base-800: rgb(63, 64, 91);
+  --color-base-850: rgb(50, 52, 81);
+  --color-base-900: rgb(38, 40, 71);
+  --color-base-950: rgb(26, 28, 61);
+  --color-base-1000: rgb(13, 16, 51);
+  --color-success-50: rgb(236, 238, 255);
+  --color-success-100: rgb(227, 231, 255);
+  --color-success-150: rgb(204, 211, 255);
+  --color-success-200: rgb(181, 190, 255);
+  --color-success-250: rgb(158, 170, 255);
+  --color-success-300: rgb(134, 150, 255);
+  --color-success-350: rgb(111, 129, 255);
+  --color-success-400: rgb(88, 109, 255);
+  --color-success-450: rgb(65, 88, 255);
+  --color-success-500: rgb(42, 68, 255);
+  --color-success-550: rgb(38, 61, 235);
+  --color-success-600: rgb(35, 55, 215);
+  --color-success-650: rgb(31, 48, 194);
+  --color-success-700: rgb(27, 41, 174);
+  --color-success-750: rgb(24, 35, 154);
+  --color-success-800: rgb(20, 28, 134);
+  --color-success-850: rgb(17, 24, 115);
+  --color-success-900: rgb(14, 20, 96);
+  --color-success-950: rgb(10, 15, 77);
+}
+
+// Quiet admin buttons in custom fields: a tinted ground, no border.
+.btn.field-btn {
+  --btn-border: none;
+  --hover-btn-border: none;
+  border: none;
+}

@@ -2,15 +2,10 @@ import { Check, Copy, Download, Gift, Share2, X } from "lucide-react";
 import { type RefObject, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
+import { trackEvent } from "../analytics";
 import { download } from "../export/download";
 import type { Greeting } from "../greeting";
-import {
-  creationUrl,
-  dialogClosed,
-  dialogOpened,
-  store,
-  trackCreation,
-} from "../store";
+import { creationUrl, dialogClosed, dialogOpened, store } from "../store";
 import Button from "./button";
 import CardComposer from "./card-composer";
 import CookieIcon from "./cookie-icon";
@@ -125,12 +120,12 @@ const ShareCreation = ({ preview }: Props) => {
     setSheetOpen(true);
     dialogRef.current?.showModal();
     dialogOpened();
-    // Sharing counts the creation.
-    trackCreation();
+    trackEvent("share-open");
   };
 
   const copy = async () => {
     if (!shared) return;
+    trackEvent("share-link");
     try {
       await navigator.clipboard.writeText(shared.url);
       setCopied(true);
@@ -141,6 +136,7 @@ const ShareCreation = ({ preview }: Props) => {
 
   const shareImage = () => {
     if (!shared?.file) return;
+    trackEvent("share-image");
     // The link on its own line, so it does not stick to the text.
     const text = `${t("share.text")}\n${shared.url}`;
     // Some apps (e.g. Signal) take only the image and drop the text – so it is
@@ -256,9 +252,11 @@ const ShareCreation = ({ preview }: Props) => {
               <div className="share-more">
                 <Button
                   disabled={!shared?.file}
-                  onClick={() =>
-                    shared?.file && download(shared.file, shared.file.name)
-                  }
+                  onClick={() => {
+                    if (!shared?.file) return;
+                    download(shared.file, shared.file.name);
+                    trackEvent("save-image");
+                  }}
                   type="button"
                 >
                   <CookieIcon

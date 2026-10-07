@@ -1750,6 +1750,8 @@ button.hints-toggle {
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* Room to breathe between the editor above, the fan and the footer. */
+  padding-block: clamp(2rem, 6vw, 4.5rem) clamp(1.5rem, 5vw, 3.5rem);
 }
 
 .card.share-box {
@@ -1858,12 +1860,6 @@ footer {
 .donate-text small {
   font-size: var(--fs-tiny);
   font-weight: 500;
-}
-
-footer .creations {
-  font-weight: 700;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
 }
 
 footer .footer-links,
@@ -2414,7 +2410,7 @@ button.composer-back {
 }
 
 /* Closed: the jar on the right. */
-.cookie-dock:has(> .cookie-bar[hidden]) {
+.cookie-dock[data-closed] {
   justify-content: flex-end;
 }
 
@@ -2440,10 +2436,6 @@ button.composer-back {
     0 1.6rem 3rem -1rem rgb(4 8 60 / 0.5);
 }
 
-.cookie-bar[hidden] {
-  display: none;
-}
-
 .cookie-bar-text {
   display: grid;
   gap: 0.1rem;
@@ -2458,7 +2450,14 @@ button.composer-back {
   color: var(--text);
 }
 
+/* A new line (a fresh cookie, the count) slides in. */
+.cookie-bar-line {
+  animation: rise 0.35s var(--ease) both;
+}
+
 .cookie-bar-list {
+  /* Leaving cookies are taken out of the flow here (popLayout). */
+  position: relative;
   display: flex;
   gap: 0.2rem;
   margin: 0;
@@ -2476,25 +2475,11 @@ button.composer-back {
   );
 }
 
+/* Coming, going and making room is animated in cookie-bar.tsx (motion). */
 .cookie-bar-item {
   position: relative;
   flex: none;
   scroll-snap-align: start;
-  transition:
-    scale 0.35s var(--ease),
-    rotate 0.35s var(--ease),
-    opacity 0.35s var(--ease);
-}
-
-/* A new cookie pops in; an eaten one vanishes with a twist. */
-.cookie-bar-item[data-fresh] {
-  animation: cookie-pop 0.7s var(--ease-spring) 0.25s both;
-}
-
-.cookie-bar-item[data-eating] {
-  opacity: 0;
-  scale: 0.2;
-  rotate: -50deg;
 }
 
 button.cookie-bar-cookie {
@@ -2573,16 +2558,6 @@ button.cookie-jar {
   margin: 0;
 }
 
-button.cookie-jar[hidden] {
-  display: none;
-}
-
-@starting-style {
-  button.cookie-jar {
-    scale: 0;
-  }
-}
-
 .cookie-jar-count {
   position: absolute;
   top: -0.35rem;
@@ -2609,6 +2584,101 @@ button.cookie-jar[hidden] {
     grid-row: 2;
     margin: 0 -0.5rem;
   }
+}
+
+/* The cookie on its way into the bar, above everything (cookie-fx.tsx). */
+.cookie-flight {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 200;
+  pointer-events: none;
+  will-change: transform;
+  filter: drop-shadow(0 0.8rem 1rem rgb(4 8 60 / 0.35));
+}
+
+.cookie.cookie-flight-icon {
+  margin: 0;
+}
+
+/* Crumbs bursting where a cookie lands or is eaten. */
+.crumbs {
+  position: fixed;
+  z-index: 201;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.crumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 40%;
+  animation: crumb 0.6s cubic-bezier(0.2, 0.7, 0.4, 1) both;
+}
+
+@keyframes crumb {
+  from {
+    opacity: 1;
+    translate: -50% -50%;
+    rotate: 0deg;
+  }
+  70% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    /* Out, then a little down – they fall. */
+    translate: calc(var(--dx) - 50%) calc(var(--dy) + 14px - 50%);
+    rotate: 160deg;
+  }
+}
+
+/* ---------- Contact form (imprint) ---------- */
+
+/* The fields look like the card composer's (.composer-field). */
+.contact-form {
+  display: grid;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.contact-names {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0 0.75rem;
+}
+
+/* The honeypot: out of sight and reach, but not display:none (bots skip that). */
+.contact-trap {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.contact-send {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-top: 0.9rem;
+}
+
+.contact-sent,
+.contact-problem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+
+.contact-problem {
+  color: var(--neon);
 }
 
 /* ---------- Animations ---------- */
@@ -2652,13 +2722,6 @@ button.cookie-jar[hidden] {
     opacity: 0;
     transform: translate(-50%, -50%) rotate(var(--angle)) translateX(5rem)
       rotate(160deg);
-  }
-}
-
-@keyframes cookie-pop {
-  from {
-    opacity: 0;
-    scale: 0.3;
   }
 }
 

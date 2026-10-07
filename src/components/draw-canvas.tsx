@@ -13,6 +13,8 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
+import { trackEvent } from "../analytics";
+import { useAssets } from "../assets";
 import {
   applyEraser,
   applyTransform,
@@ -34,11 +36,9 @@ import {
 } from "../drawing";
 import { loadSilhouette, type Point, traceOutline } from "../geometry/outline";
 import {
-  fallbackName,
   loadPreset,
   type Preset,
   type PresetShape,
-  presets,
 } from "../presets";
 import {
   drawingChanged,
@@ -172,14 +172,11 @@ const clampScale = (box: Box, scale: number) => {
  * Gestures, selection and undo stay local here.
  */
 const DrawCanvas = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { tool, brush, unit, cutter } = useSnapshot(store);
   const { outline } = cutter;
   const mmPerCanvas = useMmPerCanvas();
-  const presetNames = t("presets", { returnObjects: true }) as Record<
-    string,
-    string
-  >;
+  const { presets } = useAssets();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const areaRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -358,6 +355,7 @@ const DrawCanvas = () => {
       };
       select(null);
       commit();
+      trackEvent("svg-import");
     } catch (error) {
       importFailed(error);
     }
@@ -390,6 +388,7 @@ const DrawCanvas = () => {
       store.tool = "move";
       // Only the template – it merges only once you let go and select again.
       select({ strokes: strokes.map((_, i) => first + i), rings: [] });
+      trackEvent("template");
     } catch (error) {
       importFailed(error);
     }
@@ -472,7 +471,7 @@ const DrawCanvas = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [presets]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -901,7 +900,7 @@ const DrawCanvas = () => {
   const frame = gestureFrame ?? (box ? frameOf(box) : null);
 
   const presetName = (preset: Preset) =>
-    presetNames[preset.id] ?? fallbackName(preset.id);
+    preset.name[i18n.resolvedLanguage === "de" ? "de" : "en"];
 
   return (
     <div className="draw-area" ref={areaRef}>

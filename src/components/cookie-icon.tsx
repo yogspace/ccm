@@ -23,6 +23,8 @@ type Props = {
   roll?: number;
   /** Delay (ms) before the cookie grows in. */
   delay?: number;
+  /** There at full size right away, without growing in. */
+  grown?: boolean;
   /** Backward tilt (rad); default: kinds tilt more than icons. */
   tilt?: number;
   /** Off: no looking at the mouse, no turn on hover – e.g. when text lies on it. */
@@ -49,6 +51,7 @@ const CookieIcon = ({
   idle = true,
   roll = 0,
   delay = 0,
+  grown = false,
   tilt,
   interactive = true,
   onGrow,
@@ -96,6 +99,7 @@ const CookieIcon = ({
         idle,
         follow: interactive,
         delay: delayRef.current,
+        grown,
         spin: spinRef.current.spin,
         spinSpeed: spinRef.current.spinSpeed / 1000,
         onGrow: (scale) => onGrowRef.current?.(scale),
@@ -117,7 +121,7 @@ const CookieIcon = ({
       handle.current = null;
       if (baked) disposeCookie(baked);
     };
-  }, [kind, iconName, icing, shape, idle, tilt, interactive]);
+  }, [kind, iconName, icing, shape, idle, tilt, interactive, grown]);
 
   useEffect(() => {
     handle.current?.setRoll((roll * Math.PI) / 180);

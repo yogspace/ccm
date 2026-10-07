@@ -4,43 +4,70 @@ services:
   ccm:
     image: ghcr.io/yogspace/ccm:latest
     restart: unless-stopped
-    # Protects the other apps on the server (portfolio among others).
-    mem_limit: 128m
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: mongodb://mongo:27017/ccm
+      MEDIA_DIR: /data/media
+    # Secrets and mail settings (see .env.example) – /opt/apps/ccm/.env.
+    # Without it the deploy stops here and the running version stays.
+    env_file:
+      - .env
+    # Uploads (gallery pictures, template SVGs) outlive the deploys here;
+    # `pnpm payload:media:sync` fetches them.
+    volumes:
+      - media:/data/media
+    depends_on:
+      mongo:
+        condition: service_healthy
+    # Next + Payload take ~200 MB; room for spikes, and the other apps on the
+    # server (portfolio among others) stay safe.
+    mem_limit: 512m
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
     networks:
+      - internal
       - web
 
-  # Mini API (the “x creations made” counter). Runs straight from the checkout
-  # (/opt/apps/ccm/api), so no image of its own; the number lives in the volume.
-  # ccm forwards /api/* here (see Caddyfile).
-  ccm-api:
-    image: node:22-alpine
+  # Statistics and interface texts (Payload). Only in the internal network –
+  # not reachable from outside; `pnpm payload:db:sync` goes over SSH.
+  mongo:
+    # Pinned like the portfolio's: Linux ≥ 6.19 (the host runs 7.0) turns on
+    # CET shadow stacks, and MongoDB 8.x coroutines swap the stack pointer by
+    # hand → SIGSEGV crash loop (MongoDB SERVER-121912). Workaround: shadow
+    # stacks off for mongod (GLIBC_TUNABLES). Do NOT switch to `mongo:8.0` –
+    # that refuses to start on ≥ 6.19. Unpin once MongoDB ships a fix.
+    image: mongo:8.2.9
     restart: unless-stopped
-    command: ["node", "/app/api/server.mjs"]
+    # A small cache: the database holds a few thousand small rows.
+    command: ["mongod", "--wiredTigerCacheSizeGB", "0.25"]
     environment:
-      DATA_DIR: /data
+      GLIBC_TUNABLES: "glibc.cpu.hwcaps=-SHSTK"
     volumes:
-      - ./api:/app/api:ro
-      - ccm-data:/data
-    # Node alone takes ~50 MB at start – room for spikes, still tiny next to
-    # the server's 8 GB.
-    mem_limit: 128m
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 512m
+    # Logs on, rotated – a silent crash loop must stay visible.
     logging:
       driver: json-file
       options:
-        max-size: "5m"
-        max-file: "2"
+        max-size: "10m"
+        max-file: "3"
     networks:
-      - web
+      - internal
 
 volumes:
-  ccm-data:
+  mongo_data:
+  media:
 
 networks:
+  internal:
   # Shared network of the proxy stack (/opt/apps/proxy), created externally.
   web:
     external: true

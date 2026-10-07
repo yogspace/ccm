@@ -146,7 +146,7 @@ Reine Geometrie-Funktionen (`outline.ts` ohne Canvas-Teil, `cutter.ts`, Exporte)
 
 - Deploy, Server, Proxy und Domains: Server-Handbuch im Repo `yogspace/proxy`.
 - Container-Limit `mem_limit: 128m` gilt nur für den Static-Server; die Geometrie läuft im Browser des Nutzers.
-- Wird später doch ein Backend nötig (z. B. Designs teilen), gehört es in diesen Stack (`/api` im selben Repo), nicht in eine allgemeine `api.mxwr.de`.
+- Wird später doch ein Backend nötig (z. B. Designs teilen), gehört es in diesen Stack (`/api` im selben Repo), nicht in eine allgemeine `api.mxwr.de`. Genau das ist jetzt geplant: siehe „Umbau auf Next.js + Payload“.
 
 ## Reihenfolge
 
@@ -157,9 +157,99 @@ Reine Geometrie-Funktionen (`outline.ts` ohne Canvas-Teil, `cutter.ts`, Exporte)
 5. SVG-Upload.
 6. Feinschliff: Druckhinweise, Mobil, Dark Mode, README.
 
+## Umbau auf Next.js + Payload (Plan, Stand 2026-10-07)
+
+### Warum
+
+- **Die Roadmap braucht ein Backend:** Kurzlinks, API mit Tokens, „Drucken lassen“ (Datei ablegen), später Shop, Galerie, vielleicht Accounts.
+- **Echte Link-Vorschauen:** Heute steckt alles im Hash, und der erreicht den Server nie. Deshalb kann eine Vorschau in WhatsApp oder iMessage nichts Persönliches zeigen. Mit Kurzlinks bekommt jede Karte und jede Kreation ihren eigenen Titel und ihr eigenes Vorschaubild („Eine Karte für Carla“ mit dem Ausstecher).
+- **Anonyme Statistik:** gibt es seit 2026-10-07 schon ohne Umbau (`api/analytics.mjs`, `pnpm stats`): ohne Cookies, ohne IP, nur Tagessummen. Der Zähler im Footer ist dafür entfallen. Beim Umbau zieht sie nach Payload um.
+- **Derselbe Stack wie das Portfolio** (Next 16, Payload 3.89): ein Werkzeugkasten. Bewährte Teile lassen sich übernehmen: `PageViews` mit `/next/track`, `ShortLinks`, Cron-Digest, Dockerfile mit Next standalone.
+
+### Was bleibt
+
+- **Der Editor bleibt clientseitig:** Malfläche, Geometrie im Worker (manifold-WASM), 3D-Vorschau, Kekse. Er zieht als Client-Komponente (`"use client"`) fast unverändert um. Server-Rendering macht ihn nicht schneller und soll es auch nicht.
+- **Unverändert:** `src/geometry/`, `store.ts`, `url-state.ts`, `drawing.ts`, die Komponenten und die Tests (Vitest).
+- **Hash-Links bleiben gültig:** Alte Links öffnen wie bisher, und Teilen funktioniert weiterhin auch ohne Server.
+- **Server-Seite unverändert:** Domain, Proxy-Block (`ccm:3000`), Netz `web`, Pipeline-Muster.
+
+### Zielbild
+
+- **Routen (App Router):**
+  - `/[locale]`: Editor, de/en
+  - `/[locale]/card`: Grußkarte, Hash wie heute
+  - `/k/[code]`: Kurzlink. Der Server rendert Titel und Vorschaubild und zeigt dann Karte bzw. Editor mit den gespeicherten Daten.
+  - `/admin`: Payload
+  - `/api/…`: Payload-REST und eigene Routen (Statistik, später `/api/v1/cutters`)
+  - `/`: Weiterleitung nach Browsersprache per Next-Proxy statt Caddy
+- **Payload-Collections:**
+  - `users`: nur Admin, später API-Keys für Partner
+  - `short-links`: Code, gespeicherter Hash, Typ (Kreation oder Karte), Vorschaubild, Aufrufe, Datum. Keine Personendaten außer dem, was jemand selbst in die Karte schreibt.
+  - `media`: die Vorschaubilder der Kurzlinks
+  - `page-views` bzw. Tagessummen wie heute in `analytics.json` (ersetzt `api/analytics.mjs`)
+  - später `api-tokens` (gehasht, mit Kontingent) und `orders` (Shop)
+- **Datenbank:** SQLite (`@payloadcms/db-sqlite`) im Volume `ccm-data`. Laut Server-Handbuch lieber das als eine zweite Mongo, und es braucht kaum RAM. Die Mongo des Portfolios wird nie mitbenutzt. Wechsel auf Postgres später möglich (Payload abstrahiert die Datenbank), falls Shop oder Last es verlangen.
+- **Betrieb:**
+  - Dockerfile wie im Portfolio (Next standalone).
+  - Compose mit nur einem Dienst `ccm` und den Volumes `ccm-data` (SQLite, Uploads) und `next_cache`.
+  - `ccm-api` und das Caddyfile im Container entfallen, Next liefert alles selbst aus.
+  - `mem_limit` etwa 512m (Portfolio-App heute ~225 MB).
+
+### Phasen
+
+**Phase 0 – Probelauf (Machbarkeit)**
+- Gerüst Next 16 + Payload 3.89 auf einem Branch, die Editor-Seite als Client-Komponente.
+- **Zu prüfen, Hauptrisiko zuerst:**
+  - Geometrie-Worker (`new Worker(new URL(…, import.meta.url), { type: "module" })`) und manifold-WASM im Next-Build (Turbopack und webpack)
+  - three.js, Pally-Font-Script
+  - Docker-Image: Bau, Größe, Start
+- **Ergebnis:** Go oder No-Go. Plan B: Die Vite-App bleibt, Payload läuft als kleiner eigener Next-Dienst daneben (nur Backend), und die Kurzlink-Route rendert dort.
+
+**Phase 1 – Gleichstand (Umzug ohne neue Funktionen)**
+- `/de` und `/en`, Spracherkennung, SEO-Texte und Vorschaubild über `generateMetadata` (ersetzt das Vite-Plugin `localizedPages`), `sitemap` und `robots`.
+- Kartenseite, Keksleiste, Teilen-Dialog, Statistik über Payload (ersetzt `api/server.mjs` und den Dienst `ccm-api`).
+- Testfälle speichern (Alt+Shift+F) als Route, die es nur in der Entwicklung gibt.
+- Pipeline: verify (Biome, TypeScript, Vitest), dann build (Image), dann deploy. Compose ohne `ccm-api`. Tagessummen aus `analytics.json` übernehmen.
+- **Abnahme:**
+  - alle bisherigen Links öffnen gleich
+  - Tests grün
+  - Ladezeit nicht schlechter
+  - RAM unter 400 MB
+
+**Phase 2 – Kurzlinks und Vorschauen**
+- „Link kopieren“ und „Karte erstellen“ erzeugen einen Kurzlink: Der Browser schickt den Hash und das Bild, das er ohnehin schon malt (Teilen-Bild bzw. Kartenbild). Der Server legt beides ab und gibt `ccm.mxwr.de/k/abc12` zurück.
+- `/k/[code]` liefert Titel und Vorschaubild für Messenger und zeigt dann die Seite.
+- **Datenschutz:** Kurzlinks speichern Zeichnung, Namen und Nachricht auf dem Server.
+  - Text anpassen
+  - Löschfrist, z. B. ein Jahr ohne Aufruf
+  - Missbrauch begrenzen: Rate-Limit pro IP, ohne die IP zu speichern
+- Wochen-Digest der Statistik per Mail (Resend), wie im Portfolio.
+
+**Phase 3 – API und Druckdienst**
+- API-Tokens (gehasht, mit Kontingent) und `POST /api/v1/cutters`: SVG rein, 3MF oder STL raus. manifold läuft in Node, das Rastern übernimmt `@napi-rs/canvas` wie im Portfolio.
+- „Drucken lassen“: STL kurz ablegen, Konfiguration bei Craftcloud anlegen, weiterleiten (siehe Roadmap).
+
+**Phase 4 – Shop (noch offen)**
+- Selbst verkaufen oder nur über Partner drucken lassen?
+- Zahlung (Stripe), Widerruf, AGB, Impressum und Datenschutz anpassen.
+
+### Risiken
+
+- **Worker und WASM im Next-Bundler:** Das ist das Hauptrisiko, deshalb steht der Probelauf zuerst.
+- **Ressourcen:** Mit Payload-Admin und Next werden Image, Build-Zeit und RAM größer. Nach dem Upgrade auf CX33 ist das unkritisch.
+- **Datenschutz-Versprechen:** Bisher galt „nichts auf dem Server“. Mit Kurzlinks stimmt das nicht mehr ganz, Datenschutztext und README müssen es ehrlich sagen.
+- **Backups:** SQLite liegt im Volume. Die Hetzner-Backups decken es ab, dazu gelegentlich ein Export auf den Mac wie beim Portfolio.
+
+### Offene Entscheidungen
+
+1. **Datenbank:** SQLite (Empfehlung) oder Mongo wie im Portfolio?
+2. **Kurzlinks:** immer oder nur auf Wunsch? Empfehlung: Karten immer kurz (wegen der Vorschau), Kreationen wahlweise. Hash-Links bleiben gültig.
+3. **Accounts:** Bleibt es beim Admin-Login für dich, oder sollen später auch Nutzer Konten haben, etwa für eine Galerie?
+4. **Code mit dem Portfolio teilen?** Empfehlung: Nein, die Muster kopieren statt gemeinsamer Pakete. Zwei Apps bleiben unabhängig deploybar.
+
 ## Roadmap
 
-- **API: SVG rein, Ausstecher raus.** Eine Route (z. B. `POST /api/cutters`) nimmt ein SVG und optional dieselben Parameter wie die App entgegen und liefert den fertigen Ausstecher als 3MF oder STL zurück.
+- **API: SVG rein, Ausstecher raus.** Baut auf dem Umbau auf Next.js + Payload auf (Phase 3). Eine Route (z. B. `POST /api/cutters`) nimmt ein SVG und optional dieselben Parameter wie die App entgegen und liefert den fertigen Ausstecher als 3MF oder STL zurück.
   - Zugang per API-Token (`Authorization: Bearer …`). Tokens nur gehasht speichern, pro Token Rate-Limit bzw. Kontingent.
   - Datenbank für Tokens und Nutzung (wer, wann, wie viel).
   - Geometrie serverseitig mit derselben Pipeline (`outline.ts` → `cutter.ts` → `export/`). manifold-3d läuft auch in Node; nur das Rastern des SVG braucht dort einen Canvas-Ersatz (z. B. resvg).
