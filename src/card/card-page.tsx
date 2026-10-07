@@ -1,4 +1,10 @@
-import { ArrowUpRight, Download, RotateCw, Share2 } from "lucide-react";
+import {
+  ArrowUpRight,
+  Download,
+  ImageDown,
+  RotateCw,
+  Share2,
+} from "lucide-react";
 import {
   type CSSProperties,
   useEffect,
@@ -12,6 +18,7 @@ import Button from "../components/button";
 import { paintCardPicture } from "../components/card-image";
 import CookieIcon from "../components/cookie-icon";
 import RingText from "../components/ring-text";
+import SiteFooter from "../components/site-footer";
 import { cookieSeed } from "../cookie-jar";
 import { download } from "../export/download";
 import { fileBase } from "../export/file-name";
@@ -21,7 +28,6 @@ import { filamentFor } from "../filaments";
 import { readGreeting } from "../greeting";
 import { drawingKey } from "../hash-text";
 import { renderMeshTop } from "../render-top";
-import { useSiteLinks } from "../site-context";
 import { formatLength, initialUnit } from "../units";
 import { isEmptyDrawing, readHash } from "../url-state";
 import CardCookies from "./card-cookies";
@@ -51,13 +57,13 @@ const still = () =>
 
 /**
  * The greeting card's page: who it is for, the card with the cutter in the
- * middle and the message running around it, who it is from – and the files
- * to print it. One screen, no scrolling. A click turns the card over: on its
+ * middle and the message running around it, who it is from – then the files
+ * to print it, the way to make your own and the footer. One screen, no
+ * scrolling. A click turns the card over: on its
  * back lies the cookie the cutter bakes.
  */
 const CardPage = () => {
   const { t, i18n } = useTranslation();
-  const links = useSiteLinks();
   const [cutter, setCutter] =
     useState<Awaited<ReturnType<typeof loadCutter>>>(null);
   const [failed, setFailed] = useState(!hasShape);
@@ -140,7 +146,7 @@ const CardPage = () => {
     };
   }, [mesh, t]);
 
-  // Always “Share” – where files can't be shared, the picture downloads.
+  // Always there – where files can't be shared, the picture downloads.
   const sharePicture = () => {
     if (!picture) return;
     trackEvent("card-picture");
@@ -153,6 +159,12 @@ const CardPage = () => {
         console.error(error);
       }
     });
+  };
+
+  const savePicture = () => {
+    if (!picture) return;
+    trackEvent("card-picture");
+    download(picture, picture.name);
   };
 
   useEffect(() => {
@@ -323,10 +335,11 @@ const CardPage = () => {
         </p>
       )}
 
-      {/* Below the card, set apart: what to do with it. */}
-      <div className="greeting-dock">
-        {failed && hasShape && (
-          <div className="greeting-actions">
+      {/* Below the card, without a box – it is about the card: the files
+          and the picture in a row, then the way to make your own. */}
+      {(!failed || hasShape) && (
+        <div className="greeting-actions">
+          {failed ? (
             <Button
               className="primary"
               onClick={() => setAttempt((count) => count + 1)}
@@ -341,15 +354,13 @@ const CardPage = () => {
               />
               {t("card.retry")}
             </Button>
-          </div>
-        )}
-        {!failed && (
-          <>
-            <div className="greeting-actions">
+          ) : (
+            <>
               <Button
                 className="primary"
                 disabled={!mesh}
                 onClick={() => save("3mf")}
+                title={t("card.printHint")}
                 type="button"
               >
                 <CookieIcon
@@ -364,6 +375,7 @@ const CardPage = () => {
               <Button
                 disabled={!mesh}
                 onClick={() => save("stl")}
+                title={t("card.printHint")}
                 type="button"
               >
                 <CookieIcon icon={Download} idle={false} roll={-14} size={58} />
@@ -382,31 +394,38 @@ const CardPage = () => {
                   roll={10}
                   size={58}
                 />
-                {t("card.sharePicture")}
+                {t("card.pictureShare")}
               </Button>
-            </div>
-            <p className="greeting-hint">{t("card.printHint")}</p>
-          </>
-        )}
-
-        <a className="greeting-cta" href={`/${lang}`}>
-          {t("card.makeOwn")}
-          <CookieIcon
-            icing="#ff5fa8"
-            icon={ArrowUpRight}
-            idle={false}
-            size={40}
-          />
-        </a>
-      </div>
-      <a
-        className="greeting-credit"
-        href={links.website}
-        rel="noopener"
-        target="_blank"
-      >
-        made by Max Weber
+              <Button
+                disabled={!picture}
+                onClick={savePicture}
+                title={t("card.pictureHint")}
+                type="button"
+              >
+                <CookieIcon
+                  icing="#ffc31f"
+                  icon={ImageDown}
+                  idle={false}
+                  roll={-8}
+                  size={58}
+                />
+                {t("card.pictureSave")}
+              </Button>
+            </>
+          )}
+        </div>
+      )}
+      <a className="greeting-cta" href={`/${lang}`}>
+        {t("card.makeOwn")}
+        <CookieIcon
+          icing="#ff5fa8"
+          icon={ArrowUpRight}
+          idle={false}
+          size={40}
+        />
       </a>
+
+      <SiteFooter />
     </main>
   );
 };

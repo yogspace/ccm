@@ -16,7 +16,7 @@ import {
   Star,
   Zap,
 } from "lucide-react";
-import { memo, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import type { CookieKind } from "../cookies/models";
 import CookieIcon from "./cookie-icon";
 
@@ -67,7 +67,6 @@ const place = (count: number): Placed[] => {
     const left = placed.length % 2 === 0;
     const spot = {
       x: left ? Math.random() * 12 : 88 + Math.random() * 12,
-      // Below the header, so no cookie lies behind the title.
       y: 20 + Math.random() * 78,
       size: 90 + Math.random() * 70,
       roll: Math.random() * 40 - 20,
@@ -86,17 +85,42 @@ const place = (count: number): Placed[] => {
   return placed;
 };
 
-/** On start, cookies grow in one after another at random spots in the background. */
+/**
+ * On start, cookies grow in one after another at random spots in the
+ * background. They scroll with the page, down to just above the footer –
+ * none lies on it.
+ */
 const CookieBackground = () => {
   const [cookies] = useState(() => place(window.innerWidth < 640 ? 5 : 8));
+  const layerRef = useRef<HTMLDivElement>(null);
+
+  // As tall as the page above the footer – again whenever the page changes.
+  useEffect(() => {
+    const layer = layerRef.current;
+    const app = layer?.parentElement;
+    const footer = app?.querySelector(":scope > footer");
+    if (!(layer && app && footer)) return;
+    const fit = () => {
+      const top = footer.getBoundingClientRect().top + window.scrollY;
+      layer.style.height = `${Math.max(0, top - 16)}px`;
+    };
+    const observer = new ResizeObserver(fit);
+    observer.observe(app);
+    observer.observe(footer);
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <div aria-hidden className="cookie-background">
+    <div aria-hidden className="cookie-background" ref={layerRef}>
       {cookies.map((cookie, i) => (
         <div
           className="cookie-spot"
           key={i}
-          style={{ left: `${cookie.x}%`, top: `${cookie.y}%` }}
+          style={{
+            left: `${cookie.x}%`,
+            // Below the header, and wholly above the footer.
+            top: `clamp(9rem, ${cookie.y}%, 100% - ${cookie.size / 2}px)`,
+          }}
         >
           {/* Grow in one after another (the renderer animates that in 3D). */}
           {"kind" in cookie ? (

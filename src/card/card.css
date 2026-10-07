@@ -1,8 +1,8 @@
 /* ---------- Greeting card page (/de/card, /en/card) ----------
    One screen without scrolling: who it is for, the card with the cutter and
    the message running around it, who it is from, the files, the way to the
-   maker. Sizes follow the screen's height, the card's insides follow the
-   card (container units). */
+   maker, the footer. Sizes follow the screen's height, the card's insides
+   follow the card (container units). */
 
 /* Nothing scrolls – so no room is kept for a scrollbar either. */
 html:has(.greeting) {
@@ -16,12 +16,12 @@ html:has(.greeting) {
   --sheet: #fffdf8;
   position: relative;
   display: grid;
-  /* The stage takes what is left, but never more than the width allows –
-     any room beyond that goes above and below, not between the lines. */
-  grid-template-rows: auto minmax(0, min(100vw - 2rem, 38rem));
-  /* Then who it is from (if anyone) and the dock – rows as they come. */
-  grid-auto-rows: auto;
-  align-content: center;
+  /* Room above and below the content (1fr), the footer at the bottom. The
+     stage takes what is left, but never more than the width allows – any
+     room beyond that goes above and below, not between the lines. */
+  grid-template-rows:
+    1fr auto minmax(0, min(100vw - 2rem, 38rem)) auto auto auto
+    1fr auto;
   justify-items: center;
   align-items: center;
   row-gap: clamp(0.3rem, 1.5dvh, 0.9rem);
@@ -31,6 +31,54 @@ html:has(.greeting) {
   overflow: hidden;
   text-align: center;
   isolation: isolate;
+}
+
+/* Who it is from and the buttons may be missing – their rows stay empty. */
+.greeting-to {
+  grid-row: 2;
+}
+
+.greeting-slot {
+  grid-row: 3;
+}
+
+.greeting-from {
+  grid-row: 4;
+}
+
+.greeting-actions {
+  grid-row: 5;
+}
+
+.greeting-cta {
+  grid-row: 6;
+}
+
+/* The editor's foot (index.css) at the bottom – its line is the floor the
+   cookies lie on. */
+.greeting > footer {
+  position: relative;
+  grid-row: 8;
+  justify-self: stretch;
+  margin-top: 0.4rem;
+  animation: greet-rise 0.9s var(--ease) 1s both;
+}
+
+/* Phones: the footer in a line or two, not stacked – the card needs the
+   room. */
+@media (max-width: 40rem) {
+  .greeting > footer,
+  .greeting > footer .footer-links,
+  .greeting > footer .credit {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .greeting > footer {
+    gap: 0.2rem 0.9rem;
+    padding-top: 0.6rem;
+    font-size: var(--fs-small);
+  }
 }
 
 /* The cookies raining down beside the card (card-cookies.tsx). No stacking
@@ -67,20 +115,9 @@ html:has(.greeting) {
   margin: 0;
 }
 
-/* The floor: a light line level with the top of the dock – the cookies
-   lie on it. */
-.greeting-floor {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: -1;
-  border-top: 1px solid rgb(255 255 255 / 0.22);
-}
-
 /* The rows above the cookies span the whole width, invisibly – they let
    clicks through to the cookies behind them; only the card (it turns over)
-   and the dock take them. */
+   and the buttons below take them. */
 .greeting-to,
 .greeting-slot,
 .greeting-stage,
@@ -344,34 +381,21 @@ button.greeting-flip[data-flipped] .greeting-back {
   animation: greet-rise 0.9s var(--ease) 0.65s both;
 }
 
-/* Below the card, set apart like a tray: what to do with it. */
-.greeting-dock {
-  display: grid;
-  justify-items: center;
-  gap: clamp(0.4rem, 1.3dvh, 0.75rem);
-  width: min(100%, 36rem);
-  margin-top: clamp(0.2rem, 1.2dvh, 0.8rem);
-  padding: clamp(0.7rem, 1.8dvh, 1.1rem) 0.9rem clamp(0.55rem, 1.5dvh, 0.9rem);
-  background: rgb(255 255 255 / 0.1);
-  border: 1px solid rgb(255 255 255 / 0.16);
-  border-radius: 1.4rem;
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
-  animation: greet-rise 0.9s var(--ease) 0.8s both;
-}
-
+/* Below the card, without a box: the files and the picture in a row. */
 .greeting-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 0.6rem;
+  margin-top: clamp(0.2rem, 1.2dvh, 0.8rem);
+  animation: greet-rise 0.9s var(--ease) 0.8s both;
 }
 
-/* Phones: the 3MF across, STL and the picture side by side below it. */
+/* Phones: the 3MF across, STL and the picture's two side by side below. */
 @media (max-width: 30rem) {
   .greeting-actions {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
     width: 100%;
   }
 
@@ -407,11 +431,6 @@ button.greeting-flip[data-flipped] .greeting-back {
   background: #ffffff;
 }
 
-.greeting-hint {
-  font-size: var(--fs-tiny);
-  color: var(--on-page-muted);
-}
-
 .greeting-cta {
   display: inline-flex;
   align-items: center;
@@ -424,25 +443,11 @@ button.greeting-flip[data-flipped] .greeting-back {
   background: rgb(255 255 255 / 0.1);
   border-radius: 0.7rem;
   transition: background 0.2s var(--ease);
+  animation: greet-rise 0.9s var(--ease) 0.9s both;
 }
 
 .greeting-cta:hover {
   background: rgb(255 255 255 / 0.2);
-}
-
-/* Who made the maker: plain text in the bottom right corner. */
-.greeting-credit {
-  justify-self: end;
-  margin-top: -0.2rem;
-  font-size: var(--fs-tiny);
-  font-weight: 600;
-  color: var(--on-page-muted);
-  text-decoration: none;
-}
-
-.greeting-credit:hover {
-  color: var(--on-page);
-  text-decoration: underline;
 }
 
 .visually-hidden {

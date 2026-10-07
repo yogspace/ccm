@@ -1,10 +1,4 @@
-import {
-  ArrowUpRight,
-  Maximize2,
-  Minimize2,
-  Rotate3d,
-  Ruler,
-} from "lucide-react";
+import { Maximize2, Minimize2, Rotate3d, Ruler } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
@@ -12,19 +6,17 @@ import Button from "./components/button";
 import CookieBackground from "./components/cookie-background";
 import CookieBar from "./components/cookie-bar";
 import CookieIcon from "./components/cookie-icon";
-import DonateBadge from "./components/donate-badge";
 import DrawCanvas from "./components/draw-canvas";
 import ErrorPopup from "./components/error-popup";
 import ExportButtons from "./components/export-buttons";
 import GalleryFan from "./components/gallery-fan";
-import LegalNotice from "./components/legal-notice";
 import Masthead from "./components/masthead";
 import ParameterPanel from "./components/parameter-panel";
 import Preview3d, { type PreviewHandle } from "./components/preview-3d";
 import PrintHints from "./components/print-hints";
 import ShareCreation from "./components/share-creation";
+import SiteFooter from "./components/site-footer";
 import TitleField from "./components/title-field";
-import { useSiteLinks } from "./site-context";
 import { connectStore, store, toggleAutoRotate, toggleExpanded } from "./store";
 import { formatLength } from "./units";
 
@@ -33,7 +25,6 @@ import { formatLength } from "./units";
  * themselves – here only what the frame shows directly.
  */
 const App = () => {
-  const links = useSiteLinks();
   const { t, i18n } = useTranslation();
   // Synchronous, so the switch animates as a view transition (toggleExpanded).
   const { expanded } = useSnapshot(store, { sync: true });
@@ -144,29 +135,7 @@ const App = () => {
       {/* Floats at the bottom while scrolling, stops right above the footer. */}
       <CookieBar />
 
-      <footer>
-        <DonateBadge />
-        <span className="footer-links">
-          <a href={links.website} rel="noopener" target="_blank">
-            mxwr.de
-            <CookieIcon icon={ArrowUpRight} size={40} />
-          </a>
-          <span aria-hidden className="sep">
-            ·
-          </span>
-          <a href={links.makerworld} rel="noopener" target="_blank">
-            MakerWorld
-            <CookieIcon icing="#5fb36b" icon={ArrowUpRight} size={40} />
-          </a>
-        </span>
-        <span className="credit">
-          <LegalNotice />
-          <span aria-hidden className="sep">
-            ·
-          </span>
-          <span>© {new Date().getFullYear()} Maximilian Weber</span>
-        </span>
-      </footer>
+      <SiteFooter />
     </div>
   );
 };

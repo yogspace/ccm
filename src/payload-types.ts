@@ -609,6 +609,14 @@ export interface Translation {
      */
     pictureHint?: string | null;
     /**
+     * DE: Speichern  ·  EN: Save
+     */
+    pictureSave?: string | null;
+    /**
+     * DE: Teilen  ·  EN: Share
+     */
+    pictureShare?: string | null;
+    /**
      * DE: Bereit für den 3D-Drucker – Rand aufs Druckbett, ohne Stützen  ·  EN: Ready for the 3D printer – rim on the bed, no supports
      */
     printHint?: string | null;
@@ -625,10 +633,6 @@ export interface Translation {
      */
     ring?: string | null;
     /**
-     * DE: Bild speichern  ·  EN: Save picture
-     */
-    savePicture?: string | null;
-    /**
      * DE: Link teilen  ·  EN: Share link
      */
     send?: string | null;
@@ -640,10 +644,6 @@ export interface Translation {
      * DE: Eine Grußkarte mit deinem Ausstecher – zum Ansehen und Herunterladen  ·  EN: A greeting card with your cutter – to look at and download
      */
     shareHint?: string | null;
-    /**
-     * DE: Bild teilen  ·  EN: Share picture
-     */
-    sharePicture?: string | null;
     /**
      * DE: Ich hab dir einen Ausstecher gemacht:  ·  EN: I made you a cookie cutter:
      */
@@ -1190,15 +1190,15 @@ export interface TranslationsSelect<T extends boolean = true> {
         messagePlaceholder?: T;
         open?: T;
         pictureHint?: T;
+        pictureSave?: T;
+        pictureShare?: T;
         printHint?: T;
         ready?: T;
         retry?: T;
         ring?: T;
-        savePicture?: T;
         send?: T;
         share?: T;
         shareHint?: T;
-        sharePicture?: T;
         shareText?: T;
         stl?: T;
         title?: T;
