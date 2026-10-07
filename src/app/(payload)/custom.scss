@@ -61,3 +61,73 @@
   --hover-btn-border: none;
   border: none;
 }
+
+// The legal text's editor looks like the dialog it fills (.legal in the app's
+// index.css): Pally, big h2, small h3, muted paragraphs.
+.legal-editor {
+  --font-serif: var(--font-body);
+
+  .LexicalEditorTheme__h2 {
+    font-size: 1.6rem;
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+    margin-block: 1.6em 0.4em;
+  }
+
+  .LexicalEditorTheme__h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-block: 1.1em 0.25em;
+  }
+
+  .LexicalEditorTheme__paragraph {
+    color: var(--theme-elevation-600);
+  }
+
+  .LexicalEditorTheme__link {
+    color: var(--theme-text);
+  }
+}
+
+// Block previews (fields/legal-blocks.tsx): what the dialog will show.
+.legal-preview {
+  font-family: var(--font-body);
+  font-style: normal;
+  line-height: 1.5;
+  color: var(--theme-elevation-600);
+}
+
+.legal-preview-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  max-width: 420px;
+
+  span {
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--theme-elevation-100);
+    border-radius: 8px;
+  }
+
+  .legal-preview-message {
+    grid-column: 1 / -1;
+    height: 44px;
+  }
+
+  .legal-preview-send {
+    justify-self: start;
+    color: var(--theme-elevation-0);
+    background: var(--theme-success-500);
+    border-radius: 999px;
+  }
+}
+
+.legal-preview-link {
+  font-family: var(--font-body);
+  font-weight: 600;
+  color: var(--theme-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

@@ -13,6 +13,7 @@ export const AddressBlock: Block = {
   labels: { singular: "Address", plural: "Addresses" },
   admin: {
     disableBlockName: true,
+    components: { Block: "@/fields/legal-blocks#AddressBlockPreview" },
   },
   fields: [],
 };
@@ -21,7 +22,10 @@ export const AddressBlock: Block = {
 export const ContactFormBlock: Block = {
   slug: "contactForm",
   labels: { singular: "Contact form", plural: "Contact forms" },
-  admin: { disableBlockName: true },
+  admin: {
+    disableBlockName: true,
+    components: { Block: "@/fields/legal-blocks#ContactFormBlockPreview" },
+  },
   fields: [],
 };
 
@@ -29,7 +33,10 @@ export const ContactFormBlock: Block = {
 export const SiteLinkBlock: Block = {
   slug: "siteLink",
   labels: { singular: "Site link", plural: "Site links" },
-  admin: { disableBlockName: true },
+  admin: {
+    disableBlockName: true,
+    components: { Label: "@/fields/legal-blocks#SiteLinkLabel" },
+  },
   fields: [
     {
       name: "link",
@@ -52,6 +59,9 @@ export const SiteLinkBlock: Block = {
 export const UpdatedBlock: Block = {
   slug: "updated",
   labels: { singular: "Last updated", plural: "Last updated" },
-  admin: { disableBlockName: true },
+  admin: {
+    disableBlockName: true,
+    components: { Label: "@/fields/legal-blocks#UpdatedLabel" },
+  },
   fields: [],
 };

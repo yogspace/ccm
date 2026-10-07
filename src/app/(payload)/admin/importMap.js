@@ -4,6 +4,10 @@ import { LexicalDiffComponent as LexicalDiffComponent_44fe37237e0ebf4470c9990d8c
 import { InlineToolbarFeatureClient as InlineToolbarFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { FixedToolbarFeatureClient as FixedToolbarFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { BlocksFeatureClient as BlocksFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
+import { AddressBlockPreview as AddressBlockPreview_2b991de822d46fb1cc5b6c5925037390 } from '@/fields/legal-blocks'
+import { ContactFormBlockPreview as ContactFormBlockPreview_2b991de822d46fb1cc5b6c5925037390 } from '@/fields/legal-blocks'
+import { SiteLinkLabel as SiteLinkLabel_2b991de822d46fb1cc5b6c5925037390 } from '@/fields/legal-blocks'
+import { UpdatedLabel as UpdatedLabel_2b991de822d46fb1cc5b6c5925037390 } from '@/fields/legal-blocks'
 import { LinkFeatureClient as LinkFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { OrderedListFeatureClient as OrderedListFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { UnorderedListFeatureClient as UnorderedListFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
@@ -28,6 +32,10 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#InlineToolbarFeatureClient": InlineToolbarFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#FixedToolbarFeatureClient": FixedToolbarFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#BlocksFeatureClient": BlocksFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
+  "@/fields/legal-blocks#AddressBlockPreview": AddressBlockPreview_2b991de822d46fb1cc5b6c5925037390,
+  "@/fields/legal-blocks#ContactFormBlockPreview": ContactFormBlockPreview_2b991de822d46fb1cc5b6c5925037390,
+  "@/fields/legal-blocks#SiteLinkLabel": SiteLinkLabel_2b991de822d46fb1cc5b6c5925037390,
+  "@/fields/legal-blocks#UpdatedLabel": UpdatedLabel_2b991de822d46fb1cc5b6c5925037390,
   "@payloadcms/richtext-lexical/client#LinkFeatureClient": LinkFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#OrderedListFeatureClient": OrderedListFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#UnorderedListFeatureClient": UnorderedListFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
