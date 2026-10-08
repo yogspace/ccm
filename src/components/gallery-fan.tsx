@@ -27,7 +27,8 @@ const deal = (pictures: GalleryCard[]) => {
  * repeat.
  */
 const GalleryFan = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.resolvedLanguage === "de" ? "de" : "en";
   const still = useReducedMotion();
   // Degrees between neighbouring cards – tighter on small screens.
   const [spread] = useState(() => (window.innerWidth < 640 ? 9 : 12));
@@ -80,7 +81,7 @@ const GalleryFan = () => {
             >
               {/* Uploaded by hand, its white ground takes the card's tint. */}
               <img
-                alt=""
+                alt={hand[i].alt[lang]}
                 className={cn(
                   "block size-full object-cover",
                   !hand[i].built && "mix-blend-multiply"

@@ -52,9 +52,10 @@ const slug = (text: string) =>
  * Above the gallery's list: a card from a creation's link. The link's
  * drawing becomes its cutter right here – the site's own code, in this
  * browser – rendered from above in the chosen card color; the preview is
- * the share picture as the site paints it. Added, the rendering is the
- * picture, with the link, the name and the color beside it; the site lays it
- * on the card (gallery-fan.tsx).
+ * the share picture as the site paints it. Added, the rendering goes to
+ * Media (the name as its alt text) and a gallery card takes it, with the
+ * link, the name and the color; the site lays it on the card
+ * (gallery-fan.tsx).
  */
 export const GalleryBuilder = () => {
   const {
@@ -143,6 +144,21 @@ export const GalleryBuilder = () => {
     }
   };
 
+  /** A request to the REST API; its first error as the message. */
+  const send = async (path: string, init: RequestInit) => {
+    const response = await fetch(`${api}${path}`, {
+      ...init,
+      credentials: "include",
+    });
+    const body = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(body?.errors?.[0]?.message ?? response.statusText);
+    }
+    return body as { doc: { id: string } };
+  };
+
+  // The picture goes to Media (its alt text the name), the card to the
+  // gallery – if the card fails, the picture goes again.
   const add = async () => {
     if (!(built && view)) return;
     setStatus({ state: "saving" });
@@ -159,18 +175,27 @@ export const GalleryBuilder = () => {
           type: "image/png",
         })
       );
-      form.append(
-        "_payload",
-        JSON.stringify({ name: title, color: chosen, link: built.link })
-      );
-      const response = await fetch(`${api}/gallery`, {
+      form.append("_payload", JSON.stringify({ alt: title || FALLBACK_NAME }));
+      const { doc: picture } = await send("/media", {
         method: "POST",
         body: form,
-        credentials: "include",
       });
-      if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        throw new Error(body?.errors?.[0]?.message ?? response.statusText);
+      try {
+        await send("/gallery", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            picture: picture.id,
+            name: title,
+            color: chosen,
+            link: built.link,
+          }),
+        });
+      } catch (error) {
+        await send(`/media/${picture.id}`, { method: "DELETE" }).catch(
+          () => undefined
+        );
+        throw error;
       }
       setStatus({ state: "saved", name: title || FALLBACK_NAME });
       setText("");

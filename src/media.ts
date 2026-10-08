@@ -1,7 +1,7 @@
 import path from "node:path";
 
 /**
- * Where uploads (gallery pictures, template SVGs) are kept: outside the image,
+ * Where uploads (Media's pictures, template SVGs) are kept: outside the image,
  * so they survive deploys – on the server the `media` volume (MEDIA_DIR=
  * /data/media), locally `media/` in the repo (ignored, filled by `pnpm
  * payload:media:sync`).

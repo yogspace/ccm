@@ -61,24 +61,34 @@ const readTemplates = unstable_cache(
   { tags: [TAGS.templates] }
 );
 
-/** The gallery's cards – their picture's card size where there is one. */
+/**
+ * The gallery's cards – their picture (from Media, with its alt text) in its
+ * card size where there is one.
+ */
 const readGallery = unstable_cache(
   async (): Promise<GalleryCard[]> => {
     const payload = await getPayload({ config: configPromise });
     const { docs } = await payload.find({
       collection: "gallery",
       sort: "_order",
-      depth: 0,
+      locale: "all",
+      depth: 1,
       pagination: false,
       overrideAccess: true,
     });
     return docs.flatMap((doc) => {
-      const src = doc.sizes?.card?.url ?? doc.url;
+      const picture = typeof doc.picture === "object" ? doc.picture : null;
+      const src = picture?.sizes?.card?.url ?? picture?.url;
       if (!src) return [];
+      // With locale "all" a localized field comes as { de, en }.
+      const alt = (picture?.alt ?? {}) as unknown as Partial<
+        Record<"de" | "en", string>
+      >;
       return [
         {
           src,
-          name: doc.name || doc.alt || "",
+          alt: { de: alt.de || alt.en || "", en: alt.en || alt.de || "" },
+          name: doc.name ?? "",
           color: doc.color || null,
           built: Boolean(doc.link),
         },

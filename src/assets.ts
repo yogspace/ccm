@@ -10,11 +10,14 @@ export type Preset = {
 };
 
 /**
- * A card in the gallery's fan: its picture (the cutter from above, built
- * from a link – or uploaded by hand, on a white ground), its name and color.
+ * A card in the gallery's fan: its picture from Media (the cutter from
+ * above, built from a link – or any picture, on a white ground), its name
+ * and color.
  */
 export type GalleryCard = {
   src: string;
+  /** What the picture shows (Media), in both languages. */
+  alt: Record<"de" | "en", string>;
   /** Empty: “Cookie Cutter”. */
   name: string;
   /** #rrggbb – null: the first card color. */

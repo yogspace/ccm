@@ -26,7 +26,7 @@ The geometry is built entirely in the browser. The server ([Next.js](https://nex
 - Bake it: every creation also makes a 3D cookie in its shape – dough with a rounded edge, holes and all, icing poured a little inside the edge (narrower or left off where the shape is thin) and sprinkles on top, always the same for the same shape
 - Cookie bar: “Save as cookie” (and every download) keeps the creation as such a cookie in this browser. “This site uses cookies” – your own: a bar slides up from the bottom with the first scroll, sticks to the bottom of the screen and stops right above the footer; a click on a cookie opens its creation, the small cross eats it, closed it becomes a jar. Filling it is a little show: the cookie flies from its button into its place along an arc, the others make room, it plops in with crumbs; eaten ones leave with a twist
 - Share as a card: in the share dialog, add who it is for, who it is from and a message (a little preview shows it running around the cutter) and get a link to the card's own page – one screen without scrolling: the cutter in 3D on a card, the message turning around it, 3MF/STL to download and a way to the maker. A click turns the card over – on its back lies the cookie it bakes. Like every link, it all lives in the hash
-- Example gallery: pictures uploaded in the admin; five are drawn at random on every load
+- Example gallery: cards like the share picture – built in the admin from a creation's link (the cutter rendered from above) or from any picture in Media; five are drawn at random on every load
 - German/English (i18next) under `/de` and `/en` with their own texts for search engines; `/` redirects by browser language. The interface texts can be edited in the admin (see below)
 - Anonymous statistics without cookies: page views (page, coarse source, device class, OS, browser) and actions (downloads, sharing, cards, imports) on our own server – no IP, no identifier, nothing linking two rows, deleted after 90 days; Global Privacy Control is respected. Evaluated in the admin, optionally as a mail report (see below)
 - Light/dark mode, imprint & privacy as a dialog – written in the admin as rich text, with the contact form in it – animations with `motion`, no scrolling behind open dialogs
@@ -52,7 +52,7 @@ src/
   components/                 draw-canvas, tool-picker, preview-3d, parameter-panel, share-creation, gallery-fan, cookie-bar, cookie-fx (flight, crumbs), button, card, dev-fixture (dev server only: saves the drawing as a test case), …; styles.ts: classes shared by several
   drawing.ts                  the drawing as vectors: painting, finding objects, moving/rotating/scaling, erasing
   presets.ts                  a template's outline from its SVG
-  content.ts, assets.ts       templates and gallery pictures from the CMS; the editor gets them through a context
+  content.ts, assets.ts       templates and the gallery's cards from the CMS; the editor gets them through a context
   cache.ts, media.ts          cache tags and their expiry; where uploads are kept
   geometry/
     outline.ts                raster → contour (d3-contour), SVG import as a silhouette
@@ -68,7 +68,7 @@ src/
   i18n/                       de.ts, en.ts (the texts' seed and shape), index.ts (i18next with the texts from the server)
   translations/               the Translations global: fields from the keys (tree.ts), seeding (seed.ts), reading for the pages (texts.ts)
   payload.config.ts           Payload: MongoDB, collections, globals, seeding at start
-  collections/                templates, gallery (uploads), users (admin login), page-views, actions
+  collections/                templates (SVG uploads), gallery (cards), media (pictures with alt texts), users (admin login), page-views, actions
   globals/                    site (links, address), legal (imprint & privacy, rich text), translations, analytics (statistics, mail report, own devices)
   legal/                      the legal text's blocks, its rendering on the server, its seed (the text as it stood in the code)
   site-defaults.ts, site-context.ts   links and address before the CMS (seed and fallback); the links in the browser
@@ -91,12 +91,13 @@ File names are kebab-case (enforced by a Biome rule). Code comments and this REA
 
 [Tailwind CSS](https://tailwindcss.com) v4, configured in CSS (`src/index.css`, no config file). The design's tokens are the theme – `bg-page`, `text-ink`, `text-small`, `ease-spring` …; colors are overridden where the page changes (dark mode, the `paper` utility on the drawing area, the card page's favorite color), so the utilities follow along. Components carry their utilities in `className`; what several share sits in a component (`Button` with its kinds, `Card`, `Field`) or in `components/styles.ts`. Elements' defaults (buttons, focus ring, range inputs) are base styles written with `@apply`. Tailwind styles the site only – the admin keeps Payload's own styles (`custom.scss`).
 
-### Templates and gallery
+### Templates, gallery and media
 
-Both live in the admin (**Templates**, **Gallery**), in the order of their lists (drag & drop); the files in the `media` volume on the server, locally in `media/` (ignored).
+Templates and the gallery live in the admin (**Templates**, **Gallery**), in the order of their lists (drag & drop); pictures in **Media**. The files are in the `media` volume on the server, locally in `media/` (ignored).
 
 - **Templates:** an SVG each, filled or drawn as a line – its outline is inserted. With a name in German and English (locale switch at the top); it is shown on hover and read out (“Insert Star”).
-- **Gallery:** pictures for the fan between editor and footer; five are drawn at random on every load. Square ones fit best – e.g. the white card cut out of a “Share creation” picture. Each gets a 480 px WebP for the fan.
+- **Gallery:** cards for the fan between editor and footer, each like the share picture – its color (one of Site's card colors), the cutter on the card, its name; five are drawn at random on every load. Above the list, **Build a card from a link**: paste a creation's link, pick name and color, and the cutter is built and rendered from above right in the admin – the picture goes to Media, the card to the gallery. A card can also take any picture from Media (one on a white ground takes the card's tint).
+- **Media:** all pictures, each with its alt text (both languages). Each gets a 600 × 489 WebP – the shape of the cutter's place on the card – for the fan.
 
 Saving or deleting shows on the site right away (cache tags, see `src/cache.ts`).
 

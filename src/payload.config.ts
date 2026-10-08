@@ -8,6 +8,7 @@ import { buildConfig } from "payload";
 import sharp from "sharp";
 import { Actions } from "./collections/actions";
 import { Gallery } from "./collections/gallery";
+import { Media } from "./collections/media";
 import { PageViews } from "./collections/page-views";
 import { Templates } from "./collections/templates";
 import { Users } from "./collections/users";
@@ -24,7 +25,7 @@ const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * The backend: an admin for the anonymous statistics, the interface texts,
- * the templates and the gallery pictures, the links and the legal text. The
+ * the templates, the gallery and its pictures, the links and the legal text. The
  * editor itself stays in the browser.
  *
  * Everything that differs between machines comes from the environment (see
@@ -62,7 +63,7 @@ export default buildConfig({
     fallbackLanguage: "de",
   },
   // The admin's groups follow this order: Users, then Content, then Settings.
-  collections: [Users, Templates, Gallery, PageViews, Actions],
+  collections: [Users, Templates, Gallery, Media, PageViews, Actions],
   globals: [Site, Legal, Translations, Analytics],
   endpoints: [seedEndpoint],
   // The legal text brings its own editor (globals/legal.ts); this is the
@@ -90,7 +91,7 @@ export default buildConfig({
     },
   }),
   secret: process.env.PAYLOAD_SECRET ?? "",
-  // Image sizes of the gallery pictures.
+  // Image sizes of the pictures (Media).
   sharp,
   typescript: {
     outputFile: path.resolve(dirname, "payload-types.ts"),

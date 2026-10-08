@@ -1,8 +1,6 @@
-import path from "node:path";
 import type { CollectionConfig, TextFieldSingleValidation } from "payload";
 import { authenticated } from "../access/authenticated";
 import { expireOnChange, TAGS } from "../cache";
-import { MEDIA_DIR } from "../media";
 
 /** Only the card colors set in Site – or none, then the first. */
 const siteColor: TextFieldSingleValidation = async (value, { req }) => {
@@ -17,18 +15,15 @@ const siteColor: TextFieldSingleValidation = async (value, { req }) => {
 /**
  * Cards for the fan above the footer (gallery-fan.tsx): five of them, drawn
  * at random on every load, each shown like the share picture – its color,
- * the cutter from above on the card, its name. Built from a creation's link
- * above the list (fields/gallery-builder.tsx): the picture is the cutter
- * from above, rendered in the admin. Pictures uploaded by hand (white
- * ground) lie on the card the same way. The order (drag & drop in the list)
- * only matters for the admin.
- *
- * Every picture gets a `card` size (WebP, the shape of the cutter's place on
- * the share picture) – the fan shows that one.
+ * the cutter from above on the card, its name. The picture comes from Media
+ * (with its alt text): built from a creation's link above the list
+ * (fields/gallery-builder.tsx) – the cutter from above, rendered in the
+ * admin – or any picture there; one on a white ground lies on the card the
+ * same way. The order (drag & drop in the list) only matters for the admin.
  */
 export const Gallery: CollectionConfig = {
   slug: "gallery",
-  labels: { singular: "Picture", plural: "Gallery" },
+  labels: { singular: "Card", plural: "Gallery" },
   orderable: true,
   access: {
     read: () => true,
@@ -40,27 +35,24 @@ export const Gallery: CollectionConfig = {
     group: "Content",
     description:
       "Cards for the fan above the footer – five are drawn at random on every load. Paste a creation's link below to build one.",
-    defaultColumns: ["filename", "name", "link", "updatedAt"],
+    useAsTitle: "name",
+    defaultColumns: ["name", "picture", "color", "link", "updatedAt"],
     components: {
       beforeListTable: ["@/fields/gallery-builder#GalleryBuilder"],
     },
   },
   hooks: expireOnChange(TAGS.gallery),
-  upload: {
-    staticDir: path.join(MEDIA_DIR, "gallery"),
-    mimeTypes: ["image/*"],
-    adminThumbnail: "card",
-    imageSizes: [
-      {
-        name: "card",
-        width: 600,
-        height: 489,
-        position: "centre",
-        formatOptions: { format: "webp", options: { quality: 82 } },
-      },
-    ],
-  },
   fields: [
+    {
+      name: "picture",
+      type: "upload",
+      relationTo: "media",
+      required: true,
+      admin: {
+        description:
+          "The cutter from above on the card – its alt text comes from Media.",
+      },
+    },
     {
       name: "name",
       type: "text",
@@ -83,14 +75,9 @@ export const Gallery: CollectionConfig = {
       type: "text",
       admin: {
         readOnly: true,
-        description: "The creation the card was built from.",
+        description:
+          "The creation the card was built from – empty for a picture picked by hand.",
       },
-    },
-    {
-      name: "alt",
-      type: "text",
-      localized: true,
-      admin: { description: "What the picture shows (optional)." },
     },
   ],
 };

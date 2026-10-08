@@ -23,6 +23,7 @@ export interface Config {
     users: User;
     templates: Template;
     gallery: Gallery;
+    media: Media;
     'page-views': PageView;
     actions: Action;
     'payload-kv': PayloadKv;
@@ -35,6 +36,7 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     templates: TemplatesSelect<false> | TemplatesSelect<true>;
     gallery: GallerySelect<false> | GallerySelect<true>;
+    media: MediaSelect<false> | MediaSelect<true>;
     'page-views': PageViewsSelect<false> | PageViewsSelect<true>;
     actions: ActionsSelect<false> | ActionsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
@@ -148,6 +150,10 @@ export interface Gallery {
   id: string;
   _order?: string | null;
   /**
+   * The cutter from above on the card – its alt text comes from Media.
+   */
+  picture: string | Media;
+  /**
    * On the card below the cutter – empty: “Cookie Cutter”.
    */
   name?: string | null;
@@ -156,11 +162,22 @@ export interface Gallery {
    */
   color?: string | null;
   /**
-   * The creation the card was built from.
+   * The creation the card was built from – empty for a picture picked by hand.
    */
   link?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * All pictures, each with what it shows.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: string;
   /**
-   * What the picture shows (optional).
+   * What the picture shows – read out instead.
    */
   alt?: string | null;
   updatedAt: string;
@@ -263,6 +280,10 @@ export interface PayloadLockedDocument {
         value: string | Gallery;
       } | null)
     | ({
+        relationTo: 'media';
+        value: string | Media;
+      } | null)
+    | ({
         relationTo: 'page-views';
         value: string | PageView;
       } | null)
@@ -361,9 +382,18 @@ export interface TemplatesSelect<T extends boolean = true> {
  */
 export interface GallerySelect<T extends boolean = true> {
   _order?: T;
+  picture?: T;
   name?: T;
   color?: T;
   link?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media_select".
+ */
+export interface MediaSelect<T extends boolean = true> {
   alt?: T;
   updatedAt?: T;
   createdAt?: T;
