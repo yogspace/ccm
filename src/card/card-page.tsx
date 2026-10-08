@@ -557,12 +557,12 @@ const CardPage = () => {
               />
             ))}
           {/* “Eat me *click*”: the cookie on the back speaks – a bubble in
-              the card's colors at its upper left corner, its tail towards
-              the card. Pops up once the card has turned, goes once the
+              the card's colors at its upper left corner (on phones, where the stage runs out at
+              the sides, above it), its tail towards the card. Pops up once the card has turned, goes once the
               cookie is eaten (or the card turned back); clicks go through. */}
           <small
             aria-hidden
-            className="pointer-events-none invisible absolute right-[70%] bottom-[71%] z-1 origin-bottom-right animate-[eat-me_1.6s_ease-in-out_infinite] scale-50 rounded-[2.4cqw] bg-card-sheet px-[2.4cqw] py-[1.4cqw] text-[3.3cqw] leading-none font-bold whitespace-nowrap text-card-deep opacity-0 shadow-[0_0.8cqw_2.4cqw_rgb(5_10_60/0.3)] [transition:opacity_0.25s_var(--ease-soft),scale_0.25s_var(--ease-soft),visibility_0s_linear_0.25s] after:absolute after:top-[calc(100%-1px)] after:right-[2.4cqw] after:size-[2.4cqw] after:bg-card-sheet after:[clip-path:polygon(0_0,100%_0,100%_100%)] motion-reduce:animate-none data-shown:visible data-shown:scale-100 data-shown:opacity-100 data-shown:[transition:opacity_0.3s_var(--ease-soft)_0.6s,scale_0.55s_var(--ease-spring)_0.6s,visibility_0s_linear_0.6s]"
+            className="pointer-events-none invisible absolute right-[70%] bottom-[71%] z-1 origin-bottom-right animate-[eat-me_1.6s_ease-in-out_infinite] scale-50 rounded-[2.4cqw] bg-card-sheet px-[2.4cqw] py-[1.4cqw] text-[3.3cqw] leading-none font-bold whitespace-nowrap text-card-deep opacity-0 shadow-[0_0.8cqw_2.4cqw_rgb(5_10_60/0.3)] [transition:opacity_0.25s_var(--ease-soft),scale_0.25s_var(--ease-soft),visibility_0s_linear_0.25s] after:absolute after:top-[calc(100%-1px)] after:right-[2.4cqw] after:size-[2.4cqw] after:bg-card-sheet after:[clip-path:polygon(0_0,100%_0,100%_100%)] motion-reduce:animate-none data-shown:visible data-shown:scale-100 data-shown:opacity-100 data-shown:[transition:opacity_0.3s_var(--ease-soft)_0.6s,scale_0.55s_var(--ease-spring)_0.6s,visibility_0s_linear_0.6s] max-xs:right-auto max-xs:bottom-[78%] max-xs:left-[21%]"
             data-shown={(flipped && !!cookie && !eaten) || undefined}
           >
             {t("card.eatMe")}{" "}

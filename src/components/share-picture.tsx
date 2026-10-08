@@ -17,7 +17,9 @@ type Props = ComponentProps<"div"> & {
  * made. paintSharePicture (card-image.ts) paints it the same, 1200 px wide:
  * 12 px there are 1cqw here. Name and site sit on the baselines they are
  * painted on (1060 and 1130) – Pally's lies --baseline below the top of a
- * line as high as its font. In the share box and the gallery's fan.
+ * line as high as its font. Its corners run around the card's: the card's
+ * radius (4cqw) and the margin (5cqw). In the share box and the gallery's
+ * fan.
  */
 const SharePicture = ({
   glaze,
@@ -30,7 +32,7 @@ const SharePicture = ({
 }: Props) => (
   <div
     className={cn(
-      "glaze relative overflow-hidden rounded-2xl bg-glaze text-on-glaze @container",
+      "glaze relative overflow-hidden rounded-[9%] bg-glaze text-on-glaze @container",
       className
     )}
     style={{ ...style, "--glaze": glaze } as CSSProperties}
