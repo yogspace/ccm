@@ -53,6 +53,7 @@ const EditorPage = async ({ params }: Props) => {
     <>
       <EditorRoot
         {...assets}
+        colors={site.cardColors}
         legal={legalContent}
         links={site.links}
         texts={texts}

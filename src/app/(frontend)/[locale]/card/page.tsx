@@ -1,6 +1,7 @@
 import type { Viewport } from "next";
 import CardRoot from "@/card/card-root";
 import { getSite } from "@/content";
+import { GLAZE_SCRIPT_ID, glazeScript } from "@/glaze";
 import { cardMetadata } from "@/seo";
 import { getTexts } from "@/translations/texts";
 import "@/card/card.css";
@@ -25,7 +26,15 @@ const GreetingCardPage = async () => {
   const [texts, site] = await Promise.all([getTexts(), getSite()]);
   return (
     <>
-      <CardRoot links={site.links} texts={texts} />
+      {/* The card's favourite colour on the page before its first paint. */}
+      <script
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: our own script, the colours checked by the CMS
+        dangerouslySetInnerHTML={{
+          __html: glazeScript(site.cardColors.map(({ color }) => color)),
+        }}
+        id={GLAZE_SCRIPT_ID}
+      />
+      <CardRoot colors={site.cardColors} links={site.links} texts={texts} />
       <noscript>Cookie Cutter Maker – this card needs JavaScript.</noscript>
     </>
   );

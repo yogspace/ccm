@@ -441,7 +441,7 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   createdAt?: T;
 }
 /**
- * Links in the footer, on the greeting card and in the legal text, and the address in the legal text.
+ * Links in the footer, on the greeting card and in the legal text, the address in the legal text, and the greeting cards' favourite colours.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site".
@@ -475,6 +475,22 @@ export interface Site {
     city: string;
     country: string;
   };
+  /**
+   * The favourite colours to pick for a greeting card – the cookie's icing, and in its shades the card, its back and its words. The first one is the default. A colour's place is its number in card links: add new ones at the end only, don't reorder or delete – sent cards would change colour.
+   */
+  cardColors?:
+    | {
+        /**
+         * As #rrggbb, e.g. #ff5fa8.
+         */
+        color: string;
+        /**
+         * Shown when pointing at it, read out aloud.
+         */
+        name: string;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -523,6 +539,10 @@ export interface Translation {
      * DE: *klick*  ·  EN: *click*
      */
     click?: string | null;
+    /**
+     * DE: Lieblingsfarbe  ·  EN: Favourite colour
+     */
+    color?: string | null;
     /**
      * DE: Der Keks aus „{{name}}“  ·  EN: The cookie from “{{name}}”
      */
@@ -1158,6 +1178,13 @@ export interface SiteSelect<T extends boolean = true> {
         city?: T;
         country?: T;
       };
+  cardColors?:
+    | T
+    | {
+        color?: T;
+        name?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -1183,6 +1210,7 @@ export interface TranslationsSelect<T extends boolean = true> {
         baked?: T;
         bite?: T;
         click?: T;
+        color?: T;
         cookieAlt?: T;
         create?: T;
         cutterAlt?: T;

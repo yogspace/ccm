@@ -5,7 +5,8 @@ const SETTLE_MS = 600;
 
 /**
  * A picture of the cutter that keeps up with it: rendered once its place is
- * (nearly) in view, then again shortly after every change of `keys`. Until
+ * (nearly) in view, then again shortly after every change of `keys` – right
+ * away after a change of `quick` ones only (a click, not a slider). Until
  * the first one is there it is null – the caller keeps the place with a
  * ghost. While not `enabled` (not on show) it doesn't render and keeps the
  * last one. A newer render wins over an older one that arrives late;
@@ -17,8 +18,13 @@ export const useLivePicture = <T>(
   render: () => Promise<T | null> | T | null,
   {
     enabled = true,
+    quick = [],
     release,
-  }: { enabled?: boolean; release?: (picture: T) => void } = {}
+  }: {
+    enabled?: boolean;
+    quick?: readonly unknown[];
+    release?: (picture: T) => void;
+  } = {}
 ): T | null => {
   const [picture, setPicture] = useState<T | null>(null);
   const [inView, setInView] = useState(false);
@@ -28,6 +34,7 @@ export const useLivePicture = <T>(
   releaseRef.current = release;
   /** The keys the picture shows – back on show unchanged, nothing renders. */
   const shows = useRef<readonly unknown[] | null>(null);
+  const all = [...keys, ...quick];
   const hasPicture = picture !== null;
 
   useEffect(() => {
@@ -44,23 +51,25 @@ export const useLivePicture = <T>(
   // biome-ignore lint/correctness/useExhaustiveDependencies: renders again on every change of the caller's keys – and not when its own picture arrives
   useEffect(() => {
     if (!(inView && enabled)) return;
-    if (shows.current?.every((key, i) => Object.is(key, keys[i]))) return;
+    const shown = shows.current;
+    if (shown?.every((key, i) => Object.is(key, all[i]))) return;
+    const settle = keys.some((key, i) => !(shown && Object.is(key, shown[i])));
     let current = true;
     const timer = setTimeout(
       async () => {
         const next = await renderRef.current();
         if (current) {
-          shows.current = keys;
+          shows.current = all;
           setPicture(next);
         } else if (next !== null) releaseRef.current?.(next);
       },
-      hasPicture ? SETTLE_MS : 0
+      hasPicture && settle ? SETTLE_MS : 0
     );
     return () => {
       current = false;
       clearTimeout(timer);
     };
-  }, [inView, enabled, ...keys]);
+  }, [inView, enabled, ...all]);
 
   // A picture replaced or gone: let it go.
   useEffect(

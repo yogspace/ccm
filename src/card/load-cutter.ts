@@ -8,7 +8,12 @@ import type { Drawing, readHash } from "../url-state";
 /** Pauses (ms) before trying again – time for Safari to free canvas memory. */
 const RETRIES = [600, 1500];
 
-/** A worker silent this long (ms) counts as failed – never an endless wait. */
+/**
+ * A worker that has not started after this long (ms) counts as failed –
+ * never an endless wait. Once started it may take as long as it needs: a
+ * page without a secure context (http in the LAN) runs WebAssembly much
+ * slower in Safari.
+ */
 const SILENCE = 20_000;
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -40,11 +45,11 @@ const build = (rings: Ring[], params: CutterParams) => {
   } | null>((resolve, reject) => {
     const silent = setTimeout(() => {
       worker.terminate();
-      reject(new Error("worker: no answer"));
+      reject(new Error("worker: did not start"));
     }, SILENCE);
     worker.onmessage = ({ data }: MessageEvent<CutterResponse>) => {
-      if (data.type === "ready") return;
       clearTimeout(silent);
+      if (data.type === "ready") return;
       worker.terminate();
       if (data.type !== "result") reject(new Error(data.type));
       else if (!data.mesh) resolve(null);

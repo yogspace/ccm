@@ -33,7 +33,7 @@ export const Site: GlobalConfig = {
   admin: {
     group: "Settings",
     description:
-      "Links in the footer, on the greeting card and in the legal text, and the address in the legal text.",
+      "Links in the footer, on the greeting card and in the legal text, the address in the legal text, and the greeting cards' favourite colours.",
   },
   fields: [
     {
@@ -81,6 +81,38 @@ export const Site: GlobalConfig = {
           type: "text",
           required: true,
           defaultValue: SITE_DEFAULTS.address.country,
+        },
+      ],
+    },
+    {
+      name: "cardColors",
+      type: "array",
+      label: "Card colours",
+      labels: { singular: "Colour", plural: "Colours" },
+      minRows: 1,
+      admin: {
+        description:
+          "The favourite colours to pick for a greeting card – the cookie's icing, and in its shades the card, its back and its words. The first one is the default. A colour's place is its number in card links: add new ones at the end only, don't reorder or delete – sent cards would change colour.",
+        initCollapsed: true,
+      },
+      fields: [
+        {
+          name: "color",
+          type: "text",
+          label: "Colour",
+          required: true,
+          admin: { description: "As #rrggbb, e.g. #ff5fa8." },
+          validate: (value: unknown) =>
+            typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value)
+              ? true
+              : "A colour as #rrggbb",
+        },
+        {
+          name: "name",
+          type: "text",
+          required: true,
+          localized: true,
+          admin: { description: "Shown when pointing at it, read out aloud." },
         },
       ],
     },

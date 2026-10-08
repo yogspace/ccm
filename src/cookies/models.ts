@@ -529,6 +529,8 @@ export type CookieShape = {
   icing: Ring[];
   /** Picks the icing colour and where the sprinkles land. */
   seed: number;
+  /** The icing's colour instead of the seed's pick (a card's favourite). */
+  glaze?: string;
 };
 
 /** Mostly white icing, sometimes coloured. */
@@ -662,7 +664,7 @@ type Bitten = {
 };
 
 export const createShapeCookie = (
-  { dough, icing, seed }: CookieShape,
+  { dough, icing, seed, glaze: chosen }: CookieShape,
   bitten?: Bitten
 ) => {
   const random = seeded(Math.max(1, Math.floor(seed) % 2147483646));
@@ -695,7 +697,9 @@ export const createShapeCookie = (
 
   const wholeGlaze = toCookie(icing);
   const glaze = bitten ? bitten.cut(wholeGlaze) : wholeGlaze;
-  const icingColor = ICINGS[Math.floor(random() * ICINGS.length)];
+  // Picked even when chosen – the sprinkles' numbers stay the same.
+  const picked = ICINGS[Math.floor(random() * ICINGS.length)];
+  const icingColor = chosen ?? picked;
   if (glaze.length > 0) {
     const mesh = new THREE.Mesh(
       new THREE.ExtrudeGeometry(nest(glaze), {
@@ -756,6 +760,7 @@ export const icingColorOf = ({ seed }: CookieShape) =>
 
 /** A colour from the icings for what the cookie lies on – never white. */
 export const glazeColorOf = (shape: CookieShape) => {
+  if (shape.glaze) return shape.glaze;
   const icing = icingColorOf(shape);
   const colours = ICINGS.filter((colour) => colour !== "#ffffff");
   return icing !== "#ffffff"

@@ -1,15 +1,25 @@
 import { ArrowRight, Check, Copy, Download, Gift, Share2 } from "lucide-react";
-import { type RefObject, useEffect, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type RefObject,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { trackEvent } from "../analytics";
 import { download } from "../export/download";
-import { filamentFor } from "../filaments";
+import { resolveColors } from "../glaze";
 import type { Greeting } from "../greeting";
-import { drawingKey } from "../hash-text";
+import { useCardColor } from "../site-context";
 import { creationUrl, store } from "../store";
 import Button from "./button";
+import CanvasView from "./canvas-view";
 import CardComposer from "./card-composer";
+import { truncate } from "./card-image";
+import ColorSwatches from "./color-swatches";
 import CookieIcon from "./cookie-icon";
 import type { PreviewHandle } from "./preview-3d";
 import RingText from "./ring-text";
@@ -25,106 +35,115 @@ type Props = {
 const SIZE = 1200;
 const MARGIN = 60;
 const CARD = { x: MARGIN, y: MARGIN, w: SIZE - 2 * MARGIN, h: 880 };
+/** Where it was made – at the picture's foot. */
+const SITE_LINE = "Cookie Cutter Maker · ccm.mxwr.de";
+const FONT = '"Pally", system-ui, sans-serif';
+
+/** The favourite colour's shades the picture is painted in (index.css). */
+const PICTURE_COLORS = {
+  page: "--glaze",
+  sheet: "--card-sheet",
+  text: "--on-glaze",
+  muted: "--on-glaze-muted",
+} as const;
 
 /**
- * Share picture in the app's look: blue background, a white card with the
- * cutter from above, below it the name and address.
+ * The share picture, painted only when it is saved or shared – as the box
+ * shows it (.share-picture, index.css): the favourite colour, the card with
+ * the cutter from above, below it the name and where it was made.
  */
-const composeImage = async (preview: PreviewHandle, name: string) => {
-  const render = preview.renderTop(CARD.w, CARD.h);
-  if (!render) return null;
-  await document.fonts.load('700 1em "Pally"').catch(() => undefined);
-
+const paintPicture = async (
+  cutter: HTMLCanvasElement,
+  name: string,
+  colors: Record<keyof typeof PICTURE_COLORS, string>
+) => {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = SIZE;
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
-  ctx.fillStyle = "#2a44ff";
+  ctx.fillStyle = colors.page;
   ctx.fillRect(0, 0, SIZE, SIZE);
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = colors.sheet;
   ctx.beginPath();
   ctx.roundRect(CARD.x, CARD.y, CARD.w, CARD.h, 48);
   ctx.fill();
-  ctx.drawImage(render, CARD.x, CARD.y);
+  // Right away – a newer cutter may take this one's place meanwhile.
+  ctx.drawImage(cutter, CARD.x, CARD.y, CARD.w, CARD.h);
 
-  ctx.fillStyle = "#ffffff";
+  await document.fonts.load(`700 1em ${FONT}`).catch(() => undefined);
   ctx.textBaseline = "alphabetic";
-  ctx.font = '700 76px "Pally", system-ui, sans-serif';
-  ctx.fillText(
-    name.trim() || "Cookie Cutter",
-    MARGIN,
-    CARD.y + CARD.h + 120,
-    CARD.w
-  );
-  ctx.fillStyle = "rgb(255 255 255 / 0.78)";
-  ctx.font = '500 38px "Pally", system-ui, sans-serif';
-  ctx.fillText("Cookie Cutter Maker · ccm.mxwr.de", MARGIN, SIZE - 70, CARD.w);
+  ctx.fillStyle = colors.text;
+  ctx.font = `700 76px ${FONT}`;
+  ctx.fillText(truncate(ctx, name, CARD.w), MARGIN, CARD.y + CARD.h + 120);
+  ctx.fillStyle = colors.muted;
+  ctx.font = `500 38px ${FONT}`;
+  ctx.fillText(SITE_LINE, MARGIN, SIZE - 70, CARD.w);
 
-  return new Promise<Blob | null>((resolve) =>
+  const blob = await new Promise<Blob | null>((resolve) =>
     canvas.toBlob(resolve, "image/png")
   );
+  // Freed right away: iOS Safari's canvas memory is tight and freed late.
+  canvas.width = canvas.height = 0;
+  return blob;
 };
 
-type Picture = { file: File; src: string };
 type Mode = "picture" | "card";
 
-/** The card's cutter colour – the same the card page picks (by the drawing). */
-const cardFilament = () => filamentFor(drawingKey(new URL(creationUrl()).hash));
+/** The picture painted for what the box showed – kept until that changes. */
+type Painted = {
+  cutter: HTMLCanvasElement;
+  key: string;
+  file: Promise<File | null>;
+};
 
 /**
  * “Share creation”: one box below the editor, only what is needed. As a
- * picture: the picture as it will be shared (it follows the drawing), the
- * link (a click copies it), sharing and saving the picture. As a greeting
- * card: the picture becomes the little card with the message around the
- * cutter, the fields appear beside it – and the box grows along. Only the
- * picture on show renders; the other waits until it is switched to.
+ * picture: the picture as it will be shared – built by the page, painted
+ * only once it is saved or shared – in the favourite colour, the link (a
+ * click copies it), sharing and saving the picture. As a greeting card: the
+ * little card with the message around the cutter, the fields beside it –
+ * and the box grows along. The colour is the same for both.
  */
 const ShareCreation = ({ preview }: Props) => {
   const { t } = useTranslation();
   const { cutter, name } = useSnapshot(store);
   const boxRef = useRef<HTMLElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const pictureRef = useRef<HTMLDivElement>(null);
+  const painted = useRef<Painted | null>(null);
   const [mode, setMode] = useState<Mode>("picture");
-  // Kept while switching back and forth.
+  // Kept while switching back and forth – its colour for the picture too.
   const [greeting, setGreeting] = useState<Greeting>({
     to: "",
     from: "",
     message: "",
+    // The first favourite colour – the default.
+    color: 0,
   });
+  const { chosen, glaze } = useCardColor(greeting.color);
   const [copied, setCopied] = useState(false);
   /** After “Share image”: a note that text and link were copied too. */
   const [textCopied, setTextCopied] = useState(false);
   const title = name.trim() || "Cookie Cutter Maker";
+  const pictureName = name.trim() || "Cookie Cutter";
   const url = creationUrl();
   useGrow(boxRef, bodyRef);
 
-  const picture = useLivePicture<Picture>(
-    boxRef,
-    [cutter.mesh, name],
-    async () => {
-      const handle = preview.current;
-      const blob = handle ? await composeImage(handle, name) : null;
-      if (!blob) return null;
-      const file = new File(
-        [blob],
-        `${title.replace(/[^\p{L}\p{N}]+/gu, "-")}.png`,
-        { type: "image/png" }
-      );
-      return { file, src: URL.createObjectURL(blob) };
-    },
-    {
-      enabled: mode === "picture",
-      release: ({ src }) => URL.revokeObjectURL(src),
-    }
-  );
-  const cardPicture = useLivePicture<string>(
+  // The cutter from above in the favourite colour, for the picture and the
+  // little card alike: anew shortly after drawing, right away for a colour.
+  const cutterView = useLivePicture<HTMLCanvasElement>(
     boxRef,
     [cutter.mesh],
-    () =>
-      preview.current
-        ?.renderTop(640, 560, cardFilament())
-        ?.toDataURL("image/png") ?? null,
-    { enabled: mode === "card" }
+    () => preview.current?.renderTop(CARD.w, CARD.h, glaze) ?? null,
+    {
+      quick: [glaze],
+      // Freed once the next has faded in over it (canvas-view.tsx).
+      release: (canvas) => {
+        setTimeout(() => {
+          canvas.width = canvas.height = 0;
+        }, 1000);
+      },
+    }
   );
 
   useEffect(() => {
@@ -132,6 +151,26 @@ const ShareCreation = ({ preview }: Props) => {
     const timer = setTimeout(() => setCopied(false), 2000);
     return () => clearTimeout(timer);
   }, [copied]);
+
+  /**
+   * The picture as a file, for what the box shows – painted on the first
+   * press (it starts on pointer down already), kept while nothing changes.
+   */
+  const pictureFile = () => {
+    const place = pictureRef.current;
+    if (!(cutterView && place)) return Promise.resolve(null);
+    const key = `${glaze}\n${pictureName}`;
+    const last = painted.current;
+    if (last?.cutter === cutterView && last.key === key) return last.file;
+    const fileName = `${title.replace(/[^\p{L}\p{N}]+/gu, "-")}.png`;
+    const file = paintPicture(
+      cutterView,
+      pictureName,
+      resolveColors(place, PICTURE_COLORS)
+    ).then((blob) => blob && new File([blob], fileName, { type: "image/png" }));
+    painted.current = { cutter: cutterView, key, file };
+    return file;
+  };
 
   const copy = async () => {
     trackEvent("share-link");
@@ -143,30 +182,44 @@ const ShareCreation = ({ preview }: Props) => {
     }
   };
 
-  const shareImage = () => {
-    if (!picture) return;
+  const shareImage = async () => {
     trackEvent("share-image");
     // The link on its own line, so it does not stick to the text.
     const text = `${t("share.text")}\n${url}`;
     // Some apps (e.g. Signal) take only the image and drop the text – so it is
-    // on the clipboard as well, link included. Call both right in the click,
-    // otherwise the permission for it expires.
+    // on the clipboard as well, link included. Called right in the click,
+    // the share menu as soon as the picture is painted – both before the
+    // permission for them expires.
     navigator.clipboard
       ?.writeText(text)
       .then(() => setTextCopied(true))
       .catch(() => undefined);
-    navigator
-      .share({ files: [picture.file], title, text })
-      .catch((error: unknown) => {
-        // Cancelling the share menu is not an error.
-        if (!(error instanceof DOMException && error.name === "AbortError")) {
-          console.error(error);
-        }
-      });
+    const file = await pictureFile();
+    if (!file) return;
+    navigator.share({ files: [file], title, text }).catch((error: unknown) => {
+      // Cancelling the share menu is not an error.
+      if (!(error instanceof DOMException && error.name === "AbortError")) {
+        console.error(error);
+      }
+    });
   };
 
-  const canShareImage =
-    !!picture && !!navigator.canShare?.({ files: [picture.file], text: url });
+  const saveImage = async () => {
+    const file = await pictureFile();
+    if (!file) return;
+    download(file, file.name);
+    trackEvent("save-image");
+  };
+
+  // Whether pictures can be shared at all – asked with a stand-in.
+  const canShareImage = useMemo(
+    () =>
+      !!navigator.canShare?.({
+        files: [new File([], "cookie.png", { type: "image/png" })],
+        text: url,
+      }),
+    [url]
+  );
 
   return (
     <section className="card share-box" ref={boxRef}>
@@ -188,27 +241,34 @@ const ShareCreation = ({ preview }: Props) => {
             <CardComposer
               greeting={greeting}
               onChange={setGreeting}
-              picture={cardPicture}
+              picture={cutterView}
             />
           ) : (
             <>
-              {/* Its place is kept while it renders – nothing jumps. */}
+              {/* The picture as it will be shared, built of the page itself;
+                  the cutter's place is kept while it renders. */}
               <div
-                className="share-visual share-picture"
-                data-waiting={(!picture && !!cutter.mesh) || undefined}
+                aria-label={t("share.imageAlt", { name: title })}
+                className="share-visual share-picture glaze"
+                ref={pictureRef}
+                role="img"
+                style={{ "--glaze": glaze } as CSSProperties}
               >
-                {picture && (
-                  <img
-                    alt={t("share.imageAlt", { name: title })}
-                    height={SIZE}
-                    key={picture.src}
-                    src={picture.src}
-                    width={SIZE}
-                  />
-                )}
+                <div
+                  className="share-picture-card"
+                  data-waiting={(!cutterView && !!cutter.mesh) || undefined}
+                >
+                  {cutterView && <CanvasView canvas={cutterView} />}
+                </div>
+                <strong className="share-picture-name">{pictureName}</strong>
+                <small className="share-picture-site">{SITE_LINE}</small>
               </div>
               <div className="share-content">
                 <p className="share-intro">{t("share.creationText")}</p>
+                <ColorSwatches
+                  onChange={(color) => setGreeting({ ...greeting, color })}
+                  value={chosen}
+                />
                 {/* The other way to share, right where it is seen – with the
                     card page in miniature, a taste of what it becomes. */}
                 <Button
@@ -216,7 +276,11 @@ const ShareCreation = ({ preview }: Props) => {
                   onClick={() => setMode("card")}
                   type="button"
                 >
-                  <span aria-hidden className="card-invite-preview">
+                  <span
+                    aria-hidden
+                    className="card-invite-preview glaze"
+                    style={{ "--glaze": glaze } as CSSProperties}
+                  >
                     <RingText text={t("card.ring")} />
                     <span className="card-invite-card">
                       <CookieIcon
@@ -273,12 +337,9 @@ const ShareCreation = ({ preview }: Props) => {
                 <div className="share-more">
                   <Button
                     className={canShareImage ? undefined : "primary"}
-                    disabled={!picture}
-                    onClick={() => {
-                      if (!picture) return;
-                      download(picture.file, picture.file.name);
-                      trackEvent("save-image");
-                    }}
+                    disabled={!cutterView}
+                    onClick={saveImage}
+                    onPointerDown={() => pictureFile()}
                     type="button"
                   >
                     <CookieIcon
@@ -292,7 +353,9 @@ const ShareCreation = ({ preview }: Props) => {
                   {canShareImage && (
                     <Button
                       className="primary"
+                      disabled={!cutterView}
                       onClick={shareImage}
+                      onPointerDown={() => pictureFile()}
                       type="button"
                     >
                       <CookieIcon

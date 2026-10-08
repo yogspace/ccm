@@ -94,25 +94,41 @@ export const getAssets = async (): Promise<Assets> => {
   return { presets, gallery };
 };
 
-/** Links and address from the “Site” global. */
+/** Links, address and card colours from the “Site” global. */
 const readSite = unstable_cache(
   async (): Promise<Site> => {
     const payload = await getPayload({ config: configPromise });
+    // All languages: the colours' names come as { de, en }.
     const site = await payload.findGlobal({
       slug: "site",
       depth: 0,
+      locale: "all",
       overrideAccess: true,
     });
+    const rows = (site.cardColors ?? []) as unknown as {
+      color?: string;
+      name?: Partial<Record<"de" | "en", string>>;
+    }[];
+    const cardColors = rows
+      .filter((row) => row.color)
+      .map((row) => ({
+        color: row.color as string,
+        name: {
+          de: row.name?.de || row.name?.en || (row.color as string),
+          en: row.name?.en || row.name?.de || (row.color as string),
+        },
+      }));
     return {
       links: { ...SITE_DEFAULTS.links, ...site.links },
       address: { ...SITE_DEFAULTS.address, ...site.address },
+      cardColors: cardColors.length ? cardColors : SITE_DEFAULTS.cardColors,
     };
   },
   ["site"],
   { tags: [TAGS.site] }
 );
 
-/** Links and address – the code's ones without a database. */
+/** Links, address and card colours – the code's ones without a database. */
 export const getSite = (): Promise<Site> =>
   readSite().catch(() => SITE_DEFAULTS);
 

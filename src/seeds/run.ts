@@ -14,7 +14,7 @@ const runners: Record<
   },
   site: async (payload, replace) =>
     (await seedSite(payload, replace ? "replace" : "fill")) === "set"
-      ? "Links and address set"
+      ? "Links, address and card colours set"
       : "Already there – kept",
   legal: async (payload, replace) => {
     const results = await seedLegal(payload, replace ? "replace" : "fill");

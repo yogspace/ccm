@@ -116,6 +116,7 @@ export const de = {
     for: "Für {{name}}",
     fromName: "von {{name}}",
     ring: "Ein Ausstecher, nur für dich",
+    color: "Lieblingsfarbe",
     loading: "Dein Ausstecher wird geformt …",
     failed: "Das hat gerade nicht geklappt.",
     retry: "Nochmal versuchen",

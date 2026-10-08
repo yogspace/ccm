@@ -7,8 +7,8 @@ type Mode = "fill" | "replace";
 type Result = "set" | "kept";
 
 /**
- * The “Site” global with the links and the address as they were before the
- * CMS – filled while empty, or set back. Until then the site shows the
+ * The “Site” global with the links, the address and the card colours as in
+ * the code – filled where empty, or set back. Until then the site shows the
  * code's versions anyway (content.ts).
  */
 export const seedSite = async (
@@ -20,12 +20,41 @@ export const seedSite = async (
     depth: 0,
     overrideAccess: true,
   });
-  if (mode === "fill" && site.links?.website) return "kept";
-  await payload.updateGlobal({
+  const links = mode === "replace" || !site.links?.website;
+  const colors = mode === "replace" || !site.cardColors?.length;
+  if (!(links || colors)) return "kept";
+  const written = await payload.updateGlobal({
     slug: "site",
-    data: SITE_DEFAULTS,
+    locale: "de",
     overrideAccess: true,
+    data: {
+      ...(links && {
+        links: SITE_DEFAULTS.links,
+        address: SITE_DEFAULTS.address,
+      }),
+      ...(colors && {
+        cardColors: SITE_DEFAULTS.cardColors.map(({ color, name }) => ({
+          color,
+          name: name.de,
+        })),
+      }),
+    },
   });
+  // The colours' English names – the same rows, found by their ids.
+  if (colors) {
+    await payload.updateGlobal({
+      slug: "site",
+      locale: "en",
+      overrideAccess: true,
+      data: {
+        cardColors: (written.cardColors ?? []).map((row, i) => ({
+          id: row.id,
+          color: row.color,
+          name: SITE_DEFAULTS.cardColors[i]?.name.en ?? row.name,
+        })),
+      },
+    });
+  }
   return "set";
 };
 

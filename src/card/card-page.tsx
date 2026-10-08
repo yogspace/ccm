@@ -17,7 +17,10 @@ import {
 import { useTranslation } from "react-i18next";
 import { trackEvent } from "../analytics";
 import Button from "../components/button";
-import { paintCardPicture } from "../components/card-image";
+import {
+  CARD_PICTURE_COLORS,
+  paintCardPicture,
+} from "../components/card-image";
 import { Crumbs } from "../components/cookie-fx";
 import CookieIcon from "../components/cookie-icon";
 import RingText from "../components/ring-text";
@@ -29,17 +32,16 @@ import {
   cookieAt,
   cookieLeft,
   cookieOutline,
-  glazeColorOf,
   leftoverCrumbs,
 } from "../cookies/models";
 import { download } from "../export/download";
 import { fileBase } from "../export/file-name";
 import { toStl } from "../export/stl";
 import { toThreeMf } from "../export/three-mf";
-import { filamentFor } from "../filaments";
+import { resolveColors, setPageGlaze } from "../glaze";
 import { readGreeting } from "../greeting";
-import { drawingKey } from "../hash-text";
 import { renderMeshTop } from "../render-top";
+import { useCardColor } from "../site-context";
 import { formatLength, initialUnit } from "../units";
 import { isEmptyDrawing, readHash } from "../url-state";
 import CardCookies from "./card-cookies";
@@ -50,9 +52,6 @@ const hash = window.location.hash;
 const shared = readHash(hash);
 const greeting = readGreeting(hash);
 const hasShape = shared.rings.length > 0 || !isEmptyDrawing(shared.drawing);
-
-/** Sender and recipient see the same colour: it follows from the drawing. */
-const filament = filamentFor(drawingKey(hash));
 
 /** A few sprinkles that burst out from behind the card – as it lands, and on every turn. */
 const SPRINKLES = Array.from({ length: 12 }, (_, i) => ({
@@ -111,6 +110,9 @@ const still = () =>
  */
 const CardPage = () => {
   const { t, i18n } = useTranslation();
+  // The favourite colour from the CMS by its number – unknown: the first.
+  // The page in its scheme, the cutter and the cookie's icing in it.
+  const { glaze } = useCardColor(greeting.color);
   const [cutter, setCutter] =
     useState<Awaited<ReturnType<typeof loadCutter>>>(null);
   const [failed, setFailed] = useState(!hasShape);
@@ -120,7 +122,7 @@ const CardPage = () => {
   const [turns, setTurns] = useState(0);
   const flipped = turns % 2 === 1;
   const mesh = cutter?.mesh ?? null;
-  const cookie = useMemo(
+  const dough = useMemo(
     () =>
       cutter && {
         dough: cutter.outline,
@@ -129,6 +131,9 @@ const CardPage = () => {
       },
     [cutter]
   );
+  // The one on the back in the favourite colour; those raining down stay
+  // colourful.
+  const cookie = useMemo(() => dough && { ...dough, glaze }, [dough, glaze]);
   const cardRef = useRef<HTMLDivElement>(null);
   /**
    * Bites out of the cookie on the back, where it was clicked – behind it
@@ -195,8 +200,9 @@ const CardPage = () => {
     if (!mesh) return;
     let current = true;
     const timer = setTimeout(async () => {
-      const cutterView = renderMeshTop(mesh, filament, 900, 788);
+      const cutterView = renderMeshTop(mesh, glaze, 900, 788);
       const blob = await paintCardPicture({
+        colors: resolveColors(document.body, CARD_PICTURE_COLORS),
         cutter: cutterView,
         heading,
         from: greeting.from ? t("card.fromName", { name: greeting.from }) : "",
@@ -215,6 +221,19 @@ const CardPage = () => {
       clearTimeout(timer);
     };
   }, [mesh, t]);
+
+  // The page in the favourite colour – set before the first paint already
+  // (glaze.ts), kept while the card is open; the browser's bar along.
+  useEffect(() => {
+    setPageGlaze(glaze);
+    const page = getComputedStyle(document.body).backgroundColor;
+    for (const meta of document.querySelectorAll<HTMLMetaElement>(
+      'meta[name="theme-color"]'
+    )) {
+      meta.content = page;
+    }
+    return () => setPageGlaze(null);
+  }, [glaze]);
 
   const [copied, setCopied] = useState(false);
 
@@ -373,7 +392,7 @@ const CardPage = () => {
   return (
     <main className="greeting">
       {/* The card's own cookie, a few times in the background. */}
-      {cookie && <CardCookies shape={cookie} />}
+      {dough && <CardCookies shape={dough} />}
       <h1
         className="greeting-to"
         // Long names get smaller instead of taking several lines.
@@ -426,7 +445,7 @@ const CardPage = () => {
               <span className="greeting-paper greeting-front">
                 {mesh ? (
                   <CardCutter
-                    color={filament}
+                    color={glaze}
                     delay={250}
                     label={t("card.cutterAlt", { name })}
                     mesh={mesh}
@@ -453,14 +472,7 @@ const CardPage = () => {
                 </span>
                 {cookie && turnSticker}
               </span>
-              <span
-                className="greeting-paper greeting-back"
-                style={
-                  cookie
-                    ? ({ "--glaze": glazeColorOf(cookie) } as CSSProperties)
-                    : undefined
-                }
-              >
+              <span className="greeting-paper greeting-back">
                 {/* The message, behind the cookie – each bite shows more. */}
                 <span
                   className="greeting-hidden"

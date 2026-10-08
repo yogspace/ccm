@@ -1,20 +1,26 @@
 import { ArrowUpRight, Check, Copy, Share2 } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { type CSSProperties, useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { trackEvent } from "../analytics";
 import { GREETING_LIMITS, type Greeting } from "../greeting";
+import { useCardColor } from "../site-context";
 import { creationUrl, greetingLink, store } from "../store";
 import { formatLength } from "../units";
 import Button from "./button";
+import CanvasView from "./canvas-view";
+import ColorSwatches from "./color-swatches";
 import CookieIcon from "./cookie-icon";
 import RingText from "./ring-text";
 
 type Props = {
   greeting: Greeting;
   onChange: (greeting: Greeting) => void;
-  /** The cutter for the little card (share-creation.tsx renders it). */
-  picture: string | null;
+  /**
+   * The cutter from above in the favourite colour (share-creation.tsx
+   * renders it).
+   */
+  picture: HTMLCanvasElement | null;
 };
 
 /**
@@ -35,6 +41,8 @@ const CardComposer = ({ greeting, onChange, picture }: Props) => {
   const title = name.trim() || "Cookie Cutter";
   const canSend = "share" in navigator;
   const lang = i18n.resolvedLanguage ?? "en";
+  // The favourite colour from the CMS; an unknown number is the first.
+  const { chosen, glaze } = useCardColor(greeting.color);
   const creation = creationUrl();
   // Drawn on since: the card is made anew.
   const link = created?.creation === creation ? created.link : null;
@@ -45,8 +53,13 @@ const CardComposer = ({ greeting, onChange, picture }: Props) => {
     return () => clearTimeout(timer);
   }, [copied]);
 
-  const set = (field: keyof Greeting) => (value: string) => {
+  const set = (field: "to" | "from" | "message") => (value: string) => {
     onChange({ ...greeting, [field]: value });
+    setCreated(null);
+  };
+
+  const pick = (color: number) => {
+    onChange({ ...greeting, color });
     setCreated(null);
   };
 
@@ -79,13 +92,17 @@ const CardComposer = ({ greeting, onChange, picture }: Props) => {
 
   return (
     <>
-      {/* The card page in small: the message runs around the cutter. Its
-          place is kept while the cutter renders. */}
-      <div aria-hidden className="share-visual composer-preview">
+      {/* The card page in small, in the favourite colour: the message runs
+          around the cutter. Its place is kept while the cutter renders. */}
+      <div
+        aria-hidden
+        className="share-visual composer-preview glaze"
+        style={{ "--glaze": glaze } as CSSProperties}
+      >
         <RingText text={greeting.message.trim() || t("card.ring")} />
         <div className="composer-card">
           {picture ? (
-            <img alt="" src={picture} />
+            <CanvasView canvas={picture} />
           ) : (
             <span
               className="composer-ghost"
@@ -143,6 +160,9 @@ const CardComposer = ({ greeting, onChange, picture }: Props) => {
             value={greeting.message}
           />
         </label>
+        {/* The favourite colour: the page, the card, its words, the cutter
+            and the cookie's icing in its shades. */}
+        <ColorSwatches onChange={pick} value={chosen} />
 
         {link ? (
           <>

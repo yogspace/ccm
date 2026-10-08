@@ -3,13 +3,23 @@ import { RING_RADIUS, ringLayout } from "./ring-text";
 /** The greeting card as a picture – portrait 4:5, as Instagram likes it. */
 const WIDTH = 1080;
 const HEIGHT = 1350;
-const PAGE = "#2a44ff";
-const SHEET = "#fffdf8";
-const INK = "#0d1033";
-const INK_MUTED = "#6a6e8c";
 const FONT = '"Pally", system-ui, sans-serif';
 
+/**
+ * The card's favourite colour and its shades, as the page shows them
+ * (index.css, read with resolveColors – glaze.ts).
+ */
+export const CARD_PICTURE_COLORS = {
+  page: "--glaze",
+  onPage: "--on-glaze",
+  onPageMuted: "--on-glaze-muted",
+  sheet: "--card-sheet",
+  ink: "--card-ink",
+  inkMuted: "--card-ink-muted",
+} as const;
+
 export type CardPicture = {
+  colors: Record<keyof typeof CARD_PICTURE_COLORS, string>;
   /** The cutter from above on a transparent background. */
   cutter: HTMLCanvasElement | null;
   /** “For Carla” */
@@ -56,7 +66,7 @@ const fitFont = (
 };
 
 /** A line of text cut with “…” where it does not fit. */
-const truncate = (
+export const truncate = (
   ctx: CanvasRenderingContext2D,
   text: string,
   width: number
@@ -73,6 +83,7 @@ const truncate = (
 const drawRing = (
   ctx: CanvasRenderingContext2D,
   text: string,
+  color: string,
   cx: number,
   cy: number,
   stage: number
@@ -81,7 +92,7 @@ const drawRing = (
   const unit = stage / 100;
   const radius = RING_RADIUS * unit;
   ctx.font = `600 ${size * unit}px ${FONT}`;
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = color;
   ctx.textBaseline = "alphabetic";
   let along = 0;
   for (const char of content) {
@@ -100,7 +111,7 @@ const drawRing = (
 /** The paper card, tilted a little: the cutter on it, name and size below. */
 const drawCard = (
   ctx: CanvasRenderingContext2D,
-  { cutter, name, size }: CardPicture,
+  { colors, cutter, name, size }: CardPicture,
   cx: number,
   cy: number,
   stage: number
@@ -115,7 +126,7 @@ const drawCard = (
   ctx.shadowColor = "rgb(4 8 60 / 0.5)";
   ctx.shadowBlur = 70;
   ctx.shadowOffsetY = 34;
-  ctx.fillStyle = SHEET;
+  ctx.fillStyle = colors.sheet;
   ctx.beginPath();
   ctx.roundRect(-half, -half, side, side, stage * 0.055);
   ctx.fill();
@@ -140,10 +151,10 @@ const drawCard = (
   ctx.textBaseline = "alphabetic";
   ctx.font = `600 ${label * 0.68}px ${FONT}`;
   const sizeWidth = ctx.measureText(size).width;
-  ctx.fillStyle = INK_MUTED;
+  ctx.fillStyle = colors.inkMuted;
   ctx.fillText(size, half - pad - sizeWidth, baseline);
   ctx.font = `700 ${label}px ${FONT}`;
-  ctx.fillStyle = INK;
+  ctx.fillStyle = colors.ink;
   ctx.fillText(
     truncate(ctx, name, side - 2 * pad - sizeWidth - label),
     -half + pad,
@@ -168,7 +179,8 @@ export const paintCardPicture = async (card: CardPicture) => {
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
 
-  ctx.fillStyle = PAGE;
+  const { colors } = card;
+  ctx.fillStyle = colors.page;
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
   glow(ctx, WIDTH / 2, 660, 560, "rgb(255 255 255 / 0.2)");
   glow(ctx, WIDTH / 2, HEIGHT + 200, 820, "rgb(255 71 208 / 0.32)");
@@ -181,15 +193,15 @@ export const paintCardPicture = async (card: CardPicture) => {
   ctx.textAlign = "center";
   ctx.lineJoin = "round";
   ctx.lineWidth = headingSize * 0.05;
-  ctx.strokeStyle = "#ffffff";
-  ctx.fillStyle = "#ffffff";
+  ctx.strokeStyle = colors.onPage;
+  ctx.fillStyle = colors.onPage;
   ctx.strokeText(card.heading, 0, 0);
   ctx.fillText(card.heading, 0, 0);
   ctx.restore();
 
   const stage = 860;
   const cy = 680;
-  drawRing(ctx, card.ring, WIDTH / 2, cy, stage);
+  drawRing(ctx, card.ring, colors.onPage, WIDTH / 2, cy, stage);
   drawCard(ctx, card, WIDTH / 2, cy, stage);
 
   ctx.textAlign = "center";
@@ -198,12 +210,12 @@ export const paintCardPicture = async (card: CardPicture) => {
     ctx.translate(WIDTH / 2, 1195);
     ctx.rotate((-1 * Math.PI) / 180);
     fitFont(ctx, card.from, 600, 56, WIDTH - 200);
-    ctx.fillStyle = "rgb(255 255 255 / 0.74)";
+    ctx.fillStyle = colors.onPageMuted;
     ctx.fillText(card.from, 0, 0);
     ctx.restore();
   }
   ctx.font = `600 30px ${FONT}`;
-  ctx.fillStyle = "rgb(255 255 255 / 0.6)";
+  ctx.fillStyle = colors.onPageMuted;
   ctx.fillText(card.site, WIDTH / 2, HEIGHT - 52);
 
   const blob = await new Promise<Blob | null>((resolve) =>

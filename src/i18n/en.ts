@@ -115,6 +115,7 @@ export const en: typeof de = {
     for: "For {{name}}",
     fromName: "from {{name}}",
     ring: "A cookie cutter, just for you",
+    color: "Favourite colour",
     loading: "Shaping your cookie cutter …",
     failed: "That didn’t work just now.",
     retry: "Try again",
