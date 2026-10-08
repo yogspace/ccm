@@ -11,13 +11,13 @@ const tones = {
   page: {
     group: "items-center bg-on-page-soft",
     button:
-      "h-7.25 rounded-[0.6rem] tracking-[0.04em] text-on-page-muted not-aria-pressed:hover:enabled:text-on-page aria-pressed:text-page",
+      "h-7 rounded-lg tracking-wider text-on-page-muted not-aria-pressed:hover:enabled:text-on-page aria-pressed:text-page",
     pill: "bg-on-page",
   },
   card: {
     group: "bg-surface-2",
     button:
-      "h-8.75 px-3.5 text-muted hover:enabled:text-ink aria-pressed:text-accent",
+      "h-9 px-3.5 text-muted hover:enabled:text-ink aria-pressed:text-accent",
     pill: "bg-accent-soft",
   },
 };
@@ -47,18 +47,14 @@ const Segmented = <T extends string>({
   return (
     <fieldset
       aria-label={label}
-      className={cn(
-        "flex gap-0.5 rounded-[0.8rem] p-0.75",
-        styles.group,
-        className
-      )}
+      className={cn("flex gap-0.5 rounded-xl p-1", styles.group, className)}
     >
       {children}
       {options.map((option) => (
         <button
           aria-pressed={option.value === value}
           className={cn(
-            "relative h-8 bg-transparent px-2.25 text-small",
+            "relative h-8 bg-transparent px-2 text-small",
             styles.button
           )}
           key={option.value}

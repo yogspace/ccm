@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 /**
  * Dev server only: the app posts the drawing on screen as a geometry test case
- * (Alt+Shift+F, see src/dev-fixture.ts) – it lands in test/fixtures/.
+ * (its “Test case” button, see src/components/dev-fixture.tsx) – it lands in test/fixtures/.
  */
 export const POST = async (request: Request) => {
   if (process.env.NODE_ENV !== "development") {

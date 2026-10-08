@@ -9,7 +9,7 @@ import { cn } from "../cn";
 export const Card = ({ className, ...props }: ComponentProps<"section">) => (
   <section
     className={cn(
-      "flex animate-rise flex-col gap-5 rounded-[1.35rem] bg-card px-7 pt-6 pb-7 text-ink backdrop-blur-[18px] nth-2:[animation-delay:0.06s] nth-3:[animation-delay:0.12s] max-sm:px-4",
+      "flex animate-rise flex-col gap-5 rounded-3xl bg-card px-7 pt-6 pb-7 text-ink backdrop-blur-[18px] nth-2:[animation-delay:0.06s] nth-3:[animation-delay:0.12s] max-sm:px-4",
       className
     )}
     {...props}

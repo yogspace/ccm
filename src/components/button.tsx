@@ -13,7 +13,7 @@ const kinds = {
     "bg-accent text-on-accent hover:enabled:bg-[color-mix(in_oklab,var(--color-accent)_86%,#000)]",
   /** Quiet: no surface until hovered. */
   ghost:
-    "h-7.5 bg-transparent px-2.5 text-muted hover:enabled:bg-surface-2 hover:enabled:text-ink",
+    "h-8 bg-transparent px-2.5 text-muted hover:enabled:bg-surface-2 hover:enabled:text-ink",
   /** Just its floating cookie, no surface behind it. */
   icon: "w-9 bg-transparent p-0",
   /** Only its words, like a link. */

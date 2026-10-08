@@ -34,7 +34,7 @@ const ToolPicker = ({ tool, onChoose }: Props) => {
     // biome-ignore lint/a11y/useSemanticElements: a group of toggles, not a form
     <div
       aria-label={t("draw.tools")}
-      className="flex items-center gap-2.5 [grid-area:tools] justify-self-start @max-[34rem]/draw:gap-1.75 beside:flex-col beside:gap-3 beside:self-start beside:justify-self-center"
+      className="flex items-center gap-2.5 [grid-area:tools] justify-self-start @max-[34rem]/draw:gap-2 beside:flex-col beside:gap-3 beside:self-start beside:justify-self-center"
       role="group"
     >
       {TOOLS.map(([value, icon, icing, roll, label]) => (
@@ -59,7 +59,7 @@ const ToolPicker = ({ tool, onChoose }: Props) => {
           {tool === value && (
             <motion.span
               aria-hidden
-              className="absolute -bottom-2.5 left-1/2 -ml-3.25 h-1 w-6.5 rounded-xs bg-accent beside:top-1/2 beside:bottom-auto beside:-left-2.5 beside:m-0 beside:-mt-3.25 beside:h-6.5 beside:w-1"
+              className="absolute -bottom-2.5 left-1/2 -ml-3 h-1 w-6 rounded-xs bg-accent beside:top-1/2 beside:bottom-auto beside:-left-2.5 beside:m-0 beside:-mt-3 beside:h-6 beside:w-1"
               layoutId={`${id}-tool`}
               transition={{ type: "spring", stiffness: 520, damping: 34 }}
             />

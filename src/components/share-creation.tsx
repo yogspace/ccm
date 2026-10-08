@@ -241,7 +241,7 @@ const ShareCreation = ({ preview }: Props) => {
       className="relative z-10 mt-[calc(var(--fan-card)*-0.45)] block w-[min(100%,52rem)] self-center"
       ref={boxRef}
     >
-      <div className="flex flex-col gap-4.5" ref={bodyRef}>
+      <div className="flex flex-col gap-4" ref={bodyRef}>
         <CardHead className="flex-wrap">
           <CardTitle>{t("share.creation")}</CardTitle>
           <Segmented
@@ -315,7 +315,7 @@ const ShareCreation = ({ preview }: Props) => {
                 >
                   <span
                     aria-hidden
-                    className="glaze relative aspect-square w-18 flex-none -rotate-4 overflow-hidden rounded-[0.9rem] bg-glaze shadow-[0_0.45rem_0.9rem_-0.35rem_rgb(4_8_60/0.5)] [transition:--glaze_0.5s_var(--ease-soft),rotate_0.4s_var(--ease-spring),scale_0.4s_var(--ease-spring)] group-hover/invite:scale-106 group-hover/invite:rotate-3"
+                    className="glaze relative aspect-square w-18 flex-none -rotate-4 overflow-hidden rounded-xl bg-glaze shadow-[0_0.45rem_0.9rem_-0.35rem_rgb(4_8_60/0.5)] [transition:--glaze_0.5s_var(--ease-soft),rotate_0.4s_var(--ease-spring),scale_0.4s_var(--ease-spring)] group-hover/invite:scale-106 group-hover/invite:rotate-3"
                     style={{ "--glaze": glaze } as CSSProperties}
                   >
                     <RingText
@@ -325,7 +325,7 @@ const ShareCreation = ({ preview }: Props) => {
                       )}
                       text={t("card.ring")}
                     />
-                    <span className="absolute inset-1/4 grid -rotate-3 place-items-center rounded-[0.35rem] bg-card-sheet">
+                    <span className="absolute inset-1/4 grid -rotate-3 place-items-center rounded-md bg-card-sheet">
                       <CookieIcon
                         className="m-0 [--cookie-scale:0.72]"
                         icing="#ffc31f"
@@ -343,7 +343,7 @@ const ShareCreation = ({ preview }: Props) => {
                     </small>
                   </span>
                   <CookieIcon
-                    className="-mx-1.25 -my-2 transition-[translate] duration-350 ease-spring group-hover/invite:translate-x-1.25"
+                    className="-mx-1 -my-2 transition-[translate] duration-350 ease-spring group-hover/invite:translate-x-1"
                     icing="#ff5fa8"
                     icon={ArrowRight}
                     idle={false}

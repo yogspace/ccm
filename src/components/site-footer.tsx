@@ -27,7 +27,7 @@ const SiteFooter = ({ className, compact = false }: Props) => {
   const links = useSiteLinks();
   // Links and credit; on phones stacked (unless compact).
   const group = cn(
-    "inline-flex flex-wrap items-center gap-1.25",
+    "inline-flex flex-wrap items-center gap-1",
     !compact && "max-sm:flex-col max-sm:items-start max-sm:gap-1.5"
   );
 
@@ -37,7 +37,7 @@ const SiteFooter = ({ className, compact = false }: Props) => {
       className={cn(
         "mt-auto flex flex-wrap items-center justify-between gap-x-8 gap-y-3 border-t border-on-page-line pt-3.5 pr-2 pb-1.5 pl-30 text-body text-on-page-muted max-sm:pl-26",
         compact
-          ? "max-sm:gap-x-3.5 max-sm:gap-y-0.75 max-sm:pt-2.5 max-sm:text-small"
+          ? "max-sm:gap-x-3.5 max-sm:gap-y-1 max-sm:pt-2.5 max-sm:text-small"
           : "max-sm:flex-col max-sm:items-start",
         className
       )}

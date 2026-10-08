@@ -17,7 +17,7 @@ The geometry is built entirely in the browser. The server ([Next.js](https://nex
   - open spans up to 8 mm are flat links at flange height, longer ones arched bridges: low in the middle, running into the walls with fillets measured by the real distance to the wall, always leaving room below the cutting edge for the dough
   - links and bridges blend into walls and flanges with round fillets; hairline gaps between flanges are closed, small pockets in the plate filled, larger ones rounded
   - adjustable bridge width
-- Geometry tests (`pnpm test`, also in the pipeline): drawn and generated shapes must come out as one part, with nothing in the dough's room, nothing over an opening, no hairline slits or sharp corners next to inner blades, and no more arches than needed. In the dev server, Alt+Shift+F saves the drawing on screen as a new test case
+- Geometry tests (`pnpm test`, also in the pipeline): drawn and generated shapes must come out as one part, with nothing in the dough's room, nothing over an opening, no hairline slits or sharp corners next to inner blades, and no more arches than needed. In the dev server, a “Test case” button in the corner saves the drawing on screen as a new one
 - Live contour (cutting line) over the drawing, 3D preview as a turntable (floor and model turn together, can be stopped); every new cutter gets a different filament colour
 - 3D cookies as icons (rendered live, looking at the mouse, turning on hover) and in the background
 - Dimensions in mm or inch, a name for the creation, download as 3MF and STL (`<name>-80mm.3mf`)
@@ -49,7 +49,7 @@ src/
   cn.ts                       joins class names; of conflicting utilities the later wins (tailwind-merge)
   card/                       the greeting card: card-root/card-entry (browser only), card-page, card-cutter (3D on the card), load-cutter
   store.ts                    state (valtio): actions, cutter worker, link in the hash, scroll lock
-  components/                 draw-canvas, tool-picker, preview-3d, parameter-panel, share-creation, gallery-fan, cookie-bar, cookie-fx (flight, crumbs), button, card, …; styles.ts: classes shared by several
+  components/                 draw-canvas, tool-picker, preview-3d, parameter-panel, share-creation, gallery-fan, cookie-bar, cookie-fx (flight, crumbs), button, card, dev-fixture (dev server only: saves the drawing as a test case), …; styles.ts: classes shared by several
   drawing.ts                  the drawing as vectors: painting, finding objects, moving/rotating/scaling, erasing
   presets.ts                  a template's outline from its SVG
   content.ts, assets.ts       templates and gallery pictures from the CMS; the editor gets them through a context
@@ -80,7 +80,6 @@ src/
   cookie-jar.ts, cookie-flight.ts   the cookie bar's cookies in localStorage; a cookie's flight into the bar
   filaments.ts, hash-text.ts  filament colours, stable numbers from texts (same colour, same sprinkles everywhere)
   greeting.ts                 the card's link: recipient, sender, message on top of the creation's hash
-  dev-fixture.ts              dev server only: Alt+Shift+F saves the drawing as a test case
   units.ts                    mm/inch
 scripts/                      prepare.mjs (Pally + manifold.wasm before dev/build), sync-db.sh, sync-media.sh, setup-cron.sh
 test/                         geometry tests (Vitest): cutter.test.ts, clean.ts (inspects a cutter in slices), shapes.ts, fixtures/ (drawn shapes)
@@ -130,7 +129,7 @@ make up-db                                        # local MongoDB on 27018 (make
 pnpm dev          # http://localhost:3000, admin at /admin
 pnpm lint         # Biome (format + lint)
 pnpm typecheck    # Next's route types + TypeScript
-pnpm test         # geometry tests (Vitest); Alt+Shift+F in the dev server adds the drawing on screen to test/fixtures/
+pnpm test         # geometry tests (Vitest); “Test case” in the dev server adds the drawing on screen to test/fixtures/
 pnpm build        # → .next/ (standalone)
 ```
 

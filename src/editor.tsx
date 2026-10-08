@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { trackView } from "./analytics";
 import { type Assets, AssetsContext } from "./assets";
 import App from "./editor-app";
@@ -9,10 +9,12 @@ import { CardColorsContext, SiteLinksContext } from "./site-context";
 import type { CardColor, SiteLinks } from "./site-defaults";
 import type { Texts } from "./translations/defaults";
 
-// Dev server only: save the drawing as a test case (Alt+Shift+F).
-if (process.env.NODE_ENV === "development") {
-  import("./dev-fixture").then(({ listenForFixtures }) => listenForFixtures());
-}
+// Dev server only: a button that saves the drawing as a test case – not in
+// the production bundle.
+const DevFixture =
+  process.env.NODE_ENV === "development"
+    ? lazy(() => import("./components/dev-fixture"))
+    : null;
 
 trackView();
 
@@ -42,6 +44,11 @@ const Editor = ({ texts, links, colors, ...assets }: EditorProps) => {
       <CardColorsContext value={colors}>
         <AssetsContext value={assets}>
           <App />
+          {DevFixture && (
+            <Suspense>
+              <DevFixture />
+            </Suspense>
+          )}
         </AssetsContext>
       </CardColorsContext>
     </SiteLinksContext>

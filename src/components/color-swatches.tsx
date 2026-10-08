@@ -21,12 +21,14 @@ const ColorSwatches = ({ value, onChange }: Props) => {
       <legend className="mb-1.5 text-small font-bold text-ink">
         {t("card.color")}
       </legend>
-      <div className="flex flex-wrap gap-2.25">
+      <div className="flex flex-wrap gap-2">
         {colors.map(({ color, name }, index) => (
           <button
             aria-label={name[lang]}
             aria-pressed={value === index}
-            className="size-8 rounded-full bg-(--swatch) p-0 [box-shadow:0_0_0_2px_var(--color-card),0_0_0_4px_transparent] [transition:box-shadow_0.2s_var(--ease-soft),scale_0.25s_var(--ease-spring)] hover:enabled:scale-110 aria-pressed:[box-shadow:0_0_0_2px_var(--color-card),0_0_0_4px_var(--swatch)]"
+            // The ring in its colour lies hidden under the gap in the card's
+            // colour; chosen, it springs out from under it.
+            className="size-8 rounded-full bg-(--swatch) p-0 [box-shadow:0_0_0_2px_var(--color-card),0_0_0_2px_var(--swatch)] [transition:box-shadow_0.45s_var(--ease-spring),scale_0.25s_var(--ease-spring)] hover:enabled:scale-110 aria-pressed:[box-shadow:0_0_0_2px_var(--color-card),0_0_0_4px_var(--swatch)]"
             key={`${index}-${color}`}
             onClick={() => onChange(index)}
             style={{ "--swatch": color } as CSSProperties}

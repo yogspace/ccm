@@ -194,7 +194,7 @@
   /* Buttons: this is their look; components/button.tsx has their kinds.
      Lifting and pressing are animated by motion. */
   button {
-    @apply inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-[0.6rem] bg-surface-2 px-3.5 text-body font-bold whitespace-nowrap text-ink transition-[background-color,color];
+    @apply inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-surface-2 px-3.5 text-body font-bold whitespace-nowrap text-ink transition-[background-color,color];
     @apply hover:enabled:bg-[color-mix(in_oklab,var(--color-surface-2)_82%,var(--color-ink))];
     @apply disabled:cursor-default disabled:opacity-40;
   }
@@ -314,6 +314,15 @@
 @keyframes ring-turn {
   to {
     rotate: 360deg;
+  }
+}
+
+/* The share box's picture or little card, swapped: up out of the box,
+   fading in. */
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    scale: 0.85;
   }
 }
 

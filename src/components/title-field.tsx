@@ -28,7 +28,7 @@ const TitleField = () => {
           smaller. */}
       <input
         aria-label={t("export.name")}
-        className="h-11.5 w-full min-w-0 rounded-xl bg-field pr-11.5 pl-3.25 text-title font-bold tracking-title text-ellipsis text-field-ink outline-2 outline-transparent embolden-20 transition-[background-color,outline-color] placeholder:text-field-muted placeholder:embolden-0 hover:bg-[color-mix(in_oklab,var(--color-field)_92%,var(--color-field-ink))] focus:outline-accent focus:placeholder:text-body"
+        className="h-12 w-full min-w-0 rounded-xl bg-field pr-12 pl-3 text-title font-bold tracking-title text-ellipsis text-field-ink outline-2 outline-transparent embolden-20 transition-[background-color,outline-color] placeholder:text-field-muted placeholder:embolden-0 hover:bg-[color-mix(in_oklab,var(--color-field)_92%,var(--color-field-ink))] focus:outline-accent focus:placeholder:text-body"
         enterKeyHint="done"
         maxLength={60}
         onBlur={() => setFocused(false)}
@@ -49,7 +49,7 @@ const TitleField = () => {
       {!name && (
         <span
           aria-hidden
-          className="pointer-events-none absolute right-1.75 grid size-8 place-items-center"
+          className="pointer-events-none absolute right-2 grid size-8 place-items-center"
         >
           <CookieIcon
             className="-m-1"
@@ -64,7 +64,7 @@ const TitleField = () => {
       {name && (
         <Button
           aria-label={t("export.clearName")}
-          className="absolute right-1.75 grid size-8 place-items-center bg-transparent p-0 [transition:opacity_0.2s_var(--ease-soft),scale_0.3s_var(--ease-spring),background_0.2s_var(--ease-soft)] starting:scale-60 starting:opacity-0"
+          className="absolute right-2 grid size-8 place-items-center bg-transparent p-0 [transition:opacity_0.2s_var(--ease-soft),scale_0.3s_var(--ease-spring),background_0.2s_var(--ease-soft)] starting:scale-60 starting:opacity-0"
           onClick={() => {
             setName("");
             inputRef.current?.focus();

@@ -35,7 +35,7 @@ const LegalNotice = () => {
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: Escape closes the dialog natively, the click is only for the backdrop */}
       <dialog
         aria-label={t("footer.imprint")}
-        className="m-auto max-h-[min(85dvh,48rem)] w-[min(40rem,100%-2rem)] translate-y-4 scale-98 overflow-hidden rounded-[1.6rem] bg-surface p-2.5 text-ink opacity-0 [transition:opacity_0.25s_var(--ease-soft),translate_0.35s_var(--ease-spring),scale_0.35s_var(--ease-spring),overlay_0.25s_allow-discrete,display_0.25s_allow-discrete] backdrop:bg-black/0 backdrop:backdrop-blur-[0px] backdrop:[transition:background_0.25s_var(--ease-soft),backdrop-filter_0.25s_var(--ease-soft),overlay_0.25s_allow-discrete,display_0.25s_allow-discrete] open:flex open:translate-y-0 open:scale-100 open:flex-col open:opacity-100 open:backdrop:bg-black/35 open:backdrop:backdrop-blur-xs starting:open:translate-y-4 starting:open:scale-98 starting:open:opacity-0 starting:open:backdrop:bg-black/0 starting:open:backdrop:backdrop-blur-[0px]"
+        className="m-auto max-h-[min(85dvh,48rem)] w-[min(40rem,100%-2rem)] translate-y-4 scale-98 overflow-hidden rounded-3xl bg-surface p-2.5 text-ink opacity-0 [transition:opacity_0.25s_var(--ease-soft),translate_0.35s_var(--ease-spring),scale_0.35s_var(--ease-spring),overlay_0.25s_allow-discrete,display_0.25s_allow-discrete] backdrop:bg-black/0 backdrop:backdrop-blur-[0px] backdrop:[transition:background_0.25s_var(--ease-soft),backdrop-filter_0.25s_var(--ease-soft),overlay_0.25s_allow-discrete,display_0.25s_allow-discrete] open:flex open:translate-y-0 open:scale-100 open:flex-col open:opacity-100 open:backdrop:bg-black/35 open:backdrop:backdrop-blur-xs starting:open:translate-y-4 starting:open:scale-98 starting:open:opacity-0 starting:open:backdrop:bg-black/0 starting:open:backdrop:backdrop-blur-[0px]"
         // A click on the dimmed backdrop closes the dialog.
         onClick={(event) => {
           if (event.target === event.currentTarget) event.currentTarget.close();
@@ -47,7 +47,7 @@ const LegalNotice = () => {
         {/* Outside the scrolling area, so it stays put while scrolling. */}
         <Button
           aria-label={t("legal.close")}
-          className="absolute top-4.5 right-4.5 z-1 size-10"
+          className="absolute top-4 right-4 z-1 size-10"
           kind="icon"
           onClick={() => dialogRef.current?.close()}
           type="button"
@@ -63,7 +63,7 @@ const LegalNotice = () => {
         {/* The text from the CMS has no classes of its own – its headings,
             paragraphs, lists and links are styled from here. A slim, round
             scrollbar without a track (in Safari too). */}
-        <div className="min-h-0 overflow-y-auto overscroll-contain px-6 pt-5 pb-6 text-body [scrollbar-color:color-mix(in_oklab,var(--color-muted)_55%,transparent)_transparent] scrollbar-thin [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-sm [&::-webkit-scrollbar-thumb]:bg-muted/55 [&_:is(p,address)]:mb-2 [&_:is(p,address)]:text-muted [&_:is(ul,ol)]:my-4 [&_:is(ul,ol)]:pl-10 [&_a]:text-ink [&_a]:hover:underline [&_a]:hover:underline-offset-3 [&_address]:not-italic [&_h2]:pr-12 [&_h2]:text-title [&_h2]:leading-[1.2] [&_h2]:font-bold [&_h2]:tracking-title [&_h2]:embolden-20 [&_h2:not(:first-of-type)]:mt-9 [&_h3]:mt-5 [&_h3]:mb-1.25 [&_h3]:text-body [&_h3]:font-bold [&_ol]:list-decimal [&_ul]:list-disc">
+        <div className="min-h-0 overflow-y-auto overscroll-contain px-6 pt-5 pb-6 text-body [scrollbar-color:color-mix(in_oklab,var(--color-muted)_55%,transparent)_transparent] scrollbar-thin [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-sm [&::-webkit-scrollbar-thumb]:bg-muted/55 [&_:is(p,address)]:mb-2 [&_:is(p,address)]:text-muted [&_:is(ul,ol)]:my-4 [&_:is(ul,ol)]:pl-10 [&_a]:text-ink [&_a]:hover:underline [&_a]:hover:underline-offset-3 [&_address]:not-italic [&_h2]:pr-12 [&_h2]:text-title [&_h2]:leading-[1.2] [&_h2]:font-bold [&_h2]:tracking-title [&_h2]:embolden-20 [&_h2:not(:first-of-type)]:mt-9 [&_h3]:mt-5 [&_h3]:mb-1 [&_h3]:text-body [&_h3]:font-bold [&_ol]:list-decimal [&_ul]:list-disc">
           {legal?.[i18n.resolvedLanguage === "de" ? "de" : "en"]}
         </div>
       </dialog>

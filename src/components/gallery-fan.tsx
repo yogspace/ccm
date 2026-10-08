@@ -44,7 +44,7 @@ const GalleryFan = () => {
         const angle = offset * spread;
         return (
           <motion.div
-            className="absolute top-0 left-[calc(50%-var(--fan-card)/2)] aspect-square w-(--fan-card) origin-[50%_300%] rounded-[1.4rem] border-2 border-white/85 bg-[#2a44ff] p-[calc(var(--fan-card)*0.06)] shadow-[0_1.2rem_2.5rem_rgb(5_10_60/0.35)]"
+            className="absolute top-0 left-[calc(50%-var(--fan-card)/2)] aspect-square w-(--fan-card) origin-[50%_300%] rounded-3xl border-2 border-white/85 bg-[#2a44ff] p-[calc(var(--fan-card)*0.06)] shadow-[0_1.2rem_2.5rem_rgb(5_10_60/0.35)]"
             initial={still ? false : { y: "70%", rotate: 0, opacity: 0 }}
             key={i}
             style={{ zIndex: CARDS - Math.abs(offset) }}
@@ -69,7 +69,7 @@ const GalleryFan = () => {
           >
             <img
               alt=""
-              className="block size-full rounded-[0.9rem] bg-white object-cover"
+              className="block size-full rounded-xl bg-white object-cover"
               decoding="async"
               loading="lazy"
               src={hand[i]}

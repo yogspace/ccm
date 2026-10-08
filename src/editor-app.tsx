@@ -1,4 +1,4 @@
-import { Maximize2, Minimize2, Rotate3d, Ruler } from "lucide-react";
+import { Rotate3d, Ruler } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
@@ -26,8 +26,7 @@ import {
   stage,
   stageHint,
 } from "./components/styles";
-import TitleField from "./components/title-field";
-import { connectStore, store, toggleAutoRotate, toggleExpanded } from "./store";
+import { connectStore, store, toggleAutoRotate } from "./store";
 import { formatLength } from "./units";
 
 /**
@@ -56,38 +55,17 @@ const App = () => {
 
       {/* Desktop: shape and cutter side by side, at window height – the row
           fills exactly the height left beside header and footer; the fan and
-          footer follow below. The drawing area follows the height, the 3D
-          view fills the rest. Enlarged: drawing across the full width, the
-          preview below. Narrow: stacked, areas as wide as possible –
+          footer follow below. The drawing area follows the height; its card
+          is only as wide as it needs (--shape-w, set by draw-canvas.tsx), the
+          cutter card takes the rest. Enlarged: drawing across the full width,
+          the preview below. Narrow: stacked, areas as wide as possible –
           scrolling is fine here. */}
       <main
-        className="relative z-1 grid grid-cols-2 items-stretch gap-6 [--stage-size:min(100%,max(24rem,calc(100dvh-23rem)))] data-expanded:grid-cols-1 md:not-data-expanded:min-h-[calc(100dvh-8.5rem)] md:not-data-expanded:flex-1 md:not-data-expanded:grid-rows-[minmax(0,1fr)] md:data-expanded:[--stage-size:min(100%,60rem)] max-md:grid-cols-1 max-md:[--stage-size:100%]"
+        className="relative z-1 grid grid-cols-[minmax(0,var(--shape-w,1fr))_minmax(0,1fr)] items-stretch gap-6 [--stage-size:min(100%,max(24rem,calc(100dvh-23rem)))] data-expanded:grid-cols-1 md:not-data-expanded:min-h-[calc(100dvh-8.5rem)] md:not-data-expanded:flex-1 md:not-data-expanded:grid-rows-[minmax(0,1fr)] md:data-expanded:[--stage-size:min(100%,60rem)] max-md:grid-cols-1 max-md:[--stage-size:100%]"
         data-expanded={expanded || undefined}
       >
+        {/* Its head is a row of the drawing area's grid (draw-canvas.tsx). */}
         <Card className="[view-transition-name:shape-card]">
-          <CardHead>
-            {/* The title is the creation's name – written right here. */}
-            <TitleField />
-            {/* When narrow the drawing area is full width anyway –
-                enlarging gains nothing. */}
-            <Button
-              aria-label={t(expanded ? "draw.shrink" : "draw.expand")}
-              aria-pressed={expanded}
-              className="max-md:hidden"
-              kind="icon"
-              onClick={toggleExpanded}
-              title={t(expanded ? "draw.shrink" : "draw.expand")}
-              type="button"
-            >
-              <CookieIcon
-                className={cookieInIconButton}
-                icing="#2a44ff"
-                icon={expanded ? Minimize2 : Maximize2}
-                roll={-10}
-                size={52}
-              />
-            </Button>
-          </CardHead>
           <DrawCanvas />
           <ErrorPopup />
         </Card>

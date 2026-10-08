@@ -74,7 +74,7 @@ const ContactForm = () => {
         <Field htmlFor={`${ids}-name`} label={t("contact.name")}>
           <input
             autoComplete="name"
-            className={cn(fieldInput, "h-10.5")}
+            className={cn(fieldInput, "h-11")}
             id={`${ids}-name`}
             maxLength={200}
             name="name"
@@ -84,7 +84,7 @@ const ContactForm = () => {
         <Field htmlFor={`${ids}-email`} label={t("contact.email")}>
           <input
             autoComplete="email"
-            className={cn(fieldInput, "h-10.5")}
+            className={cn(fieldInput, "h-11")}
             id={`${ids}-email`}
             maxLength={200}
             name="email"
@@ -97,7 +97,7 @@ const ContactForm = () => {
         <textarea
           className={cn(
             fieldInput,
-            "field-sizing-content min-h-19.25 resize-none leading-[1.4]"
+            "field-sizing-content min-h-20 resize-none leading-[1.4]"
           )}
           id={`${ids}-message`}
           maxLength={5000}

@@ -38,7 +38,7 @@ const PrintHints = () => {
         id="print-hints"
         popover="auto"
       >
-        <ul className="list-disc space-y-1.5 pl-4.75">
+        <ul className="list-disc space-y-1.5 pl-5">
           <li>{t("hints.material")}</li>
           <li>{t("hints.foodSafe")}</li>
           <li>{t("hints.orientation")}</li>

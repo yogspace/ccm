@@ -150,7 +150,7 @@ const CardComposer = ({ greeting, onChange, picture }: Props) => {
           <Field htmlFor={`${ids}-to`} label={t("card.to")}>
             <input
               autoComplete="off"
-              className={cn(fieldInput, "h-10.5")}
+              className={cn(fieldInput, "h-11")}
               id={`${ids}-to`}
               maxLength={GREETING_LIMITS.name}
               onChange={(event) => set("to")(event.target.value)}
@@ -161,7 +161,7 @@ const CardComposer = ({ greeting, onChange, picture }: Props) => {
           <Field htmlFor={`${ids}-from`} label={t("card.from")}>
             <input
               autoComplete="name"
-              className={cn(fieldInput, "h-10.5")}
+              className={cn(fieldInput, "h-11")}
               id={`${ids}-from`}
               maxLength={GREETING_LIMITS.name}
               onChange={(event) => set("from")(event.target.value)}
@@ -184,7 +184,7 @@ const CardComposer = ({ greeting, onChange, picture }: Props) => {
           <textarea
             className={cn(
               fieldInput,
-              "field-sizing-content min-h-19.25 resize-none leading-[1.4]"
+              "field-sizing-content min-h-20 resize-none leading-[1.4]"
             )}
             id={`${ids}-message`}
             maxLength={GREETING_LIMITS.message}

@@ -55,6 +55,7 @@ import Button from "./button";
 import CookieIcon from "./cookie-icon";
 import CookieSlider from "./cookie-slider";
 import DrawGrid from "./draw-grid";
+import ShapeHead from "./shape-head";
 import {
   cookieInButton,
   cookieInIconButton,
@@ -436,35 +437,75 @@ const DrawCanvas = () => {
   // together, and stale values made the size jump back and forth. Computed
   // sizes instead of getBoundingClientRect, so transforms (area on drop) do
   // not count.
+  //
+  // Side by side (desktop, not enlarged) the card is then only as wide as
+  // area and bars need – the cutter card gets the rest (--shape-w on the
+  // layout, editor-app.tsx). Whether the bars sit beside the area is decided
+  // by the room the card would have at half the width, as the `beside`
+  // variant would (index.css) – a fitted card would keep whichever it shows.
+  // If the area shows the other arrangement, the card first gets that room
+  // back, so it can switch.
   useLayoutEffect(() => {
     const area = areaRef.current;
     const grid = gridRef.current;
     const stage = stageRef.current;
-    if (!area || !grid || !stage) return;
+    const card = area?.parentElement;
+    const layout = area?.closest("main");
+    if (!area || !grid || !stage || !card || !layout) return;
+    const desktop = window.matchMedia("(width >= 56rem)");
+    const px = (value: string) => Number.parseFloat(value);
+    /** The drawing card's width side by side – empty: half the row. */
+    const cardWidth = (chromeW: number, chromeH: number) => {
+      if (!desktop.matches || layout.hasAttribute("data-expanded")) return "";
+      const rem = px(getComputedStyle(document.documentElement).fontSize);
+      const { paddingLeft, paddingRight } = getComputedStyle(card);
+      const padding = px(paddingLeft) + px(paddingRight);
+      const room =
+        (layout.clientWidth - px(getComputedStyle(layout).columnGap)) / 2 -
+        padding;
+      const height = area.clientHeight;
+      const beside = room >= 30 * rem && room / height >= 0.88;
+      if (beside !== chromeW > 0.5) return "";
+      // As --s works it out (the area's grid below).
+      const side = Math.max(
+        12 * rem,
+        Math.min(60 * rem, room - chromeW, height - chromeH)
+      );
+      return `${Math.ceil(Math.min(room, side + chromeW) + padding)}px`;
+    };
     /** Sets the measured sizes; `true` if they changed. */
     const measure = () => {
       const outer = getComputedStyle(grid);
       const inner = getComputedStyle(stage);
-      const chrome = (key: "width" | "height") =>
-        `${(Number.parseFloat(outer[key]) - Number.parseFloat(inner[key])).toFixed(2)}px`;
-      const width = chrome("width");
-      const height = chrome("height");
+      const chromeW = px(outer.width) - px(inner.width);
+      const chromeH = px(outer.height) - px(inner.height);
+      const width = `${chromeW.toFixed(2)}px`;
+      const height = `${chromeH.toFixed(2)}px`;
+      const fit = cardWidth(chromeW, chromeH);
       const changed =
         area.style.getPropertyValue("--chrome-w") !== width ||
-        area.style.getPropertyValue("--chrome-h") !== height;
+        area.style.getPropertyValue("--chrome-h") !== height ||
+        layout.style.getPropertyValue("--shape-w") !== fit;
       area.style.setProperty("--chrome-w", width);
       area.style.setProperty("--chrome-h", height);
+      if (fit) layout.style.setProperty("--shape-w", fit);
+      else layout.style.removeProperty("--shape-w");
       return changed;
     };
     // Right away, before the first paint – the observer only reports once
     // the main thread is free (at start it is busy with the 3D cookies), and
     // until then the guessed sizes would show. Bars that wrap depend on the
     // size, so measure until it settles.
-    for (let i = 0; i < 3 && measure(); i++);
+    for (let i = 0; i < 4 && measure(); i++);
     const observer = new ResizeObserver(() => measure());
     observer.observe(grid);
     observer.observe(stage);
-    return () => observer.disconnect();
+    observer.observe(area);
+    observer.observe(layout);
+    return () => {
+      observer.disconnect();
+      layout.style.removeProperty("--shape-w");
+    };
   }, []);
 
   // Load the templates' outlines for their cards.
@@ -919,11 +960,12 @@ const DrawCanvas = () => {
     // beside or below the area. Desktop: the area becomes the largest square
     // that fits its card, at window height – enlarged as high as the window.
     <div
-      className="mx-auto flex w-(--stage-size) flex-col @container/draw md:w-full md:items-center md:@container-size md:not-in-data-expanded:min-h-104 md:not-in-data-expanded:flex-1 md:in-data-expanded:h-[clamp(26rem,100dvh-7rem,64rem)]"
+      className="mx-auto flex w-(--stage-size) flex-col @container/draw md:w-full md:items-center md:@container-size md:not-in-data-expanded:min-h-104 md:not-in-data-expanded:flex-1 md:in-data-expanded:h-[clamp(30rem,100dvh-3rem,68rem)]"
       ref={areaRef}
     >
-      {/* One grid for area and bars. Default: everything below the area –
-          tools | brush size | undo & clear, below that the templates; narrow:
+      {/* One grid for head, area and bars – the head as wide as the area.
+          Default: everything below the area – tools | brush size | undo &
+          clear, below that the templates; narrow:
           tools and actions on top, the brush size full width below. Unless
           the card is clearly taller than wide, the bars sit beside the area
           and it gets larger: tools on the left (drawing on top, undo & clear
@@ -936,9 +978,10 @@ const DrawCanvas = () => {
           need, both measured above – the fallbacks only apply until the
           first measurement. */}
       <div
-        className="grid w-(--s,auto) grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-5 gap-y-4.5 [grid-template-areas:'stage_stage_stage'_'tools_options_actions'_'templates_templates_templates'] md:[--s:max(12rem,min(60rem,100cqw-var(--chrome-w,0px),100cqh-var(--chrome-h,8rem)))] @max-[34rem]/draw:gap-x-3 @max-[34rem]/draw:[grid-template-areas:'stage_stage_stage'_'tools_._actions'_'options_options_options'_'templates_templates_templates'] beside:w-auto beside:grid-cols-[3.1rem_var(--s)_3.1rem] beside:grid-rows-[var(--s)_auto] beside:gap-x-3.25 beside:gap-y-4 beside:[grid-template-areas:'tools_stage_templates'_'._options_.']"
+        className="grid w-(--s,auto) grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-5 gap-y-4 [grid-template-areas:'head_head_head'_'stage_stage_stage'_'tools_options_actions'_'templates_templates_templates'] md:[--s:max(12rem,min(60rem,100cqw-var(--chrome-w,0px),100cqh-var(--chrome-h,8rem)))] @max-[34rem]/draw:gap-x-3 @max-[34rem]/draw:[grid-template-areas:'head_head_head'_'stage_stage_stage'_'tools_._actions'_'options_options_options'_'templates_templates_templates'] beside:w-auto beside:grid-cols-[--spacing(12)_var(--s)_--spacing(12)] beside:grid-rows-[auto_var(--s)_auto] beside:gap-x-3 beside:gap-y-4 beside:[grid-template-areas:'._head_.'_'tools_stage_templates'_'._options_.']"
         ref={gridRef}
       >
+        <ShapeHead />
         {/* Always square – otherwise the drawing area distorts everything on
             it. Anchors the error popup. */}
         {/* biome-ignore lint/a11y/noStaticElementInteractions: a pure drop zone, importing also works via the button */}
@@ -1010,7 +1053,7 @@ const DrawCanvas = () => {
               {CORNERS.map((corner) => (
                 <i
                   className={cn(
-                    "absolute size-3.25 -translate-1/2 rounded-full border-2 border-accent bg-paper",
+                    "absolute size-3 -translate-1/2 rounded-full border-2 border-accent bg-paper",
                     corner
                   )}
                   key={corner}
@@ -1022,7 +1065,7 @@ const DrawCanvas = () => {
           {mode === "move" && marqueeBox && (
             <div
               aria-hidden
-              className="pointer-events-none absolute z-1 rounded-[3px] border-[1.5px] border-dashed border-accent bg-accent/10"
+              className="pointer-events-none absolute z-1 rounded-sm border-[1.5px] border-dashed border-accent bg-accent/10"
               style={{
                 left: `${(marqueeBox.x0 / RES) * 100}%`,
                 top: `${(marqueeBox.y0 / RES) * 100}%`,
@@ -1098,7 +1141,7 @@ const DrawCanvas = () => {
 
         <ToolPicker onChoose={onChooseTool} tool={tool} />
         {/* As tall as the slider – even when only the hint shows: no jumping. */}
-        <div className="flex min-h-8.5 min-w-0 items-center [grid-area:options]">
+        <div className="flex min-h-9 min-w-0 items-center [grid-area:options]">
           {mode === "draw" || selection ? (
             <div className="flex max-w-64 min-w-28 flex-1 items-center gap-3 @max-[34rem]/draw:max-w-none beside:max-w-72 xl:not-in-data-expanded:min-w-24">
               {/* Preview of the brush size */}
@@ -1131,7 +1174,7 @@ const DrawCanvas = () => {
         </div>
         {/* Flush with the right edge – a stretched grid does not push them
             inwards. Beside the area: below the tools, at the bottom. */}
-        <div className="flex items-center gap-4 [grid-area:actions] justify-self-end @max-[34rem]/draw:gap-1.75 beside:flex-col beside:gap-3 beside:[grid-area:tools] beside:self-end beside:justify-self-center">
+        <div className="flex items-center gap-4 [grid-area:actions] justify-self-end @max-[34rem]/draw:gap-2 beside:flex-col beside:gap-3 beside:[grid-area:tools] beside:self-end beside:justify-self-center">
           <Button
             aria-label={t("draw.undo")}
             disabled={!canUndo}
@@ -1185,7 +1228,7 @@ const DrawCanvas = () => {
         {/* Templates: heading, below it the cards (scrolling sideways), below
             them “Upload SVG”. At least four cards fit side by side. Beside
             the area: stacked, scrolling down, no heading. */}
-        <div className="flex min-w-0 flex-col items-start gap-1.75 [grid-area:templates] beside:min-h-0 beside:items-center beside:gap-3 beside:self-stretch">
+        <div className="flex min-w-0 flex-col items-start gap-2 [grid-area:templates] beside:min-h-0 beside:items-center beside:gap-3 beside:self-stretch">
           <span
             aria-hidden
             className="text-small font-bold tracking-label text-muted uppercase beside:hidden"
@@ -1206,7 +1249,7 @@ const DrawCanvas = () => {
                 // focus ring sits inside.
                 <Button
                   aria-label={name}
-                  className="size-12.5 rounded-xl bg-paper p-1.5 text-[#0d1033] beside:focus-visible:-outline-offset-3"
+                  className="size-12 rounded-xl bg-paper p-1.5 text-[#0d1033] beside:focus-visible:-outline-offset-3"
                   disabled={!shape}
                   key={preset.id}
                   onClick={() => insertPreset(preset)}
@@ -1229,7 +1272,7 @@ const DrawCanvas = () => {
           {/* Beside the area a tile like the templates: just the cookie, the
               text then only for screen readers and as the tooltip. */}
           <Button
-            className="mt-1.75 beside:relative beside:m-0 beside:size-12.5 beside:flex-none beside:rounded-xl beside:p-0"
+            className="mt-2 beside:relative beside:m-0 beside:size-12 beside:flex-none beside:rounded-xl beside:p-0"
             onClick={() => inputRef.current?.click()}
             title={t("draw.upload")}
             type="button"

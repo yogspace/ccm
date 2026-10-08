@@ -151,7 +151,7 @@ const CookieBar = () => {
           <motion.aside
             animate={{ opacity: 1, scale: 1, y: 0 }}
             aria-label={t("jar.label")}
-            className="grid max-w-[min(62rem,100%)] grid-cols-[auto_minmax(0,auto)_auto] items-center gap-x-5 gap-y-2 rounded-3xl bg-surface py-2.5 pr-3.5 pl-5.5 text-ink shadow-[0_0.3rem_0.8rem_rgb(4_8_60/0.16),0_1.6rem_3rem_-1rem_rgb(4_8_60/0.5)] max-sm:w-full max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:pt-3 max-sm:pr-3 max-sm:pb-2 max-sm:pl-4.5"
+            className="grid max-w-[min(62rem,100%)] grid-cols-[auto_minmax(0,auto)_auto] items-center gap-x-5 gap-y-2 rounded-3xl bg-surface py-2.5 pr-3.5 pl-6 text-ink shadow-[0_0.3rem_0.8rem_rgb(4_8_60/0.16),0_1.6rem_3rem_-1rem_rgb(4_8_60/0.5)] max-sm:w-full max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:pt-3 max-sm:pr-3 max-sm:pb-2 max-sm:pl-4"
             exit={{ opacity: 0, scale: 0.85, y: 16 }}
             initial={{ opacity: 0, scale: 0.85, y: 16 }}
             key="bar"
@@ -177,7 +177,7 @@ const CookieBar = () => {
             {/* Leaving cookies are taken out of the flow here (popLayout).
                 On phones on a row of its own. */}
             <motion.ul
-              className="relative flex snap-x gap-0.75 overflow-x-auto px-3 py-1.25 scrollbar-thin mask-[linear-gradient(90deg,transparent,#000_0.75rem,#000_calc(100%-0.75rem),transparent)] max-sm:col-span-full max-sm:row-start-2 max-sm:-mx-2"
+              className="relative flex snap-x gap-1 overflow-x-auto px-3 py-1 scrollbar-thin mask-[linear-gradient(90deg,transparent,#000_0.75rem,#000_calc(100%-0.75rem),transparent)] max-sm:col-span-full max-sm:row-start-2 max-sm:-mx-2"
               layout
               layoutScroll
               ref={listRef}
@@ -212,13 +212,13 @@ const CookieBar = () => {
                     >
                       <Button
                         aria-label={t("jar.open", { name })}
-                        className="h-auto w-24 flex-col gap-0 rounded-[0.8rem] bg-transparent px-1.25 pt-0.75 pb-1.5 text-tiny hover:enabled:bg-surface-2"
+                        className="h-auto w-24 flex-col gap-0 rounded-xl bg-transparent px-1 pt-1 pb-1.5 text-tiny hover:enabled:bg-surface-2"
                         onClick={() => openCookie(cookie.hash)}
                         title={t("jar.open", { name })}
                         type="button"
                       >
                         <CookieIcon
-                          className="-mt-2.75 -mb-1.75"
+                          className="-mt-3 -mb-2"
                           shape={cookie.shape}
                           size={92}
                           tilt={-0.35}
@@ -228,7 +228,7 @@ const CookieBar = () => {
                       {/* Eat: the cross shows on hover (always on touch). */}
                       <Button
                         aria-label={t("jar.eat", { name })}
-                        className="absolute top-0 right-0 size-6.75 opacity-0 transition-opacity group-hover/item:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
+                        className="absolute top-0 right-0 size-7 opacity-0 transition-opacity group-hover/item:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
                         kind="icon"
                         onClick={() => eat(cookie.hash)}
                         title={t("jar.eat", { name })}
@@ -276,7 +276,7 @@ const CookieBar = () => {
           >
             <Button
               aria-label={t("jar.reopen", { count: jar.length })}
-              className="relative size-16.75 rounded-[1.2rem] bg-surface p-0 shadow-[0_1rem_2rem_-0.8rem_rgb(4_8_60/0.55)] [transition:scale_0.4s_var(--ease-spring),background_0.2s_var(--ease-soft)] hover:enabled:bg-[color-mix(in_oklab,var(--color-surface-2)_82%,var(--color-ink))]"
+              className="relative size-16 rounded-2xl bg-surface p-0 shadow-[0_1rem_2rem_-0.8rem_rgb(4_8_60/0.55)] [transition:scale_0.4s_var(--ease-spring),background_0.2s_var(--ease-soft)] hover:enabled:bg-[color-mix(in_oklab,var(--color-surface-2)_82%,var(--color-ink))]"
               onClick={() => setJarOpen(true)}
               title={t("jar.reopen", { count: jar.length })}
               type="button"

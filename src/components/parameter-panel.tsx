@@ -55,7 +55,7 @@ const Toggle = ({
   return (
     <label
       className={cn(
-        "group/checkbox inline-flex cursor-pointer items-center gap-2.25 text-body font-bold text-ink select-none",
+        "group/checkbox inline-flex cursor-pointer items-center gap-2 text-body font-bold text-ink select-none",
         className
       )}
       title={hint}
@@ -68,7 +68,7 @@ const Toggle = ({
       />
       <span
         aria-hidden
-        className="relative grid size-5.5 flex-none place-items-center rounded-[0.4rem] bg-field transition-[scale] duration-300 ease-spring group-hover/checkbox:scale-108 group-active/checkbox:scale-92 group-has-[input:focus-visible]/checkbox:outline-2 group-has-[input:focus-visible]/checkbox:outline-offset-2 group-has-[input:focus-visible]/checkbox:outline-accent"
+        className="relative grid size-6 flex-none place-items-center rounded-md bg-field transition-[scale] duration-300 ease-spring group-hover/checkbox:scale-108 group-active/checkbox:scale-92 group-has-[input:focus-visible]/checkbox:outline-2 group-has-[input:focus-visible]/checkbox:outline-offset-2 group-has-[input:focus-visible]/checkbox:outline-accent"
       >
         {/* The tick is larger than the box, it sticks out. It springs in …
             and shrinks when unticked until it is gone. */}
@@ -126,10 +126,10 @@ const ParameterPanel = () => {
 
   // Two columns, one when narrow, four when wide.
   const grid =
-    "grid grid-cols-2 gap-x-10 gap-y-4.5 @max-sm:grid-cols-1 @min-[50rem]:grid-cols-4";
+    "grid grid-cols-2 gap-x-10 gap-y-4 @max-sm:grid-cols-1 @min-[50rem]:grid-cols-4";
 
   return (
-    <div className="flex flex-col gap-4.5 @container">
+    <div className="flex flex-col gap-4 @container">
       <h3 className="text-small font-bold tracking-label text-muted uppercase">
         {t("params.title")}
       </h3>

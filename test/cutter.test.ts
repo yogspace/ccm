@@ -18,7 +18,7 @@ beforeAll(async () => {
 });
 
 /**
- * Drawings saved from the app (Alt+Shift+F in the dev server): their contours
+ * Drawings saved from the app (“Test case” in the dev server): their contours
  * and the dimensions they had. Every one of them is checked.
  */
 const drawn = readdirSync(new URL("fixtures/", import.meta.url))

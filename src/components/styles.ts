@@ -4,13 +4,13 @@
  * A 3D cookie (cookie-icon.tsx) is drawn larger than the row it sits in –
  * these margins let it stick out without making the row taller.
  */
-export const cookieInButton = "-my-4 -mr-1.25 -ml-2.75";
+export const cookieInButton = "-my-4 -mr-1 -ml-3";
 /** An icon button is just its cookie. */
 export const cookieInIconButton = "-m-2.5";
 /** In the footer and the imprint dialog, which opens from it. */
-export const cookieInFooter = "-my-3 -mr-1.75 -ml-1.25";
+export const cookieInFooter = "-my-3 -mr-2 -ml-1";
 /** Beside a short line of text, e.g. the dimensions or the unit switch. */
-export const cookieInLine = "-my-2.75 -mr-0.75 -ml-2";
+export const cookieInLine = "-my-3 -mr-1 -ml-2";
 
 /** Toggled off (turntable, tools): the cookie fades. */
 export const cookieToggle =
@@ -25,7 +25,7 @@ export const stage =
 
 /** A hint lying on a stage (drawing area, 3D view) while it is empty. */
 export const stageHint =
-  "pointer-events-none absolute inset-0 flex animate-[fade_0.4s_var(--ease-soft)] flex-col items-center justify-center gap-1.25 p-8 text-center text-muted";
+  "pointer-events-none absolute inset-0 flex animate-[fade_0.4s_var(--ease-soft)] flex-col items-center justify-center gap-1 p-8 text-center text-muted";
 export const cookieInStageHint = "-mt-3 -mb-1";
 
 /**
@@ -38,7 +38,7 @@ export const popup =
 
 /** The text fields of the card composer and the contact form (field.tsx). */
 export const fieldInput =
-  "w-full rounded-[0.6rem] bg-field px-3.5 py-2.25 text-body font-semibold text-field-ink outline-2 outline-transparent transition-[outline-color,background-color] placeholder:font-medium placeholder:text-field-muted focus:bg-paper focus:outline-accent";
+  "w-full rounded-lg bg-field px-3.5 py-2 text-body font-semibold text-field-ink outline-2 outline-transparent transition-[outline-color,background-color] placeholder:font-medium placeholder:text-field-muted focus:bg-paper focus:outline-accent";
 
 /*
  * The share box (share-creation.tsx) – as a picture and as a greeting card
@@ -46,14 +46,14 @@ export const fieldInput =
  * beside it.
  */
 
-/** The picture or the little card – square, swapped with a fade. */
+/** The picture or the little card – square; swapped, it scales in. */
 export const shareVisual =
-  "mx-auto aspect-square w-full max-w-80 animate-[fade_0.3s_var(--ease-soft)_both] self-start max-sm:max-w-64";
+  "mx-auto aspect-square w-full max-w-80 animate-[pop-in_0.5s_var(--ease-spring)_both] self-start max-sm:max-w-64";
 export const shareContent = "flex min-w-0 flex-col gap-3";
 export const shareIntro = "text-muted";
 /** The link as a field – a click copies it, the copy icon on the right. */
 export const shareLink =
-  "mt-2 h-10.5 w-full justify-between gap-3 bg-field pr-2.5 pl-4 text-small font-medium text-field-ink data-copied:font-bold";
+  "mt-2 h-11 w-full justify-between gap-3 bg-field pr-2.5 pl-4 text-small font-medium text-field-ink data-copied:font-bold";
 export const shareUrl = "min-w-0 truncate";
 /** The box's actions, right-aligned at its foot – level in both boxes. */
 export const shareMore =

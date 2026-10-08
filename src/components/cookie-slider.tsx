@@ -54,7 +54,7 @@ const CookieSlider = ({ min, max, step, value, onChange, label }: Props) => {
     >
       <span
         aria-hidden
-        className="absolute inset-x-0 top-1/2 h-2.5 -translate-y-1/2 rounded-[5px] bg-[linear-gradient(to_right,var(--color-track-fill)_var(--stop),var(--color-track-rest)_var(--stop))]"
+        className="absolute inset-x-0 top-1/2 h-2.5 -translate-y-1/2 rounded-full bg-[linear-gradient(to_right,var(--color-track-fill)_var(--stop),var(--color-track-rest)_var(--stop))]"
       />
       <span
         aria-hidden

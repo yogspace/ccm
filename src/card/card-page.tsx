@@ -131,27 +131,23 @@ const paper =
 
 /** Like a label: the name left, the size (or how it is) right. */
 const label =
-  "flex items-baseline justify-between gap-[0.6em] px-[1.2cqw] text-left text-[4.6cqw] leading-[1.2] font-bold tracking-[-0.01em]";
+  "flex items-baseline justify-between gap-[0.6em] px-[1.2cqw] text-left text-[4.6cqw] leading-[1.2] font-bold tracking-title";
 const labelName = "min-w-0 truncate";
 const labelNote = "flex-none text-[0.68em] font-semibold text-card-ink-muted";
 
 /** The buttons below the card, on the page without a box. */
-const action =
-  "h-11.5 gap-1.75 rounded-[0.8rem] pr-4.75 pl-3.25 text-[1.05rem]";
+const action = "h-12 gap-2 rounded-xl pr-5 pl-3 text-body";
 /** The main one: light; on phones across the whole row. */
 const mainAction = cn(
   action,
-  "bg-[#fffdf8] text-[#0d1033] hover:enabled:bg-white max-xs:col-span-full max-xs:h-10 max-xs:text-[0.95rem]"
+  "bg-[#fffdf8] text-[#0d1033] hover:enabled:bg-white max-xs:col-span-full max-xs:h-10 max-xs:text-small"
 );
 /** The others: on phones side by side, each its cookie above its word. */
 const sideAction = cn(
   action,
-  "bg-white/14 text-on-page hover:enabled:bg-white/24 max-xs:h-auto max-xs:flex-col max-xs:gap-0 max-xs:px-1.25 max-xs:pt-1.5 max-xs:pb-1.5 max-xs:text-tiny"
+  "bg-white/14 text-on-page hover:enabled:bg-white/24 max-xs:h-auto max-xs:flex-col max-xs:gap-0 max-xs:px-1 max-xs:pt-1.5 max-xs:pb-1.5 max-xs:text-tiny"
 );
-const sideCookie = cn(
-  cookieInButton,
-  "max-xs:mx-0 max-xs:-mt-2.25 max-xs:-mb-1.75"
-);
+const sideCookie = cn(cookieInButton, "max-xs:mx-0 max-xs:-mt-2 max-xs:-mb-2");
 
 /**
  * The greeting card's page: who it is for, the card with the cutter in the
@@ -641,7 +637,7 @@ const CardPage = () => {
                     longest word fits the card's width (Pally's letters about
                     0.56em wide). */}
                 <span
-                  className="col-start-1 row-start-1 self-center px-[4cqw] text-center text-[clamp(5cqw,min(64cqw/(var(--chars,12)*0.24+3),42cqw/(var(--word,6)*0.56)),10cqw)] leading-[1.05] font-bold tracking-[-0.02em] text-balance wrap-break-word text-card-back-ink"
+                  className="col-start-1 row-start-1 self-center px-[4cqw] text-center text-[clamp(5cqw,min(64cqw/(var(--chars,12)*0.24+3),42cqw/(var(--word,6)*0.56)),10cqw)] leading-[1.05] font-bold tracking-tight text-balance wrap-break-word text-card-back-ink"
                   style={
                     {
                       "--chars": hidden.length,
@@ -824,7 +820,7 @@ const CardPage = () => {
         </div>
       )}
       <a
-        className="row-start-6 inline-flex animate-[greet-rise_0.9s_var(--ease-soft)_0.9s_both] items-center gap-0.75 rounded-[0.7rem] bg-white/10 py-1.25 pr-1.5 pl-4 text-small font-bold text-on-page transition-[background-color] hover:bg-white/20"
+        className="row-start-6 inline-flex animate-[greet-rise_0.9s_var(--ease-soft)_0.9s_both] items-center gap-1 rounded-xl bg-white/10 py-1 pr-1.5 pl-4 text-small font-bold text-on-page transition-[background-color] hover:bg-white/20"
         data-part="cta"
         href={`/${lang}`}
       >

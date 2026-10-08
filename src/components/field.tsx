@@ -7,10 +7,7 @@ type Props = { htmlFor: string; label: ReactNode; children: ReactNode };
  * field itself comes as the child, styled with `fieldInput` (styles.ts).
  */
 const Field = ({ htmlFor, label, children }: Props) => (
-  <label
-    className="grid gap-1.25 text-small font-bold text-ink"
-    htmlFor={htmlFor}
-  >
+  <label className="grid gap-1 text-small font-bold text-ink" htmlFor={htmlFor}>
     <span className="flex justify-between">{label}</span>
     {children}
   </label>

@@ -28,7 +28,7 @@ const Masthead = () => {
 
   return (
     // Phone: logo and title on top, the switches on their own row below.
-    <header className="group/masthead relative z-1 flex animate-rise items-center gap-4.5 max-sm:flex-wrap max-sm:gap-x-3.25 max-sm:gap-y-3.5 max-sm:[--cookie-scale:0.7]">
+    <header className="group/masthead relative z-1 flex animate-rise items-center gap-4 max-sm:flex-wrap max-sm:gap-x-3 max-sm:gap-y-3.5 max-sm:[--cookie-scale:0.7]">
       {/* On hover over the header the logo turns towards it. */}
       <CookieIcon
         className="-my-4 -mr-2.5 -ml-3.5 transition-[rotate,scale] duration-600 ease-spring group-hover/masthead:-rotate-25 group-hover/masthead:scale-110 max-sm:-my-2.5 max-sm:-mr-1.5 max-sm:-ml-2.5"
@@ -45,7 +45,7 @@ const Masthead = () => {
           </h1>
           <SharePanel />
         </div>
-        <p className="text-body text-on-page-muted max-sm:mt-0.75 max-sm:text-small max-sm:leading-[1.35]">
+        <p className="text-body text-on-page-muted max-sm:mt-1 max-sm:text-small max-sm:leading-[1.35]">
           {t("tagline")}
         </p>
       </div>
