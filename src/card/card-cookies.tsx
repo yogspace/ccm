@@ -9,6 +9,7 @@ import {
 import CookieIcon from "../components/cookie-icon";
 import type { CookieShape } from "../cookies/models";
 import type { CookieHandle } from "../cookies/renderer";
+import { type Crumbs, createCrumbs } from "./crumbs";
 
 /**
  * The card's own cookies raining down left and right of it – a little physics
@@ -21,7 +22,8 @@ import type { CookieHandle } from "../cookies/renderer";
  * where it was taken and swings at the hand while dragged; let go, it flies
  * on with the swing, turns over in the air, knocks against the card, the
  * buttons and the walls and falls again. Their bottoms are heavier: mostly they
- * land icing up. Once everything lies still the simulation sleeps.
+ * land icing up. Where one knocks hard against something, it crumbles a
+ * little (crumbs.ts). Once everything lies still the simulation sleeps.
  * Each is baked on its own: icing and sprinkles differ.
  *
  * The physics is seen from the side: a cookie is a stick between two points
@@ -81,6 +83,19 @@ type Cookie = {
 /** A spot on a cookie's stick (0: end a, 1: end b) – null: the world. */
 type Contact = { cookie: Cookie; at: number } | null;
 
+/**
+ * A hard knock: a cookie hit something at (x, y) – the surface's normal
+ * (nx, ny), `force` how far beyond gentle (px per step).
+ */
+type Knock = (
+  cookie: Cookie,
+  x: number,
+  y: number,
+  nx: number,
+  ny: number,
+  force: number
+) => void;
+
 const PER_SIDE = 3;
 /**
  * Their canvas (px) – always full size: where the columns are too narrow for
@@ -112,6 +127,8 @@ const SETTLE = 3;
 const MAX_THROW = 2600; // px/s
 /** Below this speed (px/s) for a while, everything counts as resting. */
 const REST = 10;
+/** From this speed into something (px per step, ~1100 px/s) it crumbles. */
+const KNOCK = 9;
 /** How far the camera looks down at the cookies (the renderer's tilt). */
 const SIDE_TILT = -1.2;
 
@@ -310,7 +327,7 @@ const hang = (cookie: Cookie, x: number, y: number) => {
 };
 
 /** The ends of one cookie against the stick of another. */
-const touchEnds = (one: Cookie, two: Cookie) => {
+const touchEnds = (one: Cookie, two: Cookie, knock?: Knock) => {
   const reach = one.body + two.body;
   const dx = two.b.x - two.a.x;
   const dy = two.b.y - two.a.y;
@@ -340,6 +357,12 @@ const touchEnds = (one: Cookie, two: Cookie) => {
       nx /= distance;
       ny /= distance;
     }
+    if (knock) {
+      const first = movedAt({ cookie: one, at });
+      const second = movedAt({ cookie: two, at: t });
+      const into = (second.x - first.x) * nx + (second.y - first.y) * ny;
+      if (into > KNOCK) knock(one, end.x, end.y, nx, ny, into - KNOCK);
+    }
     resolve(
       { cookie: one, at },
       { cookie: two, at: t },
@@ -355,33 +378,47 @@ const touchWorld = (
   cookie: Cookie,
   floor: number,
   width: number,
-  boxes: DOMRect[]
+  boxes: DOMRect[],
+  knock?: Knock
 ) => {
   const { a, b, outline } = cookie;
   for (const at of cookie.spots) {
     const contact = { cookie, at };
     const x = a.x + (b.x - a.x) * at;
     const y = a.y + (b.y - a.y) * at;
-    if (y > floor - outline) resolve(contact, null, 0, -1, y - floor + outline);
-    if (x < outline) resolve(contact, null, 1, 0, outline - x);
-    else if (x > width - outline) {
-      resolve(contact, null, -1, 0, x - width + outline);
-    }
+    /** Against a surface at (sx, sy): how hard it came, then pushed out. */
+    const hit = (
+      sx: number,
+      sy: number,
+      nx: number,
+      ny: number,
+      depth: number
+    ) => {
+      if (knock) {
+        const moved = movedAt(contact);
+        const into = -(moved.x * nx + moved.y * ny);
+        if (into > KNOCK) knock(cookie, sx, sy, nx, ny, into - KNOCK);
+      }
+      resolve(contact, null, nx, ny, depth);
+    };
+    if (y > floor - outline) hit(x, floor, 0, -1, y - floor + outline);
+    if (x < outline) hit(0, y, 1, 0, outline - x);
+    else if (x > width - outline) hit(width, y, -1, 0, x - width + outline);
     for (const box of boxes) {
       // Inside: out over the top.
       if (x > box.left && x < box.right && y > box.top && y < box.bottom) {
-        resolve(contact, null, 0, -1, y - box.top + outline);
+        hit(x, box.top, 0, -1, y - box.top + outline);
         continue;
       }
-      const nx = x - Math.max(box.left, Math.min(box.right, x));
-      const ny = y - Math.max(box.top, Math.min(box.bottom, y));
-      const distance = Math.hypot(nx, ny);
+      const cx = Math.max(box.left, Math.min(box.right, x));
+      const cy = Math.max(box.top, Math.min(box.bottom, y));
+      const distance = Math.hypot(x - cx, y - cy);
       if (distance < outline && distance > 1e-6) {
-        resolve(
-          contact,
-          null,
-          nx / distance,
-          ny / distance,
+        hit(
+          cx,
+          cy,
+          (x - cx) / distance,
+          (y - cy) / distance,
           outline - distance
         );
       }
@@ -391,6 +428,8 @@ const touchWorld = (
 
 const CardCookies = ({ shape }: { shape: CookieShape }) => {
   const layerRef = useRef<HTMLDivElement>(null);
+  const crumbBoxRef = useRef<HTMLDivElement>(null);
+  const crumbs = useRef<Crumbs | null>(null);
   const cookieRefs = useRef<(HTMLDivElement | null)[]>([]);
   const handles = useRef<(CookieHandle | null)[]>([]);
   const cookies = useRef<Cookie[]>([]);
@@ -405,6 +444,17 @@ const CardCookies = ({ shape }: { shape: CookieShape }) => {
     () => SCALES.map((_, i) => ({ ...shape, seed: shape.seed + i * 7919 })),
     [shape]
   );
+
+  // The crumbs live as long as the page.
+  useEffect(() => {
+    const box = crumbBoxRef.current;
+    if (!box) return;
+    crumbs.current = createCrumbs(box);
+    return () => {
+      crumbs.current?.remove();
+      crumbs.current = null;
+    };
+  }, []);
 
   // Measure, and again whenever the page or its parts change size: the floor
   // moves, the cookies ride along.
@@ -434,7 +484,10 @@ const CardCookies = ({ shape }: { shape: CookieShape }) => {
   useEffect(() => {
     const layer = layerRef.current;
     // No room: gone – back again, a fresh rain.
-    if (!scene) cookies.current = [];
+    if (!scene) {
+      cookies.current = [];
+      crumbs.current?.clear();
+    }
     if (!(layer && scene)) return;
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const now = performance.now();
@@ -449,9 +502,12 @@ const CardCookies = ({ shape }: { shape: CookieShape }) => {
       const third = before.width / 3;
       const grown = width - before.width;
       const lifted = floor - before.floor;
+      const moveOf = (x: number) =>
+        x < third ? 0 : x > third * 2 ? grown : grown / 2;
+      crumbs.current?.shift(moveOf, lifted);
       for (const cookie of cookies.current) {
         const x = (cookie.a.x + cookie.b.x) / 2;
-        const shift = x < third ? 0 : x > third * 2 ? grown : grown / 2;
+        const shift = moveOf(x);
         for (const p of [cookie.a, cookie.b]) {
           p.x += shift;
           p.px += shift;
@@ -509,6 +565,15 @@ const CardCookies = ({ shape }: { shape: CookieShape }) => {
     /** `along`: how far into this frame's hand movement (0…1) the step is. */
     const step = (time: number, along: number) => {
       const live = cookies.current.filter((cookie) => time >= cookie.dropAt);
+      // A hard knock crumbles – once per cookie and step, not when still.
+      const knocked = new Set<Cookie>();
+      const knock: Knock | undefined = still
+        ? undefined
+        : (cookie, x, y, nx, ny, force) => {
+            if (knocked.has(cookie)) return;
+            knocked.add(cookie);
+            crumbs.current?.burst(x, y, nx, ny, force);
+          };
       for (const cookie of live) {
         if (!cookie.held) right(cookie);
         cookie.touched = false;
@@ -530,14 +595,18 @@ const CardCookies = ({ shape }: { shape: CookieShape }) => {
         }
       }
       for (let round = 0; round < ROUNDS; round++) {
+        // Knocks are told in the first round – before they are pushed out.
+        const told = round === 0 ? knock : undefined;
         for (const cookie of live) keep(cookie);
         for (let i = 0; i < live.length; i++) {
           for (let j = i + 1; j < live.length; j++) {
-            touchEnds(live[i], live[j]);
-            touchEnds(live[j], live[i]);
+            touchEnds(live[i], live[j], told);
+            touchEnds(live[j], live[i], told);
           }
         }
-        for (const cookie of live) touchWorld(cookie, floor, width, boxes);
+        for (const cookie of live) {
+          touchWorld(cookie, floor, width, boxes, told);
+        }
         // The hand has the last word.
         for (const cookie of live) {
           if (!cookie.held) continue;
@@ -549,6 +618,7 @@ const CardCookies = ({ shape }: { shape: CookieShape }) => {
           );
         }
       }
+      crumbs.current?.step(STEP, scene);
     };
 
     const draw = () => {
@@ -561,6 +631,7 @@ const CardCookies = ({ shape }: { shape: CookieShape }) => {
         element.style.visibility = y > -cookie.size / 2 ? "visible" : "hidden";
         handles.current[i]?.setSide(angleOf(cookie));
       });
+      crumbs.current?.draw();
     };
 
     const tick = (time: number) => {
@@ -578,14 +649,16 @@ const CardCookies = ({ shape }: { shape: CookieShape }) => {
         for (const cookie of cookies.current) cookie.handFrom = cookie.hand;
       }
       draw();
-      const moving = cookies.current.some(
-        (cookie) =>
-          cookie.held ||
-          time < cookie.dropAt ||
-          [cookie.a, cookie.b].some(
-            (p) => Math.hypot(p.x - p.px, p.y - p.py) / STEP > REST
-          )
-      );
+      const moving =
+        crumbs.current?.moving() ||
+        cookies.current.some(
+          (cookie) =>
+            cookie.held ||
+            time < cookie.dropAt ||
+            [cookie.a, cookie.b].some(
+              (p) => Math.hypot(p.x - p.px, p.y - p.py) / STEP > REST
+            )
+        );
       restingFor = moving ? 0 : restingFor + 1;
       // Asleep after half a second of stillness – until woken.
       if (restingFor > 30) {
@@ -697,6 +770,8 @@ const CardCookies = ({ shape }: { shape: CookieShape }) => {
 
   return (
     <div aria-hidden className="greeting-cookies" ref={layerRef}>
+      {/* First: the crumbs lie behind every cookie (crumbs.ts). */}
+      <div className="greeting-crumbs" ref={crumbBoxRef} />
       {Array.from({ length: count }, (_, i) => (
         <div
           className="greeting-cookie-spot"
