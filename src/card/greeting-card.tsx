@@ -55,6 +55,8 @@ type Props = {
  * it over, the cutter in front, the cookie it bakes on the back. Once
  * landed, it wobbles as if about to turn – a hint it can; on its own
  * property (rotate), so the turn itself (transform) still transitions.
+ * Pressed, it gives a little like the buttons (scale) – only where the
+ * click turns it: not while held, unless on the sticker.
  */
 const GreetingCard = ({
   flipped,
@@ -76,7 +78,7 @@ const GreetingCard = ({
       <button
         aria-label={t(flipped ? "card.flipBack" : "card.flip")}
         aria-pressed={flipped}
-        className="relative block size-full rounded-[5.5cqw] bg-transparent p-0 whitespace-normal text-inherit transform-3d [font:inherit] [text-align:inherit] [transition:transform_0.95s_var(--ease-spring)] not-disabled:not-data-flipped:animate-[greet-peek_1.4s_var(--ease-soft)_2.4s] focus-visible:outline-3 focus-visible:outline-offset-8 focus-visible:outline-on-page disabled:cursor-default disabled:opacity-100 data-held:cursor-default data-flipped:transform-[rotateY(180deg)]"
+        className="relative block size-full rounded-[5.5cqw] bg-transparent p-0 whitespace-normal text-inherit transform-3d [font:inherit] [text-align:inherit] [transition:transform_0.95s_var(--ease-spring),scale_0.3s_var(--ease-spring)] not-disabled:not-data-flipped:animate-[greet-peek_1.4s_var(--ease-soft)_2.4s] not-disabled:not-data-held:active:scale-96 has-[[data-turn]:active]:scale-96 focus-visible:outline-3 focus-visible:outline-offset-8 focus-visible:outline-on-page disabled:cursor-default disabled:opacity-100 data-held:cursor-default data-flipped:transform-[rotateY(180deg)]"
         data-flipped={flipped || undefined}
         data-held={held || undefined}
         disabled={disabled}

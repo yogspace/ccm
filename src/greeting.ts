@@ -21,13 +21,19 @@ export const GREETING_LIMITS = { name: 32, message: 140 } as const;
 
 /** The card's parts in the link's hash (glaze.ts reads the color too). */
 export const GREETING_KEYS = {
-  to: "to",
-  from: "from",
+  to: "t",
+  from: "f",
   message: "m",
   color: "c",
 } as const;
 
 const KEYS = GREETING_KEYS;
+
+/** What older links called them – still read, no longer written. */
+const OLD_KEYS: Partial<Record<keyof Greeting, string>> = {
+  to: "to",
+  from: "from",
+};
 
 /**
  * Link to the card for a creation's hash (`#n=…&s=…`) – in the sender's
@@ -56,12 +62,15 @@ export const greetingUrl = (
 
 export const readGreeting = (hash: string): Greeting => {
   const query = new URLSearchParams(hash.replace(/^#/, ""));
-  const read = (key: string, limit: number) =>
-    (query.get(key) ?? "").trim().slice(0, limit);
+  const read = (field: "to" | "from" | "message", limit: number) => {
+    const old = OLD_KEYS[field];
+    const value = query.get(KEYS[field]) ?? (old && query.get(old));
+    return (value ?? "").trim().slice(0, limit);
+  };
   return {
-    to: read(KEYS.to, GREETING_LIMITS.name),
-    from: read(KEYS.from, GREETING_LIMITS.name),
-    message: read(KEYS.message, GREETING_LIMITS.message),
+    to: read("to", GREETING_LIMITS.name),
+    from: read("from", GREETING_LIMITS.name),
+    message: read("message", GREETING_LIMITS.message),
     color: Math.max(0, Math.floor(Number(query.get(KEYS.color))) || 0),
   };
 };

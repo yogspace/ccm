@@ -2,12 +2,12 @@ import { Maximize2, Minimize2 } from "lucide-react";
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
-import { store, toggleExpanded } from "../store";
 import Button from "../components/button";
 import { CardHead } from "../components/card";
 import CookieIcon from "../components/cookie-icon";
 import { cookieInIconButton } from "../components/styles";
 import TitleField from "../components/title-field";
+import { store, toggleExpanded } from "../store";
 
 /**
  * The drawing card's head: the creation's name, written right here, and

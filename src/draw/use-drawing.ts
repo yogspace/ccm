@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { trackEvent } from "../analytics";
 import {
   type Box,
-  DRAW_RES as RES,
   detachErasers,
   paint,
   presetStrokes,
+  DRAW_RES as RES,
   removeSelection,
   type Selection,
   selectionBox,

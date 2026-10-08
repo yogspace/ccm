@@ -99,7 +99,7 @@
 }
 
 /* The drawing area's container decides where its bars go: beside the area
-   unless the card is clearly taller than wide (see draw-canvas.tsx). */
+   unless the card is clearly taller than wide (see draw/use-area-fit.ts). */
 @custom-variant beside (
   @container draw (aspect-ratio >= 0.88) and (width >= 30rem)
 );

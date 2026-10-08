@@ -1,11 +1,11 @@
 import { type PointerEvent, useEffect, useRef, useState } from "react";
 import {
   type Box,
-  DRAW_RES as RES,
   detachErasers,
   mergeSelections,
   objectAt,
   objectsWithin,
+  DRAW_RES as RES,
   type Selection,
   selectionBox,
   type Transform,

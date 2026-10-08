@@ -1,4 +1,4 @@
-import { DRAW_RES as RES, type Box } from "../drawing";
+import { type Box, DRAW_RES as RES } from "../drawing";
 import type { Ring } from "../geometry/outline";
 import type { Frame } from "./gesture-math";
 

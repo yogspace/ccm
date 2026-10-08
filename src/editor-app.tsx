@@ -8,7 +8,6 @@ import { Card, CardHead, CardTitle } from "./components/card";
 import CookieBackground from "./components/cookie-background";
 import CookieBar from "./components/cookie-bar";
 import CookieIcon from "./components/cookie-icon";
-import DrawCanvas from "./draw/draw-canvas";
 import ErrorPopup from "./components/error-popup";
 import ExportButtons from "./components/export-buttons";
 import GalleryFan from "./components/gallery-fan";
@@ -26,6 +25,7 @@ import {
   stage,
   stageHint,
 } from "./components/styles";
+import DrawCanvas from "./draw/draw-canvas";
 import { connectStore, store, toggleAutoRotate } from "./store";
 import { formatLength } from "./units";
 
@@ -56,7 +56,7 @@ const App = () => {
       {/* Desktop: shape and cutter side by side, at window height – the row
           fills exactly the height left beside header and footer; the fan and
           footer follow below. The drawing area follows the height; its card
-          is only as wide as it needs (--shape-w, set by draw-canvas.tsx), the
+          is only as wide as it needs (--shape-w, set by draw/use-area-fit.ts), the
           cutter card takes the rest. Enlarged: drawing across the full width,
           the preview below. Narrow: stacked, areas as wide as possible –
           scrolling is fine here. */}
@@ -64,7 +64,7 @@ const App = () => {
         className="relative z-1 grid grid-cols-[minmax(0,var(--shape-w,1fr))_minmax(0,1fr)] items-stretch gap-6 [--stage-size:min(100%,max(24rem,calc(100dvh-23rem)))] data-expanded:grid-cols-1 md:not-data-expanded:min-h-[calc(100dvh-8.5rem)] md:not-data-expanded:flex-1 md:not-data-expanded:grid-rows-[minmax(0,1fr)] md:data-expanded:[--stage-size:min(100%,60rem)] max-md:grid-cols-1 max-md:[--stage-size:100%]"
         data-expanded={expanded || undefined}
       >
-        {/* Its head is a row of the drawing area's grid (draw-canvas.tsx). */}
+        {/* Its head is a row of the drawing area's grid (draw/draw-canvas.tsx). */}
         <Card className="[view-transition-name:shape-card]">
           <DrawCanvas />
           <ErrorPopup />
