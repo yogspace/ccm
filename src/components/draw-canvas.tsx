@@ -466,12 +466,15 @@ const DrawCanvas = () => {
       const height = area.clientHeight;
       const beside = room >= 30 * rem && room / height >= 0.88;
       if (beside !== chromeW > 0.5) return "";
-      // As --s works it out (the area's grid below).
+      // As --s works it out (the area's grid below) – but at least as wide
+      // as the bars below need to stay in one row (the 34rem query): wrapped,
+      // they would take height from the area.
       const side = Math.max(
         12 * rem,
         Math.min(60 * rem, room - chromeW, height - chromeH)
       );
-      return `${Math.ceil(Math.min(room, side + chromeW) + padding)}px`;
+      const fit = Math.min(room, Math.max(side + chromeW, 34 * rem));
+      return `${Math.ceil(fit + padding)}px`;
     };
     /** Sets the measured sizes; `true` if they changed. */
     const measure = () => {

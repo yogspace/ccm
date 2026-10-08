@@ -4,7 +4,7 @@ import { defaultParams } from "../geometry/cutter";
 import { store } from "../store";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
-import { cookieInButton } from "./styles";
+import { cookieInIconButton } from "./styles";
 
 /** Five decimals: about 1/100 mm at 200 mm – and far smaller files. */
 const round = (value: number) => Math.round(value * 1e5) / 1e5;
@@ -42,19 +42,20 @@ const DevFixture = () => {
   const { rings } = useSnapshot(store);
   return (
     <Button
-      className="fixed bottom-4 left-16 z-50 bg-neon text-on-neon shadow-[0_0.5rem_1.2rem_rgb(4_8_60/0.35)] hover:enabled:bg-[color-mix(in_oklab,var(--color-neon)_86%,#000)]"
+      aria-label="Save as test case"
+      className="fixed bottom-16 left-5 z-50 size-10 rounded-full bg-neon shadow-[0_0.5rem_1.2rem_rgb(4_8_60/0.35)] hover:enabled:bg-[color-mix(in_oklab,var(--color-neon)_86%,#000)]"
       disabled={rings.length === 0}
+      kind="icon"
       onClick={save}
       title="Save the drawing as a geometry test case (test/fixtures/)"
       type="button"
     >
       <CookieIcon
-        className={cookieInButton}
+        className={cookieInIconButton}
         icon={FlaskConical}
         roll={-10}
         size={48}
       />
-      Test case
     </Button>
   );
 };
