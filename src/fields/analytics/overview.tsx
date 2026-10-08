@@ -3,6 +3,7 @@
 import { Button } from "@payloadcms/ui";
 import { pathLabel } from "../../stats/page-names";
 import { tally } from "../../stats/tally";
+import { BarChart, type Bucket } from "./bar-chart";
 import {
   DAY_MS,
   deleteRows,
@@ -14,8 +15,6 @@ import {
   type Window,
 } from "./data";
 import {
-  BarChart,
-  type Bucket,
   ButtonRow,
   compare,
   fmt,
