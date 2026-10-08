@@ -138,7 +138,7 @@ const CardComposer = ({ greeting, onChange, picture }: Props) => {
             id={`${ids}-message`}
             maxLength={GREETING_LIMITS.message}
             onChange={(event) => set("message")(event.target.value)}
-            placeholder={t("card.messagePlaceholder")}
+            placeholder={t("card.ring")}
             rows={3}
             value={greeting.message}
           />

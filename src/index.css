@@ -1744,7 +1744,8 @@ button.hints-toggle {
   transform-origin: 50% 300%;
 }
 
-/* The end of the page: the fan of example pictures floats. */
+/* The end of the page: the fan of example pictures floats, the share box in
+   front of its lower edge – the newest creation before the others. */
 .showcase {
   --fan-card: 11rem;
   display: flex;
@@ -2104,8 +2105,11 @@ button.legal-close {
    the left, the rest beside it. As a greeting card the picture becomes the
    little card and the fields appear; the box grows along (use-grow.ts). */
 .card.share-box {
+  position: relative;
+  z-index: 10;
   align-self: center;
   width: min(100%, 52rem);
+  margin-top: calc(var(--fan-card) * -0.45);
   /* The content's own gaps – the box only holds it (use-grow.ts). */
   display: block;
 }
@@ -2140,14 +2144,10 @@ button.legal-close {
   align-items: stretch;
 }
 
-/* Phone: the picture above, not too big. */
+/* Phone: the picture above (see .share-visual for its size). */
 @media (max-width: 40rem) {
   .share-layout {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .share-visual {
-    max-width: 16rem;
   }
 }
 
@@ -2159,6 +2159,13 @@ button.legal-close {
   margin-inline: auto;
   aspect-ratio: 1;
   animation: fade 0.3s var(--ease) both;
+}
+
+/* On phones not too big – the rest should follow soon. */
+@media (max-width: 40rem) {
+  .share-visual {
+    max-width: 16rem;
+  }
 }
 
 .share-content {

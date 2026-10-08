@@ -301,7 +301,7 @@ const ShareCreation = ({ preview }: Props) => {
                         roll={10}
                         size={48}
                       />
-                      {t("share.shareImage")}
+                      {t("share.share")}
                     </Button>
                   )}
                 </div>

@@ -591,10 +591,6 @@ export interface Translation {
      */
     message?: string | null;
     /**
-     * DE: Frohe Weihnachten – lass uns zusammen backen!  ·  EN: Merry Christmas – let’s bake together!
-     */
-    messagePlaceholder?: string | null;
-    /**
      * DE: Karte ansehen  ·  EN: View card
      */
     open?: string | null;
@@ -1063,9 +1059,9 @@ export interface Translation {
      */
     saveImage?: string | null;
     /**
-     * DE: Bild teilen  ·  EN: Share image
+     * DE: Teilen  ·  EN: Share
      */
-    shareImage?: string | null;
+    share?: string | null;
     /**
      * DE: Seite teilen  ·  EN: Share page
      */
@@ -1187,7 +1183,6 @@ export interface TranslationsSelect<T extends boolean = true> {
         loading?: T;
         makeOwn?: T;
         message?: T;
-        messagePlaceholder?: T;
         open?: T;
         pictureHint?: T;
         pictureSave?: T;
@@ -1347,7 +1342,7 @@ export interface TranslationsSelect<T extends boolean = true> {
         imageAlt?: T;
         pageText?: T;
         saveImage?: T;
-        shareImage?: T;
+        share?: T;
         sharePage?: T;
         text?: T;
         textCopied?: T;
