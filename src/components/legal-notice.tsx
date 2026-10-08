@@ -30,15 +30,13 @@ const LegalNotice = () => {
       >
         {t("footer.imprint")}
       </Button>
-      {/* Rises in over a dimmed page – not blurred: a blur over the whole
-          page, its cookies moving below it, flickers while the text
-          scrolls. Its padding keeps the scrollbar away from the round
-          corners. Aligned on its own – it sits in the footer, on the card's
-          page in a centered one. */}
+      {/* Rises in over a dimmed, blurred page. Its padding keeps the
+          scrollbar away from the round corners. Aligned on its own – it
+          sits in the footer, on the card's page in a centered one. */}
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: Escape closes the dialog natively, the click is only for the backdrop */}
       <dialog
         aria-label={t("footer.imprint")}
-        className="m-auto max-h-[min(85dvh,48rem)] w-[min(40rem,100%-2rem)] text-left translate-y-4 scale-98 overflow-hidden rounded-3xl bg-surface p-2.5 text-ink opacity-0 [transition:opacity_0.25s_var(--ease-soft),translate_0.35s_var(--ease-spring),scale_0.35s_var(--ease-spring),overlay_0.25s_allow-discrete,display_0.25s_allow-discrete] backdrop:bg-black/0 backdrop:[transition:background_0.25s_var(--ease-soft),overlay_0.25s_allow-discrete,display_0.25s_allow-discrete] open:flex open:translate-y-0 open:scale-100 open:flex-col open:opacity-100 open:backdrop:bg-black/40 starting:open:translate-y-4 starting:open:scale-98 starting:open:opacity-0 starting:open:backdrop:bg-black/0"
+        className="m-auto max-h-[min(85dvh,48rem)] w-[min(40rem,100%-2rem)] text-left translate-y-4 scale-98 overflow-hidden rounded-3xl bg-surface p-2.5 text-ink opacity-0 [transition:opacity_0.25s_var(--ease-soft),translate_0.35s_var(--ease-spring),scale_0.35s_var(--ease-spring),overlay_0.25s_allow-discrete,display_0.25s_allow-discrete] backdrop:bg-black/0 backdrop:backdrop-blur-[0px] backdrop:[transition:background_0.25s_var(--ease-soft),backdrop-filter_0.25s_var(--ease-soft),overlay_0.25s_allow-discrete,display_0.25s_allow-discrete] open:flex open:translate-y-0 open:scale-100 open:flex-col open:opacity-100 open:backdrop:bg-black/35 open:backdrop:backdrop-blur-xs starting:open:translate-y-4 starting:open:scale-98 starting:open:opacity-0 starting:open:backdrop:bg-black/0 starting:open:backdrop:backdrop-blur-[0px]"
         // A click on the dimmed backdrop closes the dialog.
         onClick={(event) => {
           if (event.target === event.currentTarget) event.currentTarget.close();

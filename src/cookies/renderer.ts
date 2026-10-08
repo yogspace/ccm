@@ -12,6 +12,15 @@ import { type CookieKind, createCookie } from "./models";
 /** From this distance (px) on, a cookie reacts to the mouse. */
 const NEAR = 220;
 const MAX_TURN = 0.75;
+/**
+ * Only floating (nothing else moving), a cookie is drawn this often per
+ * second – its slow sway needs no more, and every draw is a copy out of the
+ * shared WebGL canvas. Dozens of them each frame kept the GPU so busy that
+ * Chrome showed stale frames while scrolling.
+ */
+const FLOAT_FPS = 24;
+/** No floating while anything scrolls, nor this long (ms) after it. */
+const SCROLL_REST = 200;
 
 type Spring = { value: number; velocity: number; target: number };
 
@@ -61,13 +70,21 @@ type Entry = {
   spin: boolean;
   /** Spin speed in the image plane (rad/ms) while `spin` is on. */
   spinSpeed: number;
+  /** How far it has spun (rad). */
+  spun: number;
+  /** How long it has floated (ms). */
+  floated: number;
   phase: number;
   visible: boolean;
   drawn: boolean;
+  /** When it was last drawn (performance.now() time). */
+  drawnAt: number;
 };
 
 const entries = new Set<Entry>();
 const pointer = { x: -1e6, y: -1e6 };
+/** When the page – or anything in it, a dialog's text – last scrolled. */
+let lastScroll = -Infinity;
 let reduceMotion = false;
 let renderer: THREE.WebGLRenderer | undefined;
 let scene: THREE.Scene;
@@ -109,6 +126,13 @@ const setup = () => {
     },
     { passive: true }
   );
+  window.addEventListener(
+    "scroll",
+    () => {
+      lastScroll = performance.now();
+    },
+    { capture: true, passive: true }
+  );
   // Give the GPU memory back when the page goes – iOS Safari frees it late –
   // and set up anew if the page comes back from the back/forward cache.
   window.addEventListener("pagehide", () => {
@@ -136,14 +160,15 @@ const draw = (entry: Entry, time: number) => {
 
   // Gentle floating, looking at the mouse, turning on hover, squashing on click.
   const idle =
-    entry.idle && !reduceMotion ? Math.sin(time / 900 + entry.phase) * 0.06 : 0;
+    entry.idle && !reduceMotion
+      ? Math.sin(entry.floated / 900 + entry.phase) * 0.06
+      : 0;
   if (entry.side === null) {
     object.position.set(0, 0, 0);
     object.rotation.set(
       entry.tilt + entry.turnX.value + idle,
       entry.turnY.value + entry.flip.value,
-      entry.roll +
-        (entry.spin && !reduceMotion ? time * entry.spinSpeed : idle * 0.5)
+      entry.roll + (entry.spin && !reduceMotion ? entry.spun : idle * 0.5)
     );
   } else {
     // Camera looking down · turned upright · on its back · about its middle.
@@ -183,6 +208,19 @@ const draw = (entry: Entry, time: number) => {
     height
   );
   entry.drawn = true;
+  entry.drawnAt = time;
+};
+
+const isScrolling = () => performance.now() - lastScroll < SCROLL_REST;
+
+/** The modal dialog open over the page, if any. */
+const openModal = () => {
+  try {
+    return document.querySelector("dialog:modal");
+  } catch {
+    // Browsers without :modal.
+    return null;
+  }
 };
 
 const tick = (time: number) => {
@@ -190,22 +228,33 @@ const tick = (time: number) => {
   const dt = Math.min((time - (last || time)) / 1000, 1 / 30);
   last = time;
   let busy = false;
+  // Floating rests while anything scrolls – the browser has enough to do
+  // then – and spinning too below a modal dialog.
+  const scrolling = isScrolling();
+  const modal = openModal();
 
   for (const entry of entries) {
     if (!entry.visible) continue;
-    const rect = entry.canvas.getBoundingClientRect();
-    const dx = pointer.x - (rect.left + rect.width / 2);
-    const dy = pointer.y - (rect.top + rect.height / 2);
-    const distance = Math.hypot(dx, dy);
-    // Only when near does the cookie look at the mouse, otherwise it springs back.
-    const near = entry.follow && !reduceMotion && distance < NEAR;
-    const strength = near ? 1 - distance / NEAR : 0;
-    entry.turnY.target = near
-      ? Math.max(-1, Math.min(1, dx / 90)) * MAX_TURN * (0.4 + strength * 0.6)
-      : 0;
-    entry.turnX.target = near
-      ? Math.max(-1, Math.min(1, dy / 90)) * MAX_TURN * (0.4 + strength * 0.6)
-      : 0;
+    // Scrolling carries cookies past a pointer that stands still – they keep
+    // looking where they did.
+    if (!scrolling) {
+      const rect = entry.canvas.getBoundingClientRect();
+      const dx = pointer.x - (rect.left + rect.width / 2);
+      const dy = pointer.y - (rect.top + rect.height / 2);
+      const distance = Math.hypot(dx, dy);
+      // Only when near does the cookie look at the mouse, otherwise it
+      // springs back.
+      const near = entry.follow && !reduceMotion && distance < NEAR;
+      const strength = near ? 1 - distance / NEAR : 0;
+      const look = (offset: number) =>
+        near
+          ? Math.max(-1, Math.min(1, offset / 90)) *
+            MAX_TURN *
+            (0.4 + strength * 0.6)
+          : 0;
+      entry.turnY.target = look(dx);
+      entry.turnX.target = look(dy);
+    }
 
     for (const s of [entry.turnX, entry.turnY]) step(s, dt);
     step(entry.flip, dt, 90, 11);
@@ -224,16 +273,30 @@ const tick = (time: number) => {
       entry.flip.target = entry.flip.value;
     }
 
-    const moving =
-      entry.spin ||
-      (entry.idle && !reduceMotion) ||
-      ![entry.turnX, entry.turnY, entry.flip, entry.squash, entry.appear].every(
-        settled
-      );
+    const moving = ![
+      entry.turnX,
+      entry.turnY,
+      entry.flip,
+      entry.squash,
+      entry.appear,
+    ].every(settled);
+    const spinning = entry.spin && !reduceMotion;
+    const floating = entry.idle && !reduceMotion;
+    const covered = modal !== null && !modal.contains(entry.canvas);
+    // Spinning and floating keep their own time: it stands still while they
+    // rest, so they go on from there afterwards – without a jump.
+    if (spinning && !covered) entry.spun += dt * 1000 * entry.spinSpeed;
+    if (floating && !covered && !scrolling) entry.floated += dt * 1000;
     if (waiting) busy = true;
     else if (moving || !entry.drawn) {
       draw(entry, time);
       busy = true;
+    } else if (spinning || floating) {
+      busy = true;
+      const due = spinning
+        ? !covered
+        : !covered && !scrolling && time - entry.drawnAt >= 1000 / FLOAT_FPS;
+      if (due) draw(entry, time);
     }
   }
   if (busy) wake();
@@ -320,9 +383,12 @@ export const registerCookie = (
     onGrow,
     spin,
     spinSpeed,
+    spun: 0,
+    floated: 0,
     phase: Math.random() * Math.PI * 2,
     visible: true,
     drawn: false,
+    drawnAt: -Infinity,
   };
   entries.add(entry);
 
@@ -354,7 +420,9 @@ export const registerCookie = (
       wake();
     },
     flip: () => {
-      if (reduceMotion) return;
+      // Not when scrolling carried its button under the pointer – only when
+      // the pointer came to it.
+      if (reduceMotion || isScrolling()) return;
       entry.flip.target += Math.PI * 2;
       wake();
     },
@@ -403,9 +471,12 @@ export const cookieImage = (kind: CookieKind, pixels: number) => {
           appearAt: 0,
           spin: false,
           spinSpeed: 0,
+          spun: 0,
+          floated: 0,
           phase: 0,
           visible: true,
           drawn: false,
+          drawnAt: -Infinity,
         },
         0
       );
