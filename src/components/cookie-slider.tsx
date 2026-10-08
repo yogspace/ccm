@@ -49,7 +49,7 @@ const CookieSlider = ({ min, max, step, value, onChange, label }: Props) => {
   // 100 % − thumb/2.
   return (
     <span
-      className="group/slider relative block h-(--thumb) min-w-0 flex-1 [--stop:calc(var(--thumb)/2_+_var(--fill)*(100%_-_var(--thumb)))] [--thumb:2.1rem]"
+      className="group/slider relative block h-(--thumb) min-w-0 flex-1 [--stop:calc(var(--thumb)/2+var(--fill)*(100%-var(--thumb)))] [--thumb:2.1rem]"
       style={{ "--fill": fill } as CSSProperties}
     >
       <span

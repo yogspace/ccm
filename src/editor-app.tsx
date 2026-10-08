@@ -61,7 +61,7 @@ const App = () => {
           preview below. Narrow: stacked, areas as wide as possible –
           scrolling is fine here. */}
       <main
-        className="relative z-1 grid grid-cols-2 items-stretch gap-6 [--stage-size:min(100%,max(24rem,calc(100dvh_-_23rem)))] data-expanded:grid-cols-1 md:not-data-expanded:min-h-[calc(100dvh_-_8.5rem)] md:not-data-expanded:flex-1 md:not-data-expanded:grid-rows-[minmax(0,1fr)] md:data-expanded:[--stage-size:min(100%,60rem)] max-md:grid-cols-1 max-md:[--stage-size:100%]"
+        className="relative z-1 grid grid-cols-2 items-stretch gap-6 [--stage-size:min(100%,max(24rem,calc(100dvh-23rem)))] data-expanded:grid-cols-1 md:not-data-expanded:min-h-[calc(100dvh-8.5rem)] md:not-data-expanded:flex-1 md:not-data-expanded:grid-rows-[minmax(0,1fr)] md:data-expanded:[--stage-size:min(100%,60rem)] max-md:grid-cols-1 max-md:[--stage-size:100%]"
         data-expanded={expanded || undefined}
       >
         <Card className="[view-transition-name:shape-card]">
@@ -134,7 +134,7 @@ const App = () => {
               20rem); the view in it stays roughly square – between 4:5 and
               7:5 – instead of stretching. Narrow and enlarged it is as wide
               as it can be (enlarged at most 44rem). */}
-          <div className="grid min-h-80 flex-1 place-items-center @container-[size] max-md:min-h-0 max-md:flex-none max-md:@container in-data-expanded:min-h-0 in-data-expanded:flex-none in-data-expanded:@container">
+          <div className="grid min-h-80 flex-1 place-items-center @container-size max-md:min-h-0 max-md:flex-none max-md:@container in-data-expanded:min-h-0 in-data-expanded:flex-none in-data-expanded:@container">
             <div
               className={cn(
                 stage,

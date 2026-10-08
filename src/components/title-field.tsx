@@ -21,7 +21,7 @@ const TitleField = () => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="relative flex max-w-112 min-w-0 flex-auto items-center">
+    <div className="relative flex max-w-md min-w-0 flex-auto items-center">
       {/* In the title's type, the field's colours – readable on its light
           ground in both modes; room on the right for the pencil or the
           cross. Focused and empty: the hint to type a name, a little

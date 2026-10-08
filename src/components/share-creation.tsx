@@ -291,10 +291,10 @@ const ShareCreation = ({ preview }: Props) => {
                     <CanvasView canvas={cutterView} className="size-full" />
                   )}
                 </div>
-                <strong className="absolute top-[calc(88.333cqw_-_var(--baseline))] left-[5cqw] w-[90cqw] truncate text-[6.333cqw] leading-none font-bold [--baseline:0.813em]">
+                <strong className="absolute top-[calc(88.333cqw-var(--baseline))] left-[5cqw] w-[90cqw] truncate text-[6.333cqw] leading-none font-bold [--baseline:0.813em]">
                   {pictureName}
                 </strong>
-                <small className="absolute top-[calc(94.167cqw_-_var(--baseline))] left-[5cqw] w-[90cqw] truncate text-[3.167cqw] leading-none font-medium text-on-glaze-muted [--baseline:0.813em]">
+                <small className="absolute top-[calc(94.167cqw-var(--baseline))] left-[5cqw] w-[90cqw] truncate text-[3.167cqw] leading-none font-medium text-on-glaze-muted [--baseline:0.813em]">
                   {SITE_LINE}
                 </small>
               </div>
@@ -336,7 +336,7 @@ const ShareCreation = ({ preview }: Props) => {
                       />
                     </span>
                   </span>
-                  <span className="grid flex-1 gap-0.25">
+                  <span className="grid flex-1 gap-px">
                     <strong>{t("share.cardInvite")}</strong>
                     <small className="text-small font-medium text-muted">
                       {t("share.cardInviteHint")}

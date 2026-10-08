@@ -131,7 +131,7 @@ const paper =
 
 /** Like a label: the name left, the size (or how it is) right. */
 const label =
-  "flex items-baseline justify-between gap-[0.6em] px-[1.2cqw] text-left text-[length:4.6cqw] leading-[1.2] font-bold tracking-[-0.01em]";
+  "flex items-baseline justify-between gap-[0.6em] px-[1.2cqw] text-left text-[4.6cqw] leading-[1.2] font-bold tracking-[-0.01em]";
 const labelName = "min-w-0 truncate";
 const labelNote = "flex-none text-[0.68em] font-semibold text-card-ink-muted";
 
@@ -490,7 +490,7 @@ const CardPage = () => {
   // Behind it all: light from behind the card, a neon glow rising from below.
   return (
     <main
-      className="relative isolate grid h-dvh grid-cols-[minmax(0,1fr)] grid-rows-[1fr_auto_minmax(0,min(100vw_-_2rem,38rem))_auto_auto_auto_1fr_auto] items-center justify-items-center gap-y-[clamp(0.3rem,1.5dvh,0.9rem)] overflow-hidden px-4 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] text-center before:pointer-events-none before:absolute before:inset-0 before:-z-1 before:bg-[radial-gradient(ellipse_55%_42%_at_50%_47%,rgb(255_255_255/0.2),transparent_72%),radial-gradient(ellipse_90%_55%_at_50%_118%,rgb(255_71_208/0.3),transparent_70%)] max-xs:h-auto max-xs:min-h-dvh max-xs:grid-rows-[1fr_auto_118vw_auto_auto_auto_1fr_auto]"
+      className="relative isolate grid h-dvh grid-cols-[minmax(0,1fr)] grid-rows-[1fr_auto_minmax(0,min(100vw-2rem,38rem))_auto_auto_auto_1fr_auto] items-center justify-items-center gap-y-[clamp(0.3rem,1.5dvh,0.9rem)] overflow-hidden px-4 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] text-center before:pointer-events-none before:absolute before:inset-0 before:-z-1 before:bg-[radial-gradient(ellipse_55%_42%_at_50%_47%,rgb(255_255_255/0.2),transparent_72%),radial-gradient(ellipse_90%_55%_at_50%_118%,rgb(255_71_208/0.3),transparent_70%)] max-xs:h-auto max-xs:min-h-dvh max-xs:grid-rows-[1fr_auto_118vw_auto_auto_auto_1fr_auto]"
       data-greeting
     >
       {/* The card's own cookie, a few times in the background. */}
@@ -500,7 +500,7 @@ const CardPage = () => {
           turns over) and the buttons below take them. Who it is from and
           the buttons may be missing – their rows stay empty. */}
       <h1
-        className="pointer-events-none row-start-2 mt-[clamp(0rem,1.5dvh,1rem)] max-w-full -rotate-2 animate-[greet-rise_0.9s_var(--ease-soft)_0.1s_both] text-[length:clamp(1.8rem,min(7.2dvh,150vw/(var(--chars,8)_+_2)),4.4rem)] leading-[1.05] font-bold tracking-[-0.025em] wrap-anywhere embolden-25"
+        className="pointer-events-none row-start-2 mt-[clamp(0rem,1.5dvh,1rem)] max-w-full -rotate-2 animate-[greet-rise_0.9s_var(--ease-soft)_0.1s_both] text-[clamp(1.8rem,min(7.2dvh,150vw/(var(--chars,8)+2)),4.4rem)] leading-[1.05] font-bold tracking-tight wrap-anywhere embolden-25"
         // Long names get smaller instead of taking several lines.
         style={{ "--chars": heading.length } as CSSProperties}
       >
@@ -510,9 +510,9 @@ const CardPage = () => {
       {/* The stage is the largest square that fits the room left. Phones:
           wider than the screen – centred by hand, a grid puts what is wider
           than its cell at the start. */}
-      <div className="pointer-events-none row-start-3 grid size-full min-h-0 place-items-center @container-[size]">
+      <div className="pointer-events-none row-start-3 grid size-full min-h-0 place-items-center @container-size">
         <div
-          className="pointer-events-none relative aspect-square w-[min(100cqw,100cqh,38rem)] @container max-xs:ml-[calc(50cqw_-_min(62.5cqw,50cqh))] max-xs:w-[min(125cqw,100cqh)] max-xs:justify-self-start"
+          className="pointer-events-none relative aspect-square w-[min(100cqw,100cqh,38rem)] @container max-xs:ml-[calc(50cqw-min(62.5cqw,50cqh))] max-xs:w-[min(125cqw,100cqh)] max-xs:justify-self-start"
           data-part="stage"
         >
           {/* The message, all the way around – slowly turning like a record. */}
@@ -563,7 +563,7 @@ const CardPage = () => {
             ))}
           {/* The card: tilted a little, leaning towards the pointer. */}
           <div
-            className="pointer-events-auto absolute inset-[20.5%] animate-[card-land_1.1s_var(--ease-spring)_0.15s_both] transition-transform duration-900 transform-3d [transform:perspective(70rem)_rotateX(var(--lean-x,0deg))_rotateY(var(--lean-y,0deg))_rotate(-3deg)]"
+            className="pointer-events-auto absolute inset-[20.5%] animate-[card-land_1.1s_var(--ease-spring)_0.15s_both] transition-transform duration-900 transform-3d transform-[perspective(70rem)_rotateX(var(--lean-x,0deg))_rotateY(var(--lean-y,0deg))_rotate(-3deg)]"
             data-part="card"
             ref={cardRef}
           >
@@ -574,7 +574,7 @@ const CardPage = () => {
             <button
               aria-label={t(flipped ? "card.flipBack" : "card.flip")}
               aria-pressed={flipped}
-              className="relative block size-full rounded-[5.5cqw] bg-transparent p-0 whitespace-normal text-inherit transform-3d [font:inherit] [text-align:inherit] [transition:transform_0.95s_var(--ease-spring)] not-disabled:not-data-flipped:animate-[greet-peek_1.4s_var(--ease-soft)_2.4s] focus-visible:outline-3 focus-visible:outline-offset-[0.5rem] focus-visible:outline-on-page disabled:cursor-default disabled:opacity-100 data-flipped:[transform:rotateY(180deg)]"
+              className="relative block size-full rounded-[5.5cqw] bg-transparent p-0 whitespace-normal text-inherit transform-3d [font:inherit] [text-align:inherit] [transition:transform_0.95s_var(--ease-spring)] not-disabled:not-data-flipped:animate-[greet-peek_1.4s_var(--ease-soft)_2.4s] focus-visible:outline-3 focus-visible:outline-offset-8 focus-visible:outline-on-page disabled:cursor-default disabled:opacity-100 data-flipped:transform-[rotateY(180deg)]"
               data-flipped={flipped || undefined}
               disabled={!cookie}
               onClick={() => {
@@ -604,7 +604,7 @@ const CardPage = () => {
                   // same place.
                   <span
                     aria-hidden={mesh ? true : undefined}
-                    className="col-start-1 row-start-1 grid min-h-0 place-items-center content-center gap-[0.6em] px-[8%] text-[length:3.4cqw] leading-[1.3] text-card-ink-muted [transition:opacity_0.45s_var(--ease-soft),scale_0.45s_var(--ease-soft)] data-gone:scale-90 data-gone:opacity-0"
+                    className="col-start-1 row-start-1 grid min-h-0 place-items-center content-center gap-[0.6em] px-[8%] text-[3.4cqw] leading-[1.3] text-card-ink-muted [transition:opacity_0.45s_var(--ease-soft),scale_0.45s_var(--ease-soft)] data-gone:scale-90 data-gone:opacity-0"
                     data-gone={mesh ? true : undefined}
                   >
                     <CookieIcon
@@ -632,7 +632,7 @@ const CardPage = () => {
               <span
                 className={cn(
                   paper,
-                  "invisible bg-card-back select-none [transform:rotateY(180deg)] in-data-flipped:visible"
+                  "invisible bg-card-back select-none transform-[rotateY(180deg)] in-data-flipped:visible"
                 )}
               >
                 {/* The message, behind the cookie – each bite shows more: in
@@ -641,7 +641,7 @@ const CardPage = () => {
                     longest word fits the card's width (Pally's letters about
                     0.56em wide). */}
                 <span
-                  className="col-start-1 row-start-1 self-center px-[4cqw] text-center text-[length:clamp(5cqw,min(64cqw/(var(--chars,12)*0.24_+_3),42cqw/(var(--word,6)*0.56)),10cqw)] leading-[1.05] font-bold tracking-[-0.02em] text-balance wrap-break-word text-card-back-ink"
+                  className="col-start-1 row-start-1 self-center px-[4cqw] text-center text-[clamp(5cqw,min(64cqw/(var(--chars,12)*0.24+3),42cqw/(var(--word,6)*0.56)),10cqw)] leading-[1.05] font-bold tracking-[-0.02em] text-balance wrap-break-word text-card-back-ink"
                   style={
                     {
                       "--chars": hidden.length,
@@ -685,13 +685,13 @@ const CardPage = () => {
                     bite. */}
                 <small
                   aria-hidden
-                  className="pointer-events-none absolute right-[5cqw] bottom-[11cqw] inline-flex animate-[eat-me-in_0.6s_var(--ease-soft)_0.9s_both] items-end gap-[0.8cqw] text-[length:3.3cqw] font-semibold text-card-deep [transition:opacity_0.4s_var(--ease-soft),translate_0.4s_var(--ease-soft),visibility_0s_linear_0.4s] motion-reduce:[animation-name:fade] data-gone:invisible data-gone:translate-y-[0.8cqw] data-gone:opacity-0"
+                  className="pointer-events-none absolute right-[5cqw] bottom-[11cqw] inline-flex animate-[eat-me-in_0.6s_var(--ease-soft)_0.9s_both] items-end gap-[0.8cqw] text-[3.3cqw] font-semibold text-card-deep [transition:opacity_0.4s_var(--ease-soft),translate_0.4s_var(--ease-soft),visibility_0s_linear_0.4s] motion-reduce:[animation-name:fade] data-gone:invisible data-gone:translate-y-[0.8cqw] data-gone:opacity-0"
                   data-gone={bites.length > 0 || undefined}
                   // Fades in anew after every turn, once the card has landed.
                   key={turns}
                 >
                   <CookieIcon
-                    className="-mt-[1.2cqw] -mr-[0.5cqw] -mb-[0.4cqw] animate-[eat-me_1.6s_ease-in-out_infinite] motion-reduce:animate-none"
+                    className="mt-[-1.2cqw] mr-[-0.5cqw] mb-[-0.4cqw] animate-[eat-me_1.6s_ease-in-out_infinite] motion-reduce:animate-none"
                     icing="#ff5fa8"
                     icon={ArrowUpLeft}
                     idle={false}
@@ -718,7 +718,7 @@ const CardPage = () => {
 
       {greeting.from && (
         <p
-          className="pointer-events-none row-start-4 max-w-full -rotate-1 animate-[greet-rise_0.9s_var(--ease-soft)_0.65s_both] text-[length:clamp(1rem,min(3.3dvh,110vw/(var(--chars,8)_+_2)),1.7rem)] leading-[1.2] font-semibold text-on-page-muted wrap-anywhere"
+          className="pointer-events-none row-start-4 max-w-full -rotate-1 animate-[greet-rise_0.9s_var(--ease-soft)_0.65s_both] text-[clamp(1rem,min(3.3dvh,110vw/(var(--chars,8)+2)),1.7rem)] leading-[1.2] font-semibold text-on-page-muted wrap-anywhere"
           style={{ "--chars": greeting.from.length + 4 } as CSSProperties}
         >
           {t("card.fromName", { name: greeting.from })}

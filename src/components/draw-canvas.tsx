@@ -919,7 +919,7 @@ const DrawCanvas = () => {
     // beside or below the area. Desktop: the area becomes the largest square
     // that fits its card, at window height – enlarged as high as the window.
     <div
-      className="mx-auto flex w-(--stage-size) flex-col @container/draw md:w-full md:items-center md:@container-[size] md:not-in-data-expanded:min-h-104 md:not-in-data-expanded:flex-1 md:in-data-expanded:h-[clamp(26rem,100dvh_-_7rem,64rem)]"
+      className="mx-auto flex w-(--stage-size) flex-col @container/draw md:w-full md:items-center md:@container-size md:not-in-data-expanded:min-h-104 md:not-in-data-expanded:flex-1 md:in-data-expanded:h-[clamp(26rem,100dvh-7rem,64rem)]"
       ref={areaRef}
     >
       {/* One grid for area and bars. Default: everything below the area –
@@ -936,7 +936,7 @@ const DrawCanvas = () => {
           need, both measured above – the fallbacks only apply until the
           first measurement. */}
       <div
-        className="grid w-[var(--s,auto)] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-5 gap-y-4.5 [grid-template-areas:'stage_stage_stage'_'tools_options_actions'_'templates_templates_templates'] md:[--s:max(12rem,min(60rem,100cqw_-_var(--chrome-w,0px),100cqh_-_var(--chrome-h,8rem)))] @max-[34rem]/draw:gap-x-3 @max-[34rem]/draw:[grid-template-areas:'stage_stage_stage'_'tools_._actions'_'options_options_options'_'templates_templates_templates'] beside:w-auto beside:grid-cols-[3.1rem_var(--s)_3.1rem] beside:grid-rows-[var(--s)_auto] beside:gap-x-3.25 beside:gap-y-4 beside:[grid-template-areas:'tools_stage_templates'_'._options_.']"
+        className="grid w-(--s,auto) grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-5 gap-y-4.5 [grid-template-areas:'stage_stage_stage'_'tools_options_actions'_'templates_templates_templates'] md:[--s:max(12rem,min(60rem,100cqw-var(--chrome-w,0px),100cqh-var(--chrome-h,8rem)))] @max-[34rem]/draw:gap-x-3 @max-[34rem]/draw:[grid-template-areas:'stage_stage_stage'_'tools_._actions'_'options_options_options'_'templates_templates_templates'] beside:w-auto beside:grid-cols-[3.1rem_var(--s)_3.1rem] beside:grid-rows-[var(--s)_auto] beside:gap-x-3.25 beside:gap-y-4 beside:[grid-template-areas:'tools_stage_templates'_'._options_.']"
         ref={gridRef}
       >
         {/* Always square – otherwise the drawing area distorts everything on
@@ -946,7 +946,7 @@ const DrawCanvas = () => {
           className={cn(
             stage,
             "group/stage aspect-square w-full min-w-0 [grid-area:stage] [anchor-name:--drawing]",
-            dragging && "bg-accent-soft [transform:scale(0.985)]"
+            dragging && "bg-accent-soft transform-[scale(0.985)]"
           )}
           onDragLeave={() => setDragging(false)}
           onDragOver={(event) => {
@@ -1195,7 +1195,7 @@ const DrawCanvas = () => {
           {/* biome-ignore lint/a11y/useSemanticElements: a group of buttons, not a form */}
           <div
             aria-label={t("draw.presets")}
-            className="flex min-w-0 snap-x gap-2.5 self-stretch overflow-x-auto overscroll-contain py-0.5 [scrollbar-color:color-mix(in_oklab,var(--color-muted)_45%,transparent)_transparent] [scrollbar-width:thin] *:flex-none *:snap-start beside:min-h-0 beside:flex-1 beside:snap-y beside:flex-col beside:items-center beside:overflow-x-hidden beside:overflow-y-auto beside:[scrollbar-width:none]"
+            className="flex min-w-0 snap-x gap-2.5 self-stretch overflow-x-auto overscroll-contain py-0.5 [scrollbar-color:color-mix(in_oklab,var(--color-muted)_45%,transparent)_transparent] scrollbar-thin *:flex-none *:snap-start beside:min-h-0 beside:flex-1 beside:snap-y beside:flex-col beside:items-center beside:overflow-x-hidden beside:overflow-y-auto beside:scrollbar-none"
             role="group"
           >
             {presets.map((preset) => {

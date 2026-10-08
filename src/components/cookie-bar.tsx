@@ -142,7 +142,7 @@ const CookieBar = () => {
   // page, it stays above the sun too.
   return (
     <div
-      className="pointer-events-none sticky bottom-[max(1rem,env(safe-area-inset-bottom))] z-40 flex translate-y-[calc(100%_+_2rem)] justify-center opacity-0 [transition:translate_0.6s_var(--ease-spring),opacity_0.3s_var(--ease-soft)] *:pointer-events-auto data-closed:justify-end data-shown:translate-y-0 data-shown:opacity-100 max-lg:mb-14"
+      className="pointer-events-none sticky bottom-[max(1rem,env(safe-area-inset-bottom))] z-40 flex translate-y-[calc(100%+2rem)] justify-center opacity-0 [transition:translate_0.6s_var(--ease-spring),opacity_0.3s_var(--ease-soft)] *:pointer-events-auto data-closed:justify-end data-shown:translate-y-0 data-shown:opacity-100 max-lg:mb-14"
       data-closed={!jarOpen || undefined}
       data-shown={shown || undefined}
     >
@@ -177,7 +177,7 @@ const CookieBar = () => {
             {/* Leaving cookies are taken out of the flow here (popLayout).
                 On phones on a row of its own. */}
             <motion.ul
-              className="relative flex snap-x gap-0.75 overflow-x-auto px-3 py-1.25 [scrollbar-width:thin] mask-[linear-gradient(90deg,transparent,#000_0.75rem,#000_calc(100%_-_0.75rem),transparent)] max-sm:col-span-full max-sm:row-start-2 max-sm:-mx-2"
+              className="relative flex snap-x gap-0.75 overflow-x-auto px-3 py-1.25 scrollbar-thin mask-[linear-gradient(90deg,transparent,#000_0.75rem,#000_calc(100%-0.75rem),transparent)] max-sm:col-span-full max-sm:row-start-2 max-sm:-mx-2"
               layout
               layoutScroll
               ref={listRef}

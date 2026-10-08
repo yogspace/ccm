@@ -34,7 +34,7 @@ export const cookieInStageHint = "-mt-3 -mb-1";
  * to where there is room; elsewhere they stay centred like any popover.
  */
 export const popup =
-  "m-auto max-w-[min(26rem,100vw_-_2rem)] translate-y-1.5 rounded-2xl bg-neon px-5 py-4 text-body font-bold text-on-neon opacity-0 shadow-[0_1rem_2.5rem_rgb(5_10_60/0.3)] text-shadow-[0_1px_2px_rgb(110_0_70/0.35)] transition-[opacity,translate,display,overlay] transition-discrete open:translate-y-0 open:opacity-100 starting:open:translate-y-1.5 starting:open:opacity-0 supports-[anchor-name:--a]:inset-auto supports-[anchor-name:--a]:m-2 supports-[anchor-name:--a]:[position-try-fallbacks:flip-block,flip-inline,flip-block_flip-inline]";
+  "m-auto max-w-[min(26rem,100vw-2rem)] translate-y-1.5 rounded-2xl bg-neon px-5 py-4 text-body font-bold text-on-neon opacity-0 shadow-[0_1rem_2.5rem_rgb(5_10_60/0.3)] text-shadow-[0_1px_2px_rgb(110_0_70/0.35)] transition-[opacity,translate,display,overlay] transition-discrete open:translate-y-0 open:opacity-100 starting:open:translate-y-1.5 starting:open:opacity-0 supports-[anchor-name:--a]:inset-auto supports-[anchor-name:--a]:m-2 supports-[anchor-name:--a]:[position-try-fallbacks:flip-block,flip-inline,flip-block_flip-inline]";
 
 /** The text fields of the card composer and the contact form (field.tsx). */
 export const fieldInput =
