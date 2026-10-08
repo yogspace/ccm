@@ -7,9 +7,10 @@ import type { Locale } from "../seo";
  * the SEED of the Translations global, flattened to keys: “draw.presets”.
  *
  * The keys are also the global's FIELDS (translations/tree.ts): a new key in
- * de.ts is a field in the admin after the next start, filled with its text
- * from here (translations/seed.ts). Existing values are never overwritten –
- * what is edited in the admin has the last word.
+ * de.ts is a field in the admin right away; the Seeds page fills it with its
+ * text from here and deletes keys that are gone (translations/seed.ts).
+ * Existing values are never overwritten – what is edited in the admin has
+ * the last word.
  */
 type Tree = { [key: string]: Tree | string };
 

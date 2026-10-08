@@ -15,10 +15,10 @@ import { Analytics } from "./globals/analytics";
 import { Legal } from "./globals/legal";
 import { Site } from "./globals/site";
 import { Translations } from "./globals/translations";
-import { seedLegal, seedSite } from "./legal/seed";
+import { SEEDS_PATH } from "./seeds/definitions";
+import { seedEndpoint } from "./seeds/endpoint";
 import { LOCALES } from "./seo";
 import { seedAdmin } from "./stats/seed-admin";
-import { seedTranslations } from "./translations/seed";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -38,6 +38,18 @@ export default buildConfig({
       titleSuffix: " · Cookie Cutter Maker",
       icons: [{ rel: "icon", type: "image/svg+xml", url: "/favicon.svg" }],
     },
+    // The Seeds page: what the code brings along for the CMS, applied by hand
+    // (seeds/definitions.ts) – not at start or deploy.
+    components: {
+      afterNavLinks: ["@/admin/seeds-nav-link#SeedsNavLink"],
+      views: {
+        seeds: {
+          Component: "@/admin/seeds-view#SeedsView",
+          path: SEEDS_PATH,
+          meta: { title: "Seeds" },
+        },
+      },
+    },
     timezones: {
       supportedTimezones: [
         { label: "Deutschland / Berlin", value: "Europe/Berlin" },
@@ -52,6 +64,7 @@ export default buildConfig({
   // The admin's groups follow this order: Users, then Content, then Settings.
   collections: [Users, Templates, Gallery, PageViews, Actions],
   globals: [Site, Legal, Translations, Analytics],
+  endpoints: [seedEndpoint],
   // The legal text brings its own editor (globals/legal.ts); this is the
   // default for any other rich text.
   editor: lexicalEditor(),
@@ -82,23 +95,16 @@ export default buildConfig({
   typescript: {
     outputFile: path.resolve(dirname, "payload-types.ts"),
   },
-  // What is missing at every start: the first admin, the interface texts,
-  // links and address, the legal text. Errors must not stop the start – the
-  // site falls back to the code's versions.
+  // At start only the first admin (from the environment) – the content
+  // seeds run from the admin's Seeds page; until then the site shows the
+  // code's texts, links and legal text. Errors must not stop the start.
   onInit: async (payload) => {
-    for (const [task, run] of [
-      ["Admin", seedAdmin],
-      ["Translations", seedTranslations],
-      ["Site", seedSite],
-      ["Legal", seedLegal],
-    ] as const) {
-      try {
-        await run(payload);
-      } catch (error) {
-        payload.logger.warn(
-          `${task} seeding skipped: ${error instanceof Error ? error.message : error}`
-        );
-      }
+    try {
+      await seedAdmin(payload);
+    } catch (error) {
+      payload.logger.warn(
+        `Admin seeding skipped: ${error instanceof Error ? error.message : error}`
+      );
     }
   },
 });

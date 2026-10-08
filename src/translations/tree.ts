@@ -121,6 +121,10 @@ export const translationFields = (
   return children(buildTree(keys), 0);
 };
 
+/** Where a key is stored: “draw.presets”, a reserved segment as `errors_`. */
+export const storedPath = (key: string) =>
+  key.split(".").map(fieldName).join(".");
+
 /** The value at a key path (“draw.presets”) in nested data. */
 export const valueAt = (data: unknown, key: string): string | undefined => {
   let node: unknown = data;

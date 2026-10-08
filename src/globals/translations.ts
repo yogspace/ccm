@@ -20,8 +20,9 @@ const revalidateTexts: GlobalAfterChangeHook = ({ doc, context }) => {
  * The interface texts of editor and card, in German and English. The fields
  * come from the keys in the code (translations/defaults.ts): “draw.presets”
  * is the field `presets` in the group `draw`. A new key in the code is a new
- * field here after the next start, filled with its text from the code (see
- * translations/seed.ts) – what is changed here wins.
+ * field here; the Seeds page fills it with its text from the code and
+ * deletes keys the code no longer has (translations/seed.ts). Until then the
+ * site shows the code's text. What is changed here wins.
  */
 export const Translations: GlobalConfig = {
   slug: "translations",
@@ -32,16 +33,5 @@ export const Translations: GlobalConfig = {
     update: authenticated,
   },
   hooks: { afterChange: [revalidateTexts] },
-  fields: [
-    {
-      name: "seed",
-      type: "ui",
-      admin: {
-        components: {
-          Field: "@/fields/seed-translations-button#SeedTranslationsButton",
-        },
-      },
-    },
-    ...translationFields(TRANSLATION_KEYS, TRANSLATION_DEFAULTS),
-  ],
+  fields: translationFields(TRANSLATION_KEYS, TRANSLATION_DEFAULTS),
 };

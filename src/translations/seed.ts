@@ -1,27 +1,79 @@
+import type { MongooseAdapter } from "@payloadcms/db-mongodb";
 import type { Payload } from "payload";
 import { LOCALES } from "../seo";
 import { defaultsFor, TRANSLATION_KEYS } from "./defaults";
-import { setValueAt, valueAt } from "./tree";
+import { setValueAt, storedPath, valueAt } from "./tree";
 
-export type SeedReport = {
-  locale: string;
-  existing: number;
-  missing: string[];
+/** What the database keeps beside the texts. */
+const META = new Set([
+  "_id",
+  "id",
+  "globalType",
+  "createdAt",
+  "updatedAt",
+  "__v",
+]);
+
+/**
+ * The paths in a stored Translations document that no key in the code
+ * leads to any more – a whole group at once where none of it is used.
+ */
+export const unusedIn = (
+  doc: Record<string, unknown>,
+  keys: readonly string[]
+): string[] => {
+  const leaves = new Set(keys.map(storedPath));
+  const groups = new Set(
+    [...leaves].flatMap((path) => {
+      const segments = path.split(".");
+      return segments
+        .slice(0, -1)
+        .map((_, i) => segments.slice(0, i + 1).join("."));
+    })
+  );
+  const unused: string[] = [];
+  const walk = (node: Record<string, unknown>, prefix: string) => {
+    for (const [name, value] of Object.entries(node)) {
+      if (!prefix && META.has(name)) continue;
+      const path = prefix ? `${prefix}.${name}` : name;
+      if (leaves.has(path)) continue;
+      if (groups.has(path) && value && typeof value === "object") {
+        walk(value as Record<string, unknown>, path);
+      } else unused.push(path);
+    }
+  };
+  walk(doc, "");
+  return unused;
 };
 
 /**
- * Fills empty texts of the Translations global from the code, per language.
- * Runs at every start (payload.config `onInit`) – a new text is there right
- * after the deploy – and from the button in the admin.
- *
- * Existing values are NEVER overwritten: what is written in the admin is the
- * deliberate choice and beats the code's text.
+ * The stored texts the code no longer has. Payload no longer shows them
+ * (the fields come from the code) – but they stay in the database until
+ * deleted. Read raw: a removed key is no field anymore.
  */
-export const seedTranslations = async (
-  payload: Payload,
-  { apply = true }: { apply?: boolean } = {}
-): Promise<SeedReport[]> => {
-  const reports: SeedReport[] = [];
+const unusedPaths = async (payload: Payload): Promise<string[]> => {
+  const { globals } = payload.db as unknown as MongooseAdapter;
+  const doc = await globals.collection.findOne({ globalType: "translations" });
+  return doc ? unusedIn(doc as Record<string, unknown>, TRANSLATION_KEYS) : [];
+};
+
+export interface TranslationSeedResult {
+  added: string[];
+  removed: string[];
+  kept: number;
+}
+
+/**
+ * Aligns the Translations global with the code: a new key gets the code's
+ * text, per language; a key the code no longer has is deleted, in both
+ * languages. Existing texts are NEVER overwritten – what is written in the
+ * admin is the deliberate choice and beats the code's text.
+ */
+export const syncTranslations = async (
+  payload: Payload
+): Promise<TranslationSeedResult> => {
+  const added: string[] = [];
+  let kept = 0;
 
   for (const locale of LOCALES) {
     // Without language fallback: otherwise an empty English field would
@@ -36,26 +88,25 @@ export const seedTranslations = async (
     const missing = TRANSLATION_KEYS.filter(
       (key) => !valueAt(doc, key)?.trim()
     );
-    reports.push({
-      locale,
-      existing: TRANSLATION_KEYS.length - missing.length,
-      missing,
-    });
-    if (!(apply && missing.length)) continue;
+    kept += TRANSLATION_KEYS.length - missing.length;
+    added.push(...missing.map((key) => `${locale}:${key}`));
+    if (!missing.length) continue;
 
     const defaults = defaultsFor(locale);
     const data: Record<string, unknown> = {};
     for (const key of TRANSLATION_KEYS) {
       setValueAt(data, key, valueAt(doc, key)?.trim() || defaults[key]);
     }
-    await payload.updateGlobal({
-      slug: "translations",
-      locale,
-      data,
-      // The afterChange hook expires the cache – and revalidateTag throws
-      // outside of a request, so always at start.
-      context: { disableRevalidate: true },
-    });
+    await payload.updateGlobal({ slug: "translations", locale, data });
   }
-  return reports;
+
+  const removed = await unusedPaths(payload);
+  if (removed.length) {
+    const { globals } = payload.db as unknown as MongooseAdapter;
+    await globals.collection.updateOne(
+      { globalType: "translations" },
+      { $unset: Object.fromEntries(removed.map((path) => [path, ""])) }
+    );
+  }
+  return { added, removed, kept };
 };
