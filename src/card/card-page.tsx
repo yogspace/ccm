@@ -128,6 +128,15 @@ const sprinkle =
 const paper =
   "absolute inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)_auto] rounded-[5.5cqw] bg-card-sheet px-[4.5cqw] py-[4cqw] text-card-ink shadow-[0_0.6rem_1.2rem_-0.4rem_rgb(4_8_60/0.35),0_2.8rem_4.5rem_-1.8rem_rgb(4_8_60/0.6)] backface-hidden [transition:visibility_0s_linear_0.17s]";
 
+/**
+ * A speech bubble at the card's upper left corner (on phones, where the
+ * stage runs out at the sides, above it), its tail towards the card, in the
+ * card's colors. It pops up --bubble-delay after it is shown and goes right
+ * away; bobbing a little, clicks go through.
+ */
+const bubble =
+  "pointer-events-none invisible absolute right-[70%] bottom-[71%] z-1 origin-bottom-right animate-[eat-me_1.6s_ease-in-out_infinite] scale-50 rounded-[2.4cqw] bg-card-sheet px-[2.4cqw] py-[1.4cqw] text-[3.3cqw] leading-none font-bold whitespace-nowrap text-card-deep opacity-0 shadow-[0_0.8cqw_2.4cqw_rgb(5_10_60/0.3)] [--bubble-delay:0.6s] [transition:opacity_0.25s_var(--ease-soft),scale_0.25s_var(--ease-soft),visibility_0s_linear_0.25s] after:absolute after:top-[calc(100%-1px)] after:right-[2.4cqw] after:size-[2.4cqw] after:bg-card-sheet after:[clip-path:polygon(0_0,100%_0,100%_100%)] motion-reduce:animate-none data-shown:visible data-shown:scale-100 data-shown:opacity-100 data-shown:[transition:opacity_0.3s_var(--ease-soft)_var(--bubble-delay),scale_0.55s_var(--ease-spring)_var(--bubble-delay),visibility_0s_linear_var(--bubble-delay)] max-xs:right-auto max-xs:bottom-[78%] max-xs:left-[21%]";
+
 /** Like a label: the name left, the size (or how it is) right. */
 const label =
   "flex items-baseline justify-between gap-[0.6em] px-[1.2cqw] text-left text-[4.6cqw] leading-[1.2] font-bold tracking-title";
@@ -396,17 +405,23 @@ const CardPage = () => {
     };
   }, []);
 
-  /** A sticker in the corner: this card turns over. */
-  const turnSticker = (
+  /**
+   * A sticker in the corner: this card turns over. In front it turns along
+   * on hover – a hint; on the back it holds still while the cookie is
+   * bitten – and is the way back until it is eaten up.
+   */
+  const turnSticker = (interactive: boolean) => (
     <span
       aria-hidden
-      className="absolute top-[2.2cqw] right-[2.2cqw] grid place-items-center"
+      className="absolute top-[2.2cqw] right-[2.2cqw] grid cursor-pointer place-items-center"
+      data-turn
     >
       <CookieIcon
         className="m-0 size-[8cqw]"
         icing="#2a44ff"
         icon={RotateCw}
         idle={false}
+        interactive={interactive}
         size={56}
       />
     </span>
@@ -556,13 +571,22 @@ const CardPage = () => {
                 }
               />
             ))}
-          {/* “Eat me *click*”: the cookie on the back speaks – a bubble in
-              the card's colors at its upper left corner (on phones, where the stage runs out at
-              the sides, above it), its tail towards the card. Pops up once the card has turned, goes once the
-              cookie is eaten (or the card turned back); clicks go through. */}
+          {/* The cutter speaks: “Turn me *click*” – once it stands on the
+              card, until the card is turned for the first time. */}
           <small
             aria-hidden
-            className="pointer-events-none invisible absolute right-[70%] bottom-[71%] z-1 origin-bottom-right animate-[eat-me_1.6s_ease-in-out_infinite] scale-50 rounded-[2.4cqw] bg-card-sheet px-[2.4cqw] py-[1.4cqw] text-[3.3cqw] leading-none font-bold whitespace-nowrap text-card-deep opacity-0 shadow-[0_0.8cqw_2.4cqw_rgb(5_10_60/0.3)] [transition:opacity_0.25s_var(--ease-soft),scale_0.25s_var(--ease-soft),visibility_0s_linear_0.25s] after:absolute after:top-[calc(100%-1px)] after:right-[2.4cqw] after:size-[2.4cqw] after:bg-card-sheet after:[clip-path:polygon(0_0,100%_0,100%_100%)] motion-reduce:animate-none data-shown:visible data-shown:scale-100 data-shown:opacity-100 data-shown:[transition:opacity_0.3s_var(--ease-soft)_0.6s,scale_0.55s_var(--ease-spring)_0.6s,visibility_0s_linear_0.6s] max-xs:right-auto max-xs:bottom-[78%] max-xs:left-[21%]"
+            className={cn(bubble, "[--bubble-delay:1.4s]")}
+            data-shown={(!!mesh && turns === 0) || undefined}
+          >
+            {t("card.turnMe")}{" "}
+            <em className="font-semibold">{t("card.click")}</em>
+          </small>
+          {/* The cookie on the back speaks: “Eat me *click*” – once the card
+              has turned, until the cookie is eaten (or the card turned
+              back). */}
+          <small
+            aria-hidden
+            className={bubble}
             data-shown={(flipped && !!cookie && !eaten) || undefined}
           >
             {t("card.eatMe")}{" "}
@@ -581,11 +605,24 @@ const CardPage = () => {
             <button
               aria-label={t(flipped ? "card.flipBack" : "card.flip")}
               aria-pressed={flipped}
-              className="relative block size-full rounded-[5.5cqw] bg-transparent p-0 whitespace-normal text-inherit transform-3d [font:inherit] [text-align:inherit] [transition:transform_0.95s_var(--ease-spring)] not-disabled:not-data-flipped:animate-[greet-peek_1.4s_var(--ease-soft)_2.4s] focus-visible:outline-3 focus-visible:outline-offset-8 focus-visible:outline-on-page disabled:cursor-default disabled:opacity-100 data-flipped:transform-[rotateY(180deg)]"
+              className="relative block size-full rounded-[5.5cqw] bg-transparent p-0 whitespace-normal text-inherit transform-3d [font:inherit] [text-align:inherit] [transition:transform_0.95s_var(--ease-spring)] not-disabled:not-data-flipped:animate-[greet-peek_1.4s_var(--ease-soft)_2.4s] focus-visible:outline-3 focus-visible:outline-offset-8 focus-visible:outline-on-page disabled:cursor-default disabled:opacity-100 data-held:cursor-default data-flipped:transform-[rotateY(180deg)]"
               data-flipped={flipped || undefined}
-              disabled={!cookie}
-              onClick={() => {
+              // On the back a stray click (one beside the cookie, a quick
+              // double tap) does not turn it back while there is cookie
+              // left – only the sticker does, or the keyboard.
+              data-held={(flipped && !eaten) || undefined}
+              disabled={!hasShape}
+              onClick={(event) => {
+                const held = flipped && !eaten;
+                const onSticker = (event.target as Element).closest(
+                  "[data-turn]"
+                );
+                // detail 0: from the keyboard.
+                if (held && event.detail > 0 && !onSticker) return;
                 setTurns((count) => count + 1);
+                // Turned before the cookie is baked: it bakes now – the
+                // cutter's entrance in front is out of sight anyway.
+                setBaked(true);
                 // Turned to the back: a fresh cookie – set while the back is
                 // still hidden, so a bitten one never vanishes in view.
                 if (!flipped) {
@@ -632,7 +669,7 @@ const CardPage = () => {
                   <span className={labelName}>{name}</span>
                   <small className={labelNote}>{sizeLabel}</small>
                 </span>
-                {cookie && turnSticker}
+                {hasShape && turnSticker(true)}
               </span>
               {/* The back in the favorite color, strong. Nothing on it gets
                   selected when the cookie is bitten in quick taps. */}
@@ -686,13 +723,28 @@ const CardPage = () => {
                     />
                   </span>
                 )}
+                {/* Turned before it is baked: it bakes here, over the
+                    message – nothing is given away before the first bite. */}
+                {!cookie && (
+                  <span className="col-start-1 row-start-1 grid min-h-0 place-items-center content-center gap-[0.6em] bg-card-back px-[8%] text-[3.4cqw] leading-[1.3] text-card-back-ink">
+                    <CookieIcon
+                      className={cookieInButton}
+                      idle={false}
+                      interactive={false}
+                      kind="star"
+                      size={88}
+                      spin
+                    />
+                    <span aria-live="polite">{t("card.baking")}</span>
+                  </span>
+                )}
                 <span className={label}>
                   <span className={labelName}>{name}</span>
                   <small className={labelNote}>
-                    {t(eaten ? "card.eaten" : "card.baked")}
+                    {cookie && t(eaten ? "card.eaten" : "card.baked")}
                   </small>
                 </span>
-                {cookie && turnSticker}
+                {turnSticker(false)}
               </span>
             </button>
           </div>

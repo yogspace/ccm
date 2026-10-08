@@ -577,6 +577,10 @@ export interface Translation {
      */
     baked?: string | null;
     /**
+     * DE: Dein Keks backt …  ·  EN: Baking your cookie …
+     */
+    baking?: string | null;
+    /**
      * DE: Anbeißen  ·  EN: Take a bite
      */
     bite?: string | null;
@@ -732,6 +736,10 @@ export interface Translation {
      * DE: Name  ·  EN: Name
      */
     toPlaceholder?: string | null;
+    /**
+     * DE: Dreh mich  ·  EN: Turn me
+     */
+    turnMe?: string | null;
   };
   contact?: {
     /**
@@ -1253,6 +1261,7 @@ export interface TranslationsSelect<T extends boolean = true> {
     | T
     | {
         baked?: T;
+        baking?: T;
         bite?: T;
         click?: T;
         color?: T;
@@ -1292,6 +1301,7 @@ export interface TranslationsSelect<T extends boolean = true> {
         titleFor?: T;
         to?: T;
         toPlaceholder?: T;
+        turnMe?: T;
       };
   contact?:
     | T
