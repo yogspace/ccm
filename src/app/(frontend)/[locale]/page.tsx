@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import { getAssets, getLegal, getSite } from "@/content";
 import EditorRoot from "@/editor-root";
-import LegalContent from "@/legal/legal-content";
+import { legalByLocale } from "@/legal/legal-content";
 import {
   editorMetadata,
   editorSchema,
   isLocale,
-  LOCALES,
   type Locale,
   noscriptText,
 } from "@/seo";
@@ -35,26 +34,12 @@ const EditorPage = async ({ params }: Props) => {
     getSite(),
     getLegal(),
   ]);
-  // The legal text in both languages, rendered here – the language switch
-  // in the editor changes without a reload.
-  const legalContent = Object.fromEntries(
-    LOCALES.map((locale) => [
-      locale,
-      <LegalContent
-        data={legal.content[locale]}
-        key={locale}
-        locale={locale}
-        site={site}
-        updatedAt={legal.updatedAt}
-      />,
-    ])
-  );
   return (
     <>
       <EditorRoot
         {...assets}
         colors={site.cardColors}
-        legal={legalContent}
+        legal={legalByLocale(legal, site)}
         links={site.links}
         texts={texts}
       />

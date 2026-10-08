@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { trackView } from "../analytics";
+import { type Assets, AssetsContext } from "../assets";
 import { setupI18n } from "../i18n";
 import { CardColorsContext, SiteLinksContext } from "../site-context";
 import type { CardColor, SiteLinks } from "../site-defaults";
@@ -21,9 +22,11 @@ export type CardProps = {
   texts: Texts;
   links: SiteLinks;
   colors: CardColor[];
+  /** The legal text for the imprint in the footer, rendered on the server. */
+  legal: Assets["legal"];
 };
 
-const CardEntry = ({ texts, links, colors }: CardProps) => {
+const CardEntry = ({ texts, links, colors, legal }: CardProps) => {
   setupI18n(texts);
   const [ready, setReady] = useState(false);
   useEffect(() => {
@@ -32,7 +35,10 @@ const CardEntry = ({ texts, links, colors }: CardProps) => {
   return ready ? (
     <SiteLinksContext value={links}>
       <CardColorsContext value={colors}>
-        <CardPage />
+        {/* No templates or gallery here – just the imprint's text. */}
+        <AssetsContext value={{ presets: [], gallery: [], legal }}>
+          <CardPage />
+        </AssetsContext>
       </CardColorsContext>
     </SiteLinksContext>
   ) : null;

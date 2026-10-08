@@ -8,8 +8,10 @@ import {
   type JSXConvertersFunction,
   RichText,
 } from "@payloadcms/richtext-lexical/react";
+import type { ReactNode } from "react";
 import ContactForm from "../components/contact-form";
-import type { Locale } from "../seo";
+import type { LegalText } from "../content";
+import { LOCALES, type Locale } from "../seo";
 import type { Site, SiteLinks } from "../site-defaults";
 
 type SiteLinkFields = { link: keyof SiteLinks; label: string };
@@ -74,5 +76,23 @@ const LegalContent = ({ data, site, locale, updatedAt }: Props) => {
   });
   return <RichText converters={converters} data={data} disableContainer />;
 };
+
+/**
+ * The legal text in both languages for a page – rendered here, on the
+ * server; the language switch changes without a reload.
+ */
+export const legalByLocale = (legal: LegalText, site: Site) =>
+  Object.fromEntries(
+    LOCALES.map((locale) => [
+      locale,
+      <LegalContent
+        data={legal.content[locale]}
+        key={locale}
+        locale={locale}
+        site={site}
+        updatedAt={legal.updatedAt}
+      />,
+    ])
+  ) as Record<Locale, ReactNode>;
 
 export default LegalContent;

@@ -161,6 +161,41 @@
     --color-on-page-line: var(--on-glaze-line);
   }
 
+  /* A dialog on it (the imprint) is in the color too: a sheet like the
+     card – faintly tinted, its words dark – and in the dark, like the
+     site's, a deep shade of the color with light words (the same steps as
+     from the site's blue to its dark one). Its fields stay light, its
+     button is the color. */
+  :root:has(#card-glaze) dialog {
+    --color-surface: var(--card-sheet);
+    --color-surface-2: color-mix(in oklab, var(--card-back) 30%, var(--card-sheet));
+    --color-paper: #ffffff;
+    --color-ink: var(--card-ink);
+    --color-muted: var(--card-ink-muted);
+    --color-field: var(--color-surface-2);
+    --color-field-ink: var(--card-ink);
+    --color-field-muted: var(--card-ink-muted);
+    --color-accent: var(--glaze);
+    --color-on-accent: var(--on-glaze);
+
+    @media (prefers-color-scheme: dark) {
+      --color-surface: color-mix(in oklab, var(--glaze) 45%, #0b0b16);
+      --color-surface-2: color-mix(in oklab, var(--glaze) 60%, #0b0b16);
+      --color-ink: #fff8ec;
+      --color-muted: color-mix(in oklab, var(--glaze) 30%, #fff8ec);
+      --color-field: var(--card-sheet);
+      --color-accent: color-mix(in oklab, var(--glaze) 55%, #ffffff);
+      --color-on-accent: var(--color-surface);
+
+      @supports (color: oklch(from red l c h)) {
+        --color-surface: oklch(from var(--glaze) 0.26 calc(c * 0.5) h);
+        --color-surface-2: oklch(from var(--glaze) 0.34 calc(c * 0.64) h);
+        --color-muted: oklch(from var(--glaze) 0.8 calc(c * 0.27) h);
+        --color-accent: oklch(from var(--glaze) 0.72 calc(c * 0.54) h);
+      }
+    }
+  }
+
   /* While a dialog is open (store.dialogs) nothing scrolls behind it. The
      scrollbar's room stays reserved, so the page does not shift sideways. */
   html {

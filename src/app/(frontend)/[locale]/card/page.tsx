@@ -1,7 +1,8 @@
 import type { Viewport } from "next";
 import CardRoot from "@/card/card-root";
-import { getSite } from "@/content";
+import { getLegal, getSite } from "@/content";
 import { GLAZE_SCRIPT_ID, glazeScript } from "@/glaze";
+import { legalByLocale } from "@/legal/legal-content";
 import { cardMetadata } from "@/seo";
 import { getTexts } from "@/translations/texts";
 
@@ -22,7 +23,11 @@ export const viewport: Viewport = {
 
 /** A greeting card: /de/card and /en/card – the card itself is in the hash. */
 const GreetingCardPage = async () => {
-  const [texts, site] = await Promise.all([getTexts(), getSite()]);
+  const [texts, site, legal] = await Promise.all([
+    getTexts(),
+    getSite(),
+    getLegal(),
+  ]);
   return (
     <>
       {/* The card's favorite color on the page before its first paint. */}
@@ -33,7 +38,12 @@ const GreetingCardPage = async () => {
         }}
         id={GLAZE_SCRIPT_ID}
       />
-      <CardRoot colors={site.cardColors} links={site.links} texts={texts} />
+      <CardRoot
+        colors={site.cardColors}
+        legal={legalByLocale(legal, site)}
+        links={site.links}
+        texts={texts}
+      />
       <noscript>Cookie Cutter Maker – this card needs JavaScript.</noscript>
     </>
   );
