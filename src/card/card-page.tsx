@@ -5,9 +5,11 @@ import {
   RotateCw,
   Share2,
 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import {
   type CSSProperties,
   type MouseEvent,
+  type ReactNode,
   useEffect,
   useMemo,
   useRef,
@@ -128,14 +130,67 @@ const sprinkle =
 const paper =
   "absolute inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)_auto] rounded-[5.5cqw] bg-card-sheet px-[4.5cqw] py-[4cqw] text-card-ink shadow-[0_0.6rem_1.2rem_-0.4rem_rgb(4_8_60/0.35),0_2.8rem_4.5rem_-1.8rem_rgb(4_8_60/0.6)] backface-hidden [transition:visibility_0s_linear_0.17s]";
 
+const springy = { type: "spring", stiffness: 520, damping: 26 } as const;
+
+type BubbleProps = {
+  shown: boolean;
+  /** Seconds after it is shown before it pops up. */
+  delay: number;
+  /** What it says – a new key, new words. */
+  say: { key: string; text: ReactNode };
+  /** Tilted to this side (deg) – a new value swings it over, boing. */
+  swing?: number;
+};
+
 /**
  * A speech bubble at the card's upper left corner (on phones, where the
- * stage runs out at the sides, above it), its tail towards the card, in the
- * card's colors. It pops up --bubble-delay after it is shown and goes right
- * away; bobbing a little, clicks go through.
+ * stage runs out at the sides, above it): a soft pill in the card's colors,
+ * a little tilted, its tail towards the card, bobbing a little; clicks go
+ * through. It pops up `delay` after it is shown and goes right away. New
+ * words spring in from below while the old ones hop away, the bubble
+ * growing or shrinking along – and swinging over.
  */
-const bubble =
-  "pointer-events-none invisible absolute right-[70%] bottom-[71%] z-1 origin-bottom-right animate-[eat-me_1.6s_ease-in-out_infinite] scale-50 rounded-[2.4cqw] bg-card-sheet px-[2.4cqw] py-[1.4cqw] text-[3.3cqw] leading-none font-bold whitespace-nowrap text-card-deep opacity-0 shadow-[0_0.8cqw_2.4cqw_rgb(5_10_60/0.3)] [--bubble-delay:0.6s] [transition:opacity_0.25s_var(--ease-soft),scale_0.25s_var(--ease-soft),visibility_0s_linear_0.25s] after:absolute after:top-[calc(100%-1px)] after:right-[2.4cqw] after:size-[2.4cqw] after:bg-card-sheet after:[clip-path:polygon(0_0,100%_0,100%_100%)] motion-reduce:animate-none data-shown:visible data-shown:scale-100 data-shown:opacity-100 data-shown:[transition:opacity_0.3s_var(--ease-soft)_var(--bubble-delay),scale_0.55s_var(--ease-spring)_var(--bubble-delay),visibility_0s_linear_var(--bubble-delay)] max-xs:right-auto max-xs:bottom-[78%] max-xs:left-[21%]";
+const SpeechBubble = ({ shown, delay, say, swing = 0 }: BubbleProps) => {
+  const motionless = still();
+  const transition = motionless ? { duration: 0 } : springy;
+  return (
+    <small
+      aria-hidden
+      className="pointer-events-none invisible absolute right-[70%] bottom-[71%] z-1 origin-bottom-right animate-[eat-me_1.6s_ease-in-out_infinite] scale-50 -rotate-3 text-[3.4cqw] leading-none font-bold whitespace-nowrap text-card-deep opacity-0 [transition:opacity_0.25s_var(--ease-soft),scale_0.25s_var(--ease-soft),visibility_0s_linear_0.25s] motion-reduce:animate-none data-shown:visible data-shown:scale-100 data-shown:opacity-100 data-shown:[transition:opacity_0.3s_var(--ease-soft)_var(--bubble-delay),scale_0.55s_var(--ease-spring)_var(--bubble-delay),visibility_0s_linear_var(--bubble-delay)] max-xs:right-auto max-xs:bottom-[78%] max-xs:left-[21%]"
+      data-shown={shown || undefined}
+      style={{ "--bubble-delay": `${delay}s` } as CSSProperties}
+    >
+      <motion.span
+        animate={{ rotate: swing }}
+        className="relative block bg-card-sheet px-[2.6cqw] py-[1.5cqw] drop-shadow-[0_0.8cqw_1.2cqw_rgb(5_10_60/0.3)] after:absolute after:right-[3cqw] after:-bottom-[0.8cqw] after:-z-1 after:size-[2.2cqw] after:rotate-45 after:rounded-[0.5cqw] after:bg-card-sheet"
+        layout
+        // Set here, not as a class: kept round while it grows or shrinks.
+        style={{ borderRadius: 999 }}
+        transition={
+          motionless
+            ? { duration: 0 }
+            : {
+                layout: springy,
+                rotate: { type: "spring", stiffness: 380, damping: 7 },
+              }
+        }
+      >
+        <AnimatePresence initial={false} mode="popLayout">
+          <motion.span
+            animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
+            className="inline-block"
+            exit={{ opacity: 0, y: "-90%", scale: 0.5, rotate: 10 }}
+            initial={{ opacity: 0, y: "90%", scale: 0.5, rotate: -10 }}
+            key={say.key}
+            transition={transition}
+          >
+            {say.text}
+          </motion.span>
+        </AnimatePresence>
+      </motion.span>
+    </small>
+  );
+};
 
 /**
  * A note while something is on its way (the cutter in front, the cookie on
@@ -212,6 +267,8 @@ const CardPage = () => {
    * Turned, a fresh one.
    */
   const [bites, setBites] = useState<Bite[]>([]);
+  /** What the cookie says after a bite – another one each time. */
+  const [yum, setYum] = useState("");
   /**
    * Bites are worked out one after another – quick taps don't race; the
    * latest list lives here, ahead of the next render.
@@ -475,6 +532,11 @@ const CardPage = () => {
       cookieAt(outline, bitesNow.current, x, y)
     );
     if (!hit) return;
+    const yums = t("card.yums")
+      .split("|")
+      .map((text) => text.trim())
+      .filter((text) => text && text !== yum);
+    setYum(yums[Math.floor(Math.random() * yums.length)] ?? "");
     const bitten = biteAt(hit.x, hit.y);
     const shape = cookie;
     if (!shape) return;
@@ -592,25 +654,40 @@ const CardPage = () => {
             ))}
           {/* The cutter speaks: “Turn me *click*” – once it stands on the
               card, until the card is turned for the first time. */}
-          <small
-            aria-hidden
-            className={cn(bubble, "[--bubble-delay:1.4s]")}
-            data-shown={(!!mesh && turns === 0) || undefined}
-          >
-            {t("card.turnMe")}{" "}
-            <em className="font-semibold">{t("card.click")}</em>
-          </small>
+          <SpeechBubble
+            delay={1.4}
+            say={{
+              key: "turn",
+              text: (
+                <>
+                  {t("card.turnMe")}{" "}
+                  <em className="font-semibold">{t("card.click")}</em>
+                </>
+              ),
+            }}
+            shown={!!mesh && turns === 0}
+          />
           {/* The cookie on the back speaks: “Eat me *click*” – once the card
               has turned, until the cookie is eaten (or the card turned
-              back). */}
-          <small
-            aria-hidden
-            className={bubble}
-            data-shown={(flipped && !!cookie && !eaten) || undefined}
-          >
-            {t("card.eatMe")}{" "}
-            <em className="font-semibold">{t("card.click")}</em>
-          </small>
+              back); after each bite something else (“Mmmh!”). */}
+          <SpeechBubble
+            delay={0.6}
+            say={
+              bites.length > 0 && yum
+                ? { key: `yum-${bites.length}`, text: yum }
+                : {
+                    key: "eat",
+                    text: (
+                      <>
+                        {t("card.eatMe")}{" "}
+                        <em className="font-semibold">{t("card.click")}</em>
+                      </>
+                    ),
+                  }
+            }
+            shown={flipped && !!cookie && !eaten}
+            swing={bites.length % 2 === 0 ? 0 : 5}
+          />
           {/* The card: tilted a little, leaning towards the pointer. */}
           <div
             className="pointer-events-auto absolute inset-[20.5%] animate-[card-land_1.1s_var(--ease-spring)_0.15s_both] transition-transform duration-900 transform-3d transform-[perspective(70rem)_rotateX(var(--lean-x,0deg))_rotateY(var(--lean-y,0deg))_rotate(-3deg)]"

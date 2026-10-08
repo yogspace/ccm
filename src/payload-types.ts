@@ -740,6 +740,10 @@ export interface Translation {
      * DE: Dreh mich  ·  EN: Turn me
      */
     turnMe?: string | null;
+    /**
+     * DE: Mmmh!|Lecker!|Mampf mampf|Knusper!|Hmm, gut!|Mehr!|Köstlich!  ·  EN: Mmmh!|Yummy!|Nom nom nom|Crunch!|So good!|More!|Delicious!
+     */
+    yums?: string | null;
   };
   contact?: {
     /**
@@ -1302,6 +1306,7 @@ export interface TranslationsSelect<T extends boolean = true> {
         to?: T;
         toPlaceholder?: T;
         turnMe?: T;
+        yums?: T;
       };
   contact?:
     | T

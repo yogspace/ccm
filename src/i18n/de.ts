@@ -131,6 +131,8 @@ export const de = {
     turnMe: "Dreh mich",
     eatMe: "Iss mich",
     click: "*klick*",
+    // After each bite, one of these at random – separated by “|”.
+    yums: "Mmmh!|Lecker!|Mampf mampf|Knusper!|Hmm, gut!|Mehr!|Köstlich!",
     baking: "Dein Keks backt …",
     bite: "Anbeißen",
     baked: "gebacken",

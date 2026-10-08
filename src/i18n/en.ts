@@ -130,6 +130,8 @@ export const en: typeof de = {
     turnMe: "Turn me",
     eatMe: "Eat me",
     click: "*click*",
+    // After each bite, one of these at random – separated by “|”.
+    yums: "Mmmh!|Yummy!|Nom nom nom|Crunch!|So good!|More!|Delicious!",
     baking: "Baking your cookie …",
     bite: "Take a bite",
     baked: "baked",
