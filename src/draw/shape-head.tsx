@@ -3,11 +3,11 @@ import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { store, toggleExpanded } from "../store";
-import Button from "./button";
-import { CardHead } from "./card";
-import CookieIcon from "./cookie-icon";
-import { cookieInIconButton } from "./styles";
-import TitleField from "./title-field";
+import Button from "../components/button";
+import { CardHead } from "../components/card";
+import CookieIcon from "../components/cookie-icon";
+import { cookieInIconButton } from "../components/styles";
+import TitleField from "../components/title-field";
 
 /**
  * The drawing card's head: the creation's name, written right here, and

@@ -8,7 +8,7 @@ import { Card, CardHead, CardTitle } from "./components/card";
 import CookieBackground from "./components/cookie-background";
 import CookieBar from "./components/cookie-bar";
 import CookieIcon from "./components/cookie-icon";
-import DrawCanvas from "./components/draw-canvas";
+import DrawCanvas from "./draw/draw-canvas";
 import ErrorPopup from "./components/error-popup";
 import ExportButtons from "./components/export-buttons";
 import GalleryFan from "./components/gallery-fan";

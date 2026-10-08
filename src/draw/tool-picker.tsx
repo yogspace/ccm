@@ -4,9 +4,9 @@ import { memo, useId } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../cn";
 import type { Tool } from "../store";
-import Button from "./button";
-import CookieIcon from "./cookie-icon";
-import { cookieInIconButton, cookieToggle } from "./styles";
+import Button from "../components/button";
+import CookieIcon from "../components/cookie-icon";
+import { cookieInIconButton, cookieToggle } from "../components/styles";
 
 type Props = {
   tool: Tool;
