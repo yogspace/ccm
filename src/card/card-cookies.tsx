@@ -9,6 +9,7 @@ import {
 import CookieIcon from "../components/cookie-icon";
 import type { CookieShape } from "../cookies/models";
 import type { CookieHandle } from "../cookies/renderer";
+import { useCardColors } from "../site-context";
 import { type Crumbs, createCrumbs } from "./crumbs";
 
 /**
@@ -439,10 +440,18 @@ const CardCookies = ({ shape }: { shape: CookieShape }) => {
   const [scene, setScene] = useState<Scene | null>(null);
   const [held, setHeld] = useState<number | null>(null);
   const count = scene ? PER_SIDE * 2 : 0;
-  // Each baked on its own – its own icing colour, its own sprinkles.
+  // Each baked on its own – its own sprinkles, its icing in one of the
+  // favourite colours (CMS), picked at random; plain and chocolate mixed.
+  const colors = useCardColors();
   const shapes = useMemo(
-    () => SCALES.map((_, i) => ({ ...shape, seed: shape.seed + i * 7919 })),
-    [shape]
+    () =>
+      SCALES.map((_, i) => ({
+        ...shape,
+        seed: shape.seed + i * 7919,
+        glaze: colors[Math.floor(Math.random() * colors.length)]?.color,
+        chocolate: Math.random() < 0.4,
+      })),
+    [shape, colors]
   );
 
   // The crumbs live as long as the page.

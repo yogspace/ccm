@@ -313,7 +313,6 @@ button.greeting-flip:not(:disabled, [data-flipped]) {
   background: var(--card-sheet);
   border-radius: 5.5cqw;
   box-shadow:
-    inset 0 0.15rem 0 rgb(255 255 255 / 0.8),
     0 0.6rem 1.2rem -0.4rem rgb(4 8 60 / 0.35),
     0 2.8rem 4.5rem -1.8rem rgb(4 8 60 / 0.6);
 }
@@ -426,8 +425,8 @@ button.greeting-flip[data-flipped] .greeting-back {
   }
 }
 
-/* The message behind the cookie, in the back's colour, darker – bitten
-   free bit by bit. */
+/* The message behind the cookie, in the back's colour, a little darker –
+   fine, but readable – bitten free bit by bit. */
 .greeting-hidden {
   grid-area: 1 / 1;
   align-self: center;
@@ -439,7 +438,7 @@ button.greeting-flip[data-flipped] .greeting-back {
   text-align: center;
   text-wrap: balance;
   overflow-wrap: break-word;
-  color: var(--card-deep);
+  color: var(--card-back-ink);
 }
 
 .greeting-turn {

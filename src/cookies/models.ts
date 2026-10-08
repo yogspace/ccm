@@ -35,22 +35,50 @@ const seeded = (seed: number) => {
   };
 };
 
-let doughCache: { map: THREE.Texture; bumpMap: THREE.Texture } | undefined;
+/**
+ * The doughs: its colour, its darker and lighter specks, its sheen and how
+ * matt it is. Chocolate warm and rich, a little glossy – not burnt.
+ */
+const DOUGHS = {
+  plain: {
+    base: DOUGH,
+    dark: "128 62 18",
+    light: "255 228 180",
+    sheen: "#ffd9a0",
+    roughness: 0.78,
+  },
+  chocolate: {
+    base: "#8a4a28",
+    dark: "96 44 18",
+    light: "200 132 86",
+    sheen: "#ffc29a",
+    roughness: 0.6,
+  },
+} as const;
+
+type Dough = keyof typeof DOUGHS;
+
+const doughCache = new Map<
+  Dough,
+  { map: THREE.Texture; bumpMap: THREE.Texture }
+>();
 
 /** Dough texture: colour variations and browned specks, plus a bump map. */
-const doughTextures = () => {
-  if (doughCache) return doughCache;
+const doughTextures = (dough: Dough = "plain") => {
+  const cached = doughCache.get(dough);
+  if (cached) return cached;
+  const { base, dark: darker, light } = DOUGHS[dough];
   const random = seeded(5);
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 512;
   const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
-  ctx.fillStyle = DOUGH;
+  ctx.fillStyle = base;
   ctx.fillRect(0, 0, 512, 512);
   for (let i = 0; i < 2600; i++) {
     const dark = random() < 0.55;
     ctx.fillStyle = dark
-      ? `rgba(128, 62, 18, ${0.12 + random() * 0.28})`
-      : `rgba(255, 228, 180, ${0.08 + random() * 0.2})`;
+      ? `rgb(${darker} / ${0.12 + random() * 0.28})`
+      : `rgb(${light} / ${0.08 + random() * 0.2})`;
     ctx.beginPath();
     ctx.arc(
       random() * 512,
@@ -87,8 +115,9 @@ const doughTextures = () => {
   const bumpMap = new THREE.CanvasTexture(bumpCanvas);
   bumpMap.wrapS = bumpMap.wrapT = THREE.RepeatWrapping;
 
-  doughCache = { map, bumpMap };
-  return doughCache;
+  const textures = { map, bumpMap };
+  doughCache.set(dough, textures);
+  return textures;
 };
 
 /** Normalises a contour to width/height ≈ 2 around the origin. */
@@ -531,6 +560,8 @@ export type CookieShape = {
   seed: number;
   /** The icing's colour instead of the seed's pick (a card's favourite). */
   glaze?: string;
+  /** Baked of chocolate dough. */
+  chocolate?: boolean;
 };
 
 /** Mostly white icing, sometimes coloured. */
@@ -664,14 +695,15 @@ type Bitten = {
 };
 
 export const createShapeCookie = (
-  { dough, icing, seed, glaze: chosen }: CookieShape,
+  { dough, icing, seed, glaze: chosen, chocolate }: CookieShape,
   bitten?: Bitten
 ) => {
   const random = seeded(Math.max(1, Math.floor(seed) % 2147483646));
   const toCookie = cookieUnits(dough);
 
   const group = new THREE.Group();
-  const { map, bumpMap } = doughTextures();
+  const kind = chocolate ? "chocolate" : "plain";
+  const { map, bumpMap } = doughTextures(kind);
   const whole = toCookie(dough);
   const body = bitten ? bitten.cut(whole) : whole;
   group.add(
@@ -687,9 +719,9 @@ export const createShapeCookie = (
         map,
         bumpMap,
         bumpScale: 1.4,
-        roughness: 0.78,
+        roughness: DOUGHS[kind].roughness,
         sheen: 0.4,
-        sheenColor: new THREE.Color("#ffd9a0"),
+        sheenColor: new THREE.Color(DOUGHS[kind].sheen),
       })
     )
   );

@@ -55,19 +55,19 @@ export const useLivePicture = <T>(
     if (shown?.every((key, i) => Object.is(key, all[i]))) return;
     const settle = keys.some((key, i) => !(shown && Object.is(key, shown[i])));
     let current = true;
-    const timer = setTimeout(
-      async () => {
-        const next = await renderRef.current();
-        if (current) {
-          shows.current = all;
-          setPicture(next);
-        } else if (next !== null) releaseRef.current?.(next);
-      },
-      hasPicture && settle ? SETTLE_MS : 0
-    );
+    const run = async () => {
+      const next = await renderRef.current();
+      if (current) {
+        shows.current = all;
+        setPicture(next);
+      } else if (next !== null) releaseRef.current?.(next);
+    };
+    // Without waiting: right in this commit – before the browser starts
+    // what it brings along (a colour fading), so nothing stutters in it.
+    const timer = hasPicture && settle ? setTimeout(run, SETTLE_MS) : run();
     return () => {
       current = false;
-      clearTimeout(timer);
+      if (typeof timer === "number") clearTimeout(timer);
     };
   }, [inView, enabled, ...all]);
 
