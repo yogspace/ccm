@@ -4,8 +4,11 @@ import { Check, Send } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { type FormEvent, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { cn } from "../cn";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
+import Field from "./field";
+import { cookieInButton, fieldInput } from "./styles";
 
 type Status = "idle" | "sending" | "sent" | "error";
 
@@ -64,63 +67,69 @@ const ContactForm = () => {
   };
 
   return (
-    <form className="contact-form" noValidate onSubmit={submit}>
+    // The fields look like the card composer's.
+    <form className="mb-2 grid gap-1" noValidate onSubmit={submit}>
       <p>{t("contact.intro")}</p>
-      <div className="contact-names">
-        <label className="composer-field" htmlFor={`${ids}-name`}>
-          <span>{t("contact.name")}</span>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-x-3">
+        <Field htmlFor={`${ids}-name`} label={t("contact.name")}>
           <input
             autoComplete="name"
+            className={cn(fieldInput, "h-10.5")}
             id={`${ids}-name`}
             maxLength={200}
             name="name"
             onInput={typing}
           />
-        </label>
-        <label className="composer-field" htmlFor={`${ids}-email`}>
-          <span>{t("contact.email")}</span>
+        </Field>
+        <Field htmlFor={`${ids}-email`} label={t("contact.email")}>
           <input
             autoComplete="email"
+            className={cn(fieldInput, "h-10.5")}
             id={`${ids}-email`}
             maxLength={200}
             name="email"
             onInput={typing}
             type="email"
           />
-        </label>
+        </Field>
       </div>
-      <label className="composer-field" htmlFor={`${ids}-message`}>
-        <span>{t("contact.message")}</span>
+      <Field htmlFor={`${ids}-message`} label={t("contact.message")}>
         <textarea
+          className={cn(
+            fieldInput,
+            "field-sizing-content min-h-19.25 resize-none leading-[1.4]"
+          )}
           id={`${ids}-message`}
           maxLength={5000}
           name="message"
           onInput={typing}
           rows={4}
         />
-      </label>
-      {/* Honeypot – hidden from people, bots fill it in. */}
+      </Field>
+      {/* Honeypot – out of sight and reach, but not display:none (bots skip
+          that); bots fill it in. */}
       <input
         aria-hidden
         autoComplete="off"
-        className="contact-trap"
+        className="pointer-events-none absolute size-px overflow-hidden opacity-0"
         name="website"
         tabIndex={-1}
       />
-      <div className="contact-send">
-        <Button
-          className="primary"
-          disabled={status === "sending"}
-          type="submit"
-        >
-          <CookieIcon icon={Send} roll={-8} size={48} />
+      <div className="mt-3.5 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <Button disabled={status === "sending"} kind="primary" type="submit">
+          <CookieIcon
+            className={cookieInButton}
+            icon={Send}
+            roll={-8}
+            size={48}
+          />
           {status === "sending" ? t("contact.sending") : t("contact.send")}
         </Button>
         <AnimatePresence mode="wait">
           {status === "sent" && (
             <motion.span
               animate={{ opacity: 1, y: 0 }}
-              className="contact-sent"
+              className="inline-flex items-center gap-1.5 text-small font-bold"
               exit={{ opacity: 0 }}
               initial={{ opacity: 0, y: 6 }}
               key="sent"
@@ -133,7 +142,7 @@ const ContactForm = () => {
           {status === "error" && problem && (
             <motion.span
               animate={{ opacity: 1, y: 0 }}
-              className="contact-problem"
+              className="inline-flex items-center gap-1.5 text-small font-bold text-neon"
               exit={{ opacity: 0 }}
               initial={{ opacity: 0, y: 6 }}
               key="problem"

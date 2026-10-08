@@ -1,8 +1,9 @@
 import { useEffect, useRef } from "react";
+import { cn } from "../cn";
 
 type Props = { canvas: HTMLCanvasElement; className?: string };
 
-/** How long a new canvas fades in (index.css: .canvas-view canvas). */
+/** How long a new canvas fades in (its class below). */
 const FADE_MS = 450;
 
 /**
@@ -25,7 +26,10 @@ const CanvasView = ({ canvas, className }: Props) => {
   }, [canvas]);
   return (
     <span
-      className={className ? `canvas-view ${className}` : "canvas-view"}
+      className={cn(
+        "relative block *:absolute *:inset-0 *:size-full *:animate-[fade_0.45s_var(--ease-soft)_both] *:object-contain",
+        className
+      )}
       ref={ref}
     />
   );

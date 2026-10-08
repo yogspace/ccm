@@ -7,11 +7,13 @@ import {
   defaultParams,
   SIZE_RANGE,
 } from "../geometry/cutter";
+import { cn } from "../cn";
 import { resetParams, setParam, store } from "../store";
 import { formatLength } from "../units";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
 import CookieSlider from "./cookie-slider";
+import { cookieInButton } from "./styles";
 
 type Field = {
   key: Exclude<keyof CutterParams, "cutouts" | "mirror">;
@@ -42,21 +44,41 @@ const Toggle = ({
   name,
   label,
   hint,
+  className,
 }: {
   name: "cutouts" | "mirror";
   label: string;
   hint: string;
+  className?: string;
 }) => {
   const { params } = useSnapshot(store);
   return (
-    <label className="checkbox" title={hint}>
+    <label
+      className={cn(
+        "group/checkbox inline-flex cursor-pointer items-center gap-2.25 text-body font-bold text-ink select-none",
+        className
+      )}
+      title={hint}
+    >
       <input
         checked={params[name] === 1}
+        className="pointer-events-none absolute size-px opacity-0"
         onChange={(event) => setParam(name, event.target.checked ? 1 : 0)}
         type="checkbox"
       />
-      <span aria-hidden className="checkbox-box">
-        <CookieIcon icing="#00b86b" icon={Check} roll={-8} size={60} />
+      <span
+        aria-hidden
+        className="relative grid size-5.5 flex-none place-items-center rounded-[0.4rem] bg-field transition-[scale] duration-300 ease-spring group-hover/checkbox:scale-108 group-active/checkbox:scale-92 group-has-[input:focus-visible]/checkbox:outline-2 group-has-[input:focus-visible]/checkbox:outline-offset-2 group-has-[input:focus-visible]/checkbox:outline-accent"
+      >
+        {/* The tick is larger than the box, it sticks out. It springs in …
+            and shrinks when unticked until it is gone. */}
+        <CookieIcon
+          className="absolute m-0 [transition:scale_0.4s_var(--ease-spring),visibility_0s] group-has-[input:not(:checked)]/checkbox:invisible group-has-[input:not(:checked)]/checkbox:scale-0 group-has-[input:not(:checked)]/checkbox:[transition:scale_0.25s_cubic-bezier(0.5,0,0.75,0),visibility_0s_0.25s]"
+          icing="#00b86b"
+          icon={Check}
+          roll={-8}
+          size={60}
+        />
       </span>
       {label}
     </label>
@@ -77,11 +99,17 @@ const ParameterPanel = () => {
   const cutouts = params.cutouts === 1;
 
   const slider = ({ key, min, max, step }: Field) => (
-    <div className="param" key={key} title={t(`params.${key}`)}>
+    <div
+      className="flex flex-col gap-2 text-body"
+      key={key}
+      title={t(`params.${key}`)}
+    >
       {/* Value above the slider: its width stays fixed however wide the number gets. */}
-      <span className="param-head">
-        <span className="param-label">{t(`params.${key}`)}</span>
-        <output>
+      <span className="flex items-baseline justify-between gap-2">
+        <span className="min-w-0 truncate text-muted">
+          {t(`params.${key}`)}
+        </span>
+        <output className="flex-none font-bold whitespace-nowrap text-ink tabular-nums">
           {formatLength(params[key], unit, i18n.resolvedLanguage)}
         </output>
       </span>
@@ -96,19 +124,28 @@ const ParameterPanel = () => {
     </div>
   );
 
+  // Two columns, one when narrow, four when wide.
+  const grid =
+    "grid grid-cols-2 gap-x-10 gap-y-4.5 @max-sm:grid-cols-1 @min-[50rem]:grid-cols-4";
+
   return (
-    <div className="params">
-      <h3>{t("params.title")}</h3>
-      <div className="params-grid">
+    <div className="flex flex-col gap-4.5 @container">
+      <h3 className="text-small font-bold tracking-label text-muted uppercase">
+        {t("params.title")}
+      </h3>
+      <div className={grid}>
         {/* Shapes inside shapes become holes – or, as before, only the
             outside counts. Built like a slider (an empty label line, then
             the checkbox where the track is), so it lines up with the bridge
             width's slider beside it. */}
-        <div className="param toggle-param">
-          <span aria-hidden className="param-head">
+        <div className="flex flex-col gap-2 text-body">
+          <span aria-hidden className="flex items-baseline justify-between gap-2">
             &nbsp;
           </span>
+          {/* Like the slider, no height of its own – centred on the line
+              where the track runs. */}
           <Toggle
+            className="h-0"
             hint={t("params.cutoutsHint")}
             label={t("params.cutouts")}
             name="cutouts"
@@ -117,29 +154,38 @@ const ParameterPanel = () => {
         {/* Always laid out (no jump), faded out and inert while unticked. */}
         <div
           aria-hidden={!cutouts}
-          className="bridge-width"
-          data-off={!cutouts || undefined}
+          className={cn(
+            "[transition:opacity_0.3s_var(--ease-soft),visibility_0s]",
+            !cutouts &&
+              "invisible opacity-0 [transition:opacity_0.3s_var(--ease-soft),visibility_0s_0.3s]"
+          )}
           inert={!cutouts}
         >
           {slider(bridgeField)}
         </div>
       </div>
-      <div className="params-grid">{fields.map(slider)}</div>
+      <div className={grid}>{fields.map(slider)}</div>
       {/* At the bottom: mirroring (the cutter is used upside down – mirrored,
           text on the cookie reads right) and reset. */}
-      <div className="params-foot">
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
         <Toggle
           hint={t("params.mirrorHint")}
           label={t("params.mirror")}
           name="mirror"
         />
         <Button
-          className="ghost reset"
           disabled={!changed}
+          kind="ghost"
           onClick={resetParams}
           type="button"
         >
-          <CookieIcon icing="#ff5fa8" icon={RotateCcw} roll={-14} size={44} />
+          <CookieIcon
+            className={cookieInButton}
+            icing="#ff5fa8"
+            icon={RotateCcw}
+            roll={-14}
+            size={44}
+          />
           {t("params.reset")}
         </Button>
       </div>

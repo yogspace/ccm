@@ -5,6 +5,7 @@ import { useSnapshot } from "valtio";
 import { pageUrl, store } from "../store";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
+import { cookieInButton } from "./styles";
 
 /**
  * Sharing the page itself, right behind the title in the header: the system
@@ -48,21 +49,40 @@ const SharePanel = () => {
     }
   };
 
-  // One button: the system share menu where there is one – otherwise copy the link.
+  // One button: the system share menu where there is one – otherwise copy the
+  // link. No surface, just a link on the blue page – its cookie and its words.
   return (
-    <div className="share">
+    <div className="flex items-center transition-opacity">
       <Button
-        className="copy"
+        className="h-auto gap-1.5 bg-transparent p-0 font-bold text-on-page hover:enabled:underline hover:enabled:decoration-[0.1em] hover:enabled:underline-offset-[0.2em] data-copied:text-on-page-muted"
         data-copied={copied || undefined}
         onClick={canShare ? share : copy}
         type="button"
       >
         {copied ? (
-          <CookieIcon icing="#00b86b" icon={Check} key="check" size={52} />
+          <CookieIcon
+            className={cookieInButton}
+            icing="#00b86b"
+            icon={Check}
+            key="check"
+            size={52}
+          />
         ) : canShare ? (
-          <CookieIcon icon={Share2} key="share" roll={14} size={52} />
+          <CookieIcon
+            className={cookieInButton}
+            icon={Share2}
+            key="share"
+            roll={14}
+            size={52}
+          />
         ) : (
-          <CookieIcon icon={Link} key="link" roll={-22} size={52} />
+          <CookieIcon
+            className={cookieInButton}
+            icon={Link}
+            key="link"
+            roll={-22}
+            size={52}
+          />
         )}
         <span aria-live="polite">
           {copied

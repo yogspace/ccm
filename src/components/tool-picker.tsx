@@ -4,7 +4,9 @@ import { memo, useId } from "react";
 import { useTranslation } from "react-i18next";
 import type { Tool } from "../store";
 import Button from "./button";
+import { cn } from "../cn";
 import CookieIcon from "./cookie-icon";
+import { cookieInIconButton, cookieToggle } from "./styles";
 
 type Props = {
   tool: Tool;
@@ -27,23 +29,37 @@ const ToolPicker = ({ tool, onChoose }: Props) => {
   const id = useId();
 
   return (
+    // Flush with the drawing area's left edge, whatever stands next to it.
+    // Beside the area (draw-canvas.tsx) the tools stand on top of each other.
     // biome-ignore lint/a11y/useSemanticElements: a group of toggles, not a form
-    <div aria-label={t("draw.tools")} className="tool-group" role="group">
+    <div
+      aria-label={t("draw.tools")}
+      className="flex items-center gap-2.5 [grid-area:tools] justify-self-start @max-[34rem]/draw:gap-1.75 beside:flex-col beside:gap-3 beside:self-start beside:justify-self-center"
+      role="group"
+    >
       {TOOLS.map(([value, icon, icing, roll, label]) => (
         <Button
           aria-label={t(label)}
           aria-pressed={tool === value}
-          className="icon toggle tool"
+          className="relative"
           key={value}
+          kind="icon"
           onClick={() => onChoose(value)}
           title={t(label)}
           type="button"
         >
-          <CookieIcon icing={icing} icon={icon} roll={roll} size={50} />
+          <CookieIcon
+            className={cn(cookieInIconButton, cookieToggle)}
+            icing={icing}
+            icon={icon}
+            roll={roll}
+            size={50}
+          />
+          {/* Below the active tool – stacked, to its left. */}
           {tool === value && (
             <motion.span
               aria-hidden
-              className="tool-underline"
+              className="absolute -bottom-2.5 left-1/2 -ml-3.25 h-1 w-6.5 rounded-xs bg-accent beside:top-1/2 beside:bottom-auto beside:-left-2.5 beside:m-0 beside:-mt-3.25 beside:h-6.5 beside:w-1"
               layoutId={`${id}-tool`}
               transition={{ type: "spring", stiffness: 520, damping: 34 }}
             />

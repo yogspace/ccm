@@ -1,3 +1,8 @@
+@import "tailwindcss";
+/* The favourite colour's shades – a plain file, the admin's preview loads it
+   too (fields/card-color-field.tsx). */
+@import "./glaze.css" layer(base);
+
 /* Pally (Indian Type Foundry, ITF Free Font License), self-hosted – the file
    is fetched by scripts/fetch-fonts.mjs, it is not in the repo. */
 @font-face {
@@ -8,2907 +13,244 @@
   font-display: swap;
 }
 
-:root {
-  color-scheme: light dark;
-  font-family:
-    "Pally", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  font-size: 1.0625rem;
-  font-weight: 500;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
+/* ---------- Theme ----------
+   The design's tokens – only these. Colours are overridden where the page
+   changes: in the dark (below), on the paper (the `paper` utility) and on the
+   greeting card (its favourite colour). */
 
-  /* Page: Luminous Blue (WGSN/Coloro 125-28-38) with white text */
-  --page: #2a44ff;
-  --on-page: #ffffff;
-  --on-page-muted: rgb(255 255 255 / 0.74);
-  --on-page-soft: rgb(255 255 255 / 0.14);
-  /* A light line on the page – the footer's, like the card page's floor */
-  --on-page-line: rgb(255 255 255 / 0.22);
-  /* Cards: subtle cream – flat, without outlines */
-  --card: #fdf8ef;
-  --surface: #fdf8ef;
-  --surface-2: #f2e8d5;
-  --paper: #ffffff;
-  /* The shine running over a ghost (a picture's kept place) */
-  --ghost-shine: rgb(255 255 255 / 0.65);
-  /* Neon pink – popups (printing tips, errors) */
-  --neon: #ff47d0;
-  --on-neon: #ffffff;
-  --text: #0d1033;
-  --muted: #5c6080;
-  --border: #e9dfcb;
-  --accent: #2a44ff;
-  --accent-soft: #e3e7ff;
-  --accent-text: #ffffff;
-  /* Slider track and name field */
-  --track-fill: var(--accent);
-  --track-rest: #e6d9bf;
-  --field: var(--surface-2);
-  --field-text: var(--text);
-  --field-muted: var(--muted);
-  --success: #00b86b;
-  /* Cutting line on the paper */
-  --cut: #2a44ff;
+@theme {
+  --font-sans: "Pally", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
   /* Font sizes: only these five */
-  --fs-tiny: 0.75rem;
-  --fs-small: 0.9rem;
-  --fs-body: 1rem;
-  --fs-title: 1.6rem;
-  --fs-display: 2.5rem;
-  --radius: 1rem;
-  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --text-*: initial;
+  --text-tiny: 0.75rem;
+  --text-small: 0.9rem;
+  --text-body: 1rem;
+  --text-title: 1.6rem;
+  --text-display: 2.5rem;
+
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-black: #000000;
+  /* Page: Luminous Blue (WGSN/Coloro 125-28-38) with white text */
+  --color-page: #2a44ff;
+  --color-on-page: #ffffff;
+  --color-on-page-muted: rgb(255 255 255 / 0.74);
+  --color-on-page-soft: rgb(255 255 255 / 0.14);
+  /* A light line on the page – the footer's, like the card page's floor */
+  --color-on-page-line: rgb(255 255 255 / 0.22);
+  /* Cards: subtle cream – flat, without outlines */
+  --color-card: #fdf8ef;
+  --color-surface: #fdf8ef;
+  --color-surface-2: #f2e8d5;
+  --color-paper: #ffffff;
+  /* Neon pink – popups (printing tips, errors) */
+  --color-neon: #ff47d0;
+  --color-on-neon: #ffffff;
+  --color-ink: #0d1033;
+  --color-muted: #5c6080;
+  --color-border: #e9dfcb;
+  --color-accent: #2a44ff;
+  --color-accent-soft: #e3e7ff;
+  --color-on-accent: #ffffff;
+  /* Slider track and name field */
+  --color-track-fill: var(--color-accent);
+  --color-track-rest: #e6d9bf;
+  --color-field: var(--color-surface-2);
+  --color-field-ink: var(--color-ink);
+  --color-field-muted: var(--color-muted);
+  --color-success: #00b86b;
+  /* Cutting line on the paper */
+  --color-cut: #2a44ff;
+
+  /* Phones, narrow (stacked editor), the dock, wide */
+  --breakpoint-*: initial;
+  --breakpoint-xs: 30rem;
+  --breakpoint-sm: 40rem;
+  --breakpoint-md: 56rem;
+  --breakpoint-lg: 64rem;
+  --breakpoint-xl: 75rem;
+
+  /* Headings a little tighter, small uppercase labels wider */
+  --tracking-title: -0.015em;
+  --tracking-label: 0.08em;
+
+  --ease-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --page: #141c86;
-    /* Translucent, so the background cookies show through. */
-    --card: rgb(15 21 102 / 0.45);
-    --surface: #0f1566;
-    --surface-2: #1c2491;
-    --ghost-shine: rgb(255 255 255 / 0.1);
-    --text: #fff8ec;
-    --muted: #b4bbef;
-    --border: #252da0;
-    --accent: #8c9bff;
-    --accent-soft: #252ea6;
-    --accent-text: #0f1566;
-    --track-fill: #fff8ec;
-    --track-rest: rgb(255 248 236 / 0.28);
-    --field: #fff8ec;
-    --field-text: #0d1033;
-    --field-muted: #5c6080;
-  }
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  color: var(--on-page);
-  background: var(--page);
-}
-
-/* While a dialog is open (store.dialogs) nothing scrolls behind it. The
-   scrollbar's room stays reserved, so the page does not shift sideways. */
-html {
-  scrollbar-gutter: stable;
-}
-
-html[data-locked] {
-  overflow: hidden;
-}
-
-h1,
-h2,
-h3,
-p {
-  margin: 0;
-}
-
-fieldset {
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-/* ---------- Buttons ---------- */
-
-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  height: 2.25rem;
-  padding: 0 0.9rem;
-  font: inherit;
-  font-size: var(--fs-body);
-  font-weight: 700;
-  white-space: nowrap;
-  color: var(--text);
-  background: var(--surface-2);
-  border: 0;
-  border-radius: 0.6rem;
-  cursor: pointer;
-  transition:
-    background 0.2s var(--ease),
-    color 0.2s var(--ease);
-}
-
-/* Lifting and pressing are animated by motion (components/button.tsx). */
-button:hover:not(:disabled) {
-  background: color-mix(in oklab, var(--surface-2) 82%, var(--text));
-}
-
-button:focus-visible,
-input:focus-visible,
-a:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-button:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-button.icon {
-  width: 2.25rem;
-  padding: 0;
-}
-
-button.primary {
-  color: var(--accent-text);
-  background: var(--accent);
-  border-color: var(--accent);
-}
-
-button.primary:hover:not(:disabled) {
-  background: color-mix(in oklab, var(--accent) 86%, #000);
-}
-
-button.ghost {
-  height: 1.9rem;
-  padding: 0 0.6rem;
-  color: var(--muted);
-  background: transparent;
-  border-color: transparent;
-}
-
-button.ghost:hover:not(:disabled) {
-  color: var(--text);
-  background: var(--surface-2);
-  border-color: transparent;
-  transform: none;
-}
-
-/* ---------- Sliders ---------- */
-
-input[type="range"] {
-  --fill: 50%;
-  appearance: none;
-  width: 100%;
-  height: 1.25rem;
-  margin: 0;
-  background: transparent;
-  cursor: pointer;
-}
-
-input[type="range"]::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 2px;
-  background: linear-gradient(
-    to right,
-    var(--accent) var(--fill),
-    var(--border) var(--fill)
-  );
-}
-
-input[type="range"]::-moz-range-track {
-  height: 4px;
-  border-radius: 2px;
-  background: linear-gradient(
-    to right,
-    var(--accent) var(--fill),
-    var(--border) var(--fill)
-  );
-}
-
-input[type="range"]::-webkit-slider-thumb {
-  appearance: none;
-  width: 1rem;
-  height: 1rem;
-  margin-top: calc(2px - 0.5rem);
-  border-radius: 50%;
-  background: var(--surface);
-  border: 2px solid var(--accent);
-  transition: transform 0.25s var(--ease-spring);
-}
-
-input[type="range"]::-moz-range-thumb {
-  width: 0.75rem;
-  height: 0.75rem;
-  border-radius: 50%;
-  background: var(--surface);
-  border: 2px solid var(--accent);
-  transition: transform 0.25s var(--ease-spring);
-}
-
-input[type="range"]:hover::-webkit-slider-thumb,
-input[type="range"]:active::-webkit-slider-thumb {
-  transform: scale(1.25);
-}
-
-input[type="range"]:hover::-moz-range-thumb,
-input[type="range"]:active::-moz-range-thumb {
-  transform: scale(1.25);
-}
-
-/* Cookie slider (components/cookie-slider.tsx): an invisible range input over
-   its own track, the cookie lies exactly over the invisible thumb. */
-.slider {
-  --thumb: 2.1rem;
-  /* Centre of the cookie: runs from thumb/2 to 100 % − thumb/2. */
-  --stop: calc(var(--thumb) / 2 + var(--fill) * (100% - var(--thumb)));
-  position: relative;
-  display: block;
-  flex: 1;
-  min-width: 0;
-  height: var(--thumb);
-}
-
-.slider-track {
-  position: absolute;
-  top: 50%;
-  right: 0;
-  left: 0;
-  height: 10px;
-  translate: 0 -50%;
-  background: linear-gradient(
-    to right,
-    var(--track-fill) var(--stop),
-    var(--track-rest) var(--stop)
-  );
-  border-radius: 5px;
-}
-
-.slider-thumb {
-  position: absolute;
-  top: 50%;
-  left: var(--stop);
-  display: block;
-  width: var(--thumb);
-  height: var(--thumb);
-  translate: -50% -50%;
-  border-radius: 50%;
-  pointer-events: none;
-  transition: scale 0.3s var(--ease-spring);
-}
-
-.slider-thumb img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  animation: grow-in 0.6s var(--ease) both;
-}
-
-.slider:hover .slider-thumb {
-  scale: 1.15;
-}
-
-.slider:has(input:active) .slider-thumb {
-  scale: 0.88;
-}
-
-.slider input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  cursor: grab;
-}
-
-.slider input:active {
-  cursor: grabbing;
-}
-
-.slider input::-webkit-slider-thumb {
-  width: var(--thumb);
-  height: var(--thumb);
-}
-
-.slider input::-moz-range-thumb {
-  width: var(--thumb);
-  height: var(--thumb);
-}
-
-.slider:has(input:focus-visible) .slider-thumb {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-
-/* ---------- Page ---------- */
-
-.app {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  /* What sticks out (sun sticker, large cookies) does not make the page larger. */
-  overflow: clip;
-  min-height: 100dvh;
-  max-width: 90rem;
-  margin: 0 auto;
-  padding: 1.75rem 2.5rem 1.25rem;
-}
-
-@media (max-width: 40rem) {
-  .app {
-    gap: 1.25rem;
-    padding: 1.25rem 1rem 1rem;
-  }
-}
-
-.masthead {
-  display: flex;
-  align-items: center;
-  gap: 1.1rem;
-  animation: rise 0.6s var(--ease) both;
-}
-
-.masthead-text {
-  flex: 1;
-  min-width: 0;
-}
-
-/* The title and, right behind it, sharing the page. */
-.masthead-title {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 1.25rem;
-}
-
-.masthead h1 {
-  font-size: var(--fs-display);
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.015em;
-  /* Pally stops at 700 – the outline makes the headline even bolder. */
-  -webkit-text-stroke: 0.035em currentColor;
-  paint-order: stroke fill;
-}
-
-.masthead p {
-  color: var(--on-page-muted);
-  font-size: var(--fs-body);
-}
-
-.logo {
-  margin: -1rem -0.6rem -1rem -0.9rem;
-  transition:
-    rotate 0.6s var(--ease-spring),
-    scale 0.6s var(--ease-spring);
-}
-
-.masthead:hover .logo {
-  rotate: -25deg;
-  scale: 1.1;
-}
-
-.switches {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.switch {
-  display: flex;
-  gap: 0.1rem;
-}
-
-.switch button {
-  height: 2rem;
-  padding: 0 0.55rem;
-  font-size: var(--fs-small);
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  background: transparent;
-  border-color: transparent;
-}
-
-.switch button:hover:not(:disabled) {
-  color: var(--text);
-  background: transparent;
-}
-
-.switch button {
-  position: relative;
-}
-
-.switch button[aria-pressed="true"] {
-  color: var(--accent);
-}
-
-.switch-pill {
-  position: absolute;
-  inset: 0;
-  background: var(--accent-soft);
-  border-radius: inherit;
-}
-
-.switch-label {
-  position: relative;
-}
-
-.masthead .switch button {
-  color: var(--on-page-muted);
-}
-
-/* Only the unselected option lightens on hover – the selected one sits on the
-   white marker and keeps its blue text. */
-.masthead .switch button:not([aria-pressed="true"]):hover:not(:disabled) {
-  color: var(--on-page);
-}
-
-/* Both switches (unit, language) sit on a light surface. */
-.masthead .switch {
-  align-items: center;
-  padding: 0.2rem;
-  background: var(--on-page-soft);
-  border-radius: 0.8rem;
-}
-
-.masthead .switch button {
-  height: 1.8rem;
-  border-radius: 0.6rem;
-}
-
-.masthead .switch button[aria-pressed="true"] {
-  color: var(--page);
-}
-
-.masthead .switch-pill {
-  background: var(--on-page);
-}
-
-/* The unit also has the ruler icon in front. */
-.masthead .unit-switch {
-  gap: 0.15rem;
-  padding-left: 0.6rem;
-  color: var(--on-page-muted);
-  border-color: transparent;
-}
-
-/* Desktop: shape and cutter side by side, at window height. The drawing
-   area follows the height, the 3D view fills the rest. */
-.layout {
-  --stage-size: min(100%, max(24rem, calc(100dvh - 23rem)));
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-areas: "shape cutter";
-  gap: 1.5rem;
-  align-items: stretch;
-}
-
-.shape-card {
-  grid-area: shape;
-  view-transition-name: shape-card;
-}
-
-.cutter-card {
-  grid-area: cutter;
-  view-transition-name: cutter-card;
-}
-
-::view-transition-group(*) {
-  animation-duration: 0.45s;
-  animation-timing-function: var(--ease);
-}
-
-/* Container for area and bars: its size decides whether the bars sit beside
-   or below the area (see Toolbars). */
-.draw-area {
-  display: flex;
-  flex-direction: column;
-  width: var(--stage-size);
-  margin-inline: auto;
-  container: draw / inline-size;
-}
-
-/* Enlarged: drawing across the full width, the preview moves below. */
-.layout[data-expanded] {
-  --stage-size: min(100%, 60rem);
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-areas:
-    "shape"
-    "cutter";
-}
-
-.layout[data-expanded] .cutter-card {
-  animation: none;
-}
-
-/* Desktop: the row is at least window high. The drawing area becomes the
-   largest square that fits its card; the 3D view fills the rest next to the
-   sliders. */
-@media (width > 56rem) {
-  /* Fills exactly the height left beside header and footer. */
-  .layout:not([data-expanded]) {
-    flex: 1;
-    grid-template-rows: minmax(0, 1fr);
-    /* The editor fills the first screen; the fan and footer follow below. */
-    min-height: calc(100dvh - 8.5rem);
-  }
-
-  .layout:not([data-expanded]) .draw-area {
-    flex: 1 1 0;
-    align-items: center;
-    width: 100%;
-    min-height: 26rem;
-    container-type: size;
-  }
-
-  /* Enlarged: full width, as high as the window – the bars then sit beside
-     the area (see Toolbars). */
-  .layout[data-expanded] .draw-area {
-    align-items: center;
-    width: 100%;
-    height: clamp(26rem, 100dvh - 7rem, 64rem);
-    container-type: size;
-  }
-
-  /* Side length of the area: the card's room minus what the bars beside
-     (--chrome-w) and below (--chrome-h) need. Both are measured by
-     draw-canvas.tsx; the values here only apply until the first measurement. */
-  .draw-grid {
-    --s: max(
-      12rem,
-      min(60rem, 100cqw - var(--chrome-w, 0px), 100cqh - var(--chrome-h, 8rem))
-    );
-  }
-}
-
-@media (width >= 75rem) {
-  .layout:not([data-expanded]) .brush {
-    min-width: 6rem;
-  }
-}
-
-/* When narrow the drawing area is full width anyway – enlarging gains nothing. */
-@media (max-width: 56rem) {
-  button.expand {
-    display: none;
-  }
-}
-
-/* Narrow: stacked, areas as wide as possible – scrolling is fine here. */
-@media (max-width: 56rem) {
-  .layout,
-  .layout[data-expanded] {
-    --stage-size: 100%;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "shape"
-      "cutter";
-  }
-}
-
-/* Phone: logo and title on top, the switches on their own row below. */
-@media (max-width: 40rem) {
-  .masthead {
-    --cookie-scale: 0.7;
-    --fs-display: 1.85rem;
-    flex-wrap: wrap;
-    gap: 0.9rem 0.8rem;
-  }
-
-  .masthead p {
-    margin-top: 0.2rem;
-    font-size: var(--fs-small);
-    line-height: 1.35;
-  }
-
-  .masthead .logo {
-    margin: -0.6rem -0.4rem -0.6rem -0.6rem;
-  }
-
-  .switches {
-    justify-content: space-between;
-    width: 100%;
-  }
-}
-
-.card {
-  color: var(--text);
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  padding: 1.5rem 1.75rem 1.75rem;
-  background: var(--card);
-  /* Background cookies shine through, blurred. */
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
-  border-radius: calc(var(--radius) + 0.35rem);
-  animation: rise 0.6s var(--ease) both;
-}
-
-/* Phone: less padding at the sides – more room for drawing area and sliders. */
-@media (max-width: 40rem) {
-  .card {
-    padding-inline: 1rem;
-  }
-}
-
-.card:nth-child(2) {
-  animation-delay: 0.06s;
-}
-
-.card:nth-child(3) {
-  animation-delay: 0.12s;
-}
-
-.card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  min-height: 2.25rem;
-}
-
-.card-tools {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-}
-
-.card-head h2 {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: var(--fs-title);
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.015em;
-  -webkit-text-stroke: 0.02em currentColor;
-  paint-order: stroke fill;
-}
-
-/* The drawing card's title is the name field (title-field.tsx): a field
-   from the start – the field colours, “Shape” as the placeholder and a pencil
-   – in the title's type. A long name stays on one line, cut with “…”. */
-.title-field {
-  position: relative;
-  display: flex;
-  flex: 1 1 auto;
-  align-items: center;
-  min-width: 0;
-  max-width: 28rem;
-}
-
-input.card-title {
-  width: 100%;
-  min-width: 0;
-  height: 2.9rem;
-  /* Room on the right for the pencil or the cross. */
-  padding: 0 2.9rem 0 0.8rem;
-  font: inherit;
-  font-size: var(--fs-title);
-  font-weight: 700;
-  letter-spacing: -0.015em;
-  /* The field's colours – readable on its light ground in both modes. */
-  color: var(--field-text);
-  -webkit-text-stroke: 0.02em currentColor;
-  paint-order: stroke fill;
-  text-overflow: ellipsis;
-  background: var(--field);
-  border: 0;
-  border-radius: 0.75rem;
-  outline: 2px solid transparent;
-  transition:
-    background 0.2s var(--ease),
-    outline-color 0.2s var(--ease);
-}
-
-input.card-title::placeholder {
-  color: var(--field-muted);
-  -webkit-text-stroke: 0;
-  opacity: 1;
-}
-
-input.card-title:hover {
-  background: color-mix(in oklab, var(--field) 92%, var(--field-text));
-}
-
-input.card-title:focus {
-  outline-color: var(--accent);
-}
-
-/* Focused and empty: the hint to type a name, a little smaller. */
-input.card-title:focus::placeholder {
-  font-size: var(--fs-body);
-}
-
-.title-pencil,
-button.title-clear {
-  position: absolute;
-  right: 0.45rem;
-  display: grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-}
-
-/* The pencil only says “write here” – a click goes through to the field. */
-.title-pencil {
-  pointer-events: none;
-}
-
-.cookie.title-pencil-icon {
-  margin: -0.25rem;
-}
-
-button.title-clear {
-  background: transparent;
-  transition:
-    opacity 0.2s var(--ease),
-    scale 0.3s var(--ease-spring),
-    background 0.2s var(--ease);
-}
-
-button.title-clear:hover:not(:disabled) {
-  background: color-mix(in oklab, var(--field-text) 8%, transparent);
-}
-
-@starting-style {
-  button.title-clear {
-    opacity: 0;
-    scale: 0.6;
-  }
-}
-
-.dims {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: var(--fs-body);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--muted);
-  animation: fade 0.3s var(--ease);
-}
-
-/* ---------- Stages (drawing, 3D) ---------- */
-
-.stage {
-  position: relative;
-  /* Always square – otherwise the drawing area distorts everything on it. */
-  flex: none;
-  aspect-ratio: 1;
-  overflow: hidden;
-  background-color: var(--surface-2);
-  background-image: radial-gradient(
-    color-mix(in oklab, var(--muted) 30%, transparent) 1px,
-    transparent 1px
-  );
-  background-size: 22px 22px;
-  border-radius: var(--radius);
-  transition:
-    border-color 0.2s var(--ease),
-    background-color 0.2s var(--ease),
-    transform 0.3s var(--ease-spring);
-}
-
-.stage[data-dragging] {
-  background-color: var(--accent-soft);
-  transform: scale(0.985);
-}
+  --default-transition-duration: 0.2s;
+  --default-transition-timing-function: var(--ease-soft);
+
+  --animate-rise: rise 0.6s var(--ease-soft) both;
+}
+
+/* A favourite colour's shades (glaze.css) – resolved where they are used:
+   each picture, card and page has its own. */
+@theme inline {
+  --color-glaze: var(--glaze);
+  --color-on-glaze: var(--on-glaze);
+  --color-on-glaze-muted: var(--on-glaze-muted);
+  --color-card-sheet: var(--card-sheet);
+  --color-card-back: var(--card-back);
+  --color-card-back-ink: var(--card-back-ink);
+  --color-card-ink: var(--card-ink);
+  --color-card-ink-muted: var(--card-ink-muted);
+  --color-card-deep: var(--card-deep);
+}
+
+/* The drawing area's container decides where its bars go: beside the area
+   unless the card is clearly taller than wide (see draw-canvas.tsx). */
+@custom-variant beside (@container draw (aspect-ratio >= 0.88) and (width >= 30rem));
 
 /* The drawing area stays a light sheet in both themes – with light colours of
    its own for everything on it. */
-.stage.paper {
-  --accent: #2a44ff;
-  --accent-soft: #e3e7ff;
-  --surface: #ffffff;
-  --surface-2: #f2e8d5;
-  --border: #e9dfcb;
-  --muted: #5c6080;
-  --text: #0d1033;
-  color: var(--text);
-  background-color: var(--paper);
-  background-image: none;
-}
-
-/* Coordinate system under the drawing */
-.grid {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.7;
-  transition: opacity 0.3s var(--ease);
-}
-
-.stage:hover .grid {
-  opacity: 1;
-}
-
-.grid-lines {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.grid line {
-  stroke-width: 1;
-}
-
-.grid .minor line {
-  stroke: #f1ebdf;
-}
-
-.grid .major line {
-  stroke: #e4dac8;
-}
-
-/* The axes lie on the edge – twice as thick, half of it is visible. */
-.grid .axis line {
-  stroke: #cdbfa7;
-  stroke-width: 3;
-}
-
-.tick {
-  position: absolute;
-  font-size: var(--fs-tiny);
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  color: #9a917f;
-}
-
-/* Labels like at school: x at the bottom, y on the left, 0 in the corner */
-.tick.x {
-  bottom: 0.4rem;
-  transform: translateX(-50%);
-}
-
-.tick.y {
-  left: 0.4rem;
-  transform: translateY(-50%);
-}
-
-.tick.origin {
-  bottom: 0.4rem;
-  left: 0.4rem;
-}
-
-.tick.unit {
-  top: 0.4rem;
-  left: 0.4rem;
-  font-weight: 700;
-  color: var(--muted);
-}
-
-.stage.paper[data-dragging] {
-  background-color: #e3e7ff;
-}
-
-.drawing {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  touch-action: none;
-  cursor: crosshair;
-}
-
-.outline {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  pointer-events: none;
-}
-
-.outline path {
-  fill: var(--cut);
-  fill-opacity: 0.06;
-  stroke: var(--cut);
-  stroke-width: 2;
-  stroke-dasharray: 6 5;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
-  animation: march 0.8s linear infinite;
-}
-
-.stage-hint {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.3rem;
-  padding: 2rem;
-  text-align: center;
-  color: var(--muted);
-  pointer-events: none;
-  animation: fade 0.4s var(--ease);
-}
-
-.stage-hint strong {
-  color: var(--text);
-  font-weight: 700;
-}
-
-.viewer .stage-hint {
-  animation: breathe 2.4s ease-in-out infinite;
-}
-
-/* In the 3D view the floor grid takes over, dots would be doubled. It fills
-   the height left next to the drawing area. */
-/* The 3D view stays roughly square – between 4:5 and 7:5 – instead of
-   stretching: it takes the height left next to the sliders (at least 20rem),
-   centred in its slot. */
-.viewer-slot {
-  display: grid;
-  flex: 1 1 0;
-  place-items: center;
-  min-height: 20rem;
-  container-type: size;
-}
-
-.stage.viewer {
-  width: min(100cqw, 140cqh);
-  height: min(100cqh, 125cqw);
-  aspect-ratio: auto;
-  background-image: none;
-}
-
-@media (max-width: 56rem) {
-  .viewer-slot {
-    flex: none;
-    min-height: 0;
-    container-type: inline-size;
-  }
-
-  .stage.viewer {
-    width: 100%;
-    height: auto;
-    aspect-ratio: 1;
-  }
-}
-
-/* Enlarged: below the drawing, at most 44rem wide. */
-.layout[data-expanded] .viewer-slot {
-  flex: none;
-  min-height: 0;
-  container-type: inline-size;
-}
-
-.layout[data-expanded] .stage.viewer {
-  width: min(100%, 44rem);
-  height: auto;
-  aspect-ratio: 5 / 4;
-}
-
-.preview {
-  position: absolute;
-  inset: 0;
-}
-
-.preview canvas {
-  display: block;
-}
-
-/* ---------- 3D cookies ---------- */
-
-/* Turning, hopping and looking at the mouse happen in 3D (src/cookies/renderer.ts). */
-.cookie {
-  display: block;
-  flex-shrink: 0;
-  /* Size from the prop, smaller via --cookie-scale (inherited), e.g. on phones. */
-  width: calc(var(--size) * var(--cookie-scale, 1));
-  height: calc(var(--size) * var(--cookie-scale, 1));
-  pointer-events: none;
-  user-select: none;
-}
-
-button .cookie {
-  margin: -1rem -0.3rem -1rem -0.7rem;
-}
-
-/* Footer: the cookie sticks out of the row without making it taller. */
-footer .cookie {
-  margin: -0.75rem -0.45rem -0.75rem -0.3rem;
-}
-
-.donate > .cookie {
-  position: absolute;
-  inset: 0;
-  margin: auto;
-}
-
-.stage-hint .cookie {
-  margin: -0.75rem 0 -0.25rem;
-}
-
-.dims .cookie {
-  margin: -0.7rem -0.2rem -0.7rem -0.5rem;
-}
-
-/* Cookie tick: larger than the box, sticks out. Springs in … */
-.checkbox-box .cookie {
-  position: absolute;
-  margin: 0;
-  transition:
-    scale 0.4s var(--ease-spring),
-    visibility 0s;
-}
-
-button.icon .cookie {
-  margin: -0.6rem;
-}
-
-/* Icon buttons with a cookie: no surface behind, just the floating cookie. */
-button.icon:has(.cookie),
-button.icon:has(.cookie):hover:not(:disabled) {
-  background: transparent;
-}
-
-button:disabled .cookie {
-  filter: grayscale(0.6);
-}
-
-.masthead .switch .cookie {
-  margin: -0.7rem -0.2rem -0.7rem -0.5rem;
-}
-
-/* Toggle off (turntable, tools): the cookie fades. */
-button.rotate[aria-pressed="false"] .cookie,
-button.toggle[aria-pressed="false"] .cookie {
-  opacity: 0.5;
-  filter: grayscale(0.7);
-}
-
-/* … and shrinks when unticked until it is gone. */
-.checkbox input:not(:checked) + .checkbox-box .cookie {
-  scale: 0;
-  visibility: hidden;
-  transition:
-    scale 0.25s cubic-bezier(0.5, 0, 0.75, 0),
-    visibility 0s 0.25s;
-}
-
-/* Background cookies: behind everything on the blue page, scrolling with
-   it. Placed against the page, not the app column – so they reach out to
-   the window's edges; as tall as the page above the footer
-   (cookie-background.tsx). */
-.cookie-background {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100dvh;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.cookie-spot {
-  position: absolute;
-  translate: -50% -50%;
-  transition: opacity 0.4s var(--ease);
-}
-
-/* No room for it above the footer (for now): out softly, not moved. */
-.cookie-spot[data-away] {
-  opacity: 0;
-}
-
-.app > :not(.cookie-background, .cookie-dock) {
-  position: relative;
-  z-index: 1;
-}
-
-/* ---------- Toolbars ---------- */
-
-/* Area and bars share one grid. Default: everything below the area – tools |
-   brush size | undo & clear, below that the templates. Beside the area: see
-   the very end of this section. */
-.draw-grid {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  grid-template-areas:
-    "stage stage stage"
-    "tools options actions"
-    "templates templates templates";
-  align-items: center;
-  gap: 1.1rem 1.25rem;
-  /* On desktop as wide as the area (--s), otherwise full width */
-  width: var(--s, auto);
-}
-
-.draw-grid > .stage {
-  grid-area: stage;
-  width: 100%;
-  min-width: 0;
-}
-
-.tool-options {
-  display: flex;
-  grid-area: options;
-  align-items: center;
-  min-width: 0;
-  /* As tall as the slider – even when only the hint shows: no jumping. */
-  min-height: 2.1rem;
-}
-
-.tool-group {
-  display: flex;
-  grid-area: tools;
-  /* Flush with the drawing area's left edge, whatever stands next to it */
-  justify-self: start;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.tool-group .tool {
-  position: relative;
-}
-
-/* Underline below the active tool – glides via layout animation */
-.tool-underline {
-  position: absolute;
-  bottom: -0.6rem;
-  left: 50%;
-  width: 1.6rem;
-  height: 4px;
-  margin-left: -0.8rem;
-  background: var(--accent);
-  border-radius: 2px;
-}
-
-.actions {
-  display: flex;
-  grid-area: actions;
-  /* Flush with the right edge – a stretched grid does not push them inwards */
-  justify-self: end;
-  align-items: center;
-  gap: 1rem;
-}
-
-/* Narrow: tools and actions on top, brush size full width below */
-@container draw (width < 34rem) {
-  .draw-grid {
-    grid-template-areas:
-      "stage stage stage"
-      "tools . actions"
-      "options options options"
-      "templates templates templates";
-    column-gap: 0.75rem;
-  }
-
-  .draw-grid .tool-group,
-  .draw-grid .actions {
-    gap: 0.45rem;
-  }
-
-  .tool-options .brush {
-    max-width: none;
-  }
-}
-
-.brush {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: 0.75rem;
-  min-width: 7rem;
-  max-width: 16rem;
-}
-
-.brush-dot {
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  width: 1.5rem;
-  height: 1.5rem;
-}
-
-.brush-dot::after {
-  content: "";
-  width: var(--dot);
-  height: var(--dot);
-  border-radius: 50%;
-  background: var(--text);
-  transition:
-    width 0.15s var(--ease),
-    height 0.15s var(--ease);
-}
-
-/* Templates: heading, below it the cards (scrolling sideways), below them
-   “Upload SVG”. At least four cards fit side by side. */
-.templates {
-  display: flex;
-  flex-direction: column;
-  grid-area: templates;
-  align-items: flex-start;
-  gap: 0.45rem;
-  min-width: 0;
-}
-
-.preset-strip {
-  display: flex;
-  gap: 0.6rem;
-  align-self: stretch;
-  min-width: 0;
-  padding-block: 0.15rem;
-  overflow-x: auto;
-  overscroll-behavior: contain;
-  scroll-snap-type: x proximity;
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in oklab, var(--muted) 45%, transparent)
-    transparent;
-}
-
-.preset-strip > * {
-  flex: none;
-  scroll-snap-align: start;
-}
-
-.presets-label {
-  font-size: var(--fs-small);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-button.preset,
-button.preset:hover:not(:disabled) {
-  width: 3.1rem;
-  height: 3.1rem;
-  padding: 0.4rem;
-  color: #0d1033;
-  background: var(--paper);
-  border-radius: 0.75rem;
-}
-
-.preset svg {
-  width: 100%;
-  height: 100%;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linejoin: round;
-}
-
-.templates button.upload {
-  margin-top: 0.45rem;
-}
-
-/* Unless the card is clearly taller than wide, the bars sit beside the area
-   and it gets larger: tools on the left (drawing on top, undo & clear at the
-   bottom), templates stacked on the right, only the brush size below. Below
-   the area the bars need a good 4× as much height as they need width beside
-   it – so it pays off from 0.88 on. Desktop only (also enlarged): only there
-   does the container know its height. */
-@container draw (aspect-ratio >= 0.88) and (width >= 30rem) {
-  .draw-grid {
-    /* As narrow as a template card – otherwise the room beside does not pay off */
-    --rail: 3.1rem;
-    grid-template-columns: var(--rail) var(--s) var(--rail);
-    grid-template-rows: var(--s) auto;
-    grid-template-areas:
-      "tools stage templates"
-      ". options .";
-    gap: 1rem 0.8rem;
-    width: auto;
-  }
-
-  .draw-grid .tool-group,
-  .draw-grid .actions {
-    flex-direction: column;
-    grid-area: tools;
-    justify-self: center;
-    gap: 0.75rem;
-  }
-
-  .draw-grid .tool-group {
-    align-self: start;
-  }
-
-  .draw-grid .actions {
-    align-self: end;
-  }
-
-  /* Stacked: line to the left of the active tool */
-  .draw-grid .tool-underline {
-    top: 50%;
-    bottom: auto;
-    left: -0.65rem;
-    width: 4px;
-    height: 1.6rem;
-    margin: -0.8rem 0 0;
-  }
-
-  .draw-grid .tool-options .brush {
-    max-width: 18rem;
-  }
-
-  .draw-grid .templates {
-    align-self: stretch;
-    align-items: center;
-    gap: 0.75rem;
-    min-height: 0;
-  }
-
-  .draw-grid .presets-label {
-    display: none;
-  }
-
-  /* The column clips at the sides – so the focus ring sits inside. */
-  .draw-grid button.preset:focus-visible {
-    outline-offset: -3px;
-  }
-
-  .draw-grid .preset-strip {
-    flex: 1;
-    flex-direction: column;
-    align-items: center;
-    min-height: 0;
-    padding: 0.15rem 0;
-    overflow: hidden auto;
-    scroll-snap-type: y proximity;
-    scrollbar-width: none;
-  }
-
-  /* Upload as a tile like the templates: just the cookie, text as a tooltip */
-  .draw-grid .templates button.upload {
-    position: relative;
-    flex: none;
-    width: 3.1rem;
-    height: 3.1rem;
-    margin: 0;
-    padding: 0;
-    border-radius: 0.75rem;
-  }
-
-  .draw-grid button.upload .cookie {
-    margin: -0.6rem;
-  }
-
-  .draw-grid .upload-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-}
-
-.move-hint {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: var(--fs-small);
-  color: var(--muted);
-}
-
-/* Brush preview: a circle at the real brush size that follows the pointer */
-.brush-cursor {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 2;
-  border: 1.5px solid rgb(13 16 51 / 0.55);
-  border-radius: 50%;
-  background: rgb(13 16 51 / 0.06);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s var(--ease);
-}
-
-.stage[data-tool="eraser"] .brush-cursor {
-  border-style: dashed;
-  background: rgb(255 255 255 / 0.55);
-}
-
-/* With a mouse the preview shows where it paints – the arrow would be doubled. */
-@media (hover: hover) {
-  .stage[data-mode="draw"] .drawing {
-    cursor: none;
-  }
-}
-
-.stage[data-mode="move"] .drawing {
-  cursor: default;
-}
-
-/* X at the selection (draw-canvas.tsx sets its position) */
-button.remove-chip {
-  position: absolute;
-  z-index: 3;
-  translate: -50% -50%;
-}
-
-/* Box dragged on empty space to select several */
-.marquee {
-  position: absolute;
-  z-index: 1;
-  background: color-mix(in oklab, var(--accent) 10%, transparent);
-  border: 1.5px dashed var(--accent);
-  border-radius: 3px;
-  pointer-events: none;
-}
-
-/* Selection while moving: a frame with handles at the corners */
-.selection {
-  position: absolute;
-  z-index: 1;
-  transform-origin: center;
-  border: 2px dashed var(--accent);
-  border-radius: 4px;
-  pointer-events: none;
-}
-
-.selection i {
-  position: absolute;
-  width: 0.8rem;
-  height: 0.8rem;
-  background: var(--paper);
-  border: 2px solid var(--accent);
-  border-radius: 50%;
-  translate: -50% -50%;
-}
-
-.selection i:nth-child(1) {
-  top: 0;
-  left: 0;
-}
-
-.selection i:nth-child(2) {
-  top: 0;
-  left: 100%;
-}
-
-.selection i:nth-child(3) {
-  top: 100%;
-  left: 100%;
-}
-
-.selection i:nth-child(4) {
-  top: 100%;
-  left: 0;
-}
-
-/* ---------- Dimensions below the 3D view ---------- */
-
-.params {
-  display: flex;
-  flex-direction: column;
-  gap: 1.1rem;
-  container-type: inline-size;
-}
-
-/* Checkbox with a cookie tick (a real input, just invisible) */
-.checkbox {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
-  font-size: var(--fs-body);
-  font-weight: 700;
-  color: var(--text);
-  cursor: pointer;
-  user-select: none;
-}
-
-.checkbox input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.checkbox-box {
-  position: relative;
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 1.35rem;
-  height: 1.35rem;
-  background: var(--field);
-  border-radius: 0.4rem;
-  transition: scale 0.3s var(--ease-spring);
-}
-
-.checkbox:hover .checkbox-box {
-  scale: 1.08;
-}
-
-.checkbox:active .checkbox-box {
-  scale: 0.92;
-}
-
-.checkbox:has(input:focus-visible) .checkbox-box {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.params h3 {
-  font-size: var(--fs-small);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-/* The cutouts checkbox shares its row (a grid like the sliders) with the
-   bridge width; mirroring and reset sit at the bottom. */
-.params-foot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem 1.5rem;
-}
-
-/* The checkbox in a slider's place (parameter-panel.tsx): like the slider,
-   no height of its own – centred on the line where the track runs. */
-.toggle-param .checkbox {
-  height: 0;
-}
-
-.bridge-width {
-  transition:
-    opacity 0.3s var(--ease),
-    visibility 0s;
-}
-
-.bridge-width[data-off] {
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity 0.3s var(--ease),
-    visibility 0s 0.3s;
-}
-
-.params-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.1rem 2.5rem;
-}
-
-@container (width < 24rem) {
-  .params-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-@container (width > 50rem) {
-  .params-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-.params .param {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  font-size: var(--fs-body);
-}
-
-.param-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.param-label {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--muted);
-}
-
-.param-head output {
-  flex: none;
-  font-weight: 700;
-  white-space: nowrap;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-}
-
-/* ---------- Popups (printing tips, errors) ---------- */
-
-/* Popovers in the top layer. Where the browser supports anchor positioning
-   they sit next to their anchor and move (position-try) to where there is
-   room; elsewhere they stay centred like any popover. */
-.popup {
-  max-width: min(26rem, calc(100vw - 2rem));
-  padding: 1rem 1.25rem;
-  font-size: var(--fs-body);
-  font-weight: 700;
-  color: var(--on-neon);
-  text-shadow: 0 1px 2px rgb(110 0 70 / 0.35);
-  background: var(--neon);
-  border: 0;
-  border-radius: var(--radius);
-  box-shadow: 0 1rem 2.5rem rgb(5 10 60 / 0.3);
-  opacity: 0;
-  translate: 0 0.4rem;
-  transition:
-    opacity 0.2s var(--ease),
-    translate 0.2s var(--ease),
-    display 0.2s allow-discrete,
-    overlay 0.2s allow-discrete;
-}
-
-.popup:popover-open {
-  opacity: 1;
-  translate: 0 0;
-}
-
-@starting-style {
-  .popup:popover-open {
-    opacity: 0;
-    translate: 0 0.4rem;
-  }
-}
-
-@supports (anchor-name: --a) {
-  .popup {
-    inset: auto;
-    margin: 0.5rem;
-    position-try-fallbacks:
-      flip-block,
-      flip-inline,
-      flip-block flip-inline;
-  }
-
-  .hints-toggle {
-    anchor-name: --print-hints;
-  }
-
-  .popup.hints {
-    position-anchor: --print-hints;
-    position-area: block-start span-inline-start;
-  }
-
-  .draw-grid > .stage {
-    anchor-name: --drawing;
-  }
-
-  .popup.error {
-    position-anchor: --drawing;
-    position-area: center;
-    align-self: start;
-  }
-}
-
-/* Printing tips: a quiet link at the end of the export row */
-button.hints-toggle {
-  align-self: flex-end;
-  gap: 0.4rem;
-  font-size: var(--fs-body);
-}
-
-.popup.hints ul {
-  margin: 0;
-  padding-left: 1.2rem;
-}
-
-.popup.hints li + li {
-  margin-top: 0.4rem;
-}
-
-.popup.error {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-weight: 700;
-}
-
-.popup.error:popover-open {
-  display: flex;
-  animation: shake 0.4s var(--ease);
-}
-
-/* ---------- Gallery ---------- */
-
-/* Fan of example pictures between editor and footer: cards like the share
-   image, turning around a point far below them (gallery-fan.tsx). */
-.gallery {
-  position: relative;
-  align-self: stretch;
-  height: calc(var(--fan-card) * 1.45);
-}
-
-.gallery-card {
-  position: absolute;
-  top: 0;
-  left: calc(50% - var(--fan-card) / 2);
-  width: var(--fan-card);
-  aspect-ratio: 1;
-  /* In card units – a percentage would be of the whole gallery's width. */
-  padding: calc(var(--fan-card) * 0.06);
-  background: #2a44ff;
-  border: 2px solid rgb(255 255 255 / 0.85);
-  border-radius: 1.4rem;
-  box-shadow: 0 1.2rem 2.5rem rgb(5 10 60 / 0.35);
-  transform-origin: 50% 300%;
-}
-
-/* The end of the page: the fan of example pictures floats, the share box in
-   front of its lower edge – the newest creation before the others. */
-.showcase {
-  --fan-card: 11rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  /* Room to breathe between the editor above, the fan and the footer. */
-  padding-block: clamp(2rem, 6vw, 4.5rem) clamp(1.5rem, 5vw, 3.5rem);
-}
-
-.gallery-card img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  background: #ffffff;
-  border-radius: 0.9rem;
-}
-
-@media (max-width: 40rem) {
-  .showcase {
-    --fan-card: 7.5rem;
-  }
-}
-
-/* ---------- Footer ---------- */
-
-/* Footer: no box – a light line across, like the card page's floor, its
-   words right on the page. */
-footer {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem 2rem;
-  margin-top: auto;
-  /* Room on the left for the sun cookie */
-  padding: 0.9rem 0.5rem 0.4rem 7.5rem;
-  font-size: var(--fs-body);
-  color: var(--on-page-muted);
-  border-top: 1px solid var(--on-page-line);
-}
-
-/* Donation link: a sun cookie sticking out at the footer's bottom left. On
-   hover it straightens up and turns once (in 3D). */
-.donate {
-  position: absolute;
-  bottom: -0.4rem;
-  left: -1rem;
-  display: grid;
-  place-items: center;
-  width: 7rem;
-  height: 7rem;
-  color: #0d1033;
-  text-decoration: none;
-  rotate: -12deg;
-  transition:
-    rotate 0.5s var(--ease-spring),
-    scale 0.5s var(--ease-spring);
-  /* Hops now and then, to catch the eye */
-  animation: sun-hop 7s ease-in-out 3s infinite;
-}
-
-.donate:hover {
-  rotate: 4deg;
-  scale: 1.12;
-  animation-play-state: paused;
-}
-
-.donate .sprinkle {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  display: block;
-  width: 0.65rem;
-  height: 0.24rem;
-  background: var(--color);
-  border-radius: 999px;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.donate:hover .sprinkle {
-  animation: sprinkle 0.75s var(--ease) var(--delay) both;
-}
-
-.donate:active {
-  scale: 0.95;
-}
-
-.donate-text {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  /* Grows in with the sun (donate-badge.tsx sets the scale). */
-  scale: 0;
-  font-size: var(--fs-small);
-  font-weight: 700;
-  line-height: 1.05;
-  text-align: center;
-}
-
-.donate-text small {
-  font-size: var(--fs-tiny);
-  font-weight: 500;
-}
-
-footer .footer-links,
-footer .credit {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-/* Phone: links stacked, without separator dots, the sun a bit smaller */
-@media (max-width: 40rem) {
-  footer {
-    padding-right: 0.5rem;
-    padding-left: 6.5rem;
-  }
-
-  footer {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  footer .footer-links,
-  footer .credit {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.35rem;
-  }
-
-  footer .sep {
-    display: none;
-  }
-
-  .donate {
-    --cookie-scale: 0.86;
-    left: -0.4rem;
-    width: 6rem;
-    height: 6rem;
-  }
-}
-
-footer a {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.15rem;
-  color: var(--on-page);
-  text-decoration: none;
-  transition: color 0.2s var(--ease);
-}
-
-footer a:hover {
-  color: var(--on-page);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-/* The sun keeps its dark text on the icing – in every theme, on hover and in
-   the share dialog too. */
-footer a.donate,
-footer a.donate:hover,
-.legal a.donate,
-.legal a.donate:hover {
-  color: #0d1033;
-  text-decoration: none;
-}
-
-/* ---------- Export ---------- */
-
-.export {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-/* Downloads: right-aligned, wrapping instead of sticking out of the card */
-.export > .actions {
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  align-self: stretch;
-}
-
-/* Sharing the page, right behind the title in the header: no button, just
-   a link on the blue page – its cookie and its words. */
-.share {
-  display: flex;
-  align-items: center;
-  transition: opacity 0.2s var(--ease);
-}
-
-.share button.copy {
-  height: auto;
-  gap: 0.35rem;
-  padding: 0;
-  font-weight: 700;
-  color: var(--on-page);
-  background: transparent;
-  border: 0;
-}
-
-.share button.copy:hover:not(:disabled) {
-  background: transparent;
-  text-decoration: underline;
-  text-decoration-thickness: 0.1em;
-  text-underline-offset: 0.2em;
-}
-
-.share button.copy[data-copied] {
-  color: var(--on-page-muted);
-}
-
-button.link {
-  height: auto;
-  padding: 0;
-  font-weight: 400;
-  color: var(--muted);
-  background: none;
-  border: 0;
-}
-
-button.link:hover:not(:disabled) {
-  color: var(--text);
-  background: none;
-}
-
-footer button.link {
-  color: var(--on-page-muted);
-}
-
-footer button.link:hover:not(:disabled) {
-  color: var(--on-page);
-}
-
-/* ---------- Imprint ---------- */
-
-dialog.legal {
-  width: min(40rem, calc(100% - 2rem));
-  max-height: min(85dvh, 48rem);
-  /* The margin keeps the scrollbar away from the round corners. */
-  padding: 0.6rem;
-  overflow: hidden;
-  color: var(--text);
-  background: var(--surface);
-  border: 0;
-  border-radius: calc(var(--radius) + 0.6rem);
-  opacity: 0;
-  transform: translateY(16px) scale(0.98);
-  transition:
-    opacity 0.25s var(--ease),
-    transform 0.35s var(--ease-spring),
-    overlay 0.25s allow-discrete,
-    display 0.25s allow-discrete;
-}
-
-dialog.legal[open] {
-  display: flex;
-  flex-direction: column;
-  opacity: 1;
-  transform: none;
-}
-
-@starting-style {
-  dialog.legal[open] {
-    opacity: 0;
-    transform: translateY(16px) scale(0.98);
-  }
-}
-
-dialog.legal::backdrop {
-  background: rgb(0 0 0 / 0);
-  backdrop-filter: blur(0);
-  transition:
-    background 0.25s var(--ease),
-    backdrop-filter 0.25s var(--ease),
-    overlay 0.25s allow-discrete,
-    display 0.25s allow-discrete;
-}
-
-dialog.legal[open]::backdrop {
-  background: rgb(0 0 0 / 0.35);
-  backdrop-filter: blur(4px);
-}
-
-@starting-style {
-  dialog.legal[open]::backdrop {
-    background: rgb(0 0 0 / 0);
-    backdrop-filter: blur(0);
-  }
-}
-
-.legal-body {
-  min-height: 0;
-  padding: 1.25rem 1.5rem 1.5rem;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  font-size: var(--fs-body);
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in oklab, var(--muted) 55%, transparent)
-    transparent;
-}
-
-/* Safari: a slim, round scrollbar without a track */
-.legal-body::-webkit-scrollbar {
-  width: 8px;
-}
-
-.legal-body::-webkit-scrollbar-thumb {
-  background: color-mix(in oklab, var(--muted) 55%, transparent);
-  border-radius: 4px;
-}
-
-button.legal-close {
-  position: absolute;
-  top: 1.1rem;
-  right: 1.1rem;
-  z-index: 1;
-  width: 2.5rem;
-  height: 2.5rem;
-  padding: 0;
-}
-
-.legal h2 {
-  padding-right: 3rem;
-  font-size: var(--fs-title);
-  line-height: 1.2;
-  letter-spacing: -0.015em;
-  -webkit-text-stroke: 0.02em currentColor;
+@utility paper {
+  --color-accent: #2a44ff;
+  --color-accent-soft: #e3e7ff;
+  --color-surface: #ffffff;
+  --color-surface-2: #f2e8d5;
+  --color-border: #e9dfcb;
+  --color-muted: #5c6080;
+  --color-ink: #0d1033;
+}
+
+/* Pally stops at 700 – an outline in the text's colour makes it even bolder.
+   In thousandths of an em: embolden-35 = 0.035em. */
+@utility embolden-* {
+  -webkit-text-stroke: calc(--value(integer) * 0.001em) currentColor;
   paint-order: stroke fill;
 }
 
-.legal h2:not(:first-of-type) {
-  margin-top: 2.25rem;
-}
-
-.legal h3 {
-  margin: 1.25rem 0 0.3rem;
-  font-size: var(--fs-body);
-  font-weight: 700;
-}
-
-.legal p,
-.legal address {
-  margin: 0 0 0.5rem;
-  font-style: normal;
-  color: var(--muted);
-}
-
-.legal a {
-  color: var(--text);
-}
-
-/* Sharing below the editor: one box, only what is needed – the picture on
-   the left, the rest beside it. As a greeting card the picture becomes the
-   little card and the fields appear; the box grows along (use-grow.ts). */
-.card.share-box {
-  position: relative;
-  z-index: 10;
-  align-self: center;
-  width: min(100%, 52rem);
-  margin-top: calc(var(--fan-card) * -0.45);
-  /* The content's own gaps – the box only holds it (use-grow.ts). */
-  display: block;
-}
-
-.share-body {
-  display: flex;
-  flex-direction: column;
-  gap: 1.1rem;
-}
-
-.share-box .card-head {
-  flex-wrap: wrap;
-}
-
-/* The switch between picture and card, on a light surface. */
-.share-box .switch {
-  padding: 0.2rem;
-  background: var(--surface-2);
-  border-radius: 0.8rem;
-}
-
-.share-box .switch button {
-  height: 2.2rem;
-  padding: 0 0.85rem;
-  letter-spacing: 0;
-}
-
-.share-layout {
-  display: grid;
-  grid-template-columns: 16rem minmax(0, 1fr);
-  gap: 1.5rem;
-  align-items: stretch;
-}
-
-/* Phone: the picture above (see .share-visual for its size). */
-@media (max-width: 40rem) {
-  .share-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-/* The picture or the little card – square, swapped with a fade. */
-.share-visual {
-  align-self: start;
-  width: 100%;
-  max-width: 20rem;
-  margin-inline: auto;
-  aspect-ratio: 1;
-  animation: fade 0.3s var(--ease) both;
-}
-
-/* On phones not too big – the rest should follow soon. */
-@media (max-width: 40rem) {
-  .share-visual {
-    max-width: 16rem;
-  }
-}
-
-.share-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  min-width: 0;
-}
-
-.share-intro {
-  color: var(--muted);
-}
-
-/* The way to the greeting card, right below the picture's text: the card
-   page in miniature – the ring of words turning, the gift on a little card –
-   beside the invitation, an arrow to follow. */
-button.card-invite {
-  justify-content: flex-start;
-  gap: 0.9rem;
-  height: auto;
-  padding: 0.6rem 0.9rem 0.6rem 0.6rem;
-  text-align: left;
-  white-space: normal;
-  color: var(--text);
-  background: color-mix(in oklab, #ffc31f 24%, var(--surface));
-  border-radius: var(--radius);
-}
-
-button.card-invite:hover:not(:disabled) {
-  background: color-mix(in oklab, #ffc31f 36%, var(--surface));
-}
-
-.card-invite-preview {
-  position: relative;
-  flex: none;
-  width: 4.5rem;
-  aspect-ratio: 1;
-  overflow: hidden;
-  background: var(--glaze);
-  border-radius: 0.9rem;
-  box-shadow: 0 0.45rem 0.9rem -0.35rem rgb(4 8 60 / 0.5);
-  rotate: -4deg;
-  transition:
-    --glaze 0.5s var(--ease),
-    rotate 0.4s var(--ease-spring),
-    scale 0.4s var(--ease-spring);
-}
-
-button.card-invite:hover .card-invite-preview {
-  rotate: 3deg;
-  scale: 1.06;
-}
-
-.card-invite-preview .ring-text {
-  position: absolute;
-  inset: 3%;
-  width: 94%;
-  height: 94%;
-  overflow: visible;
-  font-weight: 600;
-  white-space: pre;
-  fill: var(--on-glaze);
-  animation: ring-turn 40s linear infinite;
-}
-
-.card-invite-card {
-  position: absolute;
-  inset: 25%;
-  display: grid;
-  place-items: center;
-  background: var(--card-sheet);
-  border-radius: 0.35rem;
-  rotate: -3deg;
-}
-
-.cookie.card-invite-gift {
-  --cookie-scale: 0.72;
-  margin: 0;
-}
-
-.card-invite-text {
-  display: grid;
-  flex: 1;
-  gap: 0.05rem;
-}
-
-.cookie.card-invite-arrow {
-  margin: -0.5rem -0.3rem;
-  transition: translate 0.35s var(--ease-spring);
-}
-
-button.card-invite:hover .card-invite-arrow {
-  translate: 0.3rem 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .card-invite-preview .ring-text {
-    animation: none;
-  }
-}
-
-.card-invite small {
-  font-size: var(--fs-small);
-  font-weight: 500;
-  color: var(--muted);
-}
-
-/* A canvas shown as it is (canvas-view.tsx): the newest on top, fading in
-   over the one before. */
-.canvas-view {
-  position: relative;
-  display: block;
-}
-
-.canvas-view canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  animation: fade 0.45s var(--ease) both;
-}
-
-/* The picture as it will be shared, built of the page – share-creation.tsx
-   paints it the same once it is saved or shared, 1200 px wide: 12 px there
-   are 1cqw here. The favourite colour, the card with the cutter from above
-   (its place kept while it renders), its name and where it was made. */
-.share-picture {
-  position: relative;
-  overflow: hidden;
-  color: var(--on-glaze);
-  background: var(--glaze);
-  border-radius: var(--radius);
-  container-type: inline-size;
-}
-
-.share-picture-card {
-  position: absolute;
-  top: 5cqw;
-  left: 5cqw;
-  width: 90cqw;
-  height: 73.333cqw;
-  background-color: var(--card-sheet);
-  border-radius: 4cqw;
-  --ghost-shine: rgb(255 255 255 / 0.65);
-}
-
-.share-picture-card .canvas-view {
-  width: 100%;
-  height: 100%;
-}
-
-/* On the baselines they are painted on (1060 and 1130) – Pally's lies
-   --baseline below the top of a line as high as its font. */
-.share-picture-name,
-.share-picture-site {
-  --baseline: 0.813em;
-  position: absolute;
-  left: 5cqw;
-  width: 90cqw;
-  overflow: hidden;
-  line-height: 1;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.share-picture-name {
-  top: calc(88.333cqw - var(--baseline));
-  font-size: 6.333cqw;
-  font-weight: 700;
-}
-
-.share-picture-site {
-  top: calc(94.167cqw - var(--baseline));
-  font-size: 3.167cqw;
-  font-weight: 500;
-  color: var(--on-glaze-muted);
-}
-
-/* Ghost: a soft shine running over the kept place while its picture renders. */
-.share-picture-card[data-waiting],
-.composer-ghost[data-waiting] {
-  background-image: linear-gradient(
-    100deg,
-    transparent 30%,
-    var(--ghost-shine) 50%,
-    transparent 70%
-  );
-  background-size: 250% 100%;
-  animation: ghost 1.3s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .share-picture-card[data-waiting],
-  .composer-ghost[data-waiting] {
-    animation: none;
-  }
-}
-
-/* The link as a field – a click copies it, the copy icon on the right */
-button.share-link,
-button.share-link:hover:not(:disabled) {
-  justify-content: space-between;
-  gap: 0.75rem;
-  width: 100%;
-  height: 2.6rem;
-  margin-top: 0.5rem;
-  padding: 0 0.6rem 0 1rem;
-  font-size: var(--fs-small);
-  font-weight: 500;
-  color: var(--field-text);
-  background: var(--field);
-}
-
-button.share-link[data-copied] {
-  font-weight: 700;
-}
-
-.share-url {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.share-note {
-  margin-top: 0.75rem;
-  font-size: var(--fs-small);
-  color: var(--muted);
-}
-
-/* The box's actions, right-aligned at its foot – level in both boxes. */
-.share-more {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 0.6rem 1rem;
-  margin-top: auto;
-  padding-top: 0.25rem;
-}
-
-/* The card composer: the card page in small, then who, from whom, what */
-.composer-preview {
-  position: relative;
-  overflow: hidden;
-  background: var(--glaze);
-  border-radius: calc(var(--radius) * 1.5);
-  container-type: inline-size;
-}
-
-.composer-preview .ring-text {
-  position: absolute;
-  inset: 3%;
-  width: 94%;
-  height: 94%;
-  overflow: visible;
-  font-weight: 600;
-  white-space: pre;
-  fill: var(--on-glaze);
-  animation: ring-turn 150s linear infinite;
-}
-
-.composer-card {
-  position: absolute;
-  inset: 22.5%;
-  display: grid;
-  /* A long name is cut, it does not widen the card. */
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) auto;
-  padding: 3cqw 3.5cqw 3.5cqw;
-  background: var(--card-sheet);
-  border-radius: 5cqw;
-  rotate: -3deg;
-  box-shadow: 0 1.2rem 2rem -0.8rem rgb(4 8 60 / 0.55);
-}
-
-.composer-card .canvas-view {
-  min-height: 0;
-}
-
-/* The cutter's place on the little card while it renders. */
-.composer-ghost {
-  display: block;
-  min-height: 0;
-  margin-bottom: 2cqw;
-  background-color: #f2e8d5;
-  border-radius: 3cqw;
-  --ghost-shine: rgb(255 255 255 / 0.65);
-}
-
-.composer-name {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.4em;
-  font-size: 4.4cqw;
-  font-weight: 700;
-  line-height: 1.2;
-  color: var(--card-ink);
-}
-
-.composer-name span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.composer-name small {
-  flex: none;
-  font-size: 0.7em;
-  font-weight: 600;
-  color: var(--card-ink-muted);
-}
-
-/* The favourite colour: round swatches, the chosen one ringed. */
-.composer-colors {
-  display: grid;
-  gap: 0.4rem;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-.composer-colors legend {
-  margin-bottom: 0.4rem;
-  padding: 0;
-  font-size: var(--fs-small);
-  font-weight: 700;
-  color: var(--text);
-}
-
-.composer-swatches {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-}
-
-button.composer-swatch,
-button.composer-swatch:hover:not(:disabled) {
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
-  background: var(--swatch);
-  border: 0;
-  border-radius: 50%;
-  box-shadow:
-    0 0 0 2px var(--card),
-    0 0 0 4px transparent;
-  transition:
-    box-shadow 0.2s var(--ease),
-    scale 0.25s var(--ease-spring);
-}
-
-button.composer-swatch:hover:not(:disabled) {
-  scale: 1.1;
-}
-
-button.composer-swatch[aria-pressed="true"] {
-  box-shadow:
-    0 0 0 2px var(--card),
-    0 0 0 4px var(--swatch);
-}
-
-.composer-names {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-}
-
-@media (max-width: 30rem) {
-  .composer-names {
-    grid-template-columns: 1fr;
-  }
-}
-
-.composer-field {
-  display: grid;
-  gap: 0.3rem;
-  font-size: var(--fs-small);
-  font-weight: 700;
-  color: var(--text);
-}
-
-.composer-field > span {
-  display: flex;
-  justify-content: space-between;
-}
-
-.composer-field small {
-  font-weight: 500;
-  color: var(--muted);
-}
-
-.composer-field input,
-.composer-field textarea {
-  width: 100%;
-  padding: 0.55rem 0.9rem;
-  font: inherit;
-  font-size: var(--fs-body);
-  font-weight: 600;
-  color: var(--field-text);
-  background: var(--field);
-  border: 0;
-  border-radius: 0.6rem;
-  outline: 2px solid transparent;
-  transition:
-    outline-color 0.2s var(--ease),
-    background 0.2s var(--ease);
-}
-
-.composer-field input {
-  height: 2.6rem;
-}
-
-.composer-field textarea {
-  min-height: 4.8rem;
-  line-height: 1.4;
-  resize: none;
-  field-sizing: content;
-}
-
-.composer-field input::placeholder,
-.composer-field textarea::placeholder {
-  font-weight: 500;
-  color: var(--field-muted);
-}
-
-.composer-field input:focus,
-.composer-field textarea:focus {
-  background: var(--paper);
-  outline-color: var(--accent);
-}
-
-.composer-ready {
-  color: var(--text);
-  font-weight: 700;
-}
-
-/* ---------- Cookie bar: the creations as cookies ----------
-   A cookie banner that really is one. In the page right above the footer,
-   sticking to the bottom of the screen while scrolling – it never covers the
-   footer or the sun. It slides in from below with the first scroll; closed,
-   a jar takes its place. */
-
-.cookie-dock {
-  position: sticky;
-  bottom: max(1rem, env(safe-area-inset-bottom));
-  z-index: 40;
-  display: flex;
-  justify-content: center;
-  pointer-events: none;
-  opacity: 0;
-  translate: 0 calc(100% + 2rem);
-  transition:
-    translate 0.6s var(--ease-spring),
-    opacity 0.3s var(--ease);
-}
-
-.cookie-dock[data-shown] {
-  opacity: 1;
-  translate: 0 0;
-}
-
-.cookie-dock > * {
-  pointer-events: auto;
-}
-
-/* Closed: the jar on the right. */
-.cookie-dock[data-closed] {
-  justify-content: flex-end;
-}
-
-/* Where the bar gets as wide as the page, it stays above the sun too. */
-@media (max-width: 64rem) {
-  .cookie-dock {
-    margin-bottom: 3.5rem;
-  }
-}
-
-.cookie-bar {
-  display: grid;
-  grid-template-columns: auto minmax(0, auto) auto;
-  align-items: center;
-  gap: 0.5rem 1.25rem;
-  max-width: min(62rem, 100%);
-  padding: 0.6rem 0.9rem 0.6rem 1.4rem;
-  color: var(--text);
-  background: var(--surface);
-  border-radius: calc(var(--radius) + 0.5rem);
-  box-shadow:
-    0 0.3rem 0.8rem rgb(4 8 60 / 0.16),
-    0 1.6rem 3rem -1rem rgb(4 8 60 / 0.5);
-}
-
-.cookie-bar-text {
-  display: grid;
-  gap: 0.1rem;
-  max-width: 15rem;
-  font-size: var(--fs-small);
-  line-height: 1.3;
-  color: var(--muted);
-}
-
-.cookie-bar-text strong {
-  font-size: var(--fs-body);
-  color: var(--text);
-}
-
-/* A new line (a fresh cookie, the count) slides in. */
-.cookie-bar-line {
-  animation: rise 0.35s var(--ease) both;
-}
-
-.cookie-bar-list {
-  /* Leaving cookies are taken out of the flow here (popLayout). */
-  position: relative;
-  display: flex;
-  gap: 0.2rem;
-  margin: 0;
-  padding: 0.3rem 0.75rem;
-  overflow-x: auto;
-  list-style: none;
-  scroll-snap-type: x proximity;
-  scrollbar-width: thin;
-  mask-image: linear-gradient(
-    90deg,
-    transparent,
-    #000 0.75rem,
-    #000 calc(100% - 0.75rem),
-    transparent
-  );
-}
-
-/* Coming, going and making room is animated in cookie-bar.tsx (motion). */
-.cookie-bar-item {
-  position: relative;
-  flex: none;
-  scroll-snap-align: start;
-}
-
-button.cookie-bar-cookie {
-  flex-direction: column;
-  gap: 0;
-  width: 6rem;
-  height: auto;
-  padding: 0.2rem 0.3rem 0.35rem;
-  font-size: var(--fs-tiny);
-  background: transparent;
-  border-radius: 0.8rem;
-}
-
-button.cookie-bar-cookie:hover:not(:disabled) {
-  background: var(--surface-2);
-}
-
-.cookie.cookie-tile {
-  margin: -0.7rem 0 -0.45rem;
-}
-
-button.cookie-bar-cookie span {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Eat: the cross shows on hover (always on touch). */
-button.cookie-bar-eat {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 1.7rem;
-  height: 1.7rem;
-  background: var(--surface);
-  opacity: 0;
-  transition: opacity 0.2s var(--ease);
-}
-
-.cookie.cookie-eat {
-  margin: -0.5rem;
-}
-
-.cookie-bar-item:hover button.cookie-bar-eat,
-button.cookie-bar-eat:focus-visible {
-  opacity: 1;
-}
-
-@media (hover: none) {
-  button.cookie-bar-eat {
-    opacity: 1;
-  }
-}
-
-button.cookie-bar-close {
-  align-self: start;
-  width: 2.5rem;
-  height: 2.5rem;
-}
-
-/* The jar while the bar is closed */
-button.cookie-jar {
-  position: relative;
-  width: 4.2rem;
-  height: 4.2rem;
-  padding: 0;
-  background: var(--surface);
-  border-radius: 1.2rem;
-  box-shadow: 0 1rem 2rem -0.8rem rgb(4 8 60 / 0.55);
-  transition:
-    scale 0.4s var(--ease-spring),
-    background 0.2s var(--ease);
-}
-
-.cookie.cookie-jar-icon {
-  margin: 0;
-}
-
-.cookie-jar-count {
-  position: absolute;
-  top: -0.35rem;
-  right: -0.35rem;
-  min-width: 1.5rem;
-  height: 1.5rem;
-  padding: 0 0.4rem;
-  font-size: var(--fs-tiny);
-  line-height: 1.5rem;
-  color: var(--on-neon);
-  background: var(--neon);
-  border-radius: 0.75rem;
-}
-
-@media (max-width: 40rem) {
-  .cookie-bar {
-    width: 100%;
-    grid-template-columns: minmax(0, 1fr) auto;
-    padding: 0.75rem 0.75rem 0.5rem 1.1rem;
+@layer base {
+  :root {
+    font-size: 1.0625rem;
+    @apply scheme-light-dark font-medium leading-normal antialiased;
   }
 
-  .cookie-bar-list {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    margin: 0 -0.5rem;
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-page: #141c86;
+      /* Translucent, so the background cookies show through. */
+      --color-card: rgb(15 21 102 / 0.45);
+      --color-surface: #0f1566;
+      --color-surface-2: #1c2491;
+      --color-ink: #fff8ec;
+      --color-muted: #b4bbef;
+      --color-border: #252da0;
+      --color-accent: #8c9bff;
+      --color-accent-soft: #252ea6;
+      --color-on-accent: #0f1566;
+      --color-track-fill: #fff8ec;
+      --color-track-rest: rgb(255 248 236 / 0.28);
+      --color-field: #fff8ec;
+      --color-field-ink: #0d1033;
+      --color-field-muted: #5c6080;
+    }
   }
-}
 
-/* The cookie on its way into the bar, above everything (cookie-fx.tsx). */
-.cookie-flight {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 200;
-  pointer-events: none;
-  will-change: transform;
-  filter: drop-shadow(0 0.8rem 1rem rgb(4 8 60 / 0.35));
-}
-
-.cookie.cookie-flight-icon {
-  margin: 0;
-}
-
-/* Crumbs bursting where a cookie lands or is eaten. */
-.crumbs {
-  position: fixed;
-  z-index: 201;
-  width: 0;
-  height: 0;
-  pointer-events: none;
-}
-
-.crumb {
-  position: absolute;
-  top: 0;
-  left: 0;
-  border-radius: 40%;
-  animation: crumb 0.6s cubic-bezier(0.2, 0.7, 0.4, 1) both;
-}
-
-@keyframes crumb {
-  from {
-    opacity: 1;
-    translate: -50% -50%;
-    rotate: 0deg;
+  /* The greeting card: the whole page in the sender's favourite colour
+     (glaze.ts sets --card-color before the first paint) – in the dark too –
+     the words on it white or dark, whichever reads. */
+  :root:has(#card-glaze) {
+    --glaze: var(--card-color, #2a44ff);
+    --color-page: var(--glaze);
+    --color-on-page: var(--on-glaze);
+    --color-on-page-muted: var(--on-glaze-muted);
+    --color-on-page-line: var(--on-glaze-line);
   }
-  70% {
-    opacity: 1;
+
+  /* While a dialog is open (store.dialogs) nothing scrolls behind it. The
+     scrollbar's room stays reserved, so the page does not shift sideways. */
+  html {
+    scrollbar-gutter: stable;
   }
-  to {
-    opacity: 0;
-    /* Out, then a little down – they fall. */
-    translate: calc(var(--dx) - 50%) calc(var(--dy) + 14px - 50%);
-    rotate: 160deg;
+
+  html[data-locked] {
+    overflow: hidden;
   }
-}
 
-/* ---------- Contact form (imprint) ---------- */
+  /* The greeting card is one screen: nothing scrolls – so no room is kept
+     for a scrollbar either. Phones scroll on to the buttons and the footer
+     (card-page.tsx). */
+  html:has([data-greeting]) {
+    overflow: hidden;
+    scrollbar-gutter: auto;
 
-/* The fields look like the card composer's (.composer-field). */
-.contact-form {
-  display: grid;
-  gap: 0.25rem;
-  margin-bottom: 0.5rem;
-}
+    @media (width < 30rem) {
+      overflow: visible;
+    }
+  }
 
-.contact-names {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-  gap: 0 0.75rem;
-}
+  body {
+    @apply bg-page text-on-page;
+  }
 
-/* The honeypot: out of sight and reach, but not display:none (bots skip that). */
-.contact-trap {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  opacity: 0;
-  pointer-events: none;
-}
+  fieldset {
+    @apply min-w-0;
+  }
 
-.contact-send {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 1rem;
-  margin-top: 0.9rem;
-}
+  /* Buttons: this is their look; components/button.tsx has their kinds.
+     Lifting and pressing are animated by motion. */
+  button {
+    @apply inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-[0.6rem] bg-surface-2 px-3.5 text-body font-bold whitespace-nowrap text-ink transition-[background-color,color];
+    @apply hover:enabled:bg-[color-mix(in_oklab,var(--color-surface-2)_82%,var(--color-ink))];
+    @apply disabled:cursor-default disabled:opacity-40;
+  }
 
-.contact-sent,
-.contact-problem {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: var(--fs-small);
-  font-weight: 700;
-}
+  button:focus-visible,
+  input:focus-visible,
+  a:focus-visible {
+    @apply outline-2 outline-offset-2 outline-accent;
+  }
 
-.contact-problem {
-  color: var(--neon);
+  /* Sliders: the cookie slider (components/cookie-slider.tsx) lays its own
+     track and thumb over an invisible one of these. */
+  input[type="range"] {
+    --fill: 50%;
+    @apply m-0 h-5 w-full cursor-pointer appearance-none bg-transparent;
+  }
+
+  /* Each engine's pseudo-elements in rules of their own – a rule naming the
+     other's is dropped whole. */
+  input[type="range"]::-webkit-slider-runnable-track {
+    @apply h-1 rounded-xs bg-[linear-gradient(to_right,var(--color-accent)_var(--fill),var(--color-border)_var(--fill))];
+  }
+
+  input[type="range"]::-moz-range-track {
+    @apply h-1 rounded-xs bg-[linear-gradient(to_right,var(--color-accent)_var(--fill),var(--color-border)_var(--fill))];
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    @apply -mt-1.5 size-4 appearance-none rounded-full border-2 border-accent bg-surface transition-transform duration-250 ease-spring;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    @apply size-3 rounded-full border-2 border-accent bg-surface transition-transform duration-250 ease-spring;
+  }
+
+  input[type="range"]:is(:hover, :active)::-webkit-slider-thumb {
+    @apply scale-125;
+  }
+
+  input[type="range"]:is(:hover, :active)::-moz-range-thumb {
+    @apply scale-125;
+  }
+
+  ::view-transition-group(*) {
+    animation-duration: 0.45s;
+    animation-timing-function: var(--ease-soft);
+  }
+
+  /* biome-ignore-start lint/complexity/noImportantStyles: reduced motion must reliably override every animation */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+  /* biome-ignore-end lint/complexity/noImportantStyles: see above */
 }
 
 /* ---------- Animations ---------- */
@@ -3001,14 +343,115 @@ button.cookie-jar {
   }
 }
 
-/* biome-ignore-start lint/complexity/noImportantStyles: reduced motion must reliably override every animation */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+/* Crumbs bursting where a cookie lands or is eaten. */
+@keyframes crumb {
+  from {
+    opacity: 1;
+    translate: -50% -50%;
+    rotate: 0deg;
+  }
+  70% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    /* Out, then a little down – they fall. */
+    translate: calc(var(--dx) - 50%) calc(var(--dy) + 14px - 50%);
+    rotate: 160deg;
   }
 }
-/* biome-ignore-end lint/complexity/noImportantStyles: see above */
+
+/* The greeting card (card-page.tsx) */
+
+@keyframes greet-rise {
+  from {
+    opacity: 0;
+    translate: 0 0.9rem;
+  }
+}
+
+@keyframes cutter-in {
+  from {
+    opacity: 0;
+    scale: 0.9;
+  }
+}
+
+@keyframes card-land {
+  from {
+    opacity: 0;
+    translate: 0 -14%;
+    rotate: -14deg;
+    scale: 0.82;
+  }
+  35% {
+    opacity: 1;
+  }
+}
+
+@keyframes greet-peek {
+  30% {
+    rotate: y -24deg;
+  }
+  60% {
+    rotate: y 8deg;
+  }
+}
+
+@keyframes ring-in {
+  from {
+    opacity: 0;
+    scale: 0.84;
+  }
+}
+
+@keyframes eat-me-in {
+  from {
+    opacity: 0;
+    translate: 1.5cqw 1.2cqw;
+  }
+}
+
+@keyframes eat-me {
+  50% {
+    translate: -0.6cqw -0.9cqw;
+  }
+}
+
+/* The same functions in every step – so each is eased on its own, the fall
+   (translateY) straight down on the screen. */
+@keyframes greet-confetti {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(0) rotate(var(--angle))
+      translateX(14cqw) rotate(0deg);
+  }
+  8% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-50%, -50%) translateY(3cqw) rotate(var(--angle))
+      translateX(var(--reach)) rotate(260deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(18cqw) rotate(var(--angle))
+      translateX(calc(var(--reach) + 4cqw)) rotate(500deg);
+  }
+}
+
+@keyframes greet-sprinkle {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--angle)) translateX(16cqw);
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--angle))
+      translateX(var(--reach)) rotate(220deg);
+  }
+}

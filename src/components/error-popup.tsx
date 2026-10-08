@@ -3,7 +3,9 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useError } from "../store";
 import Button from "./button";
+import { cn } from "../cn";
 import CookieIcon from "./cookie-icon";
+import { cookieInIconButton, popup } from "./styles";
 
 /**
  * Error message as a popover over the drawing area (anchored to it with CSS
@@ -23,15 +25,29 @@ const ErrorPopup = () => {
   }, [error]);
 
   return (
-    <div className="popup error" popover="manual" ref={ref} role="alert">
+    // Over the middle of the drawing area, at its top; shakes as it opens.
+    <div
+      className={cn(
+        popup,
+        "items-center gap-3 self-start [position-anchor:--drawing] [position-area:center] open:flex open:animate-[shake_0.4s_var(--ease-soft)]"
+      )}
+      popover="manual"
+      ref={ref}
+      role="alert"
+    >
       <span>{error && t(`errors.${error}`)}</span>
       <Button
         aria-label={t("legal.close")}
-        className="icon"
+        kind="icon"
         onClick={() => ref.current?.hidePopover()}
         type="button"
       >
-        <CookieIcon icon={X} roll={8} size={40} />
+        <CookieIcon
+          className={cookieInIconButton}
+          icon={X}
+          roll={8}
+          size={40}
+        />
       </Button>
     </div>
   );

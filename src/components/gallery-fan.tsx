@@ -33,13 +33,18 @@ const GalleryFan = () => {
   const middle = (CARDS - 1) / 2;
 
   return (
-    <section aria-label={t("gallery.label")} className="gallery">
+    // Cards like the share image, turning around a point far below them; in
+    // card units (--fan-card, editor-app.tsx).
+    <section
+      aria-label={t("gallery.label")}
+      className="relative h-[calc(var(--fan-card)*1.45)] self-stretch"
+    >
       {Array.from({ length: CARDS }, (_, i) => {
         const offset = i - middle;
         const angle = offset * spread;
         return (
           <motion.div
-            className="gallery-card"
+            className="absolute top-0 left-[calc(50%_-_var(--fan-card)/2)] aspect-square w-(--fan-card) origin-[50%_300%] rounded-[1.4rem] border-2 border-white/85 bg-[#2a44ff] p-[calc(var(--fan-card)*0.06)] shadow-[0_1.2rem_2.5rem_rgb(5_10_60/0.35)]"
             initial={still ? false : { y: "70%", rotate: 0, opacity: 0 }}
             key={i}
             style={{ zIndex: CARDS - Math.abs(offset) }}
@@ -62,7 +67,13 @@ const GalleryFan = () => {
                   }
             }
           >
-            <img alt="" decoding="async" loading="lazy" src={hand[i]} />
+            <img
+              alt=""
+              className="block size-full rounded-[0.9rem] bg-white object-cover"
+              decoding="async"
+              loading="lazy"
+              src={hand[i]}
+            />
           </motion.div>
         );
       })}

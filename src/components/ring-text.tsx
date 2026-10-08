@@ -46,7 +46,7 @@ const RingText = ({ text, className }: Props) => {
   return (
     <svg
       aria-hidden
-      className={["ring-text", className].filter(Boolean).join(" ")}
+      className={className}
       viewBox="0 0 100 100"
     >
       {/* Clockwise from the top: the letters stand outwards, upright on top. */}

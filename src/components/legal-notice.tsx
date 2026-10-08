@@ -5,6 +5,7 @@ import { useAssets } from "../assets";
 import { dialogClosed, dialogOpened } from "../store";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
+import { cookieInIconButton } from "./styles";
 
 /**
  * “Imprint & privacy”: a link in the footer that opens the legal text as a
@@ -19,7 +20,8 @@ const LegalNotice = () => {
   return (
     <>
       <Button
-        className="link"
+        className="text-on-page-muted hover:enabled:text-on-page"
+        kind="link"
         onClick={() => {
           dialogRef.current?.showModal();
           dialogOpened();
@@ -28,10 +30,12 @@ const LegalNotice = () => {
       >
         {t("footer.imprint")}
       </Button>
+      {/* Rises in over a dimmed, blurred page. Its padding keeps the
+          scrollbar away from the round corners. */}
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: Escape closes the dialog natively, the click is only for the backdrop */}
       <dialog
         aria-label={t("footer.imprint")}
-        className="legal"
+        className="m-auto max-h-[min(85dvh,48rem)] w-[min(40rem,100%_-_2rem)] translate-y-4 scale-98 overflow-hidden rounded-[1.6rem] bg-surface p-2.5 text-ink opacity-0 [transition:opacity_0.25s_var(--ease-soft),translate_0.35s_var(--ease-spring),scale_0.35s_var(--ease-spring),overlay_0.25s_allow-discrete,display_0.25s_allow-discrete] backdrop:bg-black/0 backdrop:backdrop-blur-[0px] backdrop:[transition:background_0.25s_var(--ease-soft),backdrop-filter_0.25s_var(--ease-soft),overlay_0.25s_allow-discrete,display_0.25s_allow-discrete] open:flex open:translate-y-0 open:scale-100 open:flex-col open:opacity-100 open:backdrop:bg-black/35 open:backdrop:backdrop-blur-[4px] starting:open:translate-y-4 starting:open:scale-98 starting:open:opacity-0 starting:open:backdrop:bg-black/0 starting:open:backdrop:backdrop-blur-[0px]"
         // A click on the dimmed backdrop closes the dialog.
         onClick={(event) => {
           if (event.target === event.currentTarget) event.currentTarget.close();
@@ -43,13 +47,23 @@ const LegalNotice = () => {
         {/* Outside the scrolling area, so it stays put while scrolling. */}
         <Button
           aria-label={t("legal.close")}
-          className="icon legal-close"
+          className="absolute top-4.5 right-4.5 z-1 size-10"
+          kind="icon"
           onClick={() => dialogRef.current?.close()}
           type="button"
         >
-          <CookieIcon icing="#ff5fa8" icon={X} roll={8} size={56} />
+          <CookieIcon
+            className={cookieInIconButton}
+            icing="#ff5fa8"
+            icon={X}
+            roll={8}
+            size={56}
+          />
         </Button>
-        <div className="legal-body">
+        {/* The text from the CMS has no classes of its own – its headings,
+            paragraphs, lists and links are styled from here. A slim, round
+            scrollbar without a track (in Safari too). */}
+        <div className="min-h-0 overflow-y-auto overscroll-contain px-6 pt-5 pb-6 text-body [scrollbar-color:color-mix(in_oklab,var(--color-muted)_55%,transparent)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-[4px] [&::-webkit-scrollbar-thumb]:bg-muted/55 [&_:is(p,address)]:mb-2 [&_:is(p,address)]:text-muted [&_:is(ul,ol)]:my-4 [&_:is(ul,ol)]:pl-10 [&_a]:text-ink [&_a]:underline [&_address]:not-italic [&_h2]:pr-12 [&_h2]:text-title [&_h2]:leading-[1.2] [&_h2]:font-bold [&_h2]:tracking-title [&_h2]:embolden-20 [&_h2:not(:first-of-type)]:mt-9 [&_h3]:mt-5 [&_h3]:mb-1.25 [&_h3]:text-body [&_h3]:font-bold [&_ol]:list-decimal [&_ul]:list-disc">
           {legal?.[i18n.resolvedLanguage === "de" ? "de" : "en"]}
         </div>
       </dialog>

@@ -12,6 +12,7 @@ import { toThreeMf } from "../export/three-mf";
 import { saveCookie, store } from "../store";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
+import { cookieInButton } from "./styles";
 
 /**
  * Keeping the creation as a cookie, and downloads as STL and 3MF. Every
@@ -53,7 +54,8 @@ const ExportButtons = () => {
   };
 
   return (
-    <div className="actions">
+    // Right-aligned, wrapping instead of sticking out of the card
+    <div className="flex flex-wrap items-center justify-end gap-4 self-stretch">
       <Button
         disabled={!mesh}
         onClick={(event) => {
@@ -65,9 +67,19 @@ const ExportButtons = () => {
         type="button"
       >
         {shape ? (
-          <CookieIcon roll={-10} shape={shape} size={58} />
+          <CookieIcon
+            className={cookieInButton}
+            roll={-10}
+            shape={shape}
+            size={58}
+          />
         ) : (
-          <CookieIcon kind="chip" roll={-10} size={58} />
+          <CookieIcon
+            className={cookieInButton}
+            kind="chip"
+            roll={-10}
+            size={58}
+          />
         )}
         {saved ? t("jar.saved") : t("jar.save")}
       </Button>
@@ -78,18 +90,29 @@ const ExportButtons = () => {
         }
         type="button"
       >
-        <CookieIcon icing="#2a44ff" icon={Download} roll={-14} size={58} />
+        <CookieIcon
+          className={cookieInButton}
+          icing="#2a44ff"
+          icon={Download}
+          roll={-14}
+          size={58}
+        />
         {t("export.stl")}
       </Button>
       <Button
-        className="primary"
         disabled={!mesh}
+        kind="primary"
         onClick={(event) =>
           mesh && save(event.currentTarget, toThreeMf(mesh, title), "3mf")
         }
         type="button"
       >
-        <CookieIcon icon={Download} roll={12} size={58} />
+        <CookieIcon
+          className={cookieInButton}
+          icon={Download}
+          roll={12}
+          size={58}
+        />
         {t("export.threeMf")}
       </Button>
     </div>

@@ -17,14 +17,16 @@ const ColorSwatches = ({ value, onChange }: Props) => {
   const colors = useCardColors();
   const lang = i18n.resolvedLanguage === "de" ? "de" : "en";
   return (
-    <fieldset className="composer-colors">
-      <legend>{t("card.color")}</legend>
-      <div className="composer-swatches">
+    <fieldset className="grid gap-1.5">
+      <legend className="mb-1.5 text-small font-bold text-ink">
+        {t("card.color")}
+      </legend>
+      <div className="flex flex-wrap gap-2.25">
         {colors.map(({ color, name }, index) => (
           <button
             aria-label={name[lang]}
             aria-pressed={value === index}
-            className="composer-swatch"
+            className="size-8 rounded-full bg-(--swatch) p-0 [box-shadow:0_0_0_2px_var(--color-card),0_0_0_4px_transparent] [transition:box-shadow_0.2s_var(--ease-soft),scale_0.25s_var(--ease-spring)] hover:enabled:scale-110 aria-pressed:[box-shadow:0_0_0_2px_var(--color-card),0_0_0_4px_var(--swatch)]"
             key={`${index}-${color}`}
             onClick={() => onChange(index)}
             style={{ "--swatch": color } as CSSProperties}

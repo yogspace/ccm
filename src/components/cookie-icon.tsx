@@ -11,6 +11,7 @@ import {
   createShapeCookie,
   disposeCookie,
 } from "../cookies/models";
+import { cn } from "../cn";
 import { type CookieHandle, registerCookie } from "../cookies/renderer";
 
 type Props = {
@@ -177,7 +178,13 @@ const CookieIcon = ({
     <>
       <canvas
         aria-hidden
-        className={["cookie", className].filter(Boolean).join(" ")}
+        className={cn(
+          // Its size from the prop, smaller via --cookie-scale (inherited),
+          // e.g. on phones. Greyed in a disabled button.
+          "pointer-events-none block size-[calc(var(--size)*var(--cookie-scale,1))] shrink-0 select-none in-disabled:grayscale-60",
+          className
+        )}
+        data-cookie
         height={pixels}
         ref={canvasRef}
         style={{ "--size": `${size}px` } as CSSProperties}

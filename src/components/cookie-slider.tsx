@@ -44,13 +44,26 @@ const CookieSlider = ({ min, max, step, value, onChange, label }: Props) => {
     cookieImage("chip", pixels).then(setThumb);
   }, []);
 
+  // An invisible range input over its own track; the cookie lies exactly over
+  // the invisible thumb. Its centre (--stop) runs from thumb/2 to
+  // 100 % − thumb/2.
   return (
-    <span className="slider" style={{ "--fill": fill } as CSSProperties}>
-      <span aria-hidden className="slider-track" />
-      <span aria-hidden className="slider-thumb">
+    <span
+      className="group/slider relative block h-(--thumb) min-w-0 flex-1 [--stop:calc(var(--thumb)/2_+_var(--fill)*(100%_-_var(--thumb)))] [--thumb:2.1rem]"
+      style={{ "--fill": fill } as CSSProperties}
+    >
+      <span
+        aria-hidden
+        className="absolute inset-x-0 top-1/2 h-2.5 -translate-y-1/2 rounded-[5px] bg-[linear-gradient(to_right,var(--color-track-fill)_var(--stop),var(--color-track-rest)_var(--stop))]"
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute top-1/2 left-(--stop) block size-(--thumb) -translate-1/2 rounded-full transition-[scale] duration-300 ease-spring group-hover/slider:scale-115 group-has-[input:active]/slider:scale-88 group-has-[input:focus-visible]/slider:outline-2 group-has-[input:focus-visible]/slider:outline-offset-1 group-has-[input:focus-visible]/slider:outline-accent"
+      >
         {thumb && (
           <img
             alt=""
+            className="block size-full animate-[grow-in_0.6s_var(--ease-soft)_both]"
             height={THUMB}
             src={thumb}
             style={{ rotate: `${turn}deg` }}
@@ -60,6 +73,7 @@ const CookieSlider = ({ min, max, step, value, onChange, label }: Props) => {
       </span>
       <input
         aria-label={label}
+        className="absolute inset-0 size-full cursor-grab opacity-0 active:cursor-grabbing [&::-moz-range-thumb]:size-(--thumb) [&::-webkit-slider-thumb]:size-(--thumb)"
         max={max}
         min={min}
         onChange={(event) => {

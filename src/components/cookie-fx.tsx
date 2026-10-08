@@ -69,10 +69,14 @@ export const CookieFlight = ({
     return () => controls.stop();
   }, [from]);
 
+  // Above everything, until it has landed.
   return createPortal(
-    <div aria-hidden className="cookie-flight" ref={ref}>
+    <div
+      aria-hidden
+      className="pointer-events-none fixed top-0 left-0 z-200 drop-shadow-[0_0.8rem_1rem_rgb(4_8_60/0.35)] will-change-transform"
+      ref={ref}
+    >
       <CookieIcon
-        className="cookie-flight-icon"
         grown
         idle={false}
         interactive={false}
@@ -111,12 +115,12 @@ export const Crumbs = ({ at, seed }: { at: Point; seed: number }) => {
   return createPortal(
     <div
       aria-hidden
-      className="crumbs"
+      className="pointer-events-none fixed z-201 size-0"
       style={{ left: at.x, top: at.y } as CSSProperties}
     >
       {crumbs.map((crumb) => (
         <span
-          className="crumb"
+          className="absolute top-0 left-0 animate-[crumb_0.6s_cubic-bezier(0.2,0.7,0.4,1)_both] rounded-[40%]"
           key={`${crumb.dx}-${crumb.dy}`}
           style={
             {

@@ -8,6 +8,7 @@ import { eatCookie, openCookie, setJarOpen, store } from "../store";
 import Button from "./button";
 import { CookieFlight, Crumbs } from "./cookie-fx";
 import CookieIcon from "./cookie-icon";
+import { cookieInIconButton } from "./styles";
 
 /** How long (ms) a fresh cookie is announced. */
 const FRESH_MS = 4000;
@@ -100,7 +101,7 @@ const CookieBar = () => {
    */
   const landingSpot = useCallback(() => {
     const slot = flight && slots.current.get(flight.hash);
-    const tile = slot?.querySelector(".cookie");
+    const tile = slot?.querySelector("[data-cookie]");
     if (!(slot && tile)) return null;
     const box = slot.getBoundingClientRect();
     const scale = box.width / (slot.offsetWidth || 1) || 1;
@@ -123,7 +124,7 @@ const CookieBar = () => {
   };
 
   const eat = (hash: string) => {
-    const tile = slots.current.get(hash)?.querySelector(".cookie");
+    const tile = slots.current.get(hash)?.querySelector("[data-cookie]");
     if (tile && !still) {
       const box = tile.getBoundingClientRect();
       crumble({ x: box.left + box.width / 2, y: box.top + box.height / 2 });
@@ -137,9 +138,11 @@ const CookieBar = () => {
     ? t("jar.fresh", { name: fresh.name || t("jar.unnamed") })
     : t("jar.subtitle", { count: jar.length });
 
+  // Closed, the jar sits on the right. Where the bar gets as wide as the
+  // page, it stays above the sun too.
   return (
     <div
-      className="cookie-dock"
+      className="pointer-events-none sticky bottom-[max(1rem,env(safe-area-inset-bottom))] z-40 flex translate-y-[calc(100%_+_2rem)] justify-center opacity-0 [transition:translate_0.6s_var(--ease-spring),opacity_0.3s_var(--ease-soft)] *:pointer-events-auto data-closed:justify-end data-shown:translate-y-0 data-shown:opacity-100 max-lg:mb-14"
       data-closed={!jarOpen || undefined}
       data-shown={shown || undefined}
     >
@@ -148,7 +151,7 @@ const CookieBar = () => {
           <motion.aside
             animate={{ opacity: 1, scale: 1, y: 0 }}
             aria-label={t("jar.label")}
-            className="cookie-bar"
+            className="grid max-w-[min(62rem,100%)] grid-cols-[auto_minmax(0,auto)_auto] items-center gap-x-5 gap-y-2 rounded-3xl bg-surface py-2.5 pr-3.5 pl-5.5 text-ink shadow-[0_0.3rem_0.8rem_rgb(4_8_60/0.16),0_1.6rem_3rem_-1rem_rgb(4_8_60/0.5)] max-sm:w-full max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:pt-3 max-sm:pr-3 max-sm:pb-2 max-sm:pl-4.5"
             exit={{ opacity: 0, scale: 0.85, y: 16 }}
             initial={{ opacity: 0, scale: 0.85, y: 16 }}
             key="bar"
@@ -157,14 +160,24 @@ const CookieBar = () => {
           >
             {/* `layout` on the content too: while the bar animates its size,
                 its content is kept from being stretched. */}
-            <motion.p className="cookie-bar-text" layout="position">
-              <strong>{t("jar.title")}</strong>
-              <span aria-live="polite" className="cookie-bar-line" key={line}>
+            <motion.p
+              className="grid max-w-60 gap-0.5 text-small leading-[1.3] text-muted"
+              layout="position"
+            >
+              <strong className="text-body text-ink">{t("jar.title")}</strong>
+              {/* A new line (a fresh cookie, the count) slides in. */}
+              <span
+                aria-live="polite"
+                className="animate-[rise_0.35s_var(--ease-soft)_both]"
+                key={line}
+              >
                 {line}
               </span>
             </motion.p>
+            {/* Leaving cookies are taken out of the flow here (popLayout).
+                On phones on a row of its own. */}
             <motion.ul
-              className="cookie-bar-list"
+              className="relative flex snap-x gap-0.75 overflow-x-auto px-3 py-1.25 [scrollbar-width:thin] mask-[linear-gradient(90deg,transparent,#000_0.75rem,#000_calc(100%_-_0.75rem),transparent)] max-sm:col-span-full max-sm:row-start-2 max-sm:-mx-2"
               layout
               layoutScroll
               ref={listRef}
@@ -181,7 +194,7 @@ const CookieBar = () => {
                           ? { opacity: 0, scale: 0.4 }
                           : { opacity: 1, scale: 1, rotate: 0 }
                       }
-                      className="cookie-bar-item"
+                      className="group/item relative flex-none snap-start"
                       exit={{
                         opacity: 0,
                         scale: 0.2,
@@ -199,28 +212,30 @@ const CookieBar = () => {
                     >
                       <Button
                         aria-label={t("jar.open", { name })}
-                        className="cookie-bar-cookie"
+                        className="h-auto w-24 flex-col gap-0 rounded-[0.8rem] bg-transparent px-1.25 pt-0.75 pb-1.5 text-tiny hover:enabled:bg-surface-2"
                         onClick={() => openCookie(cookie.hash)}
                         title={t("jar.open", { name })}
                         type="button"
                       >
                         <CookieIcon
-                          className="cookie-tile"
+                          className="-mt-2.75 -mb-1.75"
                           shape={cookie.shape}
                           size={92}
                           tilt={-0.35}
                         />
-                        <span>{name}</span>
+                        <span className="max-w-full truncate">{name}</span>
                       </Button>
+                      {/* Eat: the cross shows on hover (always on touch). */}
                       <Button
                         aria-label={t("jar.eat", { name })}
-                        className="icon cookie-bar-eat"
+                        className="absolute top-0 right-0 size-6.75 opacity-0 transition-opacity group-hover/item:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
+                        kind="icon"
                         onClick={() => eat(cookie.hash)}
                         title={t("jar.eat", { name })}
                         type="button"
                       >
                         <CookieIcon
-                          className="cookie-eat"
+                          className={cookieInIconButton}
                           icing="#ff5fa8"
                           icon={X}
                           size={34}
@@ -233,19 +248,26 @@ const CookieBar = () => {
             </motion.ul>
             <Button
               aria-label={t("jar.close")}
-              className="icon cookie-bar-close"
+              className="size-10 self-start"
+              kind="icon"
               layout="position"
               onClick={() => setJarOpen(false)}
               title={t("jar.close")}
               type="button"
             >
-              <CookieIcon icing="#ff5fa8" icon={X} roll={8} size={52} />
+              <CookieIcon
+                className={cookieInIconButton}
+                icing="#ff5fa8"
+                icon={X}
+                roll={8}
+                size={52}
+              />
             </Button>
           </motion.aside>
         ) : jar.length > 0 ? (
+          // The jar while the bar is closed
           <motion.div
             animate={{ opacity: 1, scale: 1, rotate: 0 }}
-            className="cookie-jar-wrap"
             exit={{ opacity: 0, scale: 0.4, rotate: 12 }}
             initial={{ opacity: 0, scale: 0.4, rotate: -12 }}
             key="jar"
@@ -254,15 +276,15 @@ const CookieBar = () => {
           >
             <Button
               aria-label={t("jar.reopen", { count: jar.length })}
-              className="cookie-jar"
+              className="relative size-16.75 rounded-[1.2rem] bg-surface p-0 shadow-[0_1rem_2rem_-0.8rem_rgb(4_8_60/0.55)] [transition:scale_0.4s_var(--ease-spring),background_0.2s_var(--ease-soft)] hover:enabled:bg-[color-mix(in_oklab,var(--color-surface-2)_82%,var(--color-ink))]"
               onClick={() => setJarOpen(true)}
               title={t("jar.reopen", { count: jar.length })}
               type="button"
             >
-              <CookieIcon className="cookie-jar-icon" kind="chip" size={70} />
+              <CookieIcon className="m-0" kind="chip" size={70} />
               <motion.span
                 animate={{ scale: [1.4, 1] }}
-                className="cookie-jar-count"
+                className="absolute -top-1.5 -right-1.5 h-6 min-w-6 rounded-xl bg-neon px-1.5 text-tiny leading-6 text-on-neon"
                 key={jar.length}
                 transition={plop}
               >

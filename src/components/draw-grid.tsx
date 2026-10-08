@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
+import { cn } from "../cn";
 import { numberFormat, type Unit } from "../units";
 
 type Props = {
@@ -13,6 +14,10 @@ const MM_PER_INCH = 25.4;
 const FALLBACK_DIVISIONS = 8;
 /** Labels too close to the corner would run into the other axis's. */
 const LABEL_MARGIN = 0.08;
+
+/** A label at the edge; x at the bottom, y on the left, 0 in the corner. */
+const tick =
+  "absolute text-tiny leading-none text-[#9a917f] tabular-nums";
 
 /** Rounds to 1, 2 or 5 times a power of ten. */
 const niceStep = (raw: number) => {
@@ -65,15 +70,22 @@ const DrawGrid = ({ mmPerCanvas, unit }: Props) => {
     : [];
 
   return (
-    <div aria-hidden className="grid">
+    // Clearer while the pointer is on the drawing area (draw-canvas.tsx).
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 opacity-70 transition-opacity duration-300 group-hover/stage:opacity-100"
+    >
       <svg
         aria-hidden
-        className="grid-lines"
+        className="block size-full stroke-1"
         preserveAspectRatio="none"
         viewBox="0 0 1 1"
       >
         {ticks.map(({ index, pos, major }) => (
-          <g className={major ? "major" : "minor"} key={index}>
+          <g
+            className={major ? "stroke-[#e4dac8]" : "stroke-[#f1ebdf]"}
+            key={index}
+          >
             <line
               vectorEffect="non-scaling-stroke"
               x1={pos}
@@ -91,15 +103,15 @@ const DrawGrid = ({ mmPerCanvas, unit }: Props) => {
             />
           </g>
         ))}
-        {/* Axes: left and bottom edge */}
-        <g className="axis">
+        {/* Axes: left and bottom edge – twice as thick, half of it is visible. */}
+        <g className="stroke-[#cdbfa7] stroke-3">
           <line vectorEffect="non-scaling-stroke" x1={0} x2={0} y1={0} y2={1} />
           <line vectorEffect="non-scaling-stroke" x1={0} x2={1} y1={1} y2={1} />
         </g>
       </svg>
       {labels.map(({ index, pos, value }) => (
         <span
-          className="tick x"
+          className={cn(tick, "bottom-1.5 -translate-x-1/2")}
           key={`x${index}`}
           style={{ left: `${pos * 100}%` }}
         >
@@ -108,7 +120,7 @@ const DrawGrid = ({ mmPerCanvas, unit }: Props) => {
       ))}
       {labels.map(({ index, pos, value }) => (
         <span
-          className="tick y"
+          className={cn(tick, "left-1.5 -translate-y-1/2")}
           key={`y${index}`}
           style={{ top: `${(1 - pos) * 100}%` }}
         >
@@ -117,8 +129,10 @@ const DrawGrid = ({ mmPerCanvas, unit }: Props) => {
       ))}
       {mmPerCanvas && (
         <>
-          <span className="tick origin">0</span>
-          <span className="tick unit">{unit}</span>
+          <span className={cn(tick, "bottom-1.5 left-1.5")}>0</span>
+          <span className={cn(tick, "top-1.5 left-1.5 font-bold text-muted")}>
+            {unit}
+          </span>
         </>
       )}
     </div>

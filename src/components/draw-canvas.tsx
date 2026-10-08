@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { trackEvent } from "../analytics";
 import { useAssets } from "../assets";
+import { cn } from "../cn";
 import {
   applyEraser,
   applyTransform,
@@ -54,7 +55,22 @@ import Button from "./button";
 import CookieIcon from "./cookie-icon";
 import CookieSlider from "./cookie-slider";
 import DrawGrid from "./draw-grid";
+import {
+  cookieInButton,
+  cookieInIconButton,
+  cookieInStageHint,
+  stage,
+  stageHint,
+} from "./styles";
 import ToolPicker from "./tool-picker";
+
+/** The selection's handles at its corners. */
+const CORNERS = [
+  "top-0 left-0",
+  "top-0 left-full",
+  "top-full left-full",
+  "top-full left-0",
+];
 
 type Pen = { x: number; y: number };
 
@@ -899,16 +915,39 @@ const DrawCanvas = () => {
     preset.name[i18n.resolvedLanguage === "de" ? "de" : "en"];
 
   return (
-    <div className="draw-area" ref={areaRef}>
-      {/* One grid for area and bars: with room beside it, tools go left and
-          templates right, otherwise everything goes below (CSS). */}
-      <div className="draw-grid" ref={gridRef}>
+    // Container for area and bars: its size decides whether the bars sit
+    // beside or below the area. Desktop: the area becomes the largest square
+    // that fits its card, at window height – enlarged as high as the window.
+    <div
+      className="mx-auto flex w-(--stage-size) flex-col @container/draw md:w-full md:items-center md:@container-[size] md:not-in-data-expanded:min-h-104 md:not-in-data-expanded:flex-1 md:in-data-expanded:h-[clamp(26rem,100dvh_-_7rem,64rem)]"
+      ref={areaRef}
+    >
+      {/* One grid for area and bars. Default: everything below the area –
+          tools | brush size | undo & clear, below that the templates; narrow:
+          tools and actions on top, the brush size full width below. Unless
+          the card is clearly taller than wide, the bars sit beside the area
+          and it gets larger: tools on the left (drawing on top, undo & clear
+          at the bottom), templates stacked on the right, only the brush size
+          below – below the area the bars need a good 4× as much height as
+          they need width beside it, so it pays off from 0.88 on. Desktop
+          only (also enlarged): only there does the container know its
+          height. There it is as wide as the area (--s): the card's room
+          minus what the bars beside (--chrome-w) and below (--chrome-h)
+          need, both measured above – the fallbacks only apply until the
+          first measurement. */}
+      <div
+        className="grid w-[var(--s,auto)] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-5 gap-y-4.5 [grid-template-areas:'stage_stage_stage'_'tools_options_actions'_'templates_templates_templates'] md:[--s:max(12rem,min(60rem,100cqw_-_var(--chrome-w,0px),100cqh_-_var(--chrome-h,8rem)))] @max-[34rem]/draw:gap-x-3 @max-[34rem]/draw:[grid-template-areas:'stage_stage_stage'_'tools_._actions'_'options_options_options'_'templates_templates_templates'] beside:w-auto beside:grid-cols-[3.1rem_var(--s)_3.1rem] beside:grid-rows-[var(--s)_auto] beside:gap-x-3.25 beside:gap-y-4 beside:[grid-template-areas:'tools_stage_templates'_'._options_.']"
+        ref={gridRef}
+      >
+        {/* Always square – otherwise the drawing area distorts everything on
+            it. Anchors the error popup. */}
         {/* biome-ignore lint/a11y/noStaticElementInteractions: a pure drop zone, importing also works via the button */}
         <div
-          className="stage paper"
-          data-dragging={dragging || undefined}
-          data-mode={mode}
-          data-tool={tool}
+          className={cn(
+            stage,
+            "group/stage aspect-square w-full min-w-0 [grid-area:stage] [anchor-name:--drawing]",
+            dragging && "bg-accent-soft [transform:scale(0.985)]"
+          )}
           onDragLeave={() => setDragging(false)}
           onDragOver={(event) => {
             event.preventDefault();
@@ -920,8 +959,15 @@ const DrawCanvas = () => {
           ref={stageRef}
         >
           <DrawGrid mmPerCanvas={mmPerCanvas} unit={unit} />
+          {/* With a mouse the brush preview shows where it paints – the arrow
+              would be doubled. */}
           <canvas
-            className="drawing"
+            className={cn(
+              "absolute inset-0 size-full cursor-crosshair touch-none",
+              mode === "draw"
+                ? "[@media(hover:hover)]:cursor-none"
+                : "cursor-default"
+            )}
             height={RES}
             onPointerCancel={mode === "draw" ? end : release}
             onPointerDown={mode === "draw" ? start : grab}
@@ -931,13 +977,15 @@ const DrawCanvas = () => {
             width={RES}
           />
           {outline.length > 0 && (
+            // The cutting line on the paper
             <svg
               aria-hidden
-              className="outline"
+              className="pointer-events-none absolute inset-0 size-full overflow-visible"
               preserveAspectRatio="none"
               viewBox="0 0 1 1"
             >
               <path
+                className="animate-[march_0.8s_linear_infinite] fill-cut stroke-cut stroke-2 [fill-opacity:0.06] [stroke-dasharray:6_5] [stroke-linejoin:round] [vector-effect:non-scaling-stroke]"
                 d={outline
                   .map(
                     (ring) => `M${ring.map(([x, y]) => `${x},${y}`).join("L")}Z`
@@ -946,10 +994,11 @@ const DrawCanvas = () => {
               />
             </svg>
           )}
+          {/* Selection while moving: a frame with handles at the corners */}
           {mode === "move" && frame && (
             <div
               aria-hidden
-              className="selection"
+              className="pointer-events-none absolute z-1 origin-center rounded-sm border-2 border-dashed border-accent"
               style={{
                 left: `${((frame.cx - frame.w / 2) / RES) * 100}%`,
                 top: `${((frame.cy - frame.h / 2) / RES) * 100}%`,
@@ -958,17 +1007,22 @@ const DrawCanvas = () => {
                 rotate: `${frame.angle}rad`,
               }}
             >
-              <i />
-              <i />
-              <i />
-              <i />
+              {CORNERS.map((corner) => (
+                <i
+                  className={cn(
+                    "absolute size-3.25 -translate-1/2 rounded-full border-2 border-accent bg-paper",
+                    corner
+                  )}
+                  key={corner}
+                />
+              ))}
             </div>
           )}
-          {/* The box being dragged */}
+          {/* The box being dragged to select several */}
           {mode === "move" && marqueeBox && (
             <div
               aria-hidden
-              className="marquee"
+              className="pointer-events-none absolute z-1 rounded-[3px] border-[1.5px] border-dashed border-accent bg-accent/10"
               style={{
                 left: `${(marqueeBox.x0 / RES) * 100}%`,
                 top: `${(marqueeBox.y0 / RES) * 100}%`,
@@ -981,7 +1035,8 @@ const DrawCanvas = () => {
           {mode === "move" && box && !gestureFrame && (
             <Button
               aria-label={t("draw.removeSelection")}
-              className="icon remove-chip"
+              className="absolute z-3 -translate-1/2"
+              kind="icon"
               onClick={removeSelected}
               style={{
                 left: `clamp(1.2rem, calc(${(box.x1 / RES) * 100}% + 14px), calc(100% - 1.2rem))`,
@@ -990,41 +1045,62 @@ const DrawCanvas = () => {
               title={t("draw.removeSelection")}
               type="button"
             >
-              <CookieIcon icing="#ff5fa8" icon={X} roll={8} size={40} />
+              <CookieIcon
+                className={cookieInIconButton}
+                icing="#ff5fa8"
+                icon={X}
+                roll={8}
+                size={40}
+              />
             </Button>
           )}
-          <span aria-hidden className="brush-cursor" ref={brushCursorRef} />
+          {/* Brush preview: a circle at the real brush size that follows the
+              pointer (showBrush) */}
+          <span
+            aria-hidden
+            className={cn(
+              "pointer-events-none absolute top-0 left-0 z-2 rounded-full border-[1.5px] border-[rgb(13_16_51/0.55)] bg-[rgb(13_16_51/0.06)] opacity-0 transition-opacity duration-150",
+              tool === "eraser" && "border-dashed bg-white/55"
+            )}
+            ref={brushCursorRef}
+          />
           <AnimatePresence>
             {empty && !dragging && !penDown && (
               <motion.div
                 animate={{ opacity: 1, scale: 1 }}
-                className="stage-hint"
+                className={stageHint}
                 exit={{ opacity: 0, scale: 0.94 }}
                 initial={{ opacity: 0, scale: 0.94 }}
                 transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
               >
-                <CookieIcon kind="heart" size={130} />
-                <strong>{t("draw.hint")}</strong>
+                <CookieIcon className={cookieInStageHint} kind="heart" size={130} />
+                <strong className="font-bold text-ink">{t("draw.hint")}</strong>
                 <span>{t("draw.hintSub")}</span>
               </motion.div>
             )}
           </AnimatePresence>
           {dragging && (
-            <div className="stage-hint drop">
-              <CookieIcon icing="#2a44ff" icon={FileUp} size={110} />
-              <strong>{t("draw.drop")}</strong>
+            <div className={stageHint}>
+              <CookieIcon
+                className={cookieInStageHint}
+                icing="#2a44ff"
+                icon={FileUp}
+                size={110}
+              />
+              <strong className="font-bold text-ink">{t("draw.drop")}</strong>
             </div>
           )}
         </div>
 
         <ToolPicker onChoose={onChooseTool} tool={tool} />
-        <div className="tool-options">
+        {/* As tall as the slider – even when only the hint shows: no jumping. */}
+        <div className="flex min-h-8.5 min-w-0 items-center [grid-area:options]">
           {mode === "draw" || selection ? (
-            <div className="brush">
+            <div className="flex max-w-64 min-w-28 flex-1 items-center gap-3 @max-[34rem]/draw:max-w-none beside:max-w-72 xl:not-in-data-expanded:min-w-24">
               {/* Preview of the brush size */}
               <span
                 aria-hidden
-                className="brush-dot"
+                className="grid size-6 shrink-0 place-items-center after:size-(--dot) after:rounded-full after:bg-ink after:transition-[width,height] after:duration-150"
                 style={
                   {
                     "--dot": `${4 + ((brush - 6) / 58) * 16}px`,
@@ -1041,62 +1117,92 @@ const DrawCanvas = () => {
               />
             </div>
           ) : (
-            <span className="move-hint" title={t("draw.moveHint")}>
+            <span
+              className="min-w-0 flex-1 truncate text-small text-muted"
+              title={t("draw.moveHint")}
+            >
               {t("draw.moveHint")}
             </span>
           )}
         </div>
-        <div className="actions">
+        {/* Flush with the right edge – a stretched grid does not push them
+            inwards. Beside the area: below the tools, at the bottom. */}
+        <div className="flex items-center gap-4 [grid-area:actions] justify-self-end @max-[34rem]/draw:gap-1.75 beside:flex-col beside:gap-3 beside:[grid-area:tools] beside:self-end beside:justify-self-center">
           <Button
             aria-label={t("draw.undo")}
-            className="icon"
             disabled={!canUndo}
+            kind="icon"
             onClick={undo}
             title={t("draw.undo")}
             type="button"
           >
-            <CookieIcon icing="#2a44ff" icon={Undo2} roll={-12} size={52} />
+            <CookieIcon
+              className={cookieInIconButton}
+              icing="#2a44ff"
+              icon={Undo2}
+              roll={-12}
+              size={52}
+            />
           </Button>
           <Button
             aria-label={t("draw.redo")}
-            className="icon"
             disabled={!canRedo}
+            kind="icon"
             onClick={redo}
             title={t("draw.redo")}
             type="button"
           >
-            <CookieIcon icing="#2a44ff" icon={Redo2} roll={12} size={52} />
+            <CookieIcon
+              className={cookieInIconButton}
+              icing="#2a44ff"
+              icon={Redo2}
+              roll={12}
+              size={52}
+            />
           </Button>
           <Button
             aria-label={t("draw.clear")}
-            className="icon"
             disabled={empty}
+            kind="icon"
             onClick={clear}
             title={t("draw.clear")}
             type="button"
           >
-            <CookieIcon icing="#ff5fa8" icon={Trash2} roll={9} size={52} />
+            <CookieIcon
+              className={cookieInIconButton}
+              icing="#ff5fa8"
+              icon={Trash2}
+              roll={9}
+              size={52}
+            />
           </Button>
         </div>
 
-        {/* Templates: heading, scrollable cards, upload SVG below */}
-        <div className="templates">
-          <span aria-hidden className="presets-label">
+        {/* Templates: heading, below it the cards (scrolling sideways), below
+            them “Upload SVG”. At least four cards fit side by side. Beside
+            the area: stacked, scrolling down, no heading. */}
+        <div className="flex min-w-0 flex-col items-start gap-1.75 [grid-area:templates] beside:min-h-0 beside:items-center beside:gap-3 beside:self-stretch">
+          <span
+            aria-hidden
+            className="text-small font-bold tracking-label text-muted uppercase beside:hidden"
+          >
             {t("draw.presets")}
           </span>
           {/* biome-ignore lint/a11y/useSemanticElements: a group of buttons, not a form */}
           <div
             aria-label={t("draw.presets")}
-            className="preset-strip"
+            className="flex min-w-0 snap-x gap-2.5 self-stretch overflow-x-auto overscroll-contain py-0.5 [scrollbar-color:color-mix(in_oklab,var(--color-muted)_45%,transparent)_transparent] [scrollbar-width:thin] *:flex-none *:snap-start beside:min-h-0 beside:flex-1 beside:snap-y beside:flex-col beside:items-center beside:overflow-x-hidden beside:overflow-y-auto beside:[scrollbar-width:none]"
             role="group"
           >
             {presets.map((preset) => {
               const shape = shapes[preset.id];
               const name = t("draw.insert", { name: presetName(preset) });
               return (
+                // The column beside the area clips at the sides – so there the
+                // focus ring sits inside.
                 <Button
                   aria-label={name}
-                  className="preset"
+                  className="size-12.5 rounded-xl bg-paper p-1.5 text-[#0d1033] beside:focus-visible:-outline-offset-3"
                   disabled={!shape}
                   key={preset.id}
                   onClick={() => insertPreset(preset)}
@@ -1104,7 +1210,11 @@ const DrawCanvas = () => {
                   type="button"
                 >
                   {shape && (
-                    <svg aria-hidden viewBox="0 0 24 24">
+                    <svg
+                      aria-hidden
+                      className="size-full fill-none stroke-current stroke-[1.8] [stroke-linejoin:round]"
+                      viewBox="0 0 24 24"
+                    >
                       <path d={shape.path} />
                     </svg>
                   )}
@@ -1112,15 +1222,22 @@ const DrawCanvas = () => {
               );
             })}
           </div>
+          {/* Beside the area a tile like the templates: just the cookie, the
+              text then only for screen readers and as the tooltip. */}
           <Button
-            className="upload"
+            className="mt-1.75 beside:relative beside:m-0 beside:size-12.5 beside:flex-none beside:rounded-xl beside:p-0"
             onClick={() => inputRef.current?.click()}
             title={t("draw.upload")}
             type="button"
           >
-            <CookieIcon icing="#2a44ff" icon={Upload} roll={10} size={58} />
-            {/* Beside the area only the cookie stays, the text is then invisible. */}
-            <span className="upload-label">{t("draw.upload")}</span>
+            <CookieIcon
+              className={cn(cookieInButton, "beside:-m-2.5")}
+              icing="#2a44ff"
+              icon={Upload}
+              roll={10}
+              size={58}
+            />
+            <span className="beside:sr-only">{t("draw.upload")}</span>
           </Button>
           <input
             accept=".svg,image/svg+xml,image/png"

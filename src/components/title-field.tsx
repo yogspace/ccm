@@ -5,6 +5,7 @@ import { useSnapshot } from "valtio";
 import { setName, store } from "../store";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
+import { cookieInIconButton } from "./styles";
 
 /**
  * The drawing card's title is the creation's name, written right there – no
@@ -20,10 +21,14 @@ const TitleField = () => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="title-field">
+    <div className="relative flex max-w-112 min-w-0 flex-auto items-center">
+      {/* In the title's type, the field's colours – readable on its light
+          ground in both modes; room on the right for the pencil or the
+          cross. Focused and empty: the hint to type a name, a little
+          smaller. */}
       <input
         aria-label={t("export.name")}
-        className="card-title"
+        className="h-11.5 w-full min-w-0 rounded-xl bg-field pr-11.5 pl-3.25 text-title font-bold tracking-title text-ellipsis text-field-ink outline-2 outline-transparent embolden-20 transition-[background-color,outline-color] placeholder:text-field-muted placeholder:embolden-0 hover:bg-[color-mix(in_oklab,var(--color-field)_92%,var(--color-field-ink))] focus:outline-accent focus:placeholder:text-body"
         enterKeyHint="done"
         maxLength={60}
         onBlur={() => setFocused(false)}
@@ -40,10 +45,14 @@ const TitleField = () => {
         type="text"
         value={name}
       />
+      {/* The pencil only says “write here” – a click goes through to the field. */}
       {!name && (
-        <span aria-hidden className="title-pencil">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute right-1.75 grid size-8 place-items-center"
+        >
           <CookieIcon
-            className="title-pencil-icon"
+            className="-m-1"
             icing="#2a44ff"
             icon={Pencil}
             interactive={false}
@@ -55,7 +64,7 @@ const TitleField = () => {
       {name && (
         <Button
           aria-label={t("export.clearName")}
-          className="icon title-clear"
+          className="absolute right-1.75 grid size-8 place-items-center bg-transparent p-0 [transition:opacity_0.2s_var(--ease-soft),scale_0.3s_var(--ease-spring),background_0.2s_var(--ease-soft)] starting:scale-60 starting:opacity-0"
           onClick={() => {
             setName("");
             inputRef.current?.focus();
@@ -63,7 +72,13 @@ const TitleField = () => {
           title={t("export.clearName")}
           type="button"
         >
-          <CookieIcon icing="#ff5fa8" icon={X} roll={8} size={40} />
+          <CookieIcon
+            className={cookieInIconButton}
+            icing="#ff5fa8"
+            icon={X}
+            roll={8}
+            size={40}
+          />
         </Button>
       )}
     </div>

@@ -139,9 +139,21 @@ const CookieBackground = () => {
   }, [cookies]);
 
   return (
-    <div aria-hidden className="cookie-background" ref={layerRef}>
+    // Behind everything on the blue page, scrolling with it. Placed against
+    // the page, not the app column – so they reach out to the window's
+    // edges; as tall as the page above the footer (set above).
+    <div
+      aria-hidden
+      className="pointer-events-none absolute top-0 left-0 z-0 h-dvh w-full overflow-hidden"
+      ref={layerRef}
+    >
       {cookies.map((cookie, i) => (
-        <div className="cookie-spot" key={i} style={{ left: `${cookie.x}%` }}>
+        // No room for it above the footer (for now): out softly, not moved.
+        <div
+          className="absolute -translate-1/2 transition-opacity duration-400 data-away:opacity-0"
+          key={i}
+          style={{ left: `${cookie.x}%` }}
+        >
           {/* Grow in one after another (the renderer animates that in 3D). */}
           {"kind" in cookie ? (
             <CookieIcon

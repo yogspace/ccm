@@ -27,4 +27,4 @@ export const onCookieLaunch = (listener: (launch: Launch) => void) => {
 
 /** The cookie on a button – where a flight starts. */
 export const launchSpot = (button: HTMLElement) =>
-  (button.querySelector(".cookie") ?? button).getBoundingClientRect();
+  (button.querySelector("[data-cookie]") ?? button).getBoundingClientRect();

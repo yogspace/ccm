@@ -3,6 +3,7 @@ import { type CSSProperties, useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { trackEvent } from "../analytics";
+import { cn } from "../cn";
 import { GREETING_LIMITS, type Greeting } from "../greeting";
 import { useCardColor } from "../site-context";
 import { creationUrl, greetingLink, store } from "../store";
@@ -11,7 +12,20 @@ import Button from "./button";
 import CanvasView from "./canvas-view";
 import ColorSwatches from "./color-swatches";
 import CookieIcon from "./cookie-icon";
+import Field from "./field";
 import RingText from "./ring-text";
+import {
+  cookieInButton,
+  fieldInput,
+  ghost,
+  ringOnGlaze,
+  shareContent,
+  shareIntro,
+  shareLink,
+  shareMore,
+  shareUrl,
+  shareVisual,
+} from "./styles";
 
 type Props = {
   greeting: Greeting;
@@ -93,65 +107,82 @@ const CardComposer = ({ greeting, onChange, picture }: Props) => {
   return (
     <>
       {/* The card page in small, in the favourite colour: the message runs
-          around the cutter. Its place is kept while the cutter renders. */}
+          around the cutter. Its place is kept while the cutter renders. On
+          the little card a long name is cut, it does not widen the card. */}
       <div
         aria-hidden
-        className="share-visual composer-preview glaze"
+        className={cn(
+          shareVisual,
+          "glaze relative overflow-hidden rounded-3xl bg-glaze @container"
+        )}
         style={{ "--glaze": glaze } as CSSProperties}
       >
-        <RingText text={greeting.message.trim() || t("card.ring")} />
-        <div className="composer-card">
+        <RingText
+          className={cn(ringOnGlaze, "animate-[ring-turn_150s_linear_infinite]")}
+          text={greeting.message.trim() || t("card.ring")}
+        />
+        <div className="absolute inset-[22.5%] grid -rotate-3 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)_auto] rounded-[5cqw] bg-card-sheet px-[3.5cqw] pt-[3cqw] pb-[3.5cqw] shadow-[0_1.2rem_2rem_-0.8rem_rgb(4_8_60/0.55)]">
           {picture ? (
-            <CanvasView canvas={picture} />
+            <CanvasView canvas={picture} className="min-h-0" />
           ) : (
             <span
-              className="composer-ghost"
-              data-waiting={!!cutter.mesh || undefined}
+              className={cn(
+                "mb-[2cqw] block min-h-0 rounded-[3cqw] bg-[#f2e8d5]",
+                cutter.mesh && ghost
+              )}
             />
           )}
-          <div className="composer-name">
-            <span>{title}</span>
-            <small>
+          <div className="flex items-baseline justify-between gap-[0.4em] text-[4.4cqw] leading-[1.2] font-bold text-card-ink">
+            <span className="min-w-0 truncate">{title}</span>
+            <small className="flex-none text-[0.7em] font-semibold text-card-ink-muted">
               {formatLength(params.size, unit, lang, unit === "in" ? 1 : 0)}
             </small>
           </div>
         </div>
       </div>
 
-      <div className="share-content composer">
-        <p className="share-intro">{t("card.intro")}</p>
-        <div className="composer-names">
-          <label className="composer-field" htmlFor={`${ids}-to`}>
-            <span>{t("card.to")}</span>
+      <div className={shareContent}>
+        <p className={shareIntro}>{t("card.intro")}</p>
+        <div className="grid grid-cols-[1fr_1fr] gap-3 max-xs:grid-cols-[1fr]">
+          <Field htmlFor={`${ids}-to`} label={t("card.to")}>
             <input
               autoComplete="off"
+              className={cn(fieldInput, "h-10.5")}
               id={`${ids}-to`}
               maxLength={GREETING_LIMITS.name}
               onChange={(event) => set("to")(event.target.value)}
               placeholder={t("card.toPlaceholder")}
               value={greeting.to}
             />
-          </label>
-          <label className="composer-field" htmlFor={`${ids}-from`}>
-            <span>{t("card.from")}</span>
+          </Field>
+          <Field htmlFor={`${ids}-from`} label={t("card.from")}>
             <input
               autoComplete="name"
+              className={cn(fieldInput, "h-10.5")}
               id={`${ids}-from`}
               maxLength={GREETING_LIMITS.name}
               onChange={(event) => set("from")(event.target.value)}
               placeholder={t("card.fromPlaceholder")}
               value={greeting.from}
             />
-          </label>
+          </Field>
         </div>
-        <label className="composer-field" htmlFor={`${ids}-message`}>
-          <span>
-            {t("card.message")}
-            <small>
-              {greeting.message.length} / {GREETING_LIMITS.message}
-            </small>
-          </span>
+        <Field
+          htmlFor={`${ids}-message`}
+          label={
+            <>
+              {t("card.message")}
+              <small className="font-medium text-muted">
+                {greeting.message.length} / {GREETING_LIMITS.message}
+              </small>
+            </>
+          }
+        >
           <textarea
+            className={cn(
+              fieldInput,
+              "field-sizing-content min-h-19.25 resize-none leading-[1.4]"
+            )}
             id={`${ids}-message`}
             maxLength={GREETING_LIMITS.message}
             onChange={(event) => set("message")(event.target.value)}
@@ -159,38 +190,51 @@ const CardComposer = ({ greeting, onChange, picture }: Props) => {
             rows={3}
             value={greeting.message}
           />
-        </label>
+        </Field>
         {/* The favourite colour: the page, the card, its words, the cutter
             and the cookie's icing in its shades. */}
         <ColorSwatches onChange={pick} value={chosen} />
 
         {link ? (
           <>
-            <p className="composer-ready">{t("card.ready")}</p>
+            <p className="font-bold text-ink">{t("card.ready")}</p>
             <Button
               aria-label={copied ? t("share.copied") : t("share.copy")}
-              className="share-link"
+              className={shareLink}
               data-copied={copied || undefined}
               onClick={copy}
               title={t("share.copy")}
               type="button"
             >
-              <span aria-live="polite" className="share-url">
+              <span aria-live="polite" className={shareUrl}>
                 {copied ? t("share.copied") : link}
               </span>
               {copied ? (
-                <CookieIcon icing="#00b86b" icon={Check} key="ok" size={44} />
+                <CookieIcon
+                  className={cookieInButton}
+                  icing="#00b86b"
+                  icon={Check}
+                  key="ok"
+                  size={44}
+                />
               ) : (
-                <CookieIcon icing="#2a44ff" icon={Copy} key="copy" size={44} />
+                <CookieIcon
+                  className={cookieInButton}
+                  icing="#2a44ff"
+                  icon={Copy}
+                  key="copy"
+                  size={44}
+                />
               )}
             </Button>
-            <div className="share-more">
+            <div className={shareMore}>
               <Button
-                className={canSend ? undefined : "primary"}
+                kind={canSend ? undefined : "primary"}
                 onClick={() => window.open(link, "_blank", "noopener")}
                 type="button"
               >
                 <CookieIcon
+                  className={cookieInButton}
                   icing="#2a44ff"
                   icon={ArrowUpRight}
                   roll={-8}
@@ -199,25 +243,35 @@ const CardComposer = ({ greeting, onChange, picture }: Props) => {
                 {t("card.open")}
               </Button>
               {canSend && (
-                <Button className="primary" onClick={send} type="button">
-                  <CookieIcon icon={Share2} roll={10} size={48} />
+                <Button kind="primary" onClick={send} type="button">
+                  <CookieIcon
+                    className={cookieInButton}
+                    icon={Share2}
+                    roll={10}
+                    size={48}
+                  />
                   {t("card.send")}
                 </Button>
               )}
             </div>
           </>
         ) : (
-          <div className="share-more">
+          <div className={shareMore}>
             <Button
-              className="primary"
               disabled={!cutter.mesh}
+              kind="primary"
               onClick={() => {
                 setCreated({ link: greetingLink(greeting, lang), creation });
                 trackEvent("card-created");
               }}
               type="button"
             >
-              <CookieIcon icon={Check} roll={-8} size={48} />
+              <CookieIcon
+                className={cookieInButton}
+                icon={Check}
+                roll={-8}
+                size={48}
+              />
               {t("card.create")}
             </Button>
           </div>

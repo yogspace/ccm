@@ -10,6 +10,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { trackEvent } from "../analytics";
+import { cn } from "../cn";
 import { download } from "../export/download";
 import { resolveColors } from "../glaze";
 import type { Greeting } from "../greeting";
@@ -17,6 +18,7 @@ import { useCardColor } from "../site-context";
 import { creationUrl, store } from "../store";
 import Button from "./button";
 import CanvasView from "./canvas-view";
+import { Card, CardHead, CardTitle } from "./card";
 import CardComposer from "./card-composer";
 import { truncate } from "./card-image";
 import ColorSwatches from "./color-swatches";
@@ -24,6 +26,17 @@ import CookieIcon from "./cookie-icon";
 import type { PreviewHandle } from "./preview-3d";
 import RingText from "./ring-text";
 import Segmented from "./segmented";
+import {
+  cookieInButton,
+  ghost,
+  ringOnGlaze,
+  shareContent,
+  shareIntro,
+  shareLink,
+  shareMore,
+  shareUrl,
+  shareVisual,
+} from "./styles";
 import { useGrow } from "./use-grow";
 import { useLivePicture } from "./use-live-picture";
 
@@ -39,7 +52,7 @@ const CARD = { x: MARGIN, y: MARGIN, w: SIZE - 2 * MARGIN, h: 880 };
 const SITE_LINE = "Cookie Cutter Maker · ccm.mxwr.de";
 const FONT = '"Pally", system-ui, sans-serif';
 
-/** The favourite colour's shades the picture is painted in (index.css). */
+/** The favourite colour's shades the picture is painted in (glaze.css). */
 const PICTURE_COLORS = {
   page: "--glaze",
   sheet: "--card-sheet",
@@ -49,7 +62,7 @@ const PICTURE_COLORS = {
 
 /**
  * The share picture, painted only when it is saved or shared – as the box
- * shows it (.share-picture, index.css): the favourite colour, the card with
+ * shows it (built of the page, below): the favourite colour, the card with
  * the cutter from above, below it the name and where it was made.
  */
 const paintPicture = async (
@@ -221,11 +234,16 @@ const ShareCreation = ({ preview }: Props) => {
     [url]
   );
 
+  // In front of the fan's lower edge (editor-app.tsx); the box only holds its
+  // content, with the content's own gaps – it grows along (use-grow.ts).
   return (
-    <section className="card share-box" ref={boxRef}>
-      <div className="share-body" ref={bodyRef}>
-        <div className="card-head">
-          <h2>{t("share.creation")}</h2>
+    <Card
+      className="relative z-10 mt-[calc(var(--fan-card)*-0.45)] block w-[min(100%,52rem)] self-center"
+      ref={boxRef}
+    >
+      <div className="flex flex-col gap-4.5" ref={bodyRef}>
+        <CardHead className="flex-wrap">
+          <CardTitle>{t("share.creation")}</CardTitle>
           <Segmented
             label={t("share.creation")}
             onChange={setMode}
@@ -233,10 +251,12 @@ const ShareCreation = ({ preview }: Props) => {
               { value: "picture", label: t("share.asPicture") },
               { value: "card", label: t("share.asCard") },
             ]}
+            tone="card"
             value={mode}
           />
-        </div>
-        <div className="share-layout">
+        </CardHead>
+        {/* The picture on the left, the rest beside it; on phones above. */}
+        <div className="grid grid-cols-[16rem_minmax(0,1fr)] items-stretch gap-6 max-sm:grid-cols-1">
           {mode === "card" ? (
             <CardComposer
               greeting={greeting}
@@ -245,46 +265,69 @@ const ShareCreation = ({ preview }: Props) => {
             />
           ) : (
             <>
-              {/* The picture as it will be shared, built of the page itself;
-                  the cutter's place is kept while it renders. */}
+              {/* The picture as it will be shared, built of the page itself –
+                  paintPicture paints it the same, 1200 px wide: 12 px there
+                  are 1cqw here. The cutter's place is kept while it renders.
+                  Name and site on the baselines they are painted on (1060
+                  and 1130) – Pally's lies --baseline below the top of a line
+                  as high as its font. */}
               <div
                 aria-label={t("share.imageAlt", { name: title })}
-                className="share-visual share-picture glaze"
+                className={cn(
+                  shareVisual,
+                  "glaze relative overflow-hidden rounded-2xl bg-glaze text-on-glaze @container"
+                )}
                 ref={pictureRef}
                 role="img"
                 style={{ "--glaze": glaze } as CSSProperties}
               >
                 <div
-                  className="share-picture-card"
-                  data-waiting={(!cutterView && !!cutter.mesh) || undefined}
+                  className={cn(
+                    "absolute top-[5cqw] left-[5cqw] h-[73.333cqw] w-[90cqw] rounded-[4cqw] bg-card-sheet",
+                    !cutterView && cutter.mesh && ghost
+                  )}
                 >
-                  {cutterView && <CanvasView canvas={cutterView} />}
+                  {cutterView && (
+                    <CanvasView canvas={cutterView} className="size-full" />
+                  )}
                 </div>
-                <strong className="share-picture-name">{pictureName}</strong>
-                <small className="share-picture-site">{SITE_LINE}</small>
+                <strong className="absolute top-[calc(88.333cqw_-_var(--baseline))] left-[5cqw] w-[90cqw] truncate text-[6.333cqw] leading-none font-bold [--baseline:0.813em]">
+                  {pictureName}
+                </strong>
+                <small className="absolute top-[calc(94.167cqw_-_var(--baseline))] left-[5cqw] w-[90cqw] truncate text-[3.167cqw] leading-none font-medium text-on-glaze-muted [--baseline:0.813em]">
+                  {SITE_LINE}
+                </small>
               </div>
-              <div className="share-content">
-                <p className="share-intro">{t("share.creationText")}</p>
+              <div className={shareContent}>
+                <p className={shareIntro}>{t("share.creationText")}</p>
                 <ColorSwatches
                   onChange={(color) => setGreeting({ ...greeting, color })}
                   value={chosen}
                 />
                 {/* The other way to share, right where it is seen – with the
-                    card page in miniature, a taste of what it becomes. */}
+                    card page in miniature, a taste of what it becomes: the
+                    ring of words turning, the gift on a little card – beside
+                    the invitation, an arrow to follow. */}
                 <Button
-                  className="card-invite"
+                  className="group/invite h-auto justify-start gap-3.5 rounded-2xl bg-[color-mix(in_oklab,#ffc31f_24%,var(--color-surface))] py-2.5 pr-3.5 pl-2.5 text-left whitespace-normal text-ink hover:enabled:bg-[color-mix(in_oklab,#ffc31f_36%,var(--color-surface))]"
                   onClick={() => setMode("card")}
                   type="button"
                 >
                   <span
                     aria-hidden
-                    className="card-invite-preview glaze"
+                    className="glaze relative aspect-square w-18 flex-none -rotate-4 overflow-hidden rounded-[0.9rem] bg-glaze shadow-[0_0.45rem_0.9rem_-0.35rem_rgb(4_8_60/0.5)] [transition:--glaze_0.5s_var(--ease-soft),rotate_0.4s_var(--ease-spring),scale_0.4s_var(--ease-spring)] group-hover/invite:scale-106 group-hover/invite:rotate-3"
                     style={{ "--glaze": glaze } as CSSProperties}
                   >
-                    <RingText text={t("card.ring")} />
-                    <span className="card-invite-card">
+                    <RingText
+                      className={cn(
+                        ringOnGlaze,
+                        "animate-[ring-turn_40s_linear_infinite]"
+                      )}
+                      text={t("card.ring")}
+                    />
+                    <span className="absolute inset-1/4 grid -rotate-3 place-items-center rounded-[0.35rem] bg-card-sheet">
                       <CookieIcon
-                        className="card-invite-gift"
+                        className="m-0 [--cookie-scale:0.72]"
                         icing="#ffc31f"
                         icon={Gift}
                         idle={false}
@@ -293,12 +336,14 @@ const ShareCreation = ({ preview }: Props) => {
                       />
                     </span>
                   </span>
-                  <span className="card-invite-text">
+                  <span className="grid flex-1 gap-0.25">
                     <strong>{t("share.cardInvite")}</strong>
-                    <small>{t("share.cardInviteHint")}</small>
+                    <small className="text-small font-medium text-muted">
+                      {t("share.cardInviteHint")}
+                    </small>
                   </span>
                   <CookieIcon
-                    className="card-invite-arrow"
+                    className="-mx-1.25 -my-2 transition-[translate] duration-350 ease-spring group-hover/invite:translate-x-1.25"
                     icing="#ff5fa8"
                     icon={ArrowRight}
                     idle={false}
@@ -308,18 +353,19 @@ const ShareCreation = ({ preview }: Props) => {
                 {/* The link itself is the button: a click copies it. */}
                 <Button
                   aria-label={copied ? t("share.copied") : t("share.copy")}
-                  className="share-link"
+                  className={shareLink}
                   data-copied={copied || undefined}
                   disabled={!cutter.mesh}
                   onClick={copy}
                   title={t("share.copy")}
                   type="button"
                 >
-                  <span aria-live="polite" className="share-url">
+                  <span aria-live="polite" className={shareUrl}>
                     {copied ? t("share.copied") : url}
                   </span>
                   {copied ? (
                     <CookieIcon
+                      className={cookieInButton}
                       icing="#00b86b"
                       icon={Check}
                       key="ok"
@@ -327,6 +373,7 @@ const ShareCreation = ({ preview }: Props) => {
                     />
                   ) : (
                     <CookieIcon
+                      className={cookieInButton}
                       icing="#2a44ff"
                       icon={Copy}
                       key="copy"
@@ -334,15 +381,16 @@ const ShareCreation = ({ preview }: Props) => {
                     />
                   )}
                 </Button>
-                <div className="share-more">
+                <div className={shareMore}>
                   <Button
-                    className={canShareImage ? undefined : "primary"}
                     disabled={!cutterView}
+                    kind={canShareImage ? undefined : "primary"}
                     onClick={saveImage}
                     onPointerDown={() => pictureFile()}
                     type="button"
                   >
                     <CookieIcon
+                      className={cookieInButton}
                       icing="#2a44ff"
                       icon={Download}
                       roll={-12}
@@ -352,13 +400,14 @@ const ShareCreation = ({ preview }: Props) => {
                   </Button>
                   {canShareImage && (
                     <Button
-                      className="primary"
                       disabled={!cutterView}
+                      kind="primary"
                       onClick={shareImage}
                       onPointerDown={() => pictureFile()}
                       type="button"
                     >
                       <CookieIcon
+                        className={cookieInButton}
                         icing="#ff5fa8"
                         icon={Share2}
                         roll={10}
@@ -369,14 +418,16 @@ const ShareCreation = ({ preview }: Props) => {
                   )}
                 </div>
                 {textCopied && (
-                  <p className="share-note">{t("share.textCopied")}</p>
+                  <p className="mt-3 text-small text-muted">
+                    {t("share.textCopied")}
+                  </p>
                 )}
               </div>
             </>
           )}
         </div>
       </div>
-    </section>
+    </Card>
   );
 };
 

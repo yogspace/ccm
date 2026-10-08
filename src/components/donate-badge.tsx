@@ -10,9 +10,11 @@ const SPRINKLES = Array.from({ length: 14 }, (_, i) => ({
   delay: (i % 3) * 40,
 }));
 /**
- * Donation link as a sun cookie at a box's bottom left corner (footer, share
- * dialog); the text lies on the icing and grows in with it. `delay` (ms)
- * holds the growing back, e.g. until a dialog has opened.
+ * Donation link as a sun cookie sticking out at a box's bottom left corner
+ * (footer); the text lies on the icing and grows in with it – dark on the
+ * icing in every theme. It hops now and then, to catch the eye; on hover it
+ * straightens up, turns once (in 3D) and sprinkles fly. `delay` (ms) holds
+ * the growing back, e.g. until a dialog has opened.
  */
 const DonateBadge = ({ delay = 0 }: { delay?: number }) => {
   const { t } = useTranslation();
@@ -23,7 +25,8 @@ const DonateBadge = ({ delay = 0 }: { delay?: number }) => {
   return (
     <a
       aria-label={t("footer.donateLabel")}
-      className="donate"
+      className="group/donate absolute -bottom-1.5 -left-4 grid size-28 animate-[sun-hop_7s_ease-in-out_3s_infinite] place-items-center text-[#0d1033] -rotate-12 transition-[rotate,scale] duration-500 ease-spring hover:scale-112 hover:rotate-4 hover:[animation-play-state:paused] active:scale-95 max-sm:-left-1.5 max-sm:size-24 max-sm:[--cookie-scale:0.86]"
+      data-donate
       href={donate}
       rel="noopener"
       target="_blank"
@@ -32,7 +35,7 @@ const DonateBadge = ({ delay = 0 }: { delay?: number }) => {
       {SPRINKLES.map(({ angle, color, delay }) => (
         <i
           aria-hidden
-          className="sprinkle"
+          className="pointer-events-none absolute top-1/2 left-1/2 block h-1 w-2.5 rounded-full bg-(--color) opacity-0 group-hover/donate:animate-[sprinkle_0.75s_var(--ease-soft)_var(--delay)_both]"
           key={angle}
           style={
             {
@@ -46,6 +49,7 @@ const DonateBadge = ({ delay = 0 }: { delay?: number }) => {
       {/* Almost flat, not looking at the mouse; turns slowly in the image plane –
           the sun looks the same all round, the text stays readable. */}
       <CookieIcon
+        className="absolute inset-0 m-auto"
         delay={delay}
         interactive={false}
         kind="sun"
@@ -57,8 +61,11 @@ const DonateBadge = ({ delay = 0 }: { delay?: number }) => {
         spinSpeed={0.35}
         tilt={-0.15}
       />
-      <span className="donate-text" ref={textRef}>
-        <small>{t("footer.donateTop")}</small>
+      <span
+        className="relative flex scale-0 flex-col items-center text-center text-small leading-[1.05] font-bold"
+        ref={textRef}
+      >
+        <small className="text-tiny font-medium">{t("footer.donateTop")}</small>
         {t("footer.donateMain")}
       </span>
     </a>

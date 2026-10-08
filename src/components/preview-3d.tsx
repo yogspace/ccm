@@ -218,7 +218,7 @@ const Preview3d = ({ ref }: Props) => {
     }
   }, [mesh]);
 
-  return <div className="preview" ref={containerRef} />;
+  return <div className="absolute inset-0" ref={containerRef} />;
 };
 
 export default memo(Preview3d);
