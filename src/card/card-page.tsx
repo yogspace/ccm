@@ -137,6 +137,14 @@ const paper =
 const bubble =
   "pointer-events-none invisible absolute right-[70%] bottom-[71%] z-1 origin-bottom-right animate-[eat-me_1.6s_ease-in-out_infinite] scale-50 rounded-[2.4cqw] bg-card-sheet px-[2.4cqw] py-[1.4cqw] text-[3.3cqw] leading-none font-bold whitespace-nowrap text-card-deep opacity-0 shadow-[0_0.8cqw_2.4cqw_rgb(5_10_60/0.3)] [--bubble-delay:0.6s] [transition:opacity_0.25s_var(--ease-soft),scale_0.25s_var(--ease-soft),visibility_0s_linear_0.25s] after:absolute after:top-[calc(100%-1px)] after:right-[2.4cqw] after:size-[2.4cqw] after:bg-card-sheet after:[clip-path:polygon(0_0,100%_0,100%_100%)] motion-reduce:animate-none data-shown:visible data-shown:scale-100 data-shown:opacity-100 data-shown:[transition:opacity_0.3s_var(--ease-soft)_var(--bubble-delay),scale_0.55s_var(--ease-spring)_var(--bubble-delay),visibility_0s_linear_var(--bubble-delay)] max-xs:right-auto max-xs:bottom-[78%] max-xs:left-[21%]";
 
+/**
+ * A note while something is on its way (the cutter in front, the cookie on
+ * the back): a spinning star and a line. Once it is there, the note stays a
+ * moment (data-gone) and fades out softly while it appears in its place.
+ */
+const waiting =
+  "col-start-1 row-start-1 grid min-h-0 place-items-center content-center gap-[0.6em] px-[8%] text-[3.4cqw] leading-[1.3] [transition:opacity_0.45s_var(--ease-soft),scale_0.45s_var(--ease-soft)] data-gone:pointer-events-none data-gone:scale-90 data-gone:opacity-0";
+
 /** Like a label: the name left, the size (or how it is) right. */
 const label =
   "flex items-baseline justify-between gap-[0.6em] px-[1.2cqw] text-left text-[4.6cqw] leading-[1.2] font-bold tracking-title";
@@ -240,6 +248,8 @@ const CardPage = () => {
    * out while the cutter grows up out of the card.
    */
   const [waitShown, setWaitShown] = useState(true);
+  /** “Baking your cookie” likewise, once the cookie lies on the back. */
+  const [bakingShown, setBakingShown] = useState(true);
   /** The card as a picture, painted ahead: Safari only shares right in the click. */
   const [picture, setPicture] = useState<File | null>(null);
 
@@ -319,6 +329,15 @@ const CardPage = () => {
       for (const timer of timers) clearTimeout(timer);
     };
   }, [mesh]);
+
+  useEffect(() => {
+    if (!cookie) {
+      setBakingShown(true);
+      return;
+    }
+    const timer = setTimeout(() => setBakingShown(false), 500);
+    return () => clearTimeout(timer);
+  }, [cookie]);
 
   const [copied, setCopied] = useState(false);
 
@@ -648,7 +667,7 @@ const CardPage = () => {
                   // same place.
                   <span
                     aria-hidden={mesh ? true : undefined}
-                    className="col-start-1 row-start-1 grid min-h-0 place-items-center content-center gap-[0.6em] px-[8%] text-[3.4cqw] leading-[1.3] text-card-ink-muted [transition:opacity_0.45s_var(--ease-soft),scale_0.45s_var(--ease-soft)] data-gone:scale-90 data-gone:opacity-0"
+                    className={cn(waiting, "text-card-ink-muted")}
                     data-gone={mesh ? true : undefined}
                   >
                     <CookieIcon
@@ -724,9 +743,15 @@ const CardPage = () => {
                   </span>
                 )}
                 {/* Turned before it is baked: it bakes here, over the
-                    message – nothing is given away before the first bite. */}
-                {!cookie && (
-                  <span className="col-start-1 row-start-1 grid min-h-0 place-items-center content-center gap-[0.6em] bg-card-back px-[8%] text-[3.4cqw] leading-[1.3] text-card-back-ink">
+                    message – nothing is given away before the first bite –
+                    and goes like the note in front once the cookie is
+                    there. */}
+                {(!cookie || bakingShown) && (
+                  <span
+                    aria-hidden={cookie ? true : undefined}
+                    className={cn(waiting, "bg-card-back text-card-back-ink")}
+                    data-gone={cookie ? true : undefined}
+                  >
                     <CookieIcon
                       className={cookieInButton}
                       idle={false}
