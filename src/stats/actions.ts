@@ -13,6 +13,7 @@ export const ACTIONS = {
   "save-image": { en: "Picture saved", de: "Bild gespeichert" },
   "card-created": { en: "Cards created", de: "Karten erstellt" },
   "card-turned": { en: "Cards turned over", de: "Karten umgedreht" },
+  "card-eaten": { en: "Card cookies eaten", de: "Karten-Kekse aufgegessen" },
   "card-download-3mf": { en: "3MF from a card", de: "3MF von einer Karte" },
   "card-download-stl": { en: "STL from a card", de: "STL von einer Karte" },
   "card-picture": { en: "Card as picture", de: "Karte als Bild" },

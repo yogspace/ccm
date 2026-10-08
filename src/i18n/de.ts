@@ -127,7 +127,11 @@ export const de = {
     flip: "Umdrehen",
     flipBack: "Zurückdrehen",
     cookieAlt: "Der Keks aus „{{name}}“",
+    eatMe: "Iss mich",
+    click: "*klick*",
+    bite: "Anbeißen",
     baked: "gebacken",
+    eaten: "gegessen",
     makeOwn: "Eigenen Ausstecher gestalten",
   },
   jar: {

@@ -203,6 +203,7 @@ export interface Action {
     | 'save-image'
     | 'card-created'
     | 'card-turned'
+    | 'card-eaten'
     | 'card-download-3mf'
     | 'card-download-stl'
     | 'card-picture'
@@ -515,6 +516,14 @@ export interface Translation {
      */
     baked?: string | null;
     /**
+     * DE: Anbeißen  ·  EN: Take a bite
+     */
+    bite?: string | null;
+    /**
+     * DE: *klick*  ·  EN: *click*
+     */
+    click?: string | null;
+    /**
      * DE: Der Keks aus „{{name}}“  ·  EN: The cookie from “{{name}}”
      */
     cookieAlt?: string | null;
@@ -530,6 +539,14 @@ export interface Translation {
      * DE: 3MF herunterladen  ·  EN: Download 3MF
      */
     download?: string | null;
+    /**
+     * DE: Iss mich  ·  EN: Eat me
+     */
+    eatMe?: string | null;
+    /**
+     * DE: gegessen  ·  EN: eaten
+     */
+    eaten?: string | null;
     /**
      * DE: Ändern  ·  EN: Edit
      */
@@ -1164,10 +1181,14 @@ export interface TranslationsSelect<T extends boolean = true> {
     | T
     | {
         baked?: T;
+        bite?: T;
+        click?: T;
         cookieAlt?: T;
         create?: T;
         cutterAlt?: T;
         download?: T;
+        eatMe?: T;
+        eaten?: T;
         edit?: T;
         empty?: T;
         failed?: T;

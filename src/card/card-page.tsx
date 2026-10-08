@@ -1,4 +1,5 @@
 import {
+  ArrowUpLeft,
   ArrowUpRight,
   Download,
   ImageDown,
@@ -7,6 +8,7 @@ import {
 } from "lucide-react";
 import {
   type CSSProperties,
+  type MouseEvent,
   useEffect,
   useMemo,
   useRef,
@@ -16,10 +18,20 @@ import { useTranslation } from "react-i18next";
 import { trackEvent } from "../analytics";
 import Button from "../components/button";
 import { paintCardPicture } from "../components/card-image";
+import { Crumbs } from "../components/cookie-fx";
 import CookieIcon from "../components/cookie-icon";
 import RingText from "../components/ring-text";
 import SiteFooter from "../components/site-footer";
 import { cookieSeed } from "../cookie-jar";
+import {
+  type Bite,
+  biteAt,
+  cookieAt,
+  cookieLeft,
+  cookieOutline,
+  glazeColorOf,
+  leftoverCrumbs,
+} from "../cookies/models";
 import { download } from "../export/download";
 import { fileBase } from "../export/file-name";
 import { toStl } from "../export/stl";
@@ -52,6 +64,41 @@ const SPRINKLES = Array.from({ length: 12 }, (_, i) => ({
 /** Pause (ms) before painting the picture – the card lands first. */
 const PICTURE_DELAY = 1500;
 
+/** How the cookie on the back lies: tilted back this far (rad). */
+const BACK_TILT = -0.5;
+
+/**
+ * Where a click goes through the cookie on the back, in cookie units: the
+ * ray from the renderer's camera (28°, at 5.4 – cookies/renderer.ts) met
+ * at its top, through its thickness down to its bottom – the cookie lies
+ * tilted back by BACK_TILT, so its front edge shows too. `x`, `y`: the
+ * click in the canvas's own pixels – the card's lean and turn undone.
+ */
+const throughCookie = (x: number, y: number, canvas: HTMLCanvasElement) => {
+  const u = (x / canvas.offsetWidth) * 2 - 1;
+  const v = 1 - (y / canvas.offsetHeight) * 2;
+  const spread = Math.tan((14 * Math.PI) / 180);
+  // Camera and ray turned into the cookie's own frame (the tilt undone).
+  const a = -BACK_TILT;
+  const turn = (py: number, pz: number) => [
+    py * Math.cos(a) - pz * Math.sin(a),
+    py * Math.sin(a) + pz * Math.cos(a),
+  ];
+  const [oy, oz] = turn(0, 5.4);
+  const [dy, dz] = turn(v * spread, -1);
+  // The dough's top and bottom (models.ts: DEPTH with its bevel).
+  return [0.26, 0.16, 0.06, -0.04, -0.1].map((z) => {
+    const t = (z - oz) / dz;
+    return { x: u * spread * t, y: oy + dy * t };
+  });
+};
+
+/**
+ * Close to the edge still counts: rings around the click (cookie units) –
+ * its rounded, tilted edge shows a little wider than its outline.
+ */
+const NEAR_EDGE = [0.05, 0.1, 0.16];
+
 const still = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -83,6 +130,29 @@ const CardPage = () => {
     [cutter]
   );
   const cardRef = useRef<HTMLDivElement>(null);
+  /**
+   * Bites out of the cookie on the back, where it was clicked – behind it
+   * the message, more of it with every bite, until the cookie is gone.
+   * Turned, a fresh one.
+   */
+  const [bites, setBites] = useState<Bite[]>([]);
+  /**
+   * Bites are worked out one after another – quick taps don't race; the
+   * latest list lives here, ahead of the next render.
+   */
+  const biting = useRef(Promise.resolve());
+  const bitesNow = useRef<Bite[]>([]);
+  const outline = useMemo(
+    () => (cookie ? cookieOutline(cookie) : []),
+    [cookie]
+  );
+  const eaten = useMemo(
+    () => bites.length > 0 && !cookieLeft(outline, bites),
+    [outline, bites]
+  );
+  const [crumbs, setCrumbs] = useState<{ id: number; x: number; y: number }[]>(
+    []
+  );
   const name = shared.name.trim() || "Cookie Cutter";
   const lang = i18n.resolvedLanguage ?? "en";
   const unit = initialUnit();
@@ -201,20 +271,27 @@ const CardPage = () => {
     return () => window.removeEventListener("pageshow", back);
   }, []);
 
-  // The card leans towards the pointer, as if held in the hand.
+  // The card leans towards the pointer, as if held in the hand – the front
+  // only: on the back it holds still, so a bite lands where it is aimed.
+  const flippedRef = useRef(flipped);
+  flippedRef.current = flipped;
   useEffect(() => {
     const card = cardRef.current;
     if (!card || still()) return;
+    const rest = () => {
+      card.style.removeProperty("--lean-x");
+      card.style.removeProperty("--lean-y");
+    };
     const lean = (event: PointerEvent) => {
+      if (flippedRef.current) {
+        rest();
+        return;
+      }
       const { left, top, width, height } = card.getBoundingClientRect();
       const x = (event.clientX - (left + width / 2)) / window.innerWidth;
       const y = (event.clientY - (top + height / 2)) / window.innerHeight;
       card.style.setProperty("--lean-x", `${(-y * 16).toFixed(2)}deg`);
       card.style.setProperty("--lean-y", `${(x * 20).toFixed(2)}deg`);
-    };
-    const rest = () => {
-      card.style.removeProperty("--lean-x");
-      card.style.removeProperty("--lean-y");
     };
     window.addEventListener("pointermove", lean);
     document.documentElement.addEventListener("pointerleave", rest);
@@ -236,6 +313,55 @@ const CardPage = () => {
       />
     </span>
   );
+
+  // A bite right where it is clicked – instead of turning the card. Next
+  // to the cookie, or where it is eaten already, nothing.
+  const bite = (event: MouseEvent<HTMLElement>) => {
+    event.stopPropagation();
+    const area = event.currentTarget;
+    const canvas = area.querySelector("canvas");
+    if (eaten || !canvas) return;
+    // offsetX/Y: in the area's own frame, the card's lean and turn undone;
+    // the canvas sits in it at its layout place.
+    const ray = throughCookie(
+      event.nativeEvent.offsetX - (canvas.offsetLeft - area.offsetLeft),
+      event.nativeEvent.offsetY - (canvas.offsetTop - area.offsetTop),
+      canvas
+    );
+    // The first bit of cookie along the ray – or the nearest beside it, at
+    // its top or at its bottom (the front edge).
+    const around = NEAR_EDGE.flatMap((reach) =>
+      Array.from({ length: 12 }, (_, i) => {
+        const angle = (i / 12) * Math.PI * 2;
+        return [ray[0], ray[ray.length - 1]].map((point) => ({
+          x: point.x + Math.cos(angle) * reach,
+          y: point.y + Math.sin(angle) * reach,
+        }));
+      }).flat()
+    );
+    const hit = [...ray, ...around].find(({ x, y }) =>
+      cookieAt(outline, bitesNow.current, x, y)
+    );
+    if (!hit) return;
+    const bitten = biteAt(hit.x, hit.y);
+    const shape = cookie;
+    if (!shape) return;
+    biting.current = biting.current.then(async () => {
+      // Bits too small to keep go along with the bite.
+      const next = [...bitesNow.current, bitten];
+      const crumbs = await leftoverCrumbs(shape, next).catch(() => []);
+      const final = crumbs.length > 0 ? [...next, crumbs] : next;
+      bitesNow.current = final;
+      setBites(final);
+      if (!cookieLeft(outline, final)) trackEvent("card-eaten");
+    });
+    const crumb = { id: performance.now(), x: event.clientX, y: event.clientY };
+    setCrumbs((previous) => [...previous, crumb]);
+    setTimeout(
+      () => setCrumbs((previous) => previous.filter((c) => c !== crumb)),
+      900
+    );
+  };
 
   const save = (format: "3mf" | "stl") => {
     if (!mesh) return;
@@ -287,6 +413,12 @@ const CardPage = () => {
               disabled={!cookie}
               onClick={() => {
                 setTurns((count) => count + 1);
+                // Turned to the back: a fresh cookie – set while the back is
+                // still hidden, so a bitten one never vanishes in view.
+                if (!flipped) {
+                  bitesNow.current = [];
+                  setBites([]);
+                }
                 if (turns === 0) trackEvent("card-turned");
               }}
               type="button"
@@ -321,21 +453,72 @@ const CardPage = () => {
                 </span>
                 {cookie && turnSticker}
               </span>
-              <span className="greeting-paper greeting-back">
+              <span
+                className="greeting-paper greeting-back"
+                style={
+                  cookie
+                    ? ({ "--glaze": glazeColorOf(cookie) } as CSSProperties)
+                    : undefined
+                }
+              >
+                {/* The message, behind the cookie – each bite shows more. */}
+                <span
+                  className="greeting-hidden"
+                  style={
+                    {
+                      "--chars": (greeting.message || t("card.ring")).length,
+                    } as CSSProperties
+                  }
+                >
+                  {greeting.message || t("card.ring")}
+                </span>
                 {cookie && (
+                  // biome-ignore lint/a11y/noStaticElementInteractions: a playful extra – the card itself turns by keyboard
+                  // biome-ignore lint/a11y/useKeyWithClickEvents: as above
+                  <span
+                    className="greeting-bite"
+                    data-eaten={eaten || undefined}
+                    onClick={bite}
+                    title={eaten ? undefined : t("card.bite")}
+                  >
+                    <CookieIcon
+                      bites={bites.length > 0 ? bites : undefined}
+                      className="greeting-cookie"
+                      // Baked, it is simply there – fresh again too.
+                      grown
+                      // Still: drawn once, no frames while it lies there.
+                      idle={false}
+                      interactive={false}
+                      shape={cookie}
+                      size={320}
+                      tilt={BACK_TILT}
+                    />
+                  </span>
+                )}
+                {/* Until the first bite: an arrow to the cookie – floating,
+                    clicks go through, nothing moves when it goes. */}
+                <small
+                  aria-hidden
+                  className="greeting-eat-me"
+                  data-gone={bites.length > 0 || undefined}
+                  // Fades in anew after every turn, once the card has landed.
+                  key={turns}
+                >
                   <CookieIcon
-                    className="greeting-cookie"
-                    // Still: drawn once, no frames while it lies there.
+                    className="greeting-eat-arrow"
+                    icing="#ff5fa8"
+                    icon={ArrowUpLeft}
                     idle={false}
                     interactive={false}
-                    shape={cookie}
-                    size={320}
-                    tilt={-0.5}
+                    size={44}
                   />
-                )}
+                  <span>
+                    {t("card.eatMe")} <em>{t("card.click")}</em>
+                  </span>
+                </small>
                 <span className="greeting-name">
                   <span>{name}</span>
-                  <small>{t("card.baked")}</small>
+                  <small>{t(eaten ? "card.eaten" : "card.baked")}</small>
                 </span>
                 {cookie && turnSticker}
               </span>
@@ -444,6 +627,9 @@ const CardPage = () => {
       </a>
 
       <SiteFooter />
+      {crumbs.map((crumb) => (
+        <Crumbs at={crumb} key={crumb.id} seed={Math.floor(crumb.id)} />
+      ))}
     </main>
   );
 };

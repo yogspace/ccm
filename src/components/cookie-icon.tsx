@@ -1,8 +1,11 @@
 import type { LucideIcon } from "lucide-react";
 import { type CSSProperties, useEffect, useRef } from "react";
+import type { Object3D } from "three";
 import {
+  type Bite,
   type CookieKind,
   type CookieShape,
+  createBittenCookie,
   createCookie,
   createIconCookie,
   createShapeCookie,
@@ -35,6 +38,8 @@ type Props = {
   onHandle?: (handle: CookieHandle | null) => void;
   /** Size while growing in (0…1), e.g. so text on it grows along. */
   onGrow?: (scale: number) => void;
+  /** Bites taken out of a baked creation – it stays where it is, bitten. */
+  bites?: Bite[];
 } & (
   | { kind: CookieKind; icon?: never; icing?: never; shape?: never }
   | { icon: LucideIcon; icing?: string; kind?: never; shape?: never }
@@ -61,6 +66,7 @@ const CookieIcon = ({
   side = false,
   onGrow,
   onHandle,
+  bites,
   kind,
   icon: Icon,
   icing = "#ffffff",
@@ -89,18 +95,29 @@ const CookieIcon = ({
     let cancelled = false;
     const svg = svgRef.current?.querySelector("svg");
 
-    // A baked creation is its own; the others share their geometry.
-    const baked = kind === undefined && shape ? createShapeCookie(shape) : null;
+    // A baked creation is its own – bitten, it is cut anew; the others share
+    // their geometry.
+    let own: Object3D | null = null;
+    const baked =
+      kind === undefined && shape
+        ? (bites?.length
+            ? createBittenCookie(shape, bites)
+            : Promise.resolve(createShapeCookie(shape))
+          ).then((cookie) => {
+            own = cookie;
+            return cookie;
+          })
+        : null;
     const object =
       kind !== undefined
         ? createCookie(kind)
-        : baked
-          ? Promise.resolve(baked)
-          : svg
-            ? createIconCookie(svg, iconName ?? "icon", icing)
-            : null;
+        : (baked ??
+          (svg ? createIconCookie(svg, iconName ?? "icon", icing) : null));
     object?.then((cookie) => {
-      if (cancelled) return;
+      if (cancelled) {
+        if (cookie === own) disposeCookie(cookie);
+        return;
+      }
       handle.current = registerCookie(canvas, cookie, {
         tilt: tilt ?? (kind ? -0.55 : -0.2),
         roll: (rollRef.current * Math.PI) / 180,
@@ -108,7 +125,8 @@ const CookieIcon = ({
         idle,
         follow: interactive,
         delay: delayRef.current,
-        grown,
+        // Bitten it is already there – no growing in again.
+        grown: grown || Boolean(bites?.length),
         spin: spinRef.current.spin,
         spinSpeed: spinRef.current.spinSpeed / 1000,
         onGrow: (scale) => onGrowRef.current?.(scale),
@@ -130,9 +148,20 @@ const CookieIcon = ({
       handle.current?.dispose();
       handle.current = null;
       onHandleRef.current?.(null);
-      if (baked) disposeCookie(baked);
+      if (own) disposeCookie(own);
     };
-  }, [kind, iconName, icing, shape, idle, tilt, interactive, grown, side]);
+  }, [
+    kind,
+    iconName,
+    icing,
+    shape,
+    bites,
+    idle,
+    tilt,
+    interactive,
+    grown,
+    side,
+  ]);
 
   useEffect(() => {
     handle.current?.setRoll((roll * Math.PI) / 180);

@@ -35,6 +35,29 @@ html:has(.greeting) {
   isolation: isolate;
 }
 
+/* Phones: the card first and big – the stage wider than the screen, the
+   message running around goes out at the sides. The page scrolls on to the
+   buttons and the footer instead of squeezing the card into one screen. */
+@media (max-width: 30rem) {
+  html:has(.greeting) {
+    overflow: visible;
+  }
+
+  .greeting {
+    height: auto;
+    min-height: 100dvh;
+    grid-template-rows: 1fr auto 118vw auto auto auto 1fr auto;
+  }
+
+  /* Stronger than the base rule further down. Centred by hand – a grid
+     puts what is wider than its cell at the start. */
+  .greeting .greeting-stage {
+    justify-self: start;
+    width: min(125cqw, 100cqh);
+    margin-left: calc(50cqw - min(62.5cqw, 50cqh));
+  }
+}
+
 /* Who it is from and the buttons may be missing – their rows stay empty. */
 .greeting-to {
   grid-row: 2;
@@ -284,9 +307,14 @@ button.greeting-flip:not(:disabled, [data-flipped]) {
     0 2.8rem 4.5rem -1.8rem rgb(4 8 60 / 0.6);
 }
 
+/* The back in the cookie's icing colour (models.ts glazeColorOf). Nothing
+   on it gets selected when the cookie is bitten in quick taps. */
 .greeting-back {
   visibility: hidden;
-  background: #fff3e0;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  background: color-mix(in oklab, var(--glaze, #ffc31f) 55%, #fff8ee);
   transform: rotateY(180deg);
 }
 
@@ -298,6 +326,26 @@ button.greeting-flip[data-flipped] .greeting-back {
   visibility: visible;
 }
 
+/* The cookie on the back can be bitten (card-page.tsx): a click bites where
+   it lands; the last bite eats it up and the greeting takes its place. */
+.greeting-bite {
+  grid-area: 1 / 1;
+  display: grid;
+  justify-items: center;
+  min-height: 0;
+  cursor: pointer;
+  transition:
+    scale 0.35s var(--ease),
+    opacity 0.35s var(--ease);
+}
+
+/* Eaten: the last crumbs go – gone. */
+.greeting-bite[data-eaten] {
+  scale: 0.3;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .cookie.greeting-cookie {
   justify-self: center;
   width: auto;
@@ -305,6 +353,82 @@ button.greeting-flip[data-flipped] .greeting-back {
   min-height: 0;
   aspect-ratio: 1;
   margin: 0;
+}
+
+/* “Eat me *click*” with a cookie arrow up to the cookie – until the first
+   bite, bobbing a little; then it fades. */
+.greeting-eat-me {
+  position: absolute;
+  right: 5cqw;
+  bottom: 11cqw;
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 0.8cqw;
+  font-size: 3.3cqw;
+  font-weight: 600;
+  pointer-events: none;
+  /* In once the card has landed; out softly with the first bite. */
+  animation: eat-me-in 0.6s var(--ease) 0.9s both;
+  transition:
+    opacity 0.4s var(--ease),
+    translate 0.4s var(--ease),
+    visibility 0s linear 0.4s;
+  color: color-mix(in oklab, var(--glaze, #ffc31f) 60%, #3a2310);
+}
+
+.greeting-eat-me[data-gone] {
+  opacity: 0;
+  translate: 0 0.8cqw;
+  visibility: hidden;
+}
+
+@keyframes eat-me-in {
+  from {
+    opacity: 0;
+    translate: 1.5cqw 1.2cqw;
+  }
+}
+
+.greeting-eat-me em {
+  font-style: italic;
+  font-weight: 500;
+}
+
+.cookie.greeting-eat-arrow {
+  margin: -1.2cqw -0.5cqw -0.4cqw 0;
+  animation: eat-me 1.6s ease-in-out infinite;
+}
+
+@keyframes eat-me {
+  50% {
+    translate: -0.6cqw -0.9cqw;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cookie.greeting-eat-arrow {
+    animation: none;
+  }
+
+  .greeting-eat-me {
+    animation-name: fade;
+  }
+}
+
+/* The message behind the cookie, in the back's colour, darker – bitten
+   free bit by bit. */
+.greeting-hidden {
+  grid-area: 1 / 1;
+  align-self: center;
+  padding: 0 4cqw;
+  font-size: clamp(5cqw, 64cqw / (var(--chars, 12) * 0.24 + 3), 10cqw);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  text-align: center;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+  color: color-mix(in oklab, var(--glaze, #ffc31f) 70%, #3a2310);
 }
 
 .greeting-turn {
@@ -411,30 +535,32 @@ button.greeting-flip[data-flipped] .greeting-back {
 }
 
 /* Phones: the 3MF across; STL, share and save side by side below it, each
-   its cookie above its word – so all three fit. */
+   its cookie above its word – small, the card is what counts. */
 @media (max-width: 30rem) {
   .greeting-actions {
-    --cookie-scale: 0.8;
+    --cookie-scale: 0.62;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.5rem;
+    gap: 0.4rem;
     width: 100%;
   }
 
   .greeting-actions button.primary {
     grid-column: 1 / -1;
+    height: 2.5rem;
+    font-size: 0.95rem;
   }
 
   .greeting-actions button:not(.primary) {
     flex-direction: column;
-    gap: 0.1rem;
+    gap: 0;
     height: auto;
-    padding: 0.55rem 0.3rem 0.5rem;
-    font-size: var(--fs-small);
+    padding: 0.4rem 0.3rem 0.35rem;
+    font-size: var(--fs-tiny);
   }
 
   .greeting-actions button:not(.primary) .cookie {
-    margin: -0.6rem 0 -0.4rem;
+    margin: -0.55rem 0 -0.45rem;
   }
 }
 

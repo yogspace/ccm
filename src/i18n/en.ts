@@ -126,7 +126,11 @@ export const en: typeof de = {
     flip: "Turn over",
     flipBack: "Turn back",
     cookieAlt: "The cookie from “{{name}}”",
+    eatMe: "Eat me",
+    click: "*click*",
+    bite: "Take a bite",
     baked: "baked",
+    eaten: "eaten",
     makeOwn: "Design your own cutter",
   },
   jar: {

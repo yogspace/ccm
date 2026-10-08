@@ -622,8 +622,12 @@ const sprinkleSpots = (
  * background. Where the shape is too thin for icing, the sprinkles sit on
  * the dough. Free it with `disposeCookie`.
  */
-export const createShapeCookie = ({ dough, icing, seed }: CookieShape) => {
-  const random = seeded(Math.max(1, Math.floor(seed) % 2147483646));
+/**
+ * A creation's rings in cookie units: centred, about 2 wide, y up – like the
+ * other cookies. Points closer than half a percent of the size are dropped:
+ * lighter, looks the same.
+ */
+const cookieUnits = (dough: Ring[]) => {
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
@@ -637,9 +641,7 @@ export const createShapeCookie = ({ dough, icing, seed }: CookieShape) => {
   const scale = 2 / Math.max(maxX - minX, maxY - minY, 1e-6);
   const cx = (minX + maxX) / 2;
   const cy = (minY + maxY) / 2;
-  // Centred, about 2 wide, y up – like the other cookies. Points closer
-  // than half a percent of the size are dropped: lighter, looks the same.
-  const toCookie = (rings: Ring[]) =>
+  return (rings: Ring[]) =>
     rings
       .map((ring) => {
         const points: THREE.Vector2[] = [];
@@ -651,10 +653,25 @@ export const createShapeCookie = ({ dough, icing, seed }: CookieShape) => {
         return points;
       })
       .filter((ring) => ring.length >= 3);
+};
+
+/** What bites take from a cookie: its rings cut, and which spots stay. */
+type Bitten = {
+  cut: (rings: THREE.Vector2[][]) => THREE.Vector2[][];
+  keeps: (p: THREE.Vector2) => boolean;
+};
+
+export const createShapeCookie = (
+  { dough, icing, seed }: CookieShape,
+  bitten?: Bitten
+) => {
+  const random = seeded(Math.max(1, Math.floor(seed) % 2147483646));
+  const toCookie = cookieUnits(dough);
 
   const group = new THREE.Group();
   const { map, bumpMap } = doughTextures();
-  const body = toCookie(dough);
+  const whole = toCookie(dough);
+  const body = bitten ? bitten.cut(whole) : whole;
   group.add(
     new THREE.Mesh(
       new THREE.ExtrudeGeometry(nest(body), {
@@ -676,7 +693,8 @@ export const createShapeCookie = ({ dough, icing, seed }: CookieShape) => {
   );
   const top = DEPTH + 0.1;
 
-  const glaze = toCookie(icing);
+  const wholeGlaze = toCookie(icing);
+  const glaze = bitten ? bitten.cut(wholeGlaze) : wholeGlaze;
   const icingColor = ICINGS[Math.floor(random() * ICINGS.length)];
   if (glaze.length > 0) {
     const mesh = new THREE.Mesh(
@@ -700,8 +718,9 @@ export const createShapeCookie = ({ dough, icing, seed }: CookieShape) => {
 
   const sprinkle = new THREE.CapsuleGeometry(0.022, 0.08, 4, 8);
   const materials = new Map<string, THREE.Material>();
-  const onIcing = glaze.length > 0;
-  for (const p of sprinkleSpots(onIcing ? glaze : body, 0.06, random)) {
+  // Where the whole cookie has them – a bite takes some, the rest stay put.
+  const onIcing = wholeGlaze.length > 0;
+  for (const p of sprinkleSpots(onIcing ? wholeGlaze : whole, 0.06, random)) {
     let color = SPRINKLES[Math.floor(random() * SPRINKLES.length)];
     if (onIcing && color === icingColor) color = "#2a44ff";
     let material = materials.get(color);
@@ -717,9 +736,172 @@ export const createShapeCookie = ({ dough, icing, seed }: CookieShape) => {
     mesh.rotation.set(Math.PI / 2, 0, random() * Math.PI);
     mesh.rotateZ(random() * Math.PI);
     mesh.position.set(p.x, p.y, top + (onIcing ? 0.06 : 0.02));
+    // Skipped only now – after its random numbers, so the others stay put.
+    if (bitten && !bitten.keeps(p)) continue;
     group.add(mesh);
   }
   return group;
+};
+
+/**
+ * The icing colour a baked creation gets – its seed's first pick, the same
+ * as in createShapeCookie.
+ */
+export const icingColorOf = ({ seed }: CookieShape) =>
+  ICINGS[
+    Math.floor(
+      seeded(Math.max(1, Math.floor(seed) % 2147483646))() * ICINGS.length
+    )
+  ];
+
+/** A colour from the icings for what the cookie lies on – never white. */
+export const glazeColorOf = (shape: CookieShape) => {
+  const icing = icingColorOf(shape);
+  const colours = ICINGS.filter((colour) => colour !== "#ffffff");
+  return icing !== "#ffffff"
+    ? icing
+    : colours[Math.abs(Math.floor(shape.seed)) % colours.length];
+};
+
+/** A bite: round bits (cookie units, the cookie about 2 wide) taken away. */
+export type Bite = { x: number; y: number; r: number }[];
+
+/** The creation's outline in cookie units – where bites land. */
+export const cookieOutline = ({ dough }: CookieShape) =>
+  cookieUnits(dough)(dough);
+
+/** Is there cookie at (x, y) – inside its outline, not bitten away? */
+export const cookieAt = (
+  outline: THREE.Vector2[][],
+  bites: Bite[],
+  x: number,
+  y: number
+) => {
+  const p = new THREE.Vector2(x, y);
+  return (
+    outline.filter((ring) => inside(ring, p)).length % 2 === 1 &&
+    !bites
+      .flat()
+      .some(({ x: bx, y: by, r }) => (x - bx) ** 2 + (y - by) ** 2 < r ** 2)
+  );
+};
+
+/**
+ * A bite right at (x, y) – teeth marks at its sides, turned the way out
+ * from the middle.
+ */
+export const biteAt = (x: number, y: number, r = 0.42): Bite => {
+  const length = Math.hypot(x, y);
+  const out =
+    length > 0.1
+      ? new THREE.Vector2(x / length, y / length)
+      : new THREE.Vector2(0, 1);
+  const side = new THREE.Vector2(-out.y, out.x);
+  const tooth = (sign: number) => ({
+    x: x + side.x * r * 0.62 * sign + out.x * r * 0.18,
+    y: y + side.y * r * 0.62 * sign + out.y * r * 0.18,
+    r: r * 0.6,
+  });
+  return [{ x, y, r }, tooth(1), tooth(-1)];
+};
+
+/** Is anything left of the cookie after these bites? Sampled on a grid. */
+export const cookieLeft = (outline: THREE.Vector2[][], bites: Bite[]) => {
+  for (let x = -1.1; x <= 1.1; x += 0.04) {
+    for (let y = -1.1; y <= 1.1; y += 0.04) {
+      if (cookieAt(outline, bites, x, y)) return true;
+    }
+  }
+  return false;
+};
+
+/**
+ * polygon-clipping, loaded on the first bite. Its ESM build has only a
+ * default export, its types only named ones.
+ */
+const clipping = async () => {
+  const loaded = await import("polygon-clipping");
+  return (loaded as unknown as { default?: typeof loaded }).default ?? loaded;
+};
+
+type Clipping = Awaited<ReturnType<typeof clipping>>;
+
+const circlePolygon = ({ x, y, r }: { x: number; y: number; r: number }) => [
+  Array.from({ length: 40 }, (_, i): [number, number] => {
+    const a = (i / 40) * Math.PI * 2;
+    return [x + Math.cos(a) * r, y + Math.sin(a) * r];
+  }),
+];
+
+/** What is left of rings (read even-odd, as nest() does) after the bites. */
+const leftOf = (lib: Clipping, rings: THREE.Vector2[][], circles: Bite) => {
+  if (rings.length === 0) return [];
+  const [first, ...rest] = rings.map((ring) => [
+    ring.map((p): [number, number] => [p.x, p.y]),
+  ]);
+  const whole = lib.xor(first, ...rest);
+  return circles.length
+    ? lib.difference(whole, ...circles.map(circlePolygon))
+    : whole;
+};
+
+/** Smaller bits than this (cookie units², the whole about 3) are crumbs. */
+const CRUMB_AREA = 0.04;
+
+const ringArea = (ring: [number, number][]) =>
+  Math.abs(
+    ring.reduce(
+      (sum, [x, y], i) =>
+        sum +
+        x * ring[(i + 1) % ring.length][1] -
+        ring[(i + 1) % ring.length][0] * y,
+      0
+    ) / 2
+  );
+
+/**
+ * The bits a bite leaves too small to stand on their own: a round bite over
+ * each – they are eaten along with it.
+ */
+export const leftoverCrumbs = async (
+  shape: CookieShape,
+  bites: Bite[]
+): Promise<Bite> => {
+  const lib = await clipping();
+  return leftOf(lib, cookieOutline(shape), bites.flat())
+    .filter(
+      ([outer, ...holes]) =>
+        ringArea(outer) - holes.reduce((sum, hole) => sum + ringArea(hole), 0) <
+        CRUMB_AREA
+    )
+    .map(([outer]) => {
+      const x = outer.reduce((sum, p) => sum + p[0], 0) / outer.length;
+      const y = outer.reduce((sum, p) => sum + p[1], 0) / outer.length;
+      const r = Math.max(
+        ...outer.map(([px, py]) => Math.hypot(px - x, py - y))
+      );
+      return { x, y, r: r + 0.03 };
+    });
+};
+
+/**
+ * The creation baked as a cookie, bitten: the bites cut out of dough and
+ * icing (polygon-clipping, loaded only now), sprinkles in them gone.
+ */
+export const createBittenCookie = async (shape: CookieShape, bites: Bite[]) => {
+  const lib = await clipping();
+  const circles = bites.flat();
+  const cut = (rings: THREE.Vector2[][]) =>
+    circles.length === 0
+      ? rings
+      : leftOf(lib, rings, circles).flatMap((polygon) =>
+          polygon.map((ring) =>
+            ring.slice(0, -1).map(([x, y]) => new THREE.Vector2(x, y))
+          )
+        );
+  const keeps = (p: THREE.Vector2) =>
+    !circles.some(({ x, y, r }) => (p.x - x) ** 2 + (p.y - y) ** 2 < r ** 2);
+  return createShapeCookie(shape, { cut, keeps });
 };
 
 /** Frees a baked cookie's geometries and materials (the dough texture stays). */

@@ -8,6 +8,9 @@ import type { Drawing, readHash } from "../url-state";
 /** Pauses (ms) before trying again – time for Safari to free canvas memory. */
 const RETRIES = [600, 1500];
 
+/** A worker silent this long (ms) counts as failed – never an endless wait. */
+const SILENCE = 20_000;
+
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** New links bring the drawing – traced like the drawing area does it. */
@@ -35,8 +38,13 @@ const build = (rings: Ring[], params: CutterParams) => {
     outline: Ring[];
     icing: Ring[];
   } | null>((resolve, reject) => {
+    const silent = setTimeout(() => {
+      worker.terminate();
+      reject(new Error("worker: no answer"));
+    }, SILENCE);
     worker.onmessage = ({ data }: MessageEvent<CutterResponse>) => {
       if (data.type === "ready") return;
+      clearTimeout(silent);
       worker.terminate();
       if (data.type !== "result") reject(new Error(data.type));
       else if (!data.mesh) resolve(null);
@@ -46,6 +54,7 @@ const build = (rings: Ring[], params: CutterParams) => {
     };
     // The worker itself did not load.
     worker.onerror = (event) => {
+      clearTimeout(silent);
       worker.terminate();
       reject(new Error(`worker: ${event.message}`));
     };
