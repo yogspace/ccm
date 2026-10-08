@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { type CookieKind, createCookie } from "./models";
+import { type CookieKind, createCookie } from "./kinds";
 
 /**
  * Renders the 3D cookie icons. Every cookie has its own canvas in its place in

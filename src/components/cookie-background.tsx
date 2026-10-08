@@ -17,7 +17,7 @@ import {
   Zap,
 } from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
-import type { CookieKind } from "../cookies/models";
+import type { CookieKind } from "../cookies/kinds";
 import CookieIcon from "./cookie-icon";
 
 /**

@@ -47,9 +47,10 @@ src/
   index.css                   Tailwind: the theme (colors, font sizes, breakpoints), base styles, keyframes – the site's only stylesheet
   glaze.css                   a favorite color's shades (card page, share picture) – also loaded by the admin's preview
   cn.ts                       joins class names; of conflicting utilities the later wins (tailwind-merge)
-  card/                       the greeting card: card-root/card-entry (browser only), card-page, card-cutter (3D on the card), load-cutter
+  card/                       the greeting card: card-root/card-entry (browser only), card-page (the page), greeting-card (the card that turns), card-front/card-back, card-actions (files, picture), speech-bubble, sprinkles, card-cookies (raining down), card-cutter (3D on the card), use-cutter/load-cutter, use-bites/bite (biting the cookie), card-link (what the link brings)
   store.ts                    state (valtio): actions, cutter worker, link in the hash, scroll lock
-  components/                 draw-canvas, tool-picker, preview-3d, parameter-panel, share-creation, gallery-fan, cookie-bar, cookie-fx (flight, crumbs), button, card, dev-fixture (dev server only: saves the drawing as a test case), …; styles.ts: classes shared by several
+  draw/                       the drawing area: draw-canvas (puts it together), use-drawing (the drawing, selection, undo), use-pen (drawing, erasing), use-move (selecting, moving, scaling), use-area-fit (its size beside or above the bars), tool-picker, draw-templates, draw-actions, brush-options, draw-marks, draw-grid, shape-head
+  components/                 preview-3d, parameter-panel, share-creation, gallery-fan, cookie-bar, cookie-fx (flight, crumbs), button, card, dev-fixture (dev server only: saves the drawing as a test case), …; styles.ts: classes shared by several
   drawing.ts                  the drawing as vectors: painting, finding objects, moving/rotating/scaling, erasing
   presets.ts                  a template's outline from its SVG
   content.ts, assets.ts       templates and the gallery's cards from the CMS; the editor gets them through a context
@@ -64,7 +65,7 @@ src/
     cutter-worker.ts          runs cutter.ts in a web worker, only the latest job counts
     manifold.ts, mesh.ts      WASM singleton (public/manifold.wasm), Manifold → raw mesh
   export/                     three-mf.ts, stl.ts, download.ts, file-name.ts
-  cookies/                    models.ts (cookie geometries, also from Lucide icons and from creations), renderer.ts (one WebGL context for all cookie icons)
+  cookies/                    the 3D cookies: dough.ts (dough, sizes, sprinkles), kinds.ts (the icon cookies), svg-cookies.ts (traced from SVGs and Lucide icons), shape-cookie.ts (baked from creations), bites.ts (biting them), renderer.ts (one WebGL context for all cookie icons)
   i18n/                       de.ts, en.ts (the texts' seed and shape), index.ts (i18next with the texts from the server)
   translations/               the Translations global: fields from the keys (tree.ts), seeding (seed.ts), reading for the pages (texts.ts)
   payload.config.ts           Payload: MongoDB, collections, globals, seeding at start

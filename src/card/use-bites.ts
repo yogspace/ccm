@@ -4,11 +4,10 @@ import { trackEvent } from "../analytics";
 import {
   type Bite,
   biteAt,
-  type CookieShape,
   cookieLeft,
-  cookieOutline,
   leftoverCrumbs,
-} from "../cookies/models";
+} from "../cookies/bites";
+import { type CookieShape, cookieOutline } from "../cookies/shape-cookie";
 import { biteSpot } from "./bite";
 
 type Crumb = { id: number; x: number; y: number };

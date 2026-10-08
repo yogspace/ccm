@@ -6,7 +6,8 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import CookieIcon from "../components/cookie-icon";
-import type { Bite, CookieShape } from "../cookies/models";
+import type { Bite } from "../cookies/bites";
+import type { CookieShape } from "../cookies/shape-cookie";
 import { BACK_TILT } from "./bite";
 import { CardLabel, Paper, TurnSticker, WaitingNote } from "./card-parts";
 

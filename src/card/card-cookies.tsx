@@ -7,8 +7,8 @@ import {
   useState,
 } from "react";
 import CookieIcon from "../components/cookie-icon";
-import type { CookieShape } from "../cookies/models";
 import type { CookieHandle } from "../cookies/renderer";
+import type { CookieShape } from "../cookies/shape-cookie";
 import { useCardColors } from "../site-context";
 import { type Crumbs, createCrumbs } from "./crumbs";
 

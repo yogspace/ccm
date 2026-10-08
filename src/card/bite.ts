@@ -1,5 +1,5 @@
 import type * as THREE from "three";
-import { type Bite, cookieAt } from "../cookies/models";
+import { type Bite, cookieAt } from "../cookies/bites";
 
 /** How the cookie on the back lies: tilted back this far (rad). */
 export const BACK_TILT = -0.5;
@@ -23,7 +23,7 @@ const throughCookie = (x: number, y: number, canvas: HTMLCanvasElement) => {
   ];
   const [oy, oz] = turn(0, 5.4);
   const [dy, dz] = turn(v * spread, -1);
-  // The dough's top and bottom (models.ts: DEPTH with its bevel).
+  // The dough's top and bottom (cookies/dough.ts: DEPTH with its bevel).
   return [0.26, 0.16, 0.06, -0.04, -0.1].map((z) => {
     const t = (z - oz) / dz;
     return { x: u * spread * t, y: oy + dy * t };

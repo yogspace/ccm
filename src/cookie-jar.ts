@@ -1,4 +1,4 @@
-import type { CookieShape } from "./cookies/models";
+import type { CookieShape } from "./cookies/shape-cookie";
 import type { Ring } from "./geometry/outline";
 import { hashText } from "./hash-text";
 import { simplifyRing } from "./url-state";

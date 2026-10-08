@@ -2,17 +2,12 @@ import type { LucideIcon } from "lucide-react";
 import { type CSSProperties, useEffect, useRef } from "react";
 import type { Object3D } from "three";
 import { cn } from "../cn";
-import {
-  type Bite,
-  type CookieKind,
-  type CookieShape,
-  createBittenCookie,
-  createCookie,
-  createIconCookie,
-  createShapeCookie,
-  disposeCookie,
-} from "../cookies/models";
+import { type Bite, createBittenCookie } from "../cookies/bites";
+import { disposeCookie } from "../cookies/dough";
+import { type CookieKind, createCookie } from "../cookies/kinds";
 import { type CookieHandle, registerCookie } from "../cookies/renderer";
+import { type CookieShape, createShapeCookie } from "../cookies/shape-cookie";
+import { createIconCookie } from "../cookies/svg-cookies";
 
 type Props = {
   size: number;

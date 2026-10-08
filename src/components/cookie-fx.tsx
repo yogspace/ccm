@@ -1,7 +1,7 @@
 import { animate } from "motion/react";
 import { type CSSProperties, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
-import type { CookieShape } from "../cookies/models";
+import type { CookieShape } from "../cookies/shape-cookie";
 import CookieIcon from "./cookie-icon";
 
 /** The size the flying cookie is drawn at – the bar's tile size. */
