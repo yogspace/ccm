@@ -4,7 +4,7 @@ import configPromise from "@payload-config";
 import type { SerializedEditorState } from "@payloadcms/richtext-lexical/lexical";
 import { unstable_cache } from "next/cache";
 import { getPayload } from "payload";
-import type { Assets, Preset } from "./assets";
+import type { Assets, GalleryCard, Preset } from "./assets";
 import { TAGS } from "./cache";
 import { legalSeed } from "./legal/seed-content";
 import { MEDIA_DIR } from "./media";
@@ -61,9 +61,9 @@ const readTemplates = unstable_cache(
   { tags: [TAGS.templates] }
 );
 
-/** The gallery pictures – their card size where there is one. */
+/** The gallery's cards – their picture's card size where there is one. */
 const readGallery = unstable_cache(
-  async (): Promise<string[]> => {
+  async (): Promise<GalleryCard[]> => {
     const payload = await getPayload({ config: configPromise });
     const { docs } = await payload.find({
       collection: "gallery",
@@ -73,8 +73,16 @@ const readGallery = unstable_cache(
       overrideAccess: true,
     });
     return docs.flatMap((doc) => {
-      const url = doc.sizes?.card?.url ?? doc.url;
-      return url ? [url] : [];
+      const src = doc.sizes?.card?.url ?? doc.url;
+      if (!src) return [];
+      return [
+        {
+          src,
+          name: doc.name || doc.alt || "",
+          color: doc.color || null,
+          built: Boolean(doc.link),
+        },
+      ];
     });
   },
   ["gallery"],

@@ -1,5 +1,27 @@
 import { RING_RADIUS, ringLayout } from "./ring-text";
 
+/** Where it was made – at the share picture's foot. */
+export const SITE_LINE = "Cookie Cutter Maker · ccm.mxwr.de";
+
+/** The share picture: square, the card with the cutter in its upper part. */
+const SHARE_SIZE = 1200;
+const SHARE_MARGIN = 60;
+/** The cutter's place on the share picture – render it at this size. */
+export const SHARE_CARD = {
+  x: SHARE_MARGIN,
+  y: SHARE_MARGIN,
+  w: SHARE_SIZE - 2 * SHARE_MARGIN,
+  h: 880,
+};
+
+/** The favourite colour's shades the share picture is painted in (glaze.css). */
+export const SHARE_PICTURE_COLORS = {
+  page: "--glaze",
+  sheet: "--card-sheet",
+  text: "--on-glaze",
+  muted: "--on-glaze-muted",
+} as const;
+
 /** The greeting card as a picture – portrait 4:5, as Instagram likes it. */
 const WIDTH = 1080;
 const HEIGHT = 1350;
@@ -77,6 +99,48 @@ export const truncate = (
     cut = cut.slice(0, -1);
   }
   return `${cut.trimEnd()}…`;
+};
+
+/**
+ * The share picture, painted when it is saved or shared – as the page builds
+ * it (share-picture.tsx): the favourite colour, the card with the cutter from
+ * above, below it the name and where it was made. Also the admin's preview
+ * of a gallery card (fields/gallery-builder.tsx).
+ */
+export const paintSharePicture = async (
+  cutter: HTMLCanvasElement,
+  name: string,
+  colors: Record<keyof typeof SHARE_PICTURE_COLORS, string>
+) => {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = SHARE_SIZE;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  const card = SHARE_CARD;
+  ctx.fillStyle = colors.page;
+  ctx.fillRect(0, 0, SHARE_SIZE, SHARE_SIZE);
+  ctx.fillStyle = colors.sheet;
+  ctx.beginPath();
+  ctx.roundRect(card.x, card.y, card.w, card.h, 48);
+  ctx.fill();
+  // Right away – a newer cutter may take this one's place meanwhile.
+  ctx.drawImage(cutter, card.x, card.y, card.w, card.h);
+
+  await document.fonts.load(`700 1em ${FONT}`).catch(() => undefined);
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = colors.text;
+  ctx.font = `700 76px ${FONT}`;
+  ctx.fillText(truncate(ctx, name, card.w), card.x, card.y + card.h + 120);
+  ctx.fillStyle = colors.muted;
+  ctx.font = `500 38px ${FONT}`;
+  ctx.fillText(SITE_LINE, card.x, SHARE_SIZE - 70, card.w);
+
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/png")
+  );
+  // Freed right away: iOS Safari's canvas memory is tight and freed late.
+  canvas.width = canvas.height = 0;
+  return blob;
 };
 
 /** The message around the card – the same layout as the card page's ring. */

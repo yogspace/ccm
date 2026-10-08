@@ -180,7 +180,14 @@ $muted: #5c6080;
     padding: 0;
   }
 
-  &::-webkit-color-swatch,
+  // Each engine's pseudo-element in a rule of its own – a rule naming the
+  // other's is dropped whole.
+  &::-webkit-color-swatch {
+    border: 3px solid var(--theme-elevation-0);
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px var(--theme-elevation-150);
+  }
+
   &::-moz-color-swatch {
     border: 3px solid var(--theme-elevation-0);
     border-radius: 50%;
@@ -324,5 +331,117 @@ $muted: #5c6080;
 
   small {
     color: var(--theme-elevation-500);
+  }
+}
+
+// Gallery: a card from a creation's link (fields/gallery-builder.tsx) – the
+// form on the left, the card as the site shows it on the right.
+.gallery-builder {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1.5rem 2.5rem;
+  margin-bottom: 2rem;
+  padding: 1.5rem 1.75rem;
+  background: var(--theme-elevation-50);
+  border: 1px solid var(--theme-elevation-100);
+  border-radius: var(--style-radius-m);
+
+  h3,
+  p {
+    margin: 0;
+  }
+
+  p {
+    color: var(--theme-elevation-650);
+  }
+}
+
+.gallery-builder-form {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 18rem;
+  max-width: 40rem;
+}
+
+.gallery-builder-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.gallery-builder-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  color: var(--theme-elevation-800);
+}
+
+.gallery-builder-input {
+  flex: 1;
+  min-width: 0;
+  height: 2.5rem;
+  padding: 0 0.85rem;
+  font: inherit;
+  color: var(--theme-text);
+  background: var(--theme-input-bg);
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: var(--style-radius-s);
+
+  &:focus {
+    border-color: var(--theme-elevation-400);
+    outline: none;
+  }
+}
+
+.gallery-builder-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+
+  legend {
+    margin-bottom: 0.35rem;
+  }
+}
+
+// Like the site's swatches (color-swatches.tsx): the chosen one ringed.
+.gallery-builder-swatch {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  background: var(--swatch);
+  border: none;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 2px var(--theme-elevation-50),
+    0 0 0 2px var(--swatch);
+  cursor: pointer;
+  transition: box-shadow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  &[aria-pressed="true"] {
+    box-shadow:
+      0 0 0 2px var(--theme-elevation-50),
+      0 0 0 4px var(--swatch);
+  }
+}
+
+.gallery-builder-preview {
+  display: grid;
+  place-items: center;
+  width: 18rem;
+  aspect-ratio: 1;
+  color: var(--theme-elevation-500);
+  background: var(--theme-elevation-100);
+  border-radius: 1rem;
+  overflow: hidden;
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
   }
 }

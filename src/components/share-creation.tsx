@@ -20,15 +20,19 @@ import Button from "./button";
 import CanvasView from "./canvas-view";
 import { Card, CardHead, CardTitle } from "./card";
 import CardComposer from "./card-composer";
-import { truncate } from "./card-image";
+import {
+  paintSharePicture,
+  SHARE_CARD,
+  SHARE_PICTURE_COLORS,
+} from "./card-image";
 import ColorSwatches from "./color-swatches";
 import CookieIcon from "./cookie-icon";
 import type { PreviewHandle } from "./preview-3d";
 import RingText from "./ring-text";
 import Segmented from "./segmented";
+import SharePicture from "./share-picture";
 import {
   cookieInButton,
-  ghost,
   ringOnGlaze,
   shareContent,
   shareIntro,
@@ -43,61 +47,6 @@ import { useLivePicture } from "./use-live-picture";
 type Props = {
   /** The 3D view – it renders the picture from above. */
   preview: RefObject<PreviewHandle | null>;
-};
-
-const SIZE = 1200;
-const MARGIN = 60;
-const CARD = { x: MARGIN, y: MARGIN, w: SIZE - 2 * MARGIN, h: 880 };
-/** Where it was made – at the picture's foot. */
-const SITE_LINE = "Cookie Cutter Maker · ccm.mxwr.de";
-const FONT = '"Pally", system-ui, sans-serif';
-
-/** The favourite colour's shades the picture is painted in (glaze.css). */
-const PICTURE_COLORS = {
-  page: "--glaze",
-  sheet: "--card-sheet",
-  text: "--on-glaze",
-  muted: "--on-glaze-muted",
-} as const;
-
-/**
- * The share picture, painted only when it is saved or shared – as the box
- * shows it (built of the page, below): the favourite colour, the card with
- * the cutter from above, below it the name and where it was made.
- */
-const paintPicture = async (
-  cutter: HTMLCanvasElement,
-  name: string,
-  colors: Record<keyof typeof PICTURE_COLORS, string>
-) => {
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = SIZE;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return null;
-  ctx.fillStyle = colors.page;
-  ctx.fillRect(0, 0, SIZE, SIZE);
-  ctx.fillStyle = colors.sheet;
-  ctx.beginPath();
-  ctx.roundRect(CARD.x, CARD.y, CARD.w, CARD.h, 48);
-  ctx.fill();
-  // Right away – a newer cutter may take this one's place meanwhile.
-  ctx.drawImage(cutter, CARD.x, CARD.y, CARD.w, CARD.h);
-
-  await document.fonts.load(`700 1em ${FONT}`).catch(() => undefined);
-  ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = colors.text;
-  ctx.font = `700 76px ${FONT}`;
-  ctx.fillText(truncate(ctx, name, CARD.w), MARGIN, CARD.y + CARD.h + 120);
-  ctx.fillStyle = colors.muted;
-  ctx.font = `500 38px ${FONT}`;
-  ctx.fillText(SITE_LINE, MARGIN, SIZE - 70, CARD.w);
-
-  const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, "image/png")
-  );
-  // Freed right away: iOS Safari's canvas memory is tight and freed late.
-  canvas.width = canvas.height = 0;
-  return blob;
 };
 
 type Mode = "picture" | "card";
@@ -147,7 +96,7 @@ const ShareCreation = ({ preview }: Props) => {
   const cutterView = useLivePicture<HTMLCanvasElement>(
     boxRef,
     [cutter.mesh],
-    () => preview.current?.renderTop(CARD.w, CARD.h, glaze) ?? null,
+    () => preview.current?.renderTop(SHARE_CARD.w, SHARE_CARD.h, glaze) ?? null,
     {
       quick: [glaze],
       // Freed once the next has faded in over it (canvas-view.tsx).
@@ -176,10 +125,10 @@ const ShareCreation = ({ preview }: Props) => {
     const last = painted.current;
     if (last?.cutter === cutterView && last.key === key) return last.file;
     const fileName = `${title.replace(/[^\p{L}\p{N}]+/gu, "-")}.png`;
-    const file = paintPicture(
+    const file = paintSharePicture(
       cutterView,
       pictureName,
-      resolveColors(place, PICTURE_COLORS)
+      resolveColors(place, SHARE_PICTURE_COLORS)
     ).then((blob) => blob && new File([blob], fileName, { type: "image/png" }));
     painted.current = { cutter: cutterView, key, file };
     return file;
@@ -265,39 +214,21 @@ const ShareCreation = ({ preview }: Props) => {
             />
           ) : (
             <>
-              {/* The picture as it will be shared, built of the page itself –
-                  paintPicture paints it the same, 1200 px wide: 12 px there
-                  are 1cqw here. The cutter's place is kept while it renders.
-                  Name and site on the baselines they are painted on (1060
-                  and 1130) – Pally's lies --baseline below the top of a line
-                  as high as its font. */}
-              <div
+              {/* The picture as it will be shared, built of the page
+                  itself; the cutter's place is kept while it renders. */}
+              <SharePicture
                 aria-label={t("share.imageAlt", { name: title })}
-                className={cn(
-                  shareVisual,
-                  "glaze relative overflow-hidden rounded-2xl bg-glaze text-on-glaze @container"
-                )}
+                className={shareVisual}
+                glaze={glaze}
+                name={pictureName}
                 ref={pictureRef}
                 role="img"
-                style={{ "--glaze": glaze } as CSSProperties}
+                waiting={!cutterView && !!cutter.mesh}
               >
-                <div
-                  className={cn(
-                    "absolute top-[5cqw] left-[5cqw] h-[73.333cqw] w-[90cqw] rounded-[4cqw] bg-card-sheet",
-                    !cutterView && cutter.mesh && ghost
-                  )}
-                >
-                  {cutterView && (
-                    <CanvasView canvas={cutterView} className="size-full" />
-                  )}
-                </div>
-                <strong className="absolute top-[calc(88.333cqw-var(--baseline))] left-[5cqw] w-[90cqw] truncate text-[6.333cqw] leading-none font-bold [--baseline:0.813em]">
-                  {pictureName}
-                </strong>
-                <small className="absolute top-[calc(94.167cqw-var(--baseline))] left-[5cqw] w-[90cqw] truncate text-[3.167cqw] leading-none font-medium text-on-glaze-muted [--baseline:0.813em]">
-                  {SITE_LINE}
-                </small>
-              </div>
+                {cutterView && (
+                  <CanvasView canvas={cutterView} className="size-full" />
+                )}
+              </SharePicture>
               <div className={shareContent}>
                 <p className={shareIntro}>{t("share.creationText")}</p>
                 <ColorSwatches

@@ -139,7 +139,7 @@ export interface Template {
   focalY?: number | null;
 }
 /**
- * Pictures for the fan above the footer – five are drawn at random on every load. Square ones fit best.
+ * Cards for the fan above the footer – five are drawn at random on every load. Paste a creation's link below to build one.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "gallery".
@@ -147,6 +147,18 @@ export interface Template {
 export interface Gallery {
   id: string;
   _order?: string | null;
+  /**
+   * On the card below the cutter – empty: “Cookie Cutter”.
+   */
+  name?: string | null;
+  /**
+   * The card's colour as #rrggbb – empty: the first card colour (Site).
+   */
+  color?: string | null;
+  /**
+   * The creation the card was built from.
+   */
+  link?: string | null;
   /**
    * What the picture shows (optional).
    */
@@ -349,6 +361,9 @@ export interface TemplatesSelect<T extends boolean = true> {
  */
 export interface GallerySelect<T extends boolean = true> {
   _order?: T;
+  name?: T;
+  color?: T;
+  link?: T;
   alt?: T;
   updatedAt?: T;
   createdAt?: T;

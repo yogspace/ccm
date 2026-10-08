@@ -10,13 +10,27 @@ export type Preset = {
 };
 
 /**
+ * A card in the gallery's fan: its picture (the cutter from above, built
+ * from a link – or uploaded by hand, on a white ground), its name and colour.
+ */
+export type GalleryCard = {
+  src: string;
+  /** Empty: “Cookie Cutter”. */
+  name: string;
+  /** #rrggbb – null: the first card colour. */
+  color: string | null;
+  /** Built from a link: transparent around the cutter. */
+  built: boolean;
+};
+
+/**
  * What the editor takes from the CMS (see content.ts): the templates and the
- * gallery pictures – handed over by the page, so a new upload needs no code –
+ * gallery's cards – handed over by the page, so a new upload needs no code –
  * and the legal text, already rendered on the server (legal/).
  */
 export type Assets = {
   presets: Preset[];
-  gallery: string[];
+  gallery: GalleryCard[];
   legal?: Partial<Record<"de" | "en", ReactNode>>;
 };
 
