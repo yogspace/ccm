@@ -19,7 +19,8 @@
    greeting card (its favourite colour). */
 
 @theme {
-  --font-sans: "Pally", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans:
+    "Pally", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
   /* Font sizes: only these five */
   --text-*: initial;
@@ -99,7 +100,9 @@
 
 /* The drawing area's container decides where its bars go: beside the area
    unless the card is clearly taller than wide (see draw-canvas.tsx). */
-@custom-variant beside (@container draw (aspect-ratio >= 0.88) and (width >= 30rem));
+@custom-variant beside (
+  @container draw (aspect-ratio >= 0.88) and (width >= 30rem)
+);
 
 /* The drawing area stays a light sheet in both themes – with light colours of
    its own for everything on it. */

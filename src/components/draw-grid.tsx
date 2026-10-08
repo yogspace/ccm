@@ -16,8 +16,7 @@ const FALLBACK_DIVISIONS = 8;
 const LABEL_MARGIN = 0.08;
 
 /** A label at the edge; x at the bottom, y on the left, 0 in the corner. */
-const tick =
-  "absolute text-tiny leading-none text-[#9a917f] tabular-nums";
+const tick = "absolute text-tiny leading-none text-[#9a917f] tabular-nums";
 
 /** Rounds to 1, 2 or 5 times a power of ten. */
 const niceStep = (raw: number) => {

@@ -67,10 +67,7 @@ const Segmented = <T extends string>({
         >
           {option.value === value && (
             <motion.span
-              className={cn(
-                "absolute inset-0 rounded-[inherit]",
-                styles.pill
-              )}
+              className={cn("absolute inset-0 rounded-[inherit]", styles.pill)}
               layoutId={`${id}-pill`}
               transition={{ type: "spring", stiffness: 520, damping: 34 }}
             />

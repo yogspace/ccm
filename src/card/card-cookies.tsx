@@ -154,12 +154,12 @@ const measures = (size: number) => {
 
 /** The parts of the page the cookies keep to. */
 const PARTS = {
-  stage: ".greeting-stage",
-  card: ".greeting-card",
-  actions: ".greeting-actions",
-  cta: ".greeting-cta",
-  footer: ".greeting > footer",
-  sun: ".greeting .donate",
+  stage: '[data-part="stage"]',
+  card: '[data-part="card"]',
+  actions: '[data-part="actions"]',
+  cta: '[data-part="cta"]',
+  footer: "[data-greeting] > footer",
+  sun: "[data-greeting] [data-donate]",
 };
 
 /**
@@ -777,13 +777,24 @@ const CardCookies = ({ shape }: { shape: CookieShape }) => {
       target.addEventListener("pointercancel", release);
     };
 
+  // No stacking context of its own: each cookie lies behind the content by
+  // itself – and the one being dragged can float above everything.
   return (
-    <div aria-hidden className="greeting-cookies" ref={layerRef}>
-      {/* First: the crumbs lie behind every cookie (crumbs.ts). */}
-      <div className="greeting-crumbs" ref={crumbBoxRef} />
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 overflow-hidden"
+      ref={layerRef}
+    >
+      {/* First: the crumbs lie behind every cookie (crumbs.ts), moved by
+          transform from the corner. */}
+      <div
+        className="pointer-events-none absolute inset-0 -z-1"
+        ref={crumbBoxRef}
+      />
       {Array.from({ length: count }, (_, i) => (
+        // Positioned by the physics (transform), so they start at the corner.
         <div
-          className="greeting-cookie-spot"
+          className="pointer-events-auto absolute top-0 left-0 -z-1 cursor-grab touch-none select-none will-change-transform data-held:z-5 data-held:cursor-grabbing"
           data-held={held === i || undefined}
           key={i}
           onPointerDown={grab(i)}

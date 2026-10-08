@@ -2,8 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { isLocale, SITE } from "@/seo";
-// The colour scheme first: the app's own rules may add to it (index.css).
-import "@/glaze.css";
+// Tailwind, the theme and the base styles – glaze.css comes along with it.
 import "@/index.css";
 
 export const metadata: Metadata = {

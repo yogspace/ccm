@@ -122,9 +122,11 @@ const CardCutter = ({
   }, [mesh, color, delay]);
 
   return (
+    // In softly while it grows up out of the card – it does not pop up flat
+    // first.
     <div
       aria-label={label}
-      className="card-cutter"
+      className="col-start-1 row-start-1 min-h-0 min-w-0 animate-[cutter-in_0.8s_var(--ease-soft)_0.15s_both] *:size-full"
       ref={containerRef}
       role="img"
     />

@@ -118,7 +118,10 @@ const CardComposer = ({ greeting, onChange, picture }: Props) => {
         style={{ "--glaze": glaze } as CSSProperties}
       >
         <RingText
-          className={cn(ringOnGlaze, "animate-[ring-turn_150s_linear_infinite]")}
+          className={cn(
+            ringOnGlaze,
+            "animate-[ring-turn_150s_linear_infinite]"
+          )}
           text={greeting.message.trim() || t("card.ring")}
         />
         <div className="absolute inset-[22.5%] grid -rotate-3 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)_auto] rounded-[5cqw] bg-card-sheet px-[3.5cqw] pt-[3cqw] pb-[3.5cqw] shadow-[0_1.2rem_2rem_-0.8rem_rgb(4_8_60/0.55)]">

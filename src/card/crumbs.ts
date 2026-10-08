@@ -69,7 +69,8 @@ export const createCrumbs = (box: HTMLElement) => {
         const angle = Math.atan2(ny, nx) + (Math.random() - 0.5) * 2.2;
         const speed = (140 + Math.random() * 260) * (1 + force / 20);
         const element = document.createElement("span");
-        element.className = "greeting-crumb";
+        element.className =
+          "absolute top-0 left-0 rounded-[45%_55%_40%_50%] shadow-[inset_-0.5px_-0.8px_0_rgb(120_70_20/0.25)]";
         const r = 1.4 + Math.random() * 2.2;
         element.style.width = `${r * 2}px`;
         element.style.height = `${r * 2 * (0.7 + Math.random() * 0.5)}px`;

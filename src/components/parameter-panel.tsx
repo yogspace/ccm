@@ -2,12 +2,12 @@ import { Check, RotateCcw } from "lucide-react";
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
+import { cn } from "../cn";
 import {
   type CutterParams,
   defaultParams,
   SIZE_RANGE,
 } from "../geometry/cutter";
-import { cn } from "../cn";
 import { resetParams, setParam, store } from "../store";
 import { formatLength } from "../units";
 import Button from "./button";
@@ -139,7 +139,10 @@ const ParameterPanel = () => {
             the checkbox where the track is), so it lines up with the bridge
             width's slider beside it. */}
         <div className="flex flex-col gap-2 text-body">
-          <span aria-hidden className="flex items-baseline justify-between gap-2">
+          <span
+            aria-hidden
+            className="flex items-baseline justify-between gap-2"
+          >
             &nbsp;
           </span>
           {/* Like the slider, no height of its own – centred on the line

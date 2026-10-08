@@ -2,9 +2,9 @@ import { Eraser, Move, Pencil } from "lucide-react";
 import { motion } from "motion/react";
 import { memo, useId } from "react";
 import { useTranslation } from "react-i18next";
+import { cn } from "../cn";
 import type { Tool } from "../store";
 import Button from "./button";
-import { cn } from "../cn";
 import CookieIcon from "./cookie-icon";
 import { cookieInIconButton, cookieToggle } from "./styles";
 

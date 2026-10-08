@@ -44,11 +44,7 @@ const RingText = ({ text, className }: Props) => {
   const r = RADIUS;
 
   return (
-    <svg
-      aria-hidden
-      className={className}
-      viewBox="0 0 100 100"
-    >
+    <svg aria-hidden className={className} viewBox="0 0 100 100">
       {/* Clockwise from the top: the letters stand outwards, upright on top. */}
       <path
         d={`M 50 ${50 - r} a ${r} ${r} 0 1 1 0 ${2 * r} a ${r} ${r} 0 1 1 0 ${-2 * r}`}

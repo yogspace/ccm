@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import { type CSSProperties, useEffect, useRef } from "react";
 import type { Object3D } from "three";
+import { cn } from "../cn";
 import {
   type Bite,
   type CookieKind,
@@ -11,7 +12,6 @@ import {
   createShapeCookie,
   disposeCookie,
 } from "../cookies/models";
-import { cn } from "../cn";
 import { type CookieHandle, registerCookie } from "../cookies/renderer";
 
 type Props = {
@@ -181,7 +181,7 @@ const CookieIcon = ({
         className={cn(
           // Its size from the prop, smaller via --cookie-scale (inherited),
           // e.g. on phones. Greyed in a disabled button.
-          "pointer-events-none block size-[calc(var(--size)*var(--cookie-scale,1))] shrink-0 select-none in-disabled:grayscale-60",
+          "pointer-events-none block h-[calc(var(--size)*var(--cookie-scale,1))] w-[calc(var(--size)*var(--cookie-scale,1))] shrink-0 select-none in-disabled:grayscale-60",
           className
         )}
         data-cookie

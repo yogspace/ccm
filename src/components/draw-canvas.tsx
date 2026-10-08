@@ -1073,7 +1073,11 @@ const DrawCanvas = () => {
                 initial={{ opacity: 0, scale: 0.94 }}
                 transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
               >
-                <CookieIcon className={cookieInStageHint} kind="heart" size={130} />
+                <CookieIcon
+                  className={cookieInStageHint}
+                  kind="heart"
+                  size={130}
+                />
                 <strong className="font-bold text-ink">{t("draw.hint")}</strong>
                 <span>{t("draw.hintSub")}</span>
               </motion.div>

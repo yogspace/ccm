@@ -19,10 +19,7 @@ export const Card = ({ className, ...props }: ComponentProps<"section">) => (
 /** The card's head: its title on the left, its tools on the right. */
 export const CardHead = ({ className, ...props }: ComponentProps<"div">) => (
   <div
-    className={cn(
-      "flex min-h-9 items-center justify-between gap-4",
-      className
-    )}
+    className={cn("flex min-h-9 items-center justify-between gap-4", className)}
     {...props}
   />
 );

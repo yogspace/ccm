@@ -4,7 +4,6 @@ import { getSite } from "@/content";
 import { GLAZE_SCRIPT_ID, glazeScript } from "@/glaze";
 import { cardMetadata } from "@/seo";
 import { getTexts } from "@/translations/texts";
-import "@/card/card.css";
 
 export const metadata = cardMetadata;
 
@@ -13,7 +12,7 @@ export const metadata = cardMetadata;
 export const dynamic = "force-dynamic";
 
 export const viewport: Viewport = {
-  // The card reaches into the safe areas (notch, home bar) – see card.css.
+  // The card reaches into the safe areas (notch, home bar) – see card-page.tsx.
   viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#2a44ff" },

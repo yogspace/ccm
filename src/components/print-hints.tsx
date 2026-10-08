@@ -1,7 +1,7 @@
 import { Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import Button from "./button";
 import { cn } from "../cn";
+import Button from "./button";
 import CookieIcon from "./cookie-icon";
 import { cookieInButton, popup } from "./styles";
 

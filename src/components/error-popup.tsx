@@ -1,9 +1,9 @@
 import { X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { cn } from "../cn";
 import { useError } from "../store";
 import Button from "./button";
-import { cn } from "../cn";
 import CookieIcon from "./cookie-icon";
 import { cookieInIconButton, popup } from "./styles";
 

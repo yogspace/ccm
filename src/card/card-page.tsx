@@ -16,6 +16,7 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { trackEvent } from "../analytics";
+import { cn } from "../cn";
 import Button from "../components/button";
 import {
   CARD_PICTURE_COLORS,
@@ -25,6 +26,7 @@ import { Crumbs } from "../components/cookie-fx";
 import CookieIcon from "../components/cookie-icon";
 import RingText from "../components/ring-text";
 import SiteFooter from "../components/site-footer";
+import { cookieInButton } from "../components/styles";
 import { cookieSeed } from "../cookie-jar";
 import {
   type Bite,
@@ -114,6 +116,42 @@ const NEAR_EDGE = [0.05, 0.1, 0.16];
 
 const still = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/** A sprinkle bursting from behind the card (--angle, --color, --reach, --delay). */
+const sprinkle =
+  "absolute top-1/2 left-1/2 h-[0.95cqw] w-[2.4cqw] animate-[greet-sprinkle_1.4s_var(--ease-soft)_var(--delay,0.7s)_both] rounded-[1cqw] bg-(--color) opacity-0";
+
+/**
+ * A side of the card. The far side hides when the card stands on edge –
+ * with the springy turn after about a sixth of it – and its canvas with it.
+ * A long name is cut, it does not widen the card.
+ */
+const paper =
+  "absolute inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)_auto] rounded-[5.5cqw] bg-card-sheet px-[4.5cqw] py-[4cqw] text-card-ink shadow-[0_0.6rem_1.2rem_-0.4rem_rgb(4_8_60/0.35),0_2.8rem_4.5rem_-1.8rem_rgb(4_8_60/0.6)] backface-hidden [transition:visibility_0s_linear_0.17s]";
+
+/** Like a label: the name left, the size (or how it is) right. */
+const label =
+  "flex items-baseline justify-between gap-[0.6em] px-[1.2cqw] text-left text-[length:4.6cqw] leading-[1.2] font-bold tracking-[-0.01em]";
+const labelName = "min-w-0 truncate";
+const labelNote = "flex-none text-[0.68em] font-semibold text-card-ink-muted";
+
+/** The buttons below the card, on the page without a box. */
+const action =
+  "h-11.5 gap-1.75 rounded-[0.8rem] pr-4.75 pl-3.25 text-[1.05rem]";
+/** The main one: light; on phones across the whole row. */
+const mainAction = cn(
+  action,
+  "bg-[#fffdf8] text-[#0d1033] hover:enabled:bg-white max-xs:col-span-full max-xs:h-10 max-xs:text-[0.95rem]"
+);
+/** The others: on phones side by side, each its cookie above its word. */
+const sideAction = cn(
+  action,
+  "bg-white/14 text-on-page hover:enabled:bg-white/24 max-xs:h-auto max-xs:flex-col max-xs:gap-0 max-xs:px-1.25 max-xs:pt-1.5 max-xs:pb-1.5 max-xs:text-tiny"
+);
+const sideCookie = cn(
+  cookieInButton,
+  "max-xs:mx-0 max-xs:-mt-2.25 max-xs:-mb-1.75"
+);
 
 /**
  * The greeting card's page: who it is for, the card with the cutter in the
@@ -365,9 +403,12 @@ const CardPage = () => {
 
   /** A sticker in the corner: this card turns over. */
   const turnSticker = (
-    <span aria-hidden className="greeting-turn">
+    <span
+      aria-hidden
+      className="absolute top-[2.2cqw] right-[2.2cqw] grid place-items-center"
+    >
       <CookieIcon
-        className="greeting-turn-icon"
+        className="m-0 size-[8cqw]"
         icing="#2a44ff"
         icon={RotateCw}
         idle={false}
@@ -432,29 +473,60 @@ const CardPage = () => {
     trackEvent(format === "3mf" ? "card-download-3mf" : "card-download-stl");
   };
 
+  // One screen without scrolling: who it is for, the card with the cutter
+  // and the message running around it, who it is from, the files, the way to
+  // the maker, the footer – room above and below the content (1fr). The
+  // stage takes what is left, but never more than the width allows – any
+  // room beyond that goes above and below, not between the lines. One
+  // column, never wider than the screen – whatever is inside. Sizes follow
+  // the screen's height, the card's insides follow the card (container
+  // units). The card reaches into the safe areas.
+  //
+  // Phones: the card first and big – the stage wider than the screen, the
+  // message running around goes out at the sides. The page scrolls on to
+  // the buttons and the footer instead of squeezing the card into one
+  // screen (index.css).
+  //
+  // Behind it all: light from behind the card, a neon glow rising from below.
   return (
-    <main className="greeting">
+    <main
+      className="relative isolate grid h-dvh grid-cols-[minmax(0,1fr)] grid-rows-[1fr_auto_minmax(0,min(100vw_-_2rem,38rem))_auto_auto_auto_1fr_auto] items-center justify-items-center gap-y-[clamp(0.3rem,1.5dvh,0.9rem)] overflow-hidden px-4 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] text-center before:pointer-events-none before:absolute before:inset-0 before:-z-1 before:bg-[radial-gradient(ellipse_55%_42%_at_50%_47%,rgb(255_255_255/0.2),transparent_72%),radial-gradient(ellipse_90%_55%_at_50%_118%,rgb(255_71_208/0.3),transparent_70%)] max-xs:h-auto max-xs:min-h-dvh max-xs:grid-rows-[1fr_auto_118vw_auto_auto_auto_1fr_auto]"
+      data-greeting
+    >
       {/* The card's own cookie, a few times in the background. */}
       {dough && <CardCookies shape={dough} />}
+      {/* The rows above the cookies span the whole width, invisibly – they
+          let clicks through to the cookies behind them; only the card (it
+          turns over) and the buttons below take them. Who it is from and
+          the buttons may be missing – their rows stay empty. */}
       <h1
-        className="greeting-to"
+        className="pointer-events-none row-start-2 mt-[clamp(0rem,1.5dvh,1rem)] max-w-full -rotate-2 animate-[greet-rise_0.9s_var(--ease-soft)_0.1s_both] text-[length:clamp(1.8rem,min(7.2dvh,150vw/(var(--chars,8)_+_2)),4.4rem)] leading-[1.05] font-bold tracking-[-0.025em] wrap-anywhere embolden-25"
         // Long names get smaller instead of taking several lines.
         style={{ "--chars": heading.length } as CSSProperties}
       >
         {heading}
       </h1>
 
-      <div className="greeting-slot">
-        <div className="greeting-stage">
-          <RingText text={greeting.message || t("card.ring")} />
-          {greeting.message && (
-            <p className="visually-hidden">{greeting.message}</p>
-          )}
+      {/* The stage is the largest square that fits the room left. Phones:
+          wider than the screen – centred by hand, a grid puts what is wider
+          than its cell at the start. */}
+      <div className="pointer-events-none row-start-3 grid size-full min-h-0 place-items-center @container-[size]">
+        <div
+          className="pointer-events-none relative aspect-square w-[min(100cqw,100cqh,38rem)] @container max-xs:ml-[calc(50cqw_-_min(62.5cqw,50cqh))] max-xs:w-[min(125cqw,100cqh)] max-xs:justify-self-start"
+          data-part="stage"
+        >
+          {/* The message, all the way around – slowly turning like a record. */}
+          <RingText
+            className="absolute inset-0 size-full animate-[ring-in_1.6s_var(--ease-soft)_0.45s_both,ring-turn_150s_linear_infinite] overflow-visible fill-on-page font-semibold whitespace-pre"
+            text={greeting.message || t("card.ring")}
+          />
+          {greeting.message && <p className="sr-only">{greeting.message}</p>}
+          {/* Sprinkles burst from behind the card as it lands. */}
           {!still() &&
             SPRINKLES.map(({ angle, color, reach }) => (
               <i
                 aria-hidden
-                className="greeting-sprinkle"
+                className={sprinkle}
                 key={`${turns}-${angle}`}
                 style={
                   {
@@ -466,12 +538,17 @@ const CardPage = () => {
                 }
               />
             ))}
+          {/* The cookie eaten up: confetti from behind the card – farther
+              out, then drifting down as it fades. */}
           {eaten &&
             !still() &&
             CONFETTI.map(({ angle, color, reach, delay, size }) => (
               <i
                 aria-hidden
-                className="greeting-sprinkle greeting-confetti"
+                className={cn(
+                  sprinkle,
+                  "h-[calc(0.95cqw*var(--size,1))] w-[calc(2.4cqw*var(--size,1))] animate-[greet-confetti_2.4s_cubic-bezier(0.12,0.7,0.3,1)_var(--delay,0s)_both]"
+                )}
                 key={`eaten-${angle}`}
                 style={
                   {
@@ -484,11 +561,20 @@ const CardPage = () => {
                 }
               />
             ))}
-          <div className="greeting-card" ref={cardRef}>
+          {/* The card: tilted a little, leaning towards the pointer. */}
+          <div
+            className="pointer-events-auto absolute inset-[20.5%] animate-[card-land_1.1s_var(--ease-spring)_0.15s_both] transition-transform duration-900 transform-3d [transform:perspective(70rem)_rotateX(var(--lean-x,0deg))_rotateY(var(--lean-y,0deg))_rotate(-3deg)]"
+            data-part="card"
+            ref={cardRef}
+          >
+            {/* The card turns over: cutter in front, the cookie it bakes on
+                the back. Once landed, it wobbles as if about to turn – a hint
+                it can; on its own property (rotate), so the turn itself
+                (transform) still transitions. */}
             <button
               aria-label={t(flipped ? "card.flipBack" : "card.flip")}
               aria-pressed={flipped}
-              className="greeting-flip"
+              className="relative block size-full rounded-[5.5cqw] bg-transparent p-0 whitespace-normal text-inherit transform-3d [font:inherit] [text-align:inherit] [transition:transform_0.95s_var(--ease-spring)] not-disabled:not-data-flipped:animate-[greet-peek_1.4s_var(--ease-soft)_2.4s] focus-visible:outline-3 focus-visible:outline-offset-[0.5rem] focus-visible:outline-on-page disabled:cursor-default disabled:opacity-100 data-flipped:[transform:rotateY(180deg)]"
               data-flipped={flipped || undefined}
               disabled={!cookie}
               onClick={() => {
@@ -503,7 +589,7 @@ const CardPage = () => {
               }}
               type="button"
             >
-              <span className="greeting-paper greeting-front">
+              <span className={cn(paper, "in-data-flipped:invisible")}>
                 {mesh && (
                   <CardCutter
                     color={glaze}
@@ -514,12 +600,15 @@ const CardPage = () => {
                   />
                 )}
                 {(!mesh || waitShown) && (
+                  // The cutter is there: out softly, while it grows up in the
+                  // same place.
                   <span
                     aria-hidden={mesh ? true : undefined}
-                    className="greeting-wait"
+                    className="col-start-1 row-start-1 grid min-h-0 place-items-center content-center gap-[0.6em] px-[8%] text-[length:3.4cqw] leading-[1.3] text-card-ink-muted [transition:opacity_0.45s_var(--ease-soft),scale_0.45s_var(--ease-soft)] data-gone:scale-90 data-gone:opacity-0"
                     data-gone={mesh ? true : undefined}
                   >
                     <CookieIcon
+                      className={cookieInButton}
                       idle={false}
                       kind="star"
                       size={88}
@@ -532,16 +621,27 @@ const CardPage = () => {
                     </span>
                   </span>
                 )}
-                <span className="greeting-name" hidden={!hasShape}>
-                  <span>{name}</span>
-                  <small>{sizeLabel}</small>
+                <span className={label} hidden={!hasShape}>
+                  <span className={labelName}>{name}</span>
+                  <small className={labelNote}>{sizeLabel}</small>
                 </span>
                 {cookie && turnSticker}
               </span>
-              <span className="greeting-paper greeting-back">
-                {/* The message, behind the cookie – each bite shows more. */}
+              {/* The back in the favourite colour, strong. Nothing on it gets
+                  selected when the cookie is bitten in quick taps. */}
+              <span
+                className={cn(
+                  paper,
+                  "invisible bg-card-back select-none [transform:rotateY(180deg)] in-data-flipped:visible"
+                )}
+              >
+                {/* The message, behind the cookie – each bite shows more: in
+                    the back's colour, a little darker – fine, but readable.
+                    Smaller for longer messages – and so small that the
+                    longest word fits the card's width (Pally's letters about
+                    0.56em wide). */}
                 <span
-                  className="greeting-hidden"
+                  className="col-start-1 row-start-1 self-center px-[4cqw] text-center text-[length:clamp(5cqw,min(64cqw/(var(--chars,12)*0.24_+_3),42cqw/(var(--word,6)*0.56)),10cqw)] leading-[1.05] font-bold tracking-[-0.02em] text-balance wrap-break-word text-card-back-ink"
                   style={
                     {
                       "--chars": hidden.length,
@@ -555,17 +655,19 @@ const CardPage = () => {
                   {hidden}
                 </span>
                 {cookie && (
+                  // A click bites where it lands; the last bite eats it up and
+                  // the greeting takes its place.
                   // biome-ignore lint/a11y/noStaticElementInteractions: a playful extra – the card itself turns by keyboard
                   // biome-ignore lint/a11y/useKeyWithClickEvents: as above
                   <span
-                    className="greeting-bite"
+                    className="col-start-1 row-start-1 grid min-h-0 cursor-pointer justify-items-center [transition:scale_0.35s_var(--ease-soft),opacity_0.35s_var(--ease-soft)] data-eaten:pointer-events-none data-eaten:scale-30 data-eaten:opacity-0"
                     data-eaten={eaten || undefined}
                     onClick={bite}
                     title={eaten ? undefined : t("card.bite")}
                   >
                     <CookieIcon
                       bites={bites.length > 0 ? bites : undefined}
-                      className="greeting-cookie"
+                      className="m-0 aspect-square h-full min-h-0 w-auto justify-self-center"
                       // Baked, it is simply there – fresh again too.
                       grown
                       // Still: drawn once, no frames while it lies there.
@@ -577,17 +679,19 @@ const CardPage = () => {
                     />
                   </span>
                 )}
-                {/* Until the first bite: an arrow to the cookie – floating,
-                    clicks go through, nothing moves when it goes. */}
+                {/* Until the first bite: an arrow to the cookie – bobbing a
+                    little, clicks go through, nothing moves when it goes. In
+                    once the card has landed; out softly with the first
+                    bite. */}
                 <small
                   aria-hidden
-                  className="greeting-eat-me"
+                  className="pointer-events-none absolute right-[5cqw] bottom-[11cqw] inline-flex animate-[eat-me-in_0.6s_var(--ease-soft)_0.9s_both] items-end gap-[0.8cqw] text-[length:3.3cqw] font-semibold text-card-deep [transition:opacity_0.4s_var(--ease-soft),translate_0.4s_var(--ease-soft),visibility_0s_linear_0.4s] motion-reduce:[animation-name:fade] data-gone:invisible data-gone:translate-y-[0.8cqw] data-gone:opacity-0"
                   data-gone={bites.length > 0 || undefined}
                   // Fades in anew after every turn, once the card has landed.
                   key={turns}
                 >
                   <CookieIcon
-                    className="greeting-eat-arrow"
+                    className="-mt-[1.2cqw] -mr-[0.5cqw] -mb-[0.4cqw] animate-[eat-me_1.6s_ease-in-out_infinite] motion-reduce:animate-none"
                     icing="#ff5fa8"
                     icon={ArrowUpLeft}
                     idle={false}
@@ -595,12 +699,15 @@ const CardPage = () => {
                     size={44}
                   />
                   <span>
-                    {t("card.eatMe")} <em>{t("card.click")}</em>
+                    {t("card.eatMe")}{" "}
+                    <em className="font-medium italic">{t("card.click")}</em>
                   </span>
                 </small>
-                <span className="greeting-name">
-                  <span>{name}</span>
-                  <small>{t(eaten ? "card.eaten" : "card.baked")}</small>
+                <span className={label}>
+                  <span className={labelName}>{name}</span>
+                  <small className={labelNote}>
+                    {t(eaten ? "card.eaten" : "card.baked")}
+                  </small>
                 </span>
                 {cookie && turnSticker}
               </span>
@@ -611,7 +718,7 @@ const CardPage = () => {
 
       {greeting.from && (
         <p
-          className="greeting-from"
+          className="pointer-events-none row-start-4 max-w-full -rotate-1 animate-[greet-rise_0.9s_var(--ease-soft)_0.65s_both] text-[length:clamp(1rem,min(3.3dvh,110vw/(var(--chars,8)_+_2)),1.7rem)] leading-[1.2] font-semibold text-on-page-muted wrap-anywhere"
           style={{ "--chars": greeting.from.length + 4 } as CSSProperties}
         >
           {t("card.fromName", { name: greeting.from })}
@@ -619,16 +726,22 @@ const CardPage = () => {
       )}
 
       {/* Below the card, without a box – it is about the card: the files
-          and the picture in a row, then the way to make your own. */}
+          and the picture in a row, then the way to make your own. Phones:
+          the 3MF across; STL, share and save side by side below it, each its
+          cookie above its word. */}
       {(!failed || hasShape) && (
-        <div className="greeting-actions">
+        <div
+          className="row-start-5 mt-[clamp(0.2rem,1.2dvh,0.8rem)] flex animate-[greet-rise_0.9s_var(--ease-soft)_0.8s_both] flex-wrap justify-center gap-2.5 max-xs:grid max-xs:w-full max-xs:grid-cols-3 max-xs:gap-1.5 max-xs:[--cookie-scale:0.62]"
+          data-part="actions"
+        >
           {failed ? (
             <Button
-              className="primary"
+              className={mainAction}
               onClick={() => setAttempt((count) => count + 1)}
               type="button"
             >
               <CookieIcon
+                className={cookieInButton}
                 icing="#2a44ff"
                 icon={RotateCw}
                 idle={false}
@@ -640,13 +753,14 @@ const CardPage = () => {
           ) : (
             <>
               <Button
-                className="primary"
+                className={mainAction}
                 disabled={!mesh}
                 onClick={() => save("3mf")}
                 title={t("card.printHint")}
                 type="button"
               >
                 <CookieIcon
+                  className={cookieInButton}
                   icing="#2a44ff"
                   icon={Download}
                   idle={false}
@@ -656,21 +770,30 @@ const CardPage = () => {
                 {t("card.download")}
               </Button>
               <Button
+                className={sideAction}
                 disabled={!mesh}
                 onClick={() => save("stl")}
                 title={t("card.printHint")}
                 type="button"
               >
-                <CookieIcon icon={Download} idle={false} roll={-14} size={58} />
+                <CookieIcon
+                  className={sideCookie}
+                  icon={Download}
+                  idle={false}
+                  roll={-14}
+                  size={58}
+                />
                 {t("card.stl")}
               </Button>
               <Button
+                className={sideAction}
                 disabled={!picture}
                 onClick={sharePicture}
                 title={t("card.pictureHint")}
                 type="button"
               >
                 <CookieIcon
+                  className={sideCookie}
                   icing="#ff5fa8"
                   icon={Share2}
                   idle={false}
@@ -680,12 +803,14 @@ const CardPage = () => {
                 {copied ? t("share.copied") : t("card.pictureShare")}
               </Button>
               <Button
+                className={sideAction}
                 disabled={!picture}
                 onClick={savePicture}
                 title={t("card.pictureHint")}
                 type="button"
               >
                 <CookieIcon
+                  className={sideCookie}
                   icing="#ffc31f"
                   icon={ImageDown}
                   idle={false}
@@ -698,7 +823,11 @@ const CardPage = () => {
           )}
         </div>
       )}
-      <a className="greeting-cta" href={`/${lang}`}>
+      <a
+        className="row-start-6 inline-flex animate-[greet-rise_0.9s_var(--ease-soft)_0.9s_both] items-center gap-0.75 rounded-[0.7rem] bg-white/10 py-1.25 pr-1.5 pl-4 text-small font-bold text-on-page transition-[background-color] hover:bg-white/20"
+        data-part="cta"
+        href={`/${lang}`}
+      >
         {t("card.makeOwn")}
         <CookieIcon
           icing="#ff5fa8"
@@ -708,7 +837,12 @@ const CardPage = () => {
         />
       </a>
 
-      <SiteFooter />
+      {/* The editor's foot at the bottom – its line is the floor the cookies
+          lie on. */}
+      <SiteFooter
+        className="relative row-start-8 mt-1.5 animate-[greet-rise_0.9s_var(--ease-soft)_1s_both] justify-self-stretch"
+        compact
+      />
       {crumbs.map((crumb) => (
         <Crumbs at={crumb} key={crumb.id} seed={Math.floor(crumb.id)} />
       ))}
