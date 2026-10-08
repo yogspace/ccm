@@ -221,8 +221,12 @@ export const createShapeCookie = (
   const materials = new Map<string, THREE.Material>();
   // Where the whole cookie has them – a bite takes some, the rest stay put.
   const onIcing = wholeGlaze.length > 0;
+  // Set off from what they lie on: the icing – or, without it, the dough.
+  const ground = onIcing
+    ? icingColor
+    : `#${doughLook(kind).base.getHexString(THREE.SRGBColorSpace)}`;
   for (const p of sprinkleSpots(onIcing ? wholeGlaze : whole, 0.06, random)) {
-    const color = sprinkleColor(random, onIcing ? icingColor : undefined);
+    const color = sprinkleColor(random, ground);
     let material = materials.get(color);
     if (!material) {
       material = new THREE.MeshPhysicalMaterial({

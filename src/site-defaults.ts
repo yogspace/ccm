@@ -27,10 +27,17 @@ export type SiteAddress = {
  */
 export type CardColor = { color: string; name: { de: string; en: string } };
 
+/**
+ * The 3D cookies' colors: their dough, and the chocolate – the chips, and
+ * in its shade the chocolate dough. Their sprinkles are the card colors.
+ */
+export type CookieColors = { dough: string; chocolate: string };
+
 export type Site = {
   links: SiteLinks;
   address: SiteAddress;
   cardColors: CardColor[];
+  cookies: CookieColors;
 };
 
 export const SITE_DEFAULTS: Site = {
@@ -57,6 +64,7 @@ export const SITE_DEFAULTS: Site = {
     { color: "#5fb36b", name: { de: "Grün", en: "Green" } },
     { color: "#a9b6ff", name: { de: "Flieder", en: "Lilac" } },
   ],
+  cookies: { dough: "#d4914c", chocolate: "#4a2a17" },
 };
 
 export const SITE_LINK_LABELS: Record<keyof SiteLinks, string> = {

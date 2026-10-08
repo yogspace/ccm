@@ -40,6 +40,7 @@ const GreetingCardPage = async () => {
       />
       <CardRoot
         colors={site.cardColors}
+        cookies={site.cookies}
         legal={legalByLocale(legal, site)}
         links={site.links}
         texts={texts}

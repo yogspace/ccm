@@ -1,7 +1,7 @@
 "use client";
 
 import { TextField, useField, useRowLabel } from "@payloadcms/ui";
-import type { TextFieldClientComponent } from "payload";
+import type { TextFieldClientComponent, TextFieldClientProps } from "payload";
 import type { CSSProperties } from "react";
 import "../glaze.css";
 
@@ -59,29 +59,59 @@ const CardColorPreview = ({ color }: { color: string }) => (
   </div>
 );
 
+/** A color field's value – `fallback` while it isn't a color (yet). */
+const useColor = (path: string, fallback: string) => {
+  const { value, setValue } = useField<string>({ path });
+  const color = typeof value === "string" && HEX.test(value) ? value : fallback;
+  return { color, setValue };
+};
+
+/** The hex field with a color picker beside it. */
+const ColorInput = ({
+  color,
+  setValue,
+  ...props
+}: TextFieldClientProps & {
+  color: string;
+  setValue: (value: string) => void;
+}) => (
+  <div className="card-color-input">
+    <input
+      aria-label="Pick the color"
+      className="card-color-picker"
+      onChange={(event) => setValue(event.target.value)}
+      type="color"
+      value={color.toLowerCase()}
+    />
+    <TextField {...props} />
+  </div>
+);
+
 /**
  * A card color in the admin (Site → Card colors): the hex field with a
  * color picker beside it, and below the card in the color's shades – the
  * page, the card, its back and their words.
  */
 export const CardColorField: TextFieldClientComponent = (props) => {
-  const { value, setValue } = useField<string>({ path: props.path });
-  const color = typeof value === "string" && HEX.test(value) ? value : BLUE;
+  const { color, setValue } = useColor(props.path, BLUE);
   return (
     <div className="card-color-field">
-      <div className="card-color-input">
-        <input
-          aria-label="Pick the color"
-          className="card-color-picker"
-          onChange={(event) => setValue(event.target.value)}
-          type="color"
-          value={color.toLowerCase()}
-        />
-        <TextField {...props} />
-      </div>
+      <ColorInput {...props} color={color} setValue={setValue} />
       <CardColorPreview color={color} />
     </div>
   );
+};
+
+/**
+ * Any other color (Site → Cookies): the hex field with a color picker
+ * beside it – the picker at `fallback` (clientProps) until it is a color.
+ */
+export const ColorField = ({
+  fallback = "#000000",
+  ...props
+}: TextFieldClientProps & { fallback?: string }) => {
+  const { color, setValue } = useColor(props.path, fallback);
+  return <ColorInput {...props} color={color} setValue={setValue} />;
 };
 
 /**

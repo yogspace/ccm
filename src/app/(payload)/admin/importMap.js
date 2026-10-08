@@ -2,6 +2,7 @@ import { GalleryColorField as GalleryColorField_b82447014a4072087d806e281ca6fa7b
 import { GalleryBuilder as GalleryBuilder_c8865404e7f66dba38e8e939d5b9efe8 } from '@/fields/gallery-builder'
 import { CardColorField as CardColorField_c89e32564ea960d4602226693ff26cf7 } from '@/fields/card-color-field'
 import { CardColorRowLabel as CardColorRowLabel_c89e32564ea960d4602226693ff26cf7 } from '@/fields/card-color-field'
+import { ColorField as ColorField_c89e32564ea960d4602226693ff26cf7 } from '@/fields/card-color-field'
 import { RscEntryLexicalCell as RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
 import { RscEntryLexicalField as RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
 import { LexicalDiffComponent as LexicalDiffComponent_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
@@ -35,6 +36,7 @@ export const importMap = {
   "@/fields/gallery-builder#GalleryBuilder": GalleryBuilder_c8865404e7f66dba38e8e939d5b9efe8,
   "@/fields/card-color-field#CardColorField": CardColorField_c89e32564ea960d4602226693ff26cf7,
   "@/fields/card-color-field#CardColorRowLabel": CardColorRowLabel_c89e32564ea960d4602226693ff26cf7,
+  "@/fields/card-color-field#ColorField": ColorField_c89e32564ea960d4602226693ff26cf7,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalCell": RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalField": RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#LexicalDiffComponent": LexicalDiffComponent_44fe37237e0ebf4470c9990d8cb7b07e,

@@ -136,10 +136,18 @@ const readSite = unstable_cache(
           en: row.name?.en || row.name?.de || (row.color as string),
         },
       }));
+    // A cookie color not set (yet) or not valid: the code's own.
+    const cookie = (name: keyof Site["cookies"]) => {
+      const value = site.cookies?.[name];
+      return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value)
+        ? value
+        : SITE_DEFAULTS.cookies[name];
+    };
     return {
       links: { ...SITE_DEFAULTS.links, ...site.links },
       address: { ...SITE_DEFAULTS.address, ...site.address },
       cardColors: cardColors.length ? cardColors : SITE_DEFAULTS.cardColors,
+      cookies: { dough: cookie("dough"), chocolate: cookie("chocolate") },
     };
   },
   ["site"],

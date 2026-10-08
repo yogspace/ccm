@@ -100,6 +100,8 @@ Templates and the gallery live in the admin (**Templates**, **Gallery**), in the
 - **Gallery:** cards for the fan between editor and footer, each like the share picture – its color (one of Site's card colors), the cutter on the card, its name; five are drawn at random on every load. Above the list, **Build a card from a link**: paste a creation's link, pick name and color, and the cutter is built and rendered from above right in the admin – the picture goes to Media, the card to the gallery. A card can also take any picture from Media (one on a white ground takes the card's tint).
 - **Media:** all pictures, each with its alt text (both languages). Each gets a 600 × 489 WebP – the shape of the cutter's place on the card – for the fan.
 
+The 3D cookies take their colors from **Site → Cookies**: the dough (its specks and sheen follow it) and the chocolate (the chips, and in its shade the chocolate dough). Their sprinkles are the card colors and white; one too close to what it lies on – the icing, or the dough – turns a little lighter or darker, white gives way to another color (`src/cookies/dough.ts`).
+
 Saving or deleting shows on the site right away (cache tags, see `src/cache.ts`).
 
 ### Font

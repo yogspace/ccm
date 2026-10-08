@@ -21,24 +21,84 @@ export const setCookieColors = ({
   chocolate,
   sprinkles,
 }: CookieColors) => {
-  palette.dough = dough.toLowerCase();
-  palette.chocolate = chocolate.toLowerCase();
-  palette.sprinkles = sprinkles.map((color) => color.toLowerCase());
+  const next = {
+    dough: dough.toLowerCase(),
+    chocolate: chocolate.toLowerCase(),
+    sprinkles: sprinkles.map((color) => color.toLowerCase()),
+  };
+  if (JSON.stringify(next) === JSON.stringify(palette)) return;
+  Object.assign(palette, next);
   doughCache.clear();
 };
 
 export const chocolateColor = () => palette.chocolate;
 
+type Lab = [number, number, number];
+
+/** A color in OKLab: lightness and two color axes, as the eye sees them. */
+const toLab = (color: string): Lab => {
+  const { r, g, b } = new THREE.Color(color).getRGB(
+    { r: 0, g: 0, b: 0 },
+    THREE.LinearSRGBColorSpace
+  );
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  return [
+    0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+    1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+    0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
+  ];
+};
+
+const fromLab = ([L, a, b]: Lab) => {
+  const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+  const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+  const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
+  const clamp = (v: number) => Math.min(1, Math.max(0, v));
+  return `#${new THREE.Color()
+    .setRGB(
+      clamp(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s),
+      clamp(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s),
+      clamp(-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s),
+      THREE.LinearSRGBColorSpace
+    )
+    .getHexString(THREE.SRGBColorSpace)}`;
+};
+
+/** Closer than this (OKLab), a sprinkle would melt into what it lies on. */
+const CLOSE = 0.14;
+/** How far a sprinkle's lightness then moves away from it. */
+const APART = 0.24;
+
+const distance = (a: Lab, b: Lab) =>
+  Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+
 /**
- * A sprinkle's color, picked by `random` – never `unlike` (the icing it
- * lies on): then the first one that isn't.
+ * A sprinkle's color, picked by `random` from the card colors and white –
+ * set off from `ground`, what it lies on (the icing, or the dough): one too
+ * close to it gets a little lighter or darker, away from it, keeping its
+ * hue; white, which has none to keep, gives way to the next color that
+ * stands out.
  */
-export const sprinkleColor = (random: () => number, unlike?: string) => {
+export const sprinkleColor = (random: () => number, ground?: string) => {
   const { sprinkles } = palette;
   const color = sprinkles[Math.floor(random() * sprinkles.length)];
-  return color === unlike
-    ? (sprinkles.find((other) => other !== unlike) ?? color)
-    : color;
+  if (!ground) return color;
+  const under = toLab(ground);
+  const own = toLab(color);
+  if (distance(own, under) >= CLOSE) return color;
+  if (Math.hypot(own[1], own[2]) < 0.03) {
+    const other = sprinkles.find(
+      (next) => distance(toLab(next), under) >= CLOSE
+    );
+    if (other) return other;
+  }
+  const lighter = under[0] < 0.6;
+  const lightness = lighter
+    ? Math.max(own[0], under[0] + APART)
+    : Math.min(own[0], under[0] - APART);
+  return fromLab([Math.min(0.97, Math.max(0.3, lightness)), own[1], own[2]]);
 };
 
 export const DEPTH = 0.16;
@@ -85,15 +145,20 @@ const hsl = (color: string) =>
 
 /**
  * A shade of `color` as `shade` is of `reference` – turned as far in hue,
- * its saturation and lightness scaled alike. Of the reference itself: the
- * shade, exactly.
+ * its saturation and lightness moved alike: down in proportion, up as far
+ * towards full (so a light color's lighter shade nears white, never past
+ * it). Of the reference itself: the shade, exactly.
  */
 const alike = (color: string, reference: string, shade: string) => {
   const c = hsl(color);
   const r = hsl(reference);
   const s = hsl(shade);
   const scale = (value: number, from: number, to: number) =>
-    Math.min(1, from > 0 ? value * (to / from) : to);
+    to <= from
+      ? from > 0
+        ? value * (to / from)
+        : value
+      : value + (1 - value) * ((to - from) / (1 - from));
   return new THREE.Color().setHSL(
     c.h + s.h - r.h,
     scale(c.s, r.s, s.s),

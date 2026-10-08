@@ -2,10 +2,40 @@ import type { Field, GlobalConfig } from "payload";
 import { authenticated } from "../access/authenticated";
 import { expireOnChange, TAGS } from "../cache";
 import {
+  type CookieColors,
   SITE_DEFAULTS,
   SITE_LINK_LABELS,
   type SiteLinks,
 } from "../site-defaults";
+
+/** A color as #rrggbb. */
+const hexColor = (value: unknown) =>
+  typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value)
+    ? true
+    : "A color as #rrggbb";
+
+/** A cookie color: the hex field with a picker beside it. */
+const cookieColor = (
+  name: keyof CookieColors,
+  label: string,
+  description: string
+): Field => ({
+  name,
+  type: "text",
+  label,
+  required: true,
+  defaultValue: SITE_DEFAULTS.cookies[name],
+  admin: {
+    description,
+    components: {
+      Field: {
+        path: "@/fields/card-color-field#ColorField",
+        clientProps: { fallback: SITE_DEFAULTS.cookies[name] },
+      },
+    },
+  },
+  validate: hexColor,
+});
 
 const link = (name: keyof SiteLinks, description: string): Field => ({
   name,
@@ -33,7 +63,7 @@ export const Site: GlobalConfig = {
   admin: {
     group: "Settings",
     description:
-      "Links in the footer, on the greeting card and in the legal text, the address in the legal text, and the greeting cards' favorite colors.",
+      "Links in the footer, on the greeting card and in the legal text, the address in the legal text, the greeting cards' favorite colors, and the cookies' colors.",
   },
   fields: [
     {
@@ -113,10 +143,7 @@ export const Site: GlobalConfig = {
               Field: "@/fields/card-color-field#CardColorField",
             },
           },
-          validate: (value: unknown) =>
-            typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value)
-              ? true
-              : "A color as #rrggbb",
+          validate: hexColor,
         },
         {
           name: "name",
@@ -125,6 +152,27 @@ export const Site: GlobalConfig = {
           localized: true,
           admin: { description: "Shown when pointing at it, read out aloud." },
         },
+      ],
+    },
+    {
+      name: "cookies",
+      type: "group",
+      label: "Cookies",
+      admin: {
+        description:
+          "The 3D cookies' colors everywhere on the site. Their sprinkles are the card colors and white – one too close to the icing it lies on turns a little lighter or darker.",
+      },
+      fields: [
+        cookieColor(
+          "dough",
+          "Dough",
+          "The cookies' dough – its specks and sheen follow it."
+        ),
+        cookieColor(
+          "chocolate",
+          "Chocolate",
+          "The chocolate chips – and, in a lighter shade, the chocolate dough."
+        ),
       ],
     },
   ],

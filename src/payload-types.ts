@@ -486,7 +486,7 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   createdAt?: T;
 }
 /**
- * Links in the footer, on the greeting card and in the legal text, the address in the legal text, and the greeting cards' favorite colors.
+ * Links in the footer, on the greeting card and in the legal text, the address in the legal text, the greeting cards' favorite colors, and the cookies' colors.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site".
@@ -536,6 +536,19 @@ export interface Site {
         id?: string | null;
       }[]
     | null;
+  /**
+   * The 3D cookies' colors everywhere on the site. Their sprinkles are the card colors and white – one too close to the icing it lies on turns a little lighter or darker.
+   */
+  cookies: {
+    /**
+     * The cookies' dough – its specks and sheen follow it.
+     */
+    dough: string;
+    /**
+     * The chocolate chips – and, in a lighter shade, the chocolate dough.
+     */
+    chocolate: string;
+  };
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1241,6 +1254,12 @@ export interface SiteSelect<T extends boolean = true> {
         color?: T;
         name?: T;
         id?: T;
+      };
+  cookies?:
+    | T
+    | {
+        dough?: T;
+        chocolate?: T;
       };
   updatedAt?: T;
   createdAt?: T;

@@ -22,7 +22,8 @@ export const seedSite = async (
   });
   const links = mode === "replace" || !site.links?.website;
   const colors = mode === "replace" || !site.cardColors?.length;
-  if (!(links || colors)) return "kept";
+  const cookies = mode === "replace" || !site.cookies?.dough;
+  if (!(links || colors || cookies)) return "kept";
   const written = await payload.updateGlobal({
     slug: "site",
     locale: "de",
@@ -38,6 +39,7 @@ export const seedSite = async (
           name: name.de,
         })),
       }),
+      ...(cookies && { cookies: SITE_DEFAULTS.cookies }),
     },
   });
   // The colors' English names – the same rows, found by their ids.
