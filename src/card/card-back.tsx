@@ -1,4 +1,9 @@
-import type { CSSProperties, MouseEvent } from "react";
+import {
+  type CSSProperties,
+  type MouseEvent,
+  useEffect,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import CookieIcon from "../components/cookie-icon";
 import type { Bite, CookieShape } from "../cookies/models";
@@ -13,8 +18,6 @@ type Props = {
   bites: Bite[];
   eaten: boolean;
   onBite: (event: MouseEvent<HTMLElement>) => void;
-  /** “Baking your cookie” still shown, fading out once it is there. */
-  bakingShown: boolean;
   name: string;
 };
 
@@ -23,16 +26,18 @@ type Props = {
  * bakes, to be bitten – behind it the message, more of it with every bite.
  * Nothing on it gets selected when the cookie is bitten in quick taps.
  */
-const CardBack = ({
-  message,
-  cookie,
-  bites,
-  eaten,
-  onBite,
-  bakingShown,
-  name,
-}: Props) => {
+const CardBack = ({ message, cookie, bites, eaten, onBite, name }: Props) => {
   const { t } = useTranslation();
+  /** “Baking your cookie” stays a moment once the cookie lies there. */
+  const [bakingShown, setBakingShown] = useState(true);
+  useEffect(() => {
+    if (!cookie) {
+      setBakingShown(true);
+      return;
+    }
+    const timer = setTimeout(() => setBakingShown(false), 500);
+    return () => clearTimeout(timer);
+  }, [cookie]);
   return (
     <Paper className="invisible bg-card-back select-none transform-[rotateY(180deg)] in-data-flipped:visible">
       {/* The message, in the back's color, a little darker – fine, but

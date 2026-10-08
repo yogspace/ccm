@@ -168,7 +168,11 @@
      button is the color. */
   :root:has(#card-glaze) dialog {
     --color-surface: var(--card-sheet);
-    --color-surface-2: color-mix(in oklab, var(--card-back) 30%, var(--card-sheet));
+    --color-surface-2: color-mix(
+      in oklab,
+      var(--card-back) 30%,
+      var(--card-sheet)
+    );
     --color-paper: #ffffff;
     --color-ink: var(--card-ink);
     --color-muted: var(--card-ink-muted);
