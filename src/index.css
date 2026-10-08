@@ -1,5 +1,5 @@
 @import "tailwindcss";
-/* The favourite colour's shades – a plain file, the admin's preview loads it
+/* The favorite color's shades – a plain file, the admin's preview loads it
    too (fields/card-color-field.tsx). */
 @import "./glaze.css" layer(base);
 
@@ -14,9 +14,9 @@
 }
 
 /* ---------- Theme ----------
-   The design's tokens – only these. Colours are overridden where the page
+   The design's tokens – only these. Colors are overridden where the page
    changes: in the dark (below), on the paper (the `paper` utility) and on the
-   greeting card (its favourite colour). */
+   greeting card (its favorite color). */
 
 @theme {
   --font-sans:
@@ -84,7 +84,7 @@
   --animate-rise: rise 0.6s var(--ease-soft) both;
 }
 
-/* A favourite colour's shades (glaze.css) – resolved where they are used:
+/* A favorite color's shades (glaze.css) – resolved where they are used:
    each picture, card and page has its own. */
 @theme inline {
   --color-glaze: var(--glaze);
@@ -104,7 +104,7 @@
   @container draw (aspect-ratio >= 0.88) and (width >= 30rem)
 );
 
-/* The drawing area stays a light sheet in both themes – with light colours of
+/* The drawing area stays a light sheet in both themes – with light colors of
    its own for everything on it. */
 @utility paper {
   --color-accent: #2a44ff;
@@ -116,7 +116,7 @@
   --color-ink: #0d1033;
 }
 
-/* Pally stops at 700 – an outline in the text's colour makes it even bolder.
+/* Pally stops at 700 – an outline in the text's color makes it even bolder.
    In thousandths of an em: embolden-35 = 0.035em. */
 @utility embolden-* {
   -webkit-text-stroke: calc(--value(integer) * 0.001em) currentColor;
@@ -150,7 +150,7 @@
     }
   }
 
-  /* The greeting card: the whole page in the sender's favourite colour
+  /* The greeting card: the whole page in the sender's favorite color
      (glaze.ts sets --card-color before the first paint) – in the dark too –
      the words on it white or dark, whichever reads. */
   :root:has(#card-glaze) {
@@ -414,13 +414,6 @@
   from {
     opacity: 0;
     scale: 0.84;
-  }
-}
-
-@keyframes eat-me-in {
-  from {
-    opacity: 0;
-    translate: 1.5cqw 1.2cqw;
   }
 }
 

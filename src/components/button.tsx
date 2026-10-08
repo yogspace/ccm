@@ -8,7 +8,7 @@ const spring = { type: "spring", stiffness: 500, damping: 28 } as const;
  * (index.css); these change it.
  */
 const kinds = {
-  /** The main action, in the accent colour. */
+  /** The main action, in the accent color. */
   primary:
     "bg-accent text-on-accent hover:enabled:bg-[color-mix(in_oklab,var(--color-accent)_86%,#000)]",
   /** Quiet: no surface until hovered. */

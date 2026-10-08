@@ -1,6 +1,6 @@
 // The admin keeps Payload's own look. Only what previews the site looks like
 // the site: the legal text's editor and the blocks in it (Pally, the dialog's
-// sizes and colours).
+// sizes and colors).
 
 @font-face {
   font-family: "Pally";
@@ -52,7 +52,7 @@ $muted: #5c6080;
 }
 
 // Block previews (fields/legal-blocks.tsx): what the dialog will show, in the
-// app's colours.
+// app's colors.
 .legal-preview {
   font-family: $pally;
   font-style: normal;
@@ -150,8 +150,8 @@ $muted: #5c6080;
   gap: 0.75rem;
 }
 
-// Card colours (fields/card-color-field.tsx): the hex field with a colour
-// picker, the card in the colour's shades below – the site's own
+// Card colors (fields/card-color-field.tsx): the hex field with a color
+// picker, the card in the color's shades below – the site's own
 // (glaze.css), in Pally.
 .card-color-input {
   display: flex;
@@ -316,7 +316,7 @@ $muted: #5c6080;
   }
 }
 
-// A colour's row, closed: its swatch, number and name.
+// A color's row, closed: its swatch, number and name.
 .card-color-row {
   display: inline-flex;
   align-items: center;
@@ -395,21 +395,16 @@ $muted: #5c6080;
   }
 }
 
-.gallery-builder-colors {
+// The card colors as swatches (fields/site-colors.tsx) – like the site's
+// (color-swatches.tsx): the chosen one ringed.
+.site-color-swatches {
   display: flex;
   flex-wrap: wrap;
   gap: 0.6rem;
-  margin: 0;
-  padding: 0;
-  border: none;
-
-  legend {
-    margin-bottom: 0.35rem;
-  }
+  padding: 0.25rem 0.25rem 0.5rem;
 }
 
-// Like the site's swatches (color-swatches.tsx): the chosen one ringed.
-.gallery-builder-swatch {
+.site-color-swatch {
   width: 2rem;
   height: 2rem;
   padding: 0;
@@ -417,16 +412,24 @@ $muted: #5c6080;
   border: none;
   border-radius: 50%;
   box-shadow:
-    0 0 0 2px var(--theme-elevation-50),
+    0 0 0 2px var(--theme-elevation-0),
     0 0 0 2px var(--swatch);
   cursor: pointer;
   transition: box-shadow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 
   &[aria-pressed="true"] {
     box-shadow:
-      0 0 0 2px var(--theme-elevation-50),
+      0 0 0 2px var(--theme-elevation-0),
       0 0 0 4px var(--swatch);
   }
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.gallery-builder .site-color-swatch {
+  --theme-elevation-0: var(--theme-elevation-50);
 }
 
 .gallery-builder-preview {

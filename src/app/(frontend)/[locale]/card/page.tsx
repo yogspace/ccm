@@ -25,9 +25,9 @@ const GreetingCardPage = async () => {
   const [texts, site] = await Promise.all([getTexts(), getSite()]);
   return (
     <>
-      {/* The card's favourite colour on the page before its first paint. */}
+      {/* The card's favorite color on the page before its first paint. */}
       <script
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: our own script, the colours checked by the CMS
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: our own script, the colors checked by the CMS
         dangerouslySetInnerHTML={{
           __html: glazeScript(site.cardColors.map(({ color }) => color)),
         }}

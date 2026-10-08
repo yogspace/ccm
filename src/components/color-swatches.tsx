@@ -3,13 +3,13 @@ import { useTranslation } from "react-i18next";
 import { useCardColors } from "../site-context";
 
 type Props = {
-  /** The chosen colour's number (useCardColor's `chosen`). */
+  /** The chosen color's number (useCardColor's `chosen`). */
   value: number;
   onChange: (color: number) => void;
 };
 
 /**
- * The favourite colours from the CMS as round swatches, the chosen one
+ * The favorite colors from the CMS as round swatches, the chosen one
  * ringed – for the share picture and the greeting card alike.
  */
 const ColorSwatches = ({ value, onChange }: Props) => {
@@ -26,8 +26,8 @@ const ColorSwatches = ({ value, onChange }: Props) => {
           <button
             aria-label={name[lang]}
             aria-pressed={value === index}
-            // The ring in its colour lies hidden under the gap in the card's
-            // colour; chosen, it springs out from under it.
+            // The ring in its color lies hidden under the gap in the card's
+            // color; chosen, it springs out from under it.
             className="size-8 rounded-full bg-(--swatch) p-0 [box-shadow:0_0_0_2px_var(--color-card),0_0_0_2px_var(--swatch)] [transition:box-shadow_0.45s_var(--ease-spring),scale_0.25s_var(--ease-spring)] hover:enabled:scale-110 aria-pressed:[box-shadow:0_0_0_2px_var(--color-card),0_0_0_4px_var(--swatch)]"
             key={`${index}-${color}`}
             onClick={() => onChange(index)}

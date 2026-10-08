@@ -89,7 +89,7 @@ export const CookieFlight = ({
   );
 };
 
-const CRUMB_COLOURS = ["#d9a35b", "#b8773c", "#f2c98a", "#ff5fa8", "#2a44ff"];
+const CRUMB_COLORS = ["#d9a35b", "#b8773c", "#f2c98a", "#ff5fa8", "#2a44ff"];
 
 /**
  * A handful of crumbs bursting from a point – when a cookie lands in the bar
@@ -106,7 +106,7 @@ export const Crumbs = ({ at, seed }: { at: Point; seed: number }) => {
           // A little more upwards – crumbs jump before they fall.
           dy: Math.sin(angle) * distance - 10,
           size: 4 + ((seed + i * 5) % 4),
-          colour: CRUMB_COLOURS[(seed + i) % CRUMB_COLOURS.length],
+          color: CRUMB_COLORS[(seed + i) % CRUMB_COLORS.length],
           delay: (i % 3) * 25,
         };
       }),
@@ -128,7 +128,7 @@ export const Crumbs = ({ at, seed }: { at: Point; seed: number }) => {
               "--dy": `${crumb.dy}px`,
               width: crumb.size,
               height: crumb.size,
-              background: crumb.colour,
+              background: crumb.color,
               animationDelay: `${crumb.delay}ms`,
             } as CSSProperties
           }

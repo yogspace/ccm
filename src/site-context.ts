@@ -12,7 +12,7 @@ export const SiteLinksContext = createContext<SiteLinks>(SITE_DEFAULTS.links);
 
 export const useSiteLinks = () => useContext(SiteLinksContext);
 
-/** The greeting cards' favourite colours from the CMS (“Site” global). */
+/** The greeting cards' favorite colors from the CMS (“Site” global). */
 export const CardColorsContext = createContext<CardColor[]>(
   SITE_DEFAULTS.cardColors
 );
@@ -23,7 +23,7 @@ export const useCardColors = () => useContext(CardColorsContext);
 const BLUE = "#2a44ff";
 
 /**
- * A favourite colour by its number (as in the card's link) – an unknown
+ * A favorite color by its number (as in the card's link) – an unknown
  * number is the first, the default. `chosen`: the number that counts.
  */
 export const useCardColor = (index: number) => {

@@ -1,13 +1,13 @@
-/* ---------- A favourite colour (--glaze) and its shades ----------
-   The greeting card's colour from the CMS (Site → Card colours): its page
+/* ---------- A favorite color (--glaze) and its shades ----------
+   The greeting card's color from the CMS (Site → Card colors): its page
    (card.css), the card in small and the share picture. The card faintly
-   tinted, its back strong, its words dark; the words on the colour itself
-   white or its deep shade, whichever reads. Worked out from the colour
-   (relative colours); mixed for older browsers – on the colour there,
+   tinted, its back strong, its words dark; the words on the color itself
+   white or its deep shade, whichever reads. Worked out from the color
+   (relative colors); mixed for older browsers – on the color there,
    always white. Loaded by the site's layout and by the admin's preview
    (fields/card-color-field.tsx), so both show the same shades. */
 
-/* A colour, not just text: a newly chosen one fades in, its shades along. */
+/* A color, not just text: a newly chosen one fades in, its shades along. */
 @property --glaze {
   syntax: "<color>";
   inherits: true;
@@ -41,7 +41,7 @@
     --card-ink: oklch(from var(--glaze) 0.24 calc(c * 0.5) h);
     --card-ink-muted: oklch(from var(--glaze) 0.5 calc(c * 0.35) h);
     --card-deep: oklch(from var(--glaze) 0.42 calc(c * 0.85) h);
-    /* Light colours (lightness above 0.62) get the deep shade, the others
+    /* Light colors (lightness above 0.62) get the deep shade, the others
        white – the clamps switch between the two. */
     --on-glaze: oklch(
       from var(--glaze) clamp(0.42, (0.62 - l) * 1000, 1)

@@ -152,7 +152,7 @@ export interface Gallery {
    */
   name?: string | null;
   /**
-   * The card's colour as #rrggbb – empty: the first card colour (Site).
+   * One of the card colors set in Site – none chosen: the first.
    */
   color?: string | null;
   /**
@@ -456,7 +456,7 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   createdAt?: T;
 }
 /**
- * Links in the footer, on the greeting card and in the legal text, the address in the legal text, and the greeting cards' favourite colours.
+ * Links in the footer, on the greeting card and in the legal text, the address in the legal text, and the greeting cards' favorite colors.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site".
@@ -491,7 +491,7 @@ export interface Site {
     country: string;
   };
   /**
-   * The favourite colours to pick for a greeting card – the cookie's icing, and in its shades the card, its back and its words. The first one is the default. A colour's place is its number in card links: add new ones at the end only, don't reorder or delete – sent cards would change colour.
+   * The favorite colors to pick for a greeting card – the cookie's icing, and in its shades the card, its back and its words. The first one is the default. A color's place is its number in card links: add new ones at the end only, don't reorder or delete – sent cards would change color.
    */
   cardColors?:
     | {
@@ -555,7 +555,7 @@ export interface Translation {
      */
     click?: string | null;
     /**
-     * DE: Lieblingsfarbe  ·  EN: Favourite colour
+     * DE: Lieblingsfarbe  ·  EN: Favorite color
      */
     color?: string | null;
     /**

@@ -7,7 +7,7 @@ type Mode = "fill" | "replace";
 type Result = "set" | "kept";
 
 /**
- * The “Site” global with the links, the address and the card colours as in
+ * The “Site” global with the links, the address and the card colors as in
  * the code – filled where empty, or set back. Until then the site shows the
  * code's versions anyway (content.ts).
  */
@@ -40,7 +40,7 @@ export const seedSite = async (
       }),
     },
   });
-  // The colours' English names – the same rows, found by their ids.
+  // The colors' English names – the same rows, found by their ids.
   if (colors) {
     await payload.updateGlobal({
       slug: "site",

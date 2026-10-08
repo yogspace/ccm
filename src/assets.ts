@@ -11,13 +11,13 @@ export type Preset = {
 
 /**
  * A card in the gallery's fan: its picture (the cutter from above, built
- * from a link – or uploaded by hand, on a white ground), its name and colour.
+ * from a link – or uploaded by hand, on a white ground), its name and color.
  */
 export type GalleryCard = {
   src: string;
   /** Empty: “Cookie Cutter”. */
   name: string;
-  /** #rrggbb – null: the first card colour. */
+  /** #rrggbb – null: the first card color. */
   color: string | null;
   /** Built from a link: transparent around the cutter. */
   built: boolean;

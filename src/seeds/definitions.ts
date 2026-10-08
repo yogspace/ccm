@@ -40,9 +40,9 @@ export const SEED_TEXTS: Record<
   site: {
     title: "Site",
     description:
-      "Links, address and the greeting cards' colours as in the code. Fill only sets what is empty.",
+      "Links, address and the greeting cards' colors as in the code. Fill only sets what is empty.",
     replaceWarning:
-      "Links, address and card colours go back to the code's version. Edits made to them are lost.",
+      "Links, address and card colors go back to the code's version. Edits made to them are lost.",
   },
   legal: {
     title: "Legal",

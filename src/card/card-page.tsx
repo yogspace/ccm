@@ -1,5 +1,4 @@
 import {
-  ArrowUpLeft,
   ArrowUpRight,
   Download,
   ImageDown,
@@ -158,7 +157,7 @@ const sideCookie = cn(cookieInButton, "max-xs:mx-0 max-xs:-mt-2 max-xs:-mb-2");
  */
 const CardPage = () => {
   const { t, i18n } = useTranslation();
-  // The favourite colour from the CMS by its number – unknown: the first.
+  // The favorite color from the CMS by its number – unknown: the first.
   // The page in its scheme, the cutter and the cookie's icing in it.
   const { glaze } = useCardColor(greeting.color);
   const [cutter, setCutter] =
@@ -186,8 +185,8 @@ const CardPage = () => {
         : null,
     [cutter, baked]
   );
-  // The one on the back in the favourite colour; those raining down stay
-  // colourful.
+  // The one on the back in the favorite color; those raining down stay
+  // colorful.
   const cookie = useMemo(() => dough && { ...dough, glaze }, [dough, glaze]);
   const cardRef = useRef<HTMLDivElement>(null);
   /**
@@ -284,7 +283,7 @@ const CardPage = () => {
     };
   }, [mesh, t]);
 
-  // The page in the favourite colour – set before the first paint already
+  // The page in the favorite color – set before the first paint already
   // (glaze.ts), kept while the card is open; the browser's bar along.
   useEffect(() => {
     setPageGlaze(glaze);
@@ -557,6 +556,18 @@ const CardPage = () => {
                 }
               />
             ))}
+          {/* “Eat me *click*”: the cookie on the back speaks – a bubble in
+              the card's colors at its upper left corner, its tail towards
+              the card. Pops up once the card has turned, goes once the
+              cookie is eaten (or the card turned back); clicks go through. */}
+          <small
+            aria-hidden
+            className="pointer-events-none invisible absolute right-[70%] bottom-[71%] z-1 origin-bottom-right animate-[eat-me_1.6s_ease-in-out_infinite] scale-50 rounded-[2.4cqw] bg-card-sheet px-[2.4cqw] py-[1.4cqw] text-[3.3cqw] leading-none font-bold whitespace-nowrap text-card-deep opacity-0 shadow-[0_0.8cqw_2.4cqw_rgb(5_10_60/0.3)] [transition:opacity_0.25s_var(--ease-soft),scale_0.25s_var(--ease-soft),visibility_0s_linear_0.25s] after:absolute after:top-[calc(100%-1px)] after:right-[2.4cqw] after:size-[2.4cqw] after:bg-card-sheet after:[clip-path:polygon(0_0,100%_0,100%_100%)] motion-reduce:animate-none data-shown:visible data-shown:scale-100 data-shown:opacity-100 data-shown:[transition:opacity_0.3s_var(--ease-soft)_0.6s,scale_0.55s_var(--ease-spring)_0.6s,visibility_0s_linear_0.6s]"
+            data-shown={(flipped && !!cookie && !eaten) || undefined}
+          >
+            {t("card.eatMe")}{" "}
+            <em className="font-semibold">{t("card.click")}</em>
+          </small>
           {/* The card: tilted a little, leaning towards the pointer. */}
           <div
             className="pointer-events-auto absolute inset-[20.5%] animate-[card-land_1.1s_var(--ease-spring)_0.15s_both] transition-transform duration-900 transform-3d transform-[perspective(70rem)_rotateX(var(--lean-x,0deg))_rotateY(var(--lean-y,0deg))_rotate(-3deg)]"
@@ -623,7 +634,7 @@ const CardPage = () => {
                 </span>
                 {cookie && turnSticker}
               </span>
-              {/* The back in the favourite colour, strong. Nothing on it gets
+              {/* The back in the favorite color, strong. Nothing on it gets
                   selected when the cookie is bitten in quick taps. */}
               <span
                 className={cn(
@@ -632,7 +643,7 @@ const CardPage = () => {
                 )}
               >
                 {/* The message, behind the cookie – each bite shows more: in
-                    the back's colour, a little darker – fine, but readable.
+                    the back's color, a little darker – fine, but readable.
                     Smaller for longer messages – and so small that the
                     longest word fits the card's width (Pally's letters about
                     0.56em wide). */}
@@ -675,30 +686,6 @@ const CardPage = () => {
                     />
                   </span>
                 )}
-                {/* Until the first bite: an arrow to the cookie – bobbing a
-                    little, clicks go through, nothing moves when it goes. In
-                    once the card has landed; out softly with the first
-                    bite. */}
-                <small
-                  aria-hidden
-                  className="pointer-events-none absolute right-[5cqw] bottom-[11cqw] inline-flex animate-[eat-me-in_0.6s_var(--ease-soft)_0.9s_both] items-end gap-[0.8cqw] text-[3.3cqw] font-semibold text-card-deep [transition:opacity_0.4s_var(--ease-soft),translate_0.4s_var(--ease-soft),visibility_0s_linear_0.4s] motion-reduce:[animation-name:fade] data-gone:invisible data-gone:translate-y-[0.8cqw] data-gone:opacity-0"
-                  data-gone={bites.length > 0 || undefined}
-                  // Fades in anew after every turn, once the card has landed.
-                  key={turns}
-                >
-                  <CookieIcon
-                    className="mt-[-1.2cqw] mr-[-0.5cqw] mb-[-0.4cqw] animate-[eat-me_1.6s_ease-in-out_infinite] motion-reduce:animate-none"
-                    icing="#ff5fa8"
-                    icon={ArrowUpLeft}
-                    idle={false}
-                    interactive={false}
-                    size={44}
-                  />
-                  <span>
-                    {t("card.eatMe")}{" "}
-                    <em className="font-medium italic">{t("card.click")}</em>
-                  </span>
-                </small>
                 <span className={label}>
                   <span className={labelName}>{name}</span>
                   <small className={labelNote}>

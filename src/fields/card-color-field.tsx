@@ -8,7 +8,7 @@ import "../glaze.css";
 const HEX = /^#[0-9a-f]{6}$/i;
 const BLUE = "#2a44ff";
 
-/** The shades a colour gives (glaze.css), named for where the card shows them. */
+/** The shades a color gives (glaze.css), named for where the card shows them. */
 const SHADES = [
   ["--glaze", "Page, icing, cutter"],
   ["--on-glaze", "Words on the page"],
@@ -23,7 +23,7 @@ const SHADES = [
 const STAR =
   "M12 2.8l2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z";
 
-/** The greeting card in small, in a colour's shades – as the site has it. */
+/** The greeting card in small, in a color's shades – as the site has it. */
 const CardColorPreview = ({ color }: { color: string }) => (
   <div
     aria-hidden
@@ -60,8 +60,8 @@ const CardColorPreview = ({ color }: { color: string }) => (
 );
 
 /**
- * A card colour in the admin (Site → Card colours): the hex field with a
- * colour picker beside it, and below the card in the colour's shades – the
+ * A card color in the admin (Site → Card colors): the hex field with a
+ * color picker beside it, and below the card in the color's shades – the
  * page, the card, its back and their words.
  */
 export const CardColorField: TextFieldClientComponent = (props) => {
@@ -71,7 +71,7 @@ export const CardColorField: TextFieldClientComponent = (props) => {
     <div className="card-color-field">
       <div className="card-color-input">
         <input
-          aria-label="Pick the colour"
+          aria-label="Pick the color"
           className="card-color-picker"
           onChange={(event) => setValue(event.target.value)}
           type="color"
@@ -85,7 +85,7 @@ export const CardColorField: TextFieldClientComponent = (props) => {
 };
 
 /**
- * A colour's row, closed: its swatch, its number in card links and its
+ * A color's row, closed: its swatch, its number in card links and its
  * name – the first is the default.
  */
 export const CardColorRowLabel = () => {
@@ -98,7 +98,7 @@ export const CardColorRowLabel = () => {
     <span className="card-color-row">
       <i style={{ background: color ?? "transparent" }} />
       <span>
-        {rowNumber} · {data?.name || "Colour"}
+        {rowNumber} · {data?.name || "Color"}
         {rowNumber === 0 && <small> – the default</small>}
       </span>
     </span>

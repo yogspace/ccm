@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useSiteLinks } from "../site-context";
 import CookieIcon from "./cookie-icon";
 
-/** Sprinkles that shoot out of the sun on hover: angle, colour, delay. */
+/** Sprinkles that shoot out of the sun on hover: angle, color, delay. */
 const SPRINKLES = Array.from({ length: 14 }, (_, i) => ({
   angle: (i / 14) * 360 + (i % 2 ? 9 : -6),
   color: ["#ff5fa8", "#ffffff", "#ff6a1f", "#5fb36b", "#fdf8ef"][i % 5],

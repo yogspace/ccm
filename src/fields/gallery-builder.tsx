@@ -2,7 +2,7 @@
 
 import { Button, Pill, useConfig } from "@payloadcms/ui";
 import { useRouter } from "next/navigation";
-import { type CSSProperties, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import "../glaze.css";
 import { loadCutter } from "../card/load-cutter";
 import {
@@ -14,8 +14,7 @@ import type { MeshData } from "../geometry/mesh";
 import { resolveColors } from "../glaze";
 import { renderMeshTop } from "../render-top";
 import { isEmptyDrawing, readHash } from "../url-state";
-
-type CardColor = { color: string; name: string };
+import { SiteColorSwatches, useSiteColors } from "./site-colors";
 
 type Built = { link: string; mesh: MeshData };
 
@@ -29,7 +28,7 @@ type Status =
 /** The default name on a card, as on the share picture. */
 const FALLBACK_NAME = "Cookie Cutter";
 
-/** The colour's shades as plain colours – read from glaze.css. */
+/** The color's shades as plain colors – read from glaze.css. */
 const shadesOf = (color: string) => {
   const probe = document.createElement("span");
   probe.className = "glaze";
@@ -52,9 +51,9 @@ const slug = (text: string) =>
 /**
  * Above the gallery's list: a card from a creation's link. The link's
  * drawing becomes its cutter right here – the site's own code, in this
- * browser – rendered from above in the chosen card colour; the preview is
+ * browser – rendered from above in the chosen card color; the preview is
  * the share picture as the site paints it. Added, the rendering is the
- * picture, with the link, the name and the colour beside it; the site lays it
+ * picture, with the link, the name and the color beside it; the site lays it
  * on the card (gallery-fan.tsx).
  */
 export const GalleryBuilder = () => {
@@ -65,27 +64,17 @@ export const GalleryBuilder = () => {
   } = useConfig();
   const router = useRouter();
   const [text, setText] = useState("");
-  const [colors, setColors] = useState<CardColor[]>([]);
+  const colors = useSiteColors();
   const [color, setColor] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [built, setBuilt] = useState<Built | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>({ state: "idle" });
-  /** The cutter from above in the chosen colour – the picture to upload. */
+  /** The cutter from above in the chosen color – the picture to upload. */
   const [view, setView] = useState<HTMLCanvasElement | null>(null);
   const chosen = color ?? colors[0]?.color ?? "#2a44ff";
 
-  // The card colours to choose from (Site global).
-  useEffect(() => {
-    fetch(`${api}/globals/site?depth=0`, { credentials: "include" })
-      .then((response) => response.json())
-      .then((site: { cardColors?: CardColor[] }) =>
-        setColors(site.cardColors ?? [])
-      )
-      .catch(() => setColors([]));
-  }, [api]);
-
-  // Rendered anew for another colour …
+  // Rendered anew for another color …
   useEffect(() => {
     setView(
       built
@@ -244,21 +233,14 @@ export const GalleryBuilder = () => {
               />
             </label>
             {colors.length > 0 && (
-              <fieldset className="gallery-builder-colors">
-                <legend className="gallery-builder-label">Colour</legend>
-                {colors.map((option) => (
-                  <button
-                    aria-label={option.name}
-                    aria-pressed={option.color === chosen}
-                    className="gallery-builder-swatch"
-                    key={option.color}
-                    onClick={() => setColor(option.color)}
-                    style={{ "--swatch": option.color } as CSSProperties}
-                    title={option.name}
-                    type="button"
-                  />
-                ))}
-              </fieldset>
+              <div className="gallery-builder-label">
+                Color
+                <SiteColorSwatches
+                  colors={colors}
+                  onChange={setColor}
+                  value={chosen}
+                />
+              </div>
             )}
             <div>
               <Button

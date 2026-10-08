@@ -36,7 +36,7 @@ const seeded = (seed: number) => {
 };
 
 /**
- * The doughs: its colour, its darker and lighter specks, its sheen and how
+ * The doughs: its color, its darker and lighter specks, its sheen and how
  * matt it is. Chocolate warm and rich, a little glossy – not burnt.
  */
 const DOUGHS = {
@@ -63,7 +63,7 @@ const doughCache = new Map<
   { map: THREE.Texture; bumpMap: THREE.Texture }
 >();
 
-/** Dough texture: colour variations and browned specks, plus a bump map. */
+/** Dough texture: color variations and browned specks, plus a bump map. */
 const doughTextures = (dough: Dough = "plain") => {
   const cached = doughCache.get(dough);
   if (cached) return cached;
@@ -556,15 +556,15 @@ export const createIconCookie = (
 export type CookieShape = {
   dough: Ring[];
   icing: Ring[];
-  /** Picks the icing colour and where the sprinkles land. */
+  /** Picks the icing color and where the sprinkles land. */
   seed: number;
-  /** The icing's colour instead of the seed's pick (a card's favourite). */
+  /** The icing's color instead of the seed's pick (a card's favorite). */
   glaze?: string;
   /** Baked of chocolate dough. */
   chocolate?: boolean;
 };
 
-/** Mostly white icing, sometimes coloured. */
+/** Mostly white icing, sometimes colored. */
 const ICINGS = ["#ffffff", "#ffffff", "#ff5fa8", "#ffc31f", "#a9b6ff"];
 
 /** Rings as three.js shapes: each outer ring with the holes right inside it. */
@@ -780,7 +780,7 @@ export const createShapeCookie = (
 };
 
 /**
- * The icing colour a baked creation gets – its seed's first pick, the same
+ * The icing color a baked creation gets – its seed's first pick, the same
  * as in createShapeCookie.
  */
 export const icingColorOf = ({ seed }: CookieShape) =>
@@ -790,14 +790,14 @@ export const icingColorOf = ({ seed }: CookieShape) =>
     )
   ];
 
-/** A colour from the icings for what the cookie lies on – never white. */
+/** A color from the icings for what the cookie lies on – never white. */
 export const glazeColorOf = (shape: CookieShape) => {
   if (shape.glaze) return shape.glaze;
   const icing = icingColorOf(shape);
-  const colours = ICINGS.filter((colour) => colour !== "#ffffff");
+  const colors = ICINGS.filter((color) => color !== "#ffffff");
   return icing !== "#ffffff"
     ? icing
-    : colours[Math.abs(Math.floor(shape.seed)) % colours.length];
+    : colors[Math.abs(Math.floor(shape.seed)) % colors.length];
 };
 
 /** A bite: round bits (cookie units, the cookie about 2 wide) taken away. */

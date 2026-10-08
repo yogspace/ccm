@@ -441,7 +441,7 @@ const CardCookies = ({ shape }: { shape: CookieShape }) => {
   const [held, setHeld] = useState<number | null>(null);
   const count = scene ? PER_SIDE * 2 : 0;
   // Each baked on its own – its own sprinkles, its icing in one of the
-  // favourite colours (CMS), picked at random; plain and chocolate mixed.
+  // favorite colors (CMS), picked at random; plain and chocolate mixed.
   const colors = useCardColors();
   const shapes = useMemo(
     () =>

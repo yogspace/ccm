@@ -31,7 +31,7 @@ type Props = {
   greeting: Greeting;
   onChange: (greeting: Greeting) => void;
   /**
-   * The cutter from above in the favourite colour (share-creation.tsx
+   * The cutter from above in the favorite color (share-creation.tsx
    * renders it).
    */
   picture: HTMLCanvasElement | null;
@@ -55,7 +55,7 @@ const CardComposer = ({ greeting, onChange, picture }: Props) => {
   const title = name.trim() || "Cookie Cutter";
   const canSend = "share" in navigator;
   const lang = i18n.resolvedLanguage ?? "en";
-  // The favourite colour from the CMS; an unknown number is the first.
+  // The favorite color from the CMS; an unknown number is the first.
   const { chosen, glaze } = useCardColor(greeting.color);
   const creation = creationUrl();
   // Drawn on since: the card is made anew.
@@ -106,7 +106,7 @@ const CardComposer = ({ greeting, onChange, picture }: Props) => {
 
   return (
     <>
-      {/* The card page in small, in the favourite colour: the message runs
+      {/* The card page in small, in the favorite color: the message runs
           around the cutter. Its place is kept while the cutter renders. On
           the little card a long name is cut, it does not widen the card. */}
       <div
@@ -194,7 +194,7 @@ const CardComposer = ({ greeting, onChange, picture }: Props) => {
             value={greeting.message}
           />
         </Field>
-        {/* The favourite colour: the page, the card, its words, the cutter
+        {/* The favorite color: the page, the card, its words, the cutter
             and the cookie's icing in its shades. */}
         <ColorSwatches onChange={pick} value={chosen} />
 

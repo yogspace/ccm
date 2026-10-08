@@ -14,7 +14,7 @@ export const SHARE_CARD = {
   h: 880,
 };
 
-/** The favourite colour's shades the share picture is painted in (glaze.css). */
+/** The favorite color's shades the share picture is painted in (glaze.css). */
 export const SHARE_PICTURE_COLORS = {
   page: "--glaze",
   sheet: "--card-sheet",
@@ -28,7 +28,7 @@ const HEIGHT = 1350;
 const FONT = '"Pally", system-ui, sans-serif';
 
 /**
- * The card's favourite colour and its shades, as the page shows them
+ * The card's favorite color and its shades, as the page shows them
  * (index.css, read with resolveColors – glaze.ts).
  */
 export const CARD_PICTURE_COLORS = {
@@ -103,7 +103,7 @@ export const truncate = (
 
 /**
  * The share picture, painted when it is saved or shared – as the page builds
- * it (share-picture.tsx): the favourite colour, the card with the cutter from
+ * it (share-picture.tsx): the favorite color, the card with the cutter from
  * above, below it the name and where it was made. Also the admin's preview
  * of a gallery card (fields/gallery-builder.tsx).
  */

@@ -1,6 +1,6 @@
 import { type ClassNameValue, extendTailwindMerge } from "tailwind-merge";
 
-/** Knows the theme's own font sizes – `text-small` is a size, not a colour. */
+/** Knows the theme's own font sizes – `text-small` is a size, not a color. */
 const merge = extendTailwindMerge({
   extend: { theme: { text: ["tiny", "small", "body", "title", "display"] } },
 });

@@ -7,8 +7,8 @@ import { useState } from "react";
 /**
  * Building blocks of the analytics global.
  *
- * Colours only through Payload's theme variables, so light and dark mode both
- * fit without asking which one is on. The one data colour is Payload's
+ * Colors only through Payload's theme variables, so light and dark mode both
+ * fit without asking which one is on. The one data color is Payload's
  * “success” (a blue there) – the same as in the heatmap (visit-matrix.tsx).
  */
 
@@ -74,8 +74,8 @@ export const StatGrid = ({ children }: PropsWithChildren) => (
 export type Trend = "up" | "down" | "flat";
 
 const TREND_ICON: Record<Trend, string> = { up: "▲", down: "▼", flat: "■" };
-// More is good – the direction carries the colour, and the sign before it
-// says the same again without colour.
+// More is good – the direction carries the color, and the sign before it
+// says the same again without color.
 const TREND_COLOR: Record<Trend, string> = {
   up: "var(--theme-success-500)",
   down: "var(--theme-error-500)",

@@ -61,10 +61,10 @@ type Painted = {
 /**
  * “Share creation”: one box below the editor, only what is needed. As a
  * picture: the picture as it will be shared – built by the page, painted
- * only once it is saved or shared – in the favourite colour, the link (a
+ * only once it is saved or shared – in the favorite color, the link (a
  * click copies it), sharing and saving the picture. As a greeting card: the
  * little card with the message around the cutter, the fields beside it –
- * and the box grows along. The colour is the same for both.
+ * and the box grows along. The color is the same for both.
  */
 const ShareCreation = ({ preview }: Props) => {
   const { t } = useTranslation();
@@ -74,12 +74,12 @@ const ShareCreation = ({ preview }: Props) => {
   const pictureRef = useRef<HTMLDivElement>(null);
   const painted = useRef<Painted | null>(null);
   const [mode, setMode] = useState<Mode>("picture");
-  // Kept while switching back and forth – its colour for the picture too.
+  // Kept while switching back and forth – its color for the picture too.
   const [greeting, setGreeting] = useState<Greeting>({
     to: "",
     from: "",
     message: "",
-    // The first favourite colour – the default.
+    // The first favorite color – the default.
     color: 0,
   });
   const { chosen, glaze } = useCardColor(greeting.color);
@@ -91,8 +91,8 @@ const ShareCreation = ({ preview }: Props) => {
   const url = creationUrl();
   useGrow(boxRef, bodyRef);
 
-  // The cutter from above in the favourite colour, for the picture and the
-  // little card alike: anew shortly after drawing, right away for a colour.
+  // The cutter from above in the favorite color, for the picture and the
+  // little card alike: anew shortly after drawing, right away for a color.
   const cutterView = useLivePicture<HTMLCanvasElement>(
     boxRef,
     [cutter.mesh],

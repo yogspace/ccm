@@ -1,6 +1,6 @@
 import { hashText } from "./hash-text";
 
-/** Filament colours of the 3D views – every new cutter gets a different one. */
+/** Filament colors of the 3D views – every new cutter gets a different one. */
 export const FILAMENTS = [
   "#2a44ff", // Luminous Blue
   "#ff6a1f", // Energy Orange
@@ -12,7 +12,7 @@ export const FILAMENTS = [
 ];
 
 /**
- * A colour that follows from a text (e.g. the drawing in a link) – the same
+ * A color that follows from a text (e.g. the drawing in a link) – the same
  * on every screen, so sender and recipient see the same cutter.
  */
 export const filamentFor = (key: string) =>

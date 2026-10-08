@@ -18,7 +18,7 @@ The geometry is built entirely in the browser. The server ([Next.js](https://nex
   - links and bridges blend into walls and flanges with round fillets; hairline gaps between flanges are closed, small pockets in the plate filled, larger ones rounded
   - adjustable bridge width
 - Geometry tests (`pnpm test`, also in the pipeline): drawn and generated shapes must come out as one part, with nothing in the dough's room, nothing over an opening, no hairline slits or sharp corners next to inner blades, and no more arches than needed. In the dev server, a “Test case” button in the corner saves the drawing on screen as a new one
-- Live contour (cutting line) over the drawing, 3D preview as a turntable (floor and model turn together, can be stopped); every new cutter gets a different filament colour
+- Live contour (cutting line) over the drawing, 3D preview as a turntable (floor and model turn together, can be stopped); every new cutter gets a different filament color
 - 3D cookies as icons (rendered live, looking at the mouse, turning on hover) and in the background
 - Dimensions in mm or inch, a name for the creation, download as 3MF and STL (`<name>-80mm.3mf`)
 - Printing tips and error messages as popovers in neon pink, anchored with CSS anchor positioning
@@ -44,8 +44,8 @@ src/
   proxy.ts                    “/” and “/card” → /de or /en by browser language
   editor-root.tsx, editor.tsx the editor in the browser only (next/dynamic without SSR): texts, templates, gallery handed over by the page
   editor-app.tsx              the editor's frame
-  index.css                   Tailwind: the theme (colours, font sizes, breakpoints), base styles, keyframes – the site's only stylesheet
-  glaze.css                   a favourite colour's shades (card page, share picture) – also loaded by the admin's preview
+  index.css                   Tailwind: the theme (colors, font sizes, breakpoints), base styles, keyframes – the site's only stylesheet
+  glaze.css                   a favorite color's shades (card page, share picture) – also loaded by the admin's preview
   cn.ts                       joins class names; of conflicting utilities the later wins (tailwind-merge)
   card/                       the greeting card: card-root/card-entry (browser only), card-page, card-cutter (3D on the card), load-cutter
   store.ts                    state (valtio): actions, cutter worker, link in the hash, scroll lock
@@ -78,7 +78,7 @@ src/
   seo.ts                      meta texts, link previews, JSON-LD per language
   url-state.ts                state ↔ URL hash
   cookie-jar.ts, cookie-flight.ts   the cookie bar's cookies in localStorage; a cookie's flight into the bar
-  filaments.ts, hash-text.ts  filament colours, stable numbers from texts (same colour, same sprinkles everywhere)
+  filaments.ts, hash-text.ts  filament colors, stable numbers from texts (same color, same sprinkles everywhere)
   greeting.ts                 the card's link: recipient, sender, message on top of the creation's hash
   units.ts                    mm/inch
 scripts/                      prepare.mjs (Pally + manifold.wasm before dev/build), sync-db.sh, sync-media.sh, setup-cron.sh
@@ -89,7 +89,7 @@ File names are kebab-case (enforced by a Biome rule). Code comments and this REA
 
 ### Styling
 
-[Tailwind CSS](https://tailwindcss.com) v4, configured in CSS (`src/index.css`, no config file). The design's tokens are the theme – `bg-page`, `text-ink`, `text-small`, `ease-spring` …; colours are overridden where the page changes (dark mode, the `paper` utility on the drawing area, the card page's favourite colour), so the utilities follow along. Components carry their utilities in `className`; what several share sits in a component (`Button` with its kinds, `Card`, `Field`) or in `components/styles.ts`. Elements' defaults (buttons, focus ring, range inputs) are base styles written with `@apply`. Tailwind styles the site only – the admin keeps Payload's own styles (`custom.scss`).
+[Tailwind CSS](https://tailwindcss.com) v4, configured in CSS (`src/index.css`, no config file). The design's tokens are the theme – `bg-page`, `text-ink`, `text-small`, `ease-spring` …; colors are overridden where the page changes (dark mode, the `paper` utility on the drawing area, the card page's favorite color), so the utilities follow along. Components carry their utilities in `className`; what several share sits in a component (`Button` with its kinds, `Card`, `Field`) or in `components/styles.ts`. Elements' defaults (buttons, focus ring, range inputs) are base styles written with `@apply`. Tailwind styles the site only – the admin keeps Payload's own styles (`custom.scss`).
 
 ### Templates and gallery
 

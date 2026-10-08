@@ -33,7 +33,7 @@ export const Site: GlobalConfig = {
   admin: {
     group: "Settings",
     description:
-      "Links in the footer, on the greeting card and in the legal text, the address in the legal text, and the greeting cards' favourite colours.",
+      "Links in the footer, on the greeting card and in the legal text, the address in the legal text, and the greeting cards' favorite colors.",
   },
   fields: [
     {
@@ -89,12 +89,12 @@ export const Site: GlobalConfig = {
     {
       name: "cardColors",
       type: "array",
-      label: "Card colours",
-      labels: { singular: "Colour", plural: "Colours" },
+      label: "Card colors",
+      labels: { singular: "Color", plural: "Colors" },
       minRows: 1,
       admin: {
         description:
-          "The favourite colours to pick for a greeting card – the cookie's icing, and in its shades the card, its back and its words. The first one is the default. A colour's place is its number in card links: add new ones at the end only, don't reorder or delete – sent cards would change colour.",
+          "The favorite colors to pick for a greeting card – the cookie's icing, and in its shades the card, its back and its words. The first one is the default. A color's place is its number in card links: add new ones at the end only, don't reorder or delete – sent cards would change color.",
         initCollapsed: true,
         components: {
           RowLabel: "@/fields/card-color-field#CardColorRowLabel",
@@ -104,7 +104,7 @@ export const Site: GlobalConfig = {
         {
           name: "color",
           type: "text",
-          label: "Colour",
+          label: "Color",
           required: true,
           admin: {
             description:
@@ -116,7 +116,7 @@ export const Site: GlobalConfig = {
           validate: (value: unknown) =>
             typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value)
               ? true
-              : "A colour as #rrggbb",
+              : "A color as #rrggbb",
         },
         {
           name: "name",

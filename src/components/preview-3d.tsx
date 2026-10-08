@@ -11,7 +11,7 @@ import { stopAutoRotate, store } from "../store";
 export type PreviewHandle = {
   /**
    * Transparent picture of size width × height, or `null` without a model –
-   * in the filament colour on screen unless `color` says otherwise.
+   * in the filament color on screen unless `color` says otherwise.
    */
   renderTop: (
     width: number,
@@ -127,7 +127,7 @@ const Preview3d = ({ ref }: Props) => {
 
     let riseStart = -Infinity;
     const rise = () => {
-      // Every new cutter switches colour right away, without a cross-fade.
+      // Every new cutter switches color right away, without a cross-fade.
       filament = pickFilament(filament);
       material.color.set(filament);
       // New shape: reset the turntable so it starts aligned like the drawing.

@@ -20,7 +20,7 @@ type Hover =
 const MAX_ROWS = 10;
 
 /**
- * The shading as steps of the admin's “success” colour (Payload's blue) – via
+ * The shading as steps of the admin's “success” color (Payload's blue) – via
  * the theme variables, which Payload turns around in dark mode, so “more
  * views = further from the ground” holds in both modes.
  */
@@ -81,7 +81,7 @@ export const VisitMatrix = ({
     const step = RAMP[Math.max(0, Math.min(RAMP.length - 1, index))];
     return {
       background: `var(--theme-success-${step})`,
-      // From the middle of the ramp on, the ground's text colour no longer
+      // From the middle of the ramp on, the ground's text color no longer
       // reads – `elevation-0` is the ground in both modes.
       color: step >= 500 ? "var(--theme-elevation-0)" : "var(--theme-text)",
     };

@@ -38,7 +38,7 @@ const pack = (rings: Ring[]): Ring[] =>
     .filter((ring) => ring.length >= 3);
 
 /**
- * The same shape always bakes the same cookie (icing colour, sprinkles) – in
+ * The same shape always bakes the same cookie (icing color, sprinkles) – in
  * the bar, on the save button and on the greeting card.
  */
 export const cookieSeed = (outline: Ring[]) =>

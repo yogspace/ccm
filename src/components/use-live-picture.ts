@@ -63,7 +63,7 @@ export const useLivePicture = <T>(
       } else if (next !== null) releaseRef.current?.(next);
     };
     // Without waiting: right in this commit – before the browser starts
-    // what it brings along (a colour fading), so nothing stutters in it.
+    // what it brings along (a color fading), so nothing stutters in it.
     const timer = hasPicture && settle ? setTimeout(run, SETTLE_MS) : run();
     return () => {
       current = false;

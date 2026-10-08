@@ -20,7 +20,7 @@ const deal = (pictures: GalleryCard[]) => {
 
 /**
  * Example creations (the gallery, from the CMS) between editor and footer,
- * each like the share picture: its colour, the cutter on the card, its name.
+ * each like the share picture: its color, the cutter on the card, its name.
  * Once scrolled into view they rise from the
  * middle and then fold apart left and right along an arc, like a hand of
  * cards. Always five, drawn at random from all pictures; with fewer they
@@ -33,7 +33,7 @@ const GalleryFan = () => {
   const [spread] = useState(() => (window.innerWidth < 640 ? 9 : 12));
   const { gallery } = useAssets();
   const [hand] = useState(() => deal(gallery));
-  // Without a colour of its own: the first card colour.
+  // Without a color of its own: the first card color.
   const fallback = useCardColors()[0]?.color ?? "#2a44ff";
   if (gallery.length === 0) return null;
   const middle = (CARDS - 1) / 2;

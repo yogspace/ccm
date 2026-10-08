@@ -102,11 +102,11 @@ export const getAssets = async (): Promise<Assets> => {
   return { presets, gallery };
 };
 
-/** Links, address and card colours from the “Site” global. */
+/** Links, address and card colors from the “Site” global. */
 const readSite = unstable_cache(
   async (): Promise<Site> => {
     const payload = await getPayload({ config: configPromise });
-    // All languages: the colours' names come as { de, en }.
+    // All languages: the colors' names come as { de, en }.
     const site = await payload.findGlobal({
       slug: "site",
       depth: 0,
@@ -136,7 +136,7 @@ const readSite = unstable_cache(
   { tags: [TAGS.site] }
 );
 
-/** Links, address and card colours – the code's ones without a database. */
+/** Links, address and card colors – the code's ones without a database. */
 export const getSite = (): Promise<Site> =>
   readSite().catch(() => SITE_DEFAULTS);
 

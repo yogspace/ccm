@@ -10,8 +10,8 @@ export type Greeting = {
   from: string;
   message: string;
   /**
-   * The favourite colour: its number in the CMS's list (“Site” global → Card
-   * colours) – short in the link; 0, the first, is the default.
+   * The favorite color: its number in the CMS's list (“Site” global → Card
+   * colors) – short in the link; 0, the first, is the default.
    */
   color: number;
 };
@@ -19,7 +19,7 @@ export type Greeting = {
 /** Longest names and message (characters) – the message has to fit the ring. */
 export const GREETING_LIMITS = { name: 32, message: 140 } as const;
 
-/** The card's parts in the link's hash (glaze.ts reads the colour too). */
+/** The card's parts in the link's hash (glaze.ts reads the color too). */
 export const GREETING_KEYS = {
   to: "to",
   from: "from",

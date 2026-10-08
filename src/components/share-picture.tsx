@@ -4,7 +4,7 @@ import { SITE_LINE } from "./card-image";
 import { ghost } from "./styles";
 
 type Props = ComponentProps<"div"> & {
-  /** The favourite colour – the picture in its shades (glaze.css). */
+  /** The favorite color – the picture in its shades (glaze.css). */
   glaze: string;
   name: string;
   /** The cutter is on its way: its place is kept, a shine runs over it. */
@@ -12,7 +12,7 @@ type Props = ComponentProps<"div"> & {
 };
 
 /**
- * The share picture, built of the page: the favourite colour, the card with
+ * The share picture, built of the page: the favorite color, the card with
  * the cutter from above (the children), below it the name and where it was
  * made. paintSharePicture (card-image.ts) paints it the same, 1200 px wide:
  * 12 px there are 1cqw here. Name and site sit on the baselines they are

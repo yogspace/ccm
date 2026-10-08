@@ -1,12 +1,22 @@
 import path from "node:path";
-import type { CollectionConfig } from "payload";
+import type { CollectionConfig, TextFieldSingleValidation } from "payload";
 import { authenticated } from "../access/authenticated";
 import { expireOnChange, TAGS } from "../cache";
 import { MEDIA_DIR } from "../media";
 
+/** Only the card colors set in Site – or none, then the first. */
+const siteColor: TextFieldSingleValidation = async (value, { req }) => {
+  if (!value) return true;
+  const site = await req.payload.findGlobal({ slug: "site", depth: 0, req });
+  const known = site.cardColors?.some(
+    ({ color }) => color.toLowerCase() === value.toLowerCase()
+  );
+  return known ? true : "One of the card colors set in Site";
+};
+
 /**
  * Cards for the fan above the footer (gallery-fan.tsx): five of them, drawn
- * at random on every load, each shown like the share picture – its colour,
+ * at random on every load, each shown like the share picture – its color,
  * the cutter from above on the card, its name. Built from a creation's link
  * above the list (fields/gallery-builder.tsx): the picture is the cutter
  * from above, rendered in the admin. Pictures uploaded by hand (white
@@ -63,12 +73,10 @@ export const Gallery: CollectionConfig = {
       type: "text",
       admin: {
         description:
-          "The card's colour as #rrggbb – empty: the first card colour (Site).",
+          "One of the card colors set in Site – none chosen: the first.",
+        components: { Field: "@/fields/gallery-color-field#GalleryColorField" },
       },
-      validate: (value: unknown) =>
-        !value || (typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value))
-          ? true
-          : "A colour as #rrggbb",
+      validate: siteColor,
     },
     {
       name: "link",

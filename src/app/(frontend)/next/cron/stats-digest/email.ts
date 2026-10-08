@@ -8,21 +8,21 @@ import {
 
 /**
  * The mail report as HTML – tiles, columns, heatmap, lists, in the app's
- * colours: the blue page, cream cards, ink text, neon pink for what went
+ * colors: the blue page, cream cards, ink text, neon pink for what went
  * down.
  *
  * Built for mail programs, not browsers: tables and inline styles only, no
  * grid, no flexbox, no CSS variables, no script. Where a program cannot do
  * something (rounded corners in classic Outlook), it falls back to a quiet
  * surface instead of breaking. `color-scheme: light` so mail programs do not
- * darken and recolour it.
+ * darken and recolor it.
  */
 
 const TZ = "Europe/Berlin";
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 
-// Fixed colours – mail programs know no variables. The app's tokens
+// Fixed colors – mail programs know no variables. The app's tokens
 // (index.css): --page, --card, --border, --text, --muted, --accent, --neon.
 const C = {
   bg: "#2a44ff",
