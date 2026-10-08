@@ -4,11 +4,11 @@ import { useSiteLinks } from "../site-context";
 import CookieIcon from "./cookie-icon";
 import DonateBadge from "./donate-badge";
 import LegalNotice from "./legal-notice";
+import { cookieInFooter } from "./styles";
 
 /** A link on the page; its cookie sticks out of the row without making it taller. */
 const link =
   "inline-flex items-center gap-0.5 text-on-page transition-[color] hover:underline hover:underline-offset-3";
-const linkCookie = "-my-3 -mr-1.75 -ml-1.25";
 /** On phones without the separator dots. */
 const separator = "max-sm:hidden";
 
@@ -46,7 +46,11 @@ const SiteFooter = ({ className, compact = false }: Props) => {
       <span className={group}>
         <a className={link} href={links.website} rel="noopener" target="_blank">
           mxwr.de
-          <CookieIcon className={linkCookie} icon={ArrowUpRight} size={40} />
+          <CookieIcon
+            className={cookieInFooter}
+            icon={ArrowUpRight}
+            size={40}
+          />
         </a>
         <span aria-hidden className={separator}>
           ·
@@ -59,7 +63,7 @@ const SiteFooter = ({ className, compact = false }: Props) => {
         >
           MakerWorld
           <CookieIcon
-            className={linkCookie}
+            className={cookieInFooter}
             icing="#5fb36b"
             icon={ArrowUpRight}
             size={40}

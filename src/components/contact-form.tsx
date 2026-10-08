@@ -8,7 +8,7 @@ import { cn } from "../cn";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
 import Field from "./field";
-import { cookieInButton, fieldInput } from "./styles";
+import { cookieInFooter, fieldInput } from "./styles";
 
 type Status = "idle" | "sending" | "sent" | "error";
 
@@ -118,7 +118,7 @@ const ContactForm = () => {
       <div className="mt-3.5 flex flex-wrap items-center gap-x-4 gap-y-2">
         <Button disabled={status === "sending"} kind="primary" type="submit">
           <CookieIcon
-            className={cookieInButton}
+            className={cookieInFooter}
             icon={Send}
             roll={-8}
             size={48}
@@ -135,7 +135,12 @@ const ContactForm = () => {
               key="sent"
               role="status"
             >
-              <CookieIcon icing="#00b86b" icon={Check} size={36} />
+              <CookieIcon
+                className={cookieInFooter}
+                icing="#00b86b"
+                icon={Check}
+                size={36}
+              />
               {t("contact.sent")}
             </motion.span>
           )}

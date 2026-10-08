@@ -44,9 +44,12 @@ src/
   proxy.ts                    “/” and “/card” → /de or /en by browser language
   editor-root.tsx, editor.tsx the editor in the browser only (next/dynamic without SSR): texts, templates, gallery handed over by the page
   editor-app.tsx              the editor's frame
+  index.css                   Tailwind: the theme (colours, font sizes, breakpoints), base styles, keyframes – the site's only stylesheet
+  glaze.css                   a favourite colour's shades (card page, share picture) – also loaded by the admin's preview
+  cn.ts                       joins class names; of conflicting utilities the later wins (tailwind-merge)
   card/                       the greeting card: card-root/card-entry (browser only), card-page, card-cutter (3D on the card), load-cutter
   store.ts                    state (valtio): actions, cutter worker, link in the hash, scroll lock
-  components/                 draw-canvas, tool-picker, preview-3d, parameter-panel, share-creation, gallery-fan, cookie-bar, cookie-fx (flight, crumbs), …
+  components/                 draw-canvas, tool-picker, preview-3d, parameter-panel, share-creation, gallery-fan, cookie-bar, cookie-fx (flight, crumbs), button, card, …; styles.ts: classes shared by several
   drawing.ts                  the drawing as vectors: painting, finding objects, moving/rotating/scaling, erasing
   presets.ts                  a template's outline from its SVG
   content.ts, assets.ts       templates and gallery pictures from the CMS; the editor gets them through a context
@@ -84,6 +87,10 @@ test/                         geometry tests (Vitest): cutter.test.ts, clean.ts 
 ```
 
 File names are kebab-case (enforced by a Biome rule). Code comments and this README are in English.
+
+### Styling
+
+[Tailwind CSS](https://tailwindcss.com) v4, configured in CSS (`src/index.css`, no config file). The design's tokens are the theme – `bg-page`, `text-ink`, `text-small`, `ease-spring` …; colours are overridden where the page changes (dark mode, the `paper` utility on the drawing area, the card page's favourite colour), so the utilities follow along. Components carry their utilities in `className`; what several share sits in a component (`Button` with its kinds, `Card`, `Field`) or in `components/styles.ts`. Elements' defaults (buttons, focus ring, range inputs) are base styles written with `@apply`. Tailwind styles the site only – the admin keeps Payload's own styles (`custom.scss`).
 
 ### Templates and gallery
 

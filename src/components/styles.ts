@@ -7,6 +7,8 @@
 export const cookieInButton = "-my-4 -mr-1.25 -ml-2.75";
 /** An icon button is just its cookie. */
 export const cookieInIconButton = "-m-2.5";
+/** In the footer and the imprint dialog, which opens from it. */
+export const cookieInFooter = "-my-3 -mr-1.75 -ml-1.25";
 /** Beside a short line of text, e.g. the dimensions or the unit switch. */
 export const cookieInLine = "-my-2.75 -mr-0.75 -ml-2";
 
