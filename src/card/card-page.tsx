@@ -60,6 +60,20 @@ const SPRINKLES = Array.from({ length: 12 }, (_, i) => ({
   reach: 34 + (i % 3) * 5,
 }));
 
+/**
+ * Confetti from behind the card once the cookie is eaten up – like the
+ * sprinkles, but more of it, flying farther, a little apart in time.
+ */
+const CONFETTI = Array.from({ length: 40 }, (_, i) => ({
+  angle: (i / 40) * 360 + ((i * 37) % 17) - 8,
+  color: ["#ff5fa8", "#ffffff", "#ffc31f", "#ff6a1f", "#5fb36b", "#a9b6ff"][
+    i % 6
+  ],
+  reach: 52 + ((i * 53) % 34),
+  delay: ((i * 29) % 12) * 0.02,
+  size: 0.8 + ((i * 31) % 7) / 10,
+}));
+
 /** Pause (ms) before painting the picture – the card lands first. */
 const PICTURE_DELAY = 1500;
 
@@ -168,6 +182,8 @@ const CardPage = () => {
   const name = shared.name.trim() || "Cookie Cutter";
   const lang = i18n.resolvedLanguage ?? "en";
   const unit = initialUnit();
+  /** The message behind the cookie on the back. */
+  const hidden = greeting.message || t("card.ring");
   const heading = greeting.to
     ? t("card.for", { name: greeting.to })
     : t("card.forYou");
@@ -450,6 +466,24 @@ const CardPage = () => {
                 }
               />
             ))}
+          {eaten &&
+            !still() &&
+            CONFETTI.map(({ angle, color, reach, delay, size }) => (
+              <i
+                aria-hidden
+                className="greeting-sprinkle greeting-confetti"
+                key={`eaten-${angle}`}
+                style={
+                  {
+                    "--angle": `${angle}deg`,
+                    "--color": color,
+                    "--reach": `${reach}cqw`,
+                    "--delay": `${delay}s`,
+                    "--size": size,
+                  } as CSSProperties
+                }
+              />
+            ))}
           <div className="greeting-card" ref={cardRef}>
             <button
               aria-label={t(flipped ? "card.flipBack" : "card.flip")}
@@ -510,11 +544,15 @@ const CardPage = () => {
                   className="greeting-hidden"
                   style={
                     {
-                      "--chars": (greeting.message || t("card.ring")).length,
+                      "--chars": hidden.length,
+                      // Its longest word fits a line – not broken apart.
+                      "--word": Math.max(
+                        ...hidden.split(/\s+/).map((word) => word.length)
+                      ),
                     } as CSSProperties
                   }
                 >
-                  {greeting.message || t("card.ring")}
+                  {hidden}
                 </span>
                 {cookie && (
                   // biome-ignore lint/a11y/noStaticElementInteractions: a playful extra – the card itself turns by keyboard

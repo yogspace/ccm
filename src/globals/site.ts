@@ -39,6 +39,7 @@ export const Site: GlobalConfig = {
     {
       name: "links",
       type: "group",
+      admin: { position: "sidebar" },
       fields: [
         link(
           "website",
@@ -53,6 +54,7 @@ export const Site: GlobalConfig = {
       name: "address",
       type: "group",
       admin: {
+        position: "sidebar",
         description:
           "Shown wherever the legal text has an “Address” block (§ 5 DDG, § 18 MStV).",
       },
@@ -94,6 +96,9 @@ export const Site: GlobalConfig = {
         description:
           "The favourite colours to pick for a greeting card – the cookie's icing, and in its shades the card, its back and its words. The first one is the default. A colour's place is its number in card links: add new ones at the end only, don't reorder or delete – sent cards would change colour.",
         initCollapsed: true,
+        components: {
+          RowLabel: "@/fields/card-color-field#CardColorRowLabel",
+        },
       },
       fields: [
         {
@@ -101,7 +106,13 @@ export const Site: GlobalConfig = {
           type: "text",
           label: "Colour",
           required: true,
-          admin: { description: "As #rrggbb, e.g. #ff5fa8." },
+          admin: {
+            description:
+              "As #rrggbb, e.g. #ff5fa8 – or pick it. Below: the card in its shades.",
+            components: {
+              Field: "@/fields/card-color-field#CardColorField",
+            },
+          },
           validate: (value: unknown) =>
             typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value)
               ? true

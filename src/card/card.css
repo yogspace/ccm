@@ -431,7 +431,13 @@ button.greeting-flip[data-flipped] .greeting-back {
   grid-area: 1 / 1;
   align-self: center;
   padding: 0 4cqw;
-  font-size: clamp(5cqw, 64cqw / (var(--chars, 12) * 0.24 + 3), 10cqw);
+  /* Smaller for longer messages – and so small that the longest word fits
+     the card's width (Pally's letters about 0.56em wide). */
+  font-size: clamp(
+    5cqw,
+    min(64cqw / (var(--chars, 12) * 0.24 + 3), 42cqw / (var(--word, 6) * 0.56)),
+    10cqw
+  );
   font-weight: 700;
   line-height: 1.05;
   letter-spacing: -0.02em;
@@ -538,6 +544,15 @@ button.greeting-flip[data-flipped] .greeting-back {
   border-radius: 1cqw;
   opacity: 0;
   animation: greet-sprinkle 1.4s var(--ease) var(--delay, 0.7s) both;
+}
+
+/* The cookie eaten up: confetti from behind the card – farther out, then
+   drifting down as it fades. */
+.greeting-confetti {
+  width: calc(2.4cqw * var(--size, 1));
+  height: calc(0.95cqw * var(--size, 1));
+  animation: greet-confetti 2.4s cubic-bezier(0.12, 0.7, 0.3, 1)
+    var(--delay, 0s) both;
 }
 
 .greeting-from {
@@ -681,6 +696,29 @@ button.greeting-flip[data-flipped] .greeting-back {
   from {
     opacity: 0;
     scale: 0.84;
+  }
+}
+
+/* The same functions in every step – so each is eased on its own, the fall
+   (translateY) straight down on the screen. */
+@keyframes greet-confetti {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(0) rotate(var(--angle))
+      translateX(14cqw) rotate(0deg);
+  }
+  8% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-50%, -50%) translateY(3cqw) rotate(var(--angle))
+      translateX(var(--reach)) rotate(260deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(18cqw) rotate(var(--angle))
+      translateX(calc(var(--reach) + 4cqw)) rotate(500deg);
   }
 }
 

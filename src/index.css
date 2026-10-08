@@ -2143,58 +2143,6 @@ button.legal-close {
   letter-spacing: 0;
 }
 
-/* ---------- A favourite colour (--glaze) and its shades ----------
-   The greeting card's colour from the CMS (Site → Card colours): its page
-   (card.css), the card in small and the share picture. The card faintly
-   tinted, its back strong, its words dark; the words on the colour itself
-   white or its deep shade, whichever reads. Worked out from the colour
-   (relative colours); mixed for older browsers – on the colour there,
-   always white. */
-/* A colour, not just text: a newly chosen one fades in, its shades along. */
-@property --glaze {
-  syntax: "<color>";
-  inherits: true;
-  initial-value: #2a44ff;
-}
-
-.glaze {
-  --glaze: #2a44ff;
-  transition: --glaze 0.5s var(--ease);
-}
-
-:root:has(#card-glaze),
-.glaze {
-  --card-sheet: color-mix(in oklab, var(--glaze) 9%, #fffdf8);
-  --card-back: color-mix(in oklab, var(--glaze) 52%, #fff8ee);
-  --card-back-ink: color-mix(in oklab, var(--glaze) 75%, #6b5a52);
-  --card-ink: color-mix(in oklab, var(--glaze) 38%, #0d1033);
-  --card-ink-muted: color-mix(in oklab, var(--glaze) 45%, #6a6e8c);
-  --card-deep: color-mix(in oklab, var(--glaze) 62%, #160f2c);
-  --on-glaze: #ffffff;
-  --on-glaze-muted: rgb(255 255 255 / 0.74);
-  --on-glaze-line: rgb(255 255 255 / 0.22);
-}
-
-@supports (color: oklch(from red l c h)) {
-  :root:has(#card-glaze),
-  .glaze {
-    --card-sheet: oklch(from var(--glaze) 0.985 calc(c * 0.12) h);
-    --card-back: oklch(from var(--glaze) 0.85 calc(c * 0.6) h);
-    --card-back-ink: oklch(from var(--glaze) 0.72 calc(c * 0.75) h);
-    --card-ink: oklch(from var(--glaze) 0.24 calc(c * 0.5) h);
-    --card-ink-muted: oklch(from var(--glaze) 0.5 calc(c * 0.35) h);
-    --card-deep: oklch(from var(--glaze) 0.42 calc(c * 0.85) h);
-    /* Light colours (lightness above 0.62) get the deep shade, the others
-       white – the clamps switch between the two. */
-    --on-glaze: oklch(
-      from var(--glaze) clamp(0.42, (0.62 - l) * 1000, 1)
-        calc(c * 0.85 * clamp(0, (l - 0.62) * 1000, 1)) h
-    );
-    --on-glaze-muted: oklch(from var(--on-glaze) l c h / 0.74);
-    --on-glaze-line: oklch(from var(--on-glaze) l c h / 0.22);
-  }
-}
-
 .share-layout {
   display: grid;
   grid-template-columns: 16rem minmax(0, 1fr);

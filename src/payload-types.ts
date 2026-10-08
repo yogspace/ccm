@@ -481,7 +481,7 @@ export interface Site {
   cardColors?:
     | {
         /**
-         * As #rrggbb, e.g. #ff5fa8.
+         * As #rrggbb, e.g. #ff5fa8 – or pick it. Below: the card in its shades.
          */
         color: string;
         /**
