@@ -77,8 +77,11 @@ export const en: typeof de = {
     pageText:
       "Cookie Cutter Maker – design your own cookie cutters and 3D print them:",
     creation: "Share creation",
-    creationHint: "Share a link to your drawing with a preview image",
     creationText: "The link opens your drawing so it can be adjusted further.",
+    asPicture: "As a picture",
+    asCard: "As a greeting card",
+    cardInvite: "Or give it as a greeting card",
+    cardInviteHint: "With your message around the cutter",
     saveImage: "Save image",
     shareImage: "Share image",
     imageAlt: "Cookie cutter “{{name}}” from above",
@@ -89,9 +92,6 @@ export const en: typeof de = {
     sharePage: "Share page",
   },
   card: {
-    compose: "Greeting card",
-    share: "Share as a card",
-    shareHint: "A greeting card with your cutter – to look at and download",
     intro:
       "Add a few lines – on the card they run all the way around your cutter.",
     to: "To",
@@ -109,7 +109,6 @@ export const en: typeof de = {
     open: "View card",
     send: "Share link",
     edit: "Edit",
-    back: "Back",
     shareText: "I made you a cookie cutter:",
     title: "A card for you",
     titleFor: "A card for {{name}}",

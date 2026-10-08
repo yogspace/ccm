@@ -29,6 +29,8 @@
   --surface: #fdf8ef;
   --surface-2: #f2e8d5;
   --paper: #ffffff;
+  /* The shine running over a ghost (a picture's kept place) */
+  --ghost-shine: rgb(255 255 255 / 0.65);
   /* Neon pink – popups (printing tips, errors) */
   --neon: #ff47d0;
   --on-neon: #ffffff;
@@ -65,6 +67,7 @@
     --card: rgb(15 21 102 / 0.45);
     --surface: #0f1566;
     --surface-2: #1c2491;
+    --ghost-shine: rgb(255 255 255 / 0.1);
     --text: #fff8ec;
     --muted: #b4bbef;
     --border: #252da0;
@@ -1741,8 +1744,7 @@ button.hints-toggle {
   transform-origin: 50% 300%;
 }
 
-/* The end of the page: the fan floats, the share button sits in its own box
-   in front of the fan's lower edge. */
+/* The end of the page: the fan of example pictures floats. */
 .showcase {
   --fan-card: 11rem;
   display: flex;
@@ -1750,14 +1752,6 @@ button.hints-toggle {
   align-items: center;
   /* Room to breathe between the editor above, the fan and the footer. */
   padding-block: clamp(2rem, 6vw, 4.5rem) clamp(1.5rem, 5vw, 3.5rem);
-}
-
-.card.share-box {
-  position: relative;
-  z-index: 10;
-  flex-direction: row;
-  margin-top: calc(var(--fan-card) * -0.45);
-  padding: 1rem 1.25rem;
 }
 
 .gallery-card img {
@@ -2106,34 +2100,204 @@ button.legal-close {
   color: var(--text);
 }
 
-/* “Share creation”: picture on top, below it the link to copy */
-dialog.share-sheet {
-  width: min(32rem, calc(100% - 2rem));
-  /* The sun sticks out at the bottom left; the body scrolls on its own. */
-  overflow: visible;
+/* Sharing below the editor: one box, only what is needed – the picture on
+   the left, the rest beside it. As a greeting card the picture becomes the
+   little card and the fields appear; the box grows along (use-grow.ts). */
+.card.share-box {
+  align-self: center;
+  width: min(100%, 52rem);
+  /* The content's own gaps – the box only holds it (use-grow.ts). */
+  display: block;
 }
 
-/* “Buy me a cookie”: the footer's sun, stuck to the dialog's bottom left. */
-dialog.share-sheet .donate {
-  bottom: -2rem;
-  left: -2rem;
+.share-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
 }
 
+.share-box .card-head {
+  flex-wrap: wrap;
+}
+
+/* The switch between picture and card, on a light surface. */
+.share-box .switch {
+  padding: 0.2rem;
+  background: var(--surface-2);
+  border-radius: 0.8rem;
+}
+
+.share-box .switch button {
+  height: 2.2rem;
+  padding: 0 0.85rem;
+  letter-spacing: 0;
+}
+
+.share-layout {
+  display: grid;
+  grid-template-columns: 16rem minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+/* Phone: the picture above, not too big. */
 @media (max-width: 40rem) {
-  dialog.share-sheet .donate {
-    --cookie-scale: 0.86;
-    left: -0.75rem;
-    width: 6rem;
-    height: 6rem;
+  .share-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .share-visual {
+    max-width: 16rem;
   }
 }
 
-.share-image {
+/* The picture or the little card – square, swapped with a fade. */
+.share-visual {
+  align-self: start;
+  width: 100%;
+  max-width: 20rem;
+  margin-inline: auto;
+  aspect-ratio: 1;
+  animation: fade 0.3s var(--ease) both;
+}
+
+.share-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.share-intro {
+  color: var(--muted);
+}
+
+/* The way to the greeting card, right below the picture's text: the card
+   page in miniature – the ring of words turning, the gift on a little card –
+   beside the invitation, an arrow to follow. */
+button.card-invite {
+  justify-content: flex-start;
+  gap: 0.9rem;
+  height: auto;
+  padding: 0.6rem 0.9rem 0.6rem 0.6rem;
+  text-align: left;
+  white-space: normal;
+  color: var(--text);
+  background: color-mix(in oklab, #ffc31f 24%, var(--surface));
+  border-radius: var(--radius);
+}
+
+button.card-invite:hover:not(:disabled) {
+  background: color-mix(in oklab, #ffc31f 36%, var(--surface));
+}
+
+.card-invite-preview {
+  position: relative;
+  flex: none;
+  width: 4.5rem;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: #2a44ff;
+  border-radius: 0.9rem;
+  box-shadow: 0 0.45rem 0.9rem -0.35rem rgb(4 8 60 / 0.5);
+  rotate: -4deg;
+  transition:
+    rotate 0.4s var(--ease-spring),
+    scale 0.4s var(--ease-spring);
+}
+
+button.card-invite:hover .card-invite-preview {
+  rotate: 3deg;
+  scale: 1.06;
+}
+
+.card-invite-preview .ring-text {
+  position: absolute;
+  inset: 3%;
+  width: 94%;
+  height: 94%;
+  overflow: visible;
+  font-weight: 600;
+  white-space: pre;
+  fill: #ffffff;
+  animation: ring-turn 40s linear infinite;
+}
+
+.card-invite-card {
+  position: absolute;
+  inset: 25%;
+  display: grid;
+  place-items: center;
+  background: #fffdf8;
+  border-radius: 0.35rem;
+  rotate: -3deg;
+}
+
+.cookie.card-invite-gift {
+  --cookie-scale: 0.72;
+  margin: 0;
+}
+
+.card-invite-text {
+  display: grid;
+  flex: 1;
+  gap: 0.05rem;
+}
+
+.cookie.card-invite-arrow {
+  margin: -0.5rem -0.3rem;
+  transition: translate 0.35s var(--ease-spring);
+}
+
+button.card-invite:hover .card-invite-arrow {
+  translate: 0.3rem 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-invite-preview .ring-text {
+    animation: none;
+  }
+}
+
+.card-invite small {
+  font-size: var(--fs-small);
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* The picture as it will be shared: its place kept while it renders – a
+   ghost until then. */
+.share-picture {
+  overflow: hidden;
+  background-color: var(--surface-2);
+  border-radius: var(--radius);
+}
+
+.share-picture img {
   display: block;
   width: 100%;
-  height: auto;
-  margin: 1rem 0 0.75rem;
-  border-radius: var(--radius);
+  height: 100%;
+  animation: fade 0.3s var(--ease) both;
+}
+
+/* Ghost: a soft shine running over the kept place while its picture renders. */
+.share-picture[data-waiting],
+.composer-ghost[data-waiting] {
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    var(--ghost-shine) 50%,
+    transparent 70%
+  );
+  background-size: 250% 100%;
+  animation: ghost 1.3s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .share-picture[data-waiting],
+  .composer-ghost[data-waiting] {
+    animation: none;
+  }
 }
 
 /* The link as a field – a click copies it, the copy icon on the right */
@@ -2167,76 +2331,19 @@ button.share-link[data-copied] {
   color: var(--muted);
 }
 
-/* Right-aligned: the sun takes the bottom left corner. */
+/* The box's actions, right-aligned at its foot – level in both boxes. */
 .share-more {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 0.6rem 1rem;
-  margin-top: 1rem;
-  padding-left: 4rem;
-}
-
-.share-note {
-  padding-left: 4rem;
-  text-align: right;
-}
-
-/* “Share as a card”: an invitation below the link */
-button.card-offer {
-  justify-content: flex-start;
-  gap: 0.75rem;
-  width: 100%;
-  height: auto;
-  /* Below it the buttons, then the sun's corner – it must not cover this. */
-  margin: 0.75rem 0 0.75rem;
-  padding: 0.65rem 1rem 0.65rem 0.7rem;
-  text-align: left;
-  white-space: normal;
-  color: var(--text);
-  background: color-mix(in oklab, #ffc31f 24%, var(--surface));
-  border-radius: var(--radius);
-}
-
-button.card-offer:hover:not(:disabled) {
-  background: color-mix(in oklab, #ffc31f 36%, var(--surface));
-}
-
-/* Only the text – the cookie icon keeps its hidden SVG hidden. */
-.card-offer-text {
-  display: grid;
-  gap: 0.1rem;
-}
-
-.card-offer small {
-  font-size: var(--fs-small);
-  font-weight: 500;
-  color: var(--muted);
+  margin-top: auto;
+  padding-top: 0.25rem;
 }
 
 /* The card composer: the card page in small, then who, from whom, what */
-/* Back: just an arrow, right before the main button – one row on phones too. */
-.composer .share-more {
-  column-gap: 0.35rem;
-}
-
-/* On phones the actions take the full width and sit above the sun instead. */
-@media (max-width: 40rem) {
-  .composer .share-more {
-    margin-bottom: 3.25rem;
-    padding-left: 0;
-  }
-}
-
-button.composer-back {
-  background: transparent;
-}
-
 .composer-preview {
   position: relative;
-  width: min(100%, 17rem);
-  aspect-ratio: 1;
-  margin: 1rem auto 0.5rem;
   overflow: hidden;
   background: #2a44ff;
   border-radius: calc(var(--radius) * 1.5);
@@ -2274,6 +2381,17 @@ button.composer-back {
   height: 100%;
   min-height: 0;
   object-fit: contain;
+  animation: fade 0.3s var(--ease) both;
+}
+
+/* The cutter's place on the little card while it renders. */
+.composer-ghost {
+  display: block;
+  min-height: 0;
+  margin-bottom: 2cqw;
+  background-color: #f2e8d5;
+  border-radius: 3cqw;
+  --ghost-shine: rgb(255 255 255 / 0.65);
 }
 
 .composer-name {
@@ -2304,7 +2422,7 @@ button.composer-back {
 .composer-names {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0 0.75rem;
+  gap: 0.75rem;
 }
 
 @media (max-width: 30rem) {
@@ -2316,7 +2434,6 @@ button.composer-back {
 .composer-field {
   display: grid;
   gap: 0.3rem;
-  margin-top: 0.75rem;
   font-size: var(--fs-small);
   font-weight: 700;
   color: var(--text);
@@ -2372,8 +2489,7 @@ button.composer-back {
   outline-color: var(--accent);
 }
 
-.legal .composer-ready {
-  margin: 1rem 0 0;
+.composer-ready {
   color: var(--text);
   font-weight: 700;
 }
@@ -2691,6 +2807,16 @@ button.cookie-jar {
 @keyframes fade {
   from {
     opacity: 0;
+  }
+}
+
+@keyframes ghost {
+  from {
+    background-position: 120% 0;
+  }
+
+  to {
+    background-position: -20% 0;
   }
 }
 

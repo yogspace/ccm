@@ -77,9 +77,12 @@ export const de = {
     pageText:
       "Cookie Cutter Maker – Ausstecher selbst gestalten und 3D-drucken:",
     creation: "Kreation teilen",
-    creationHint: "Link zu deiner Zeichnung mit Vorschaubild teilen",
     creationText:
       "Über den Link lässt sich deine Zeichnung öffnen und weiter anpassen.",
+    asPicture: "Als Bild",
+    asCard: "Als Grußkarte",
+    cardInvite: "Oder als Grußkarte verschenken",
+    cardInviteHint: "Mit deiner Nachricht rund um den Ausstecher",
     saveImage: "Bild speichern",
     shareImage: "Bild teilen",
     imageAlt: "Ausstecher „{{name}}“ von oben",
@@ -90,10 +93,6 @@ export const de = {
     sharePage: "Seite teilen",
   },
   card: {
-    compose: "Grußkarte",
-    share: "Als Karte teilen",
-    shareHint:
-      "Eine Grußkarte mit deinem Ausstecher – zum Ansehen und Herunterladen",
     intro:
       "Schreib ein paar Zeilen dazu – auf der Karte laufen sie rund um deinen Ausstecher.",
     to: "An",
@@ -111,7 +110,6 @@ export const de = {
     open: "Karte ansehen",
     send: "Link teilen",
     edit: "Ändern",
-    back: "Zurück",
     shareText: "Ich hab dir einen Ausstecher gemacht:",
     title: "Eine Karte für dich",
     titleFor: "Eine Karte für {{name}}",

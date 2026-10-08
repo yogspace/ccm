@@ -511,17 +511,9 @@ export interface Translation {
   id: string;
   card?: {
     /**
-     * DE: Zurück  ·  EN: Back
-     */
-    back?: string | null;
-    /**
      * DE: gebacken  ·  EN: baked
      */
     baked?: string | null;
-    /**
-     * DE: Grußkarte  ·  EN: Greeting card
-     */
-    compose?: string | null;
     /**
      * DE: Der Keks aus „{{name}}“  ·  EN: The cookie from “{{name}}”
      */
@@ -638,14 +630,6 @@ export interface Translation {
      * DE: Link teilen  ·  EN: Share link
      */
     send?: string | null;
-    /**
-     * DE: Als Karte teilen  ·  EN: Share as a card
-     */
-    share?: string | null;
-    /**
-     * DE: Eine Grußkarte mit deinem Ausstecher – zum Ansehen und Herunterladen  ·  EN: A greeting card with your cutter – to look at and download
-     */
-    shareHint?: string | null;
     /**
      * DE: Ich hab dir einen Ausstecher gemacht:  ·  EN: I made you a cookie cutter:
      */
@@ -1035,6 +1019,22 @@ export interface Translation {
   };
   share?: {
     /**
+     * DE: Als Grußkarte  ·  EN: As a greeting card
+     */
+    asCard?: string | null;
+    /**
+     * DE: Als Bild  ·  EN: As a picture
+     */
+    asPicture?: string | null;
+    /**
+     * DE: Oder als Grußkarte verschenken  ·  EN: Or give it as a greeting card
+     */
+    cardInvite?: string | null;
+    /**
+     * DE: Mit deiner Nachricht rund um den Ausstecher  ·  EN: With your message around the cutter
+     */
+    cardInviteHint?: string | null;
+    /**
      * DE: Kopiert  ·  EN: Copied
      */
     copied?: string | null;
@@ -1046,10 +1046,6 @@ export interface Translation {
      * DE: Kreation teilen  ·  EN: Share creation
      */
     creation?: string | null;
-    /**
-     * DE: Link zu deiner Zeichnung mit Vorschaubild teilen  ·  EN: Share a link to your drawing with a preview image
-     */
-    creationHint?: string | null;
     /**
      * DE: Über den Link lässt sich deine Zeichnung öffnen und weiter anpassen.  ·  EN: The link opens your drawing so it can be adjusted further.
      */
@@ -1171,9 +1167,7 @@ export interface TranslationsSelect<T extends boolean = true> {
   card?:
     | T
     | {
-        back?: T;
         baked?: T;
-        compose?: T;
         cookieAlt?: T;
         create?: T;
         cutterAlt?: T;
@@ -1203,8 +1197,6 @@ export interface TranslationsSelect<T extends boolean = true> {
         retry?: T;
         ring?: T;
         send?: T;
-        share?: T;
-        shareHint?: T;
         shareText?: T;
         stl?: T;
         title?: T;
@@ -1344,10 +1336,13 @@ export interface TranslationsSelect<T extends boolean = true> {
   share?:
     | T
     | {
+        asCard?: T;
+        asPicture?: T;
+        cardInvite?: T;
+        cardInviteHint?: T;
         copied?: T;
         copy?: T;
         creation?: T;
-        creationHint?: T;
         creationText?: T;
         imageAlt?: T;
         pageText?: T;

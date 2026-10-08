@@ -123,13 +123,13 @@ const App = () => {
         </section>
       </main>
 
-      {/* The end of the page: the fan floats, and right in front of it the
-          creation can be shared. */}
+      {/* Sharing, right below the editor and in view – as a picture with its
+          link, or as a greeting card. */}
+      <ShareCreation preview={preview} />
+
+      {/* The end of the page: the fan of example pictures. */}
       <div className="showcase">
         <GalleryFan />
-        <div className="card share-box">
-          <ShareCreation preview={preview} />
-        </div>
       </div>
 
       {/* Floats at the bottom while scrolling, stops right above the footer. */}
