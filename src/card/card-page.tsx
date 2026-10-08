@@ -122,14 +122,21 @@ const CardPage = () => {
   const [turns, setTurns] = useState(0);
   const flipped = turns % 2 === 1;
   const mesh = cutter?.mesh ?? null;
+  /**
+   * The cookies – on the back, raining down – are baked once the cutter has
+   * grown: baking them all at once would make its entrance stutter.
+   */
+  const [baked, setBaked] = useState(false);
   const dough = useMemo(
     () =>
-      cutter && {
-        dough: cutter.outline,
-        icing: cutter.icing,
-        seed: cookieSeed(cutter.outline),
-      },
-    [cutter]
+      cutter && baked
+        ? {
+            dough: cutter.outline,
+            icing: cutter.icing,
+            seed: cookieSeed(cutter.outline),
+          }
+        : null,
+    [cutter, baked]
   );
   // The one on the back in the favourite colour; those raining down stay
   // colourful.
@@ -170,6 +177,11 @@ const CardPage = () => {
     lang,
     unit === "in" ? 1 : 0
   );
+  /**
+   * “Shaping your cutter” stays a moment once the cutter is there – fading
+   * out while the cutter grows up out of the card.
+   */
+  const [waitShown, setWaitShown] = useState(true);
   /** The card as a picture, painted ahead: Safari only shares right in the click. */
   const [picture, setPicture] = useState<File | null>(null);
 
@@ -234,6 +246,21 @@ const CardPage = () => {
     }
     return () => setPageGlaze(null);
   }, [glaze]);
+
+  useEffect(() => {
+    if (!mesh) {
+      setWaitShown(true);
+      setBaked(false);
+      return;
+    }
+    const timers = [
+      setTimeout(() => setWaitShown(false), 500),
+      setTimeout(() => setBaked(true), 1300),
+    ];
+    return () => {
+      for (const timer of timers) clearTimeout(timer);
+    };
+  }, [mesh]);
 
   const [copied, setCopied] = useState(false);
 
@@ -443,7 +470,7 @@ const CardPage = () => {
               type="button"
             >
               <span className="greeting-paper greeting-front">
-                {mesh ? (
+                {mesh && (
                   <CardCutter
                     color={glaze}
                     delay={250}
@@ -451,8 +478,13 @@ const CardPage = () => {
                     mesh={mesh}
                     paused={flipped}
                   />
-                ) : (
-                  <span className="greeting-wait">
+                )}
+                {(!mesh || waitShown) && (
+                  <span
+                    aria-hidden={mesh ? true : undefined}
+                    className="greeting-wait"
+                    data-gone={mesh ? true : undefined}
+                  >
                     <CookieIcon
                       idle={false}
                       kind="star"

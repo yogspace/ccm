@@ -48,10 +48,10 @@ const DOUGHS = {
     roughness: 0.78,
   },
   chocolate: {
-    base: "#8a4a28",
-    dark: "96 44 18",
-    light: "200 132 86",
-    sheen: "#ffc29a",
+    base: "#7b4a33",
+    dark: "70 36 20",
+    light: "176 120 90",
+    sheen: "#e8b496",
     roughness: 0.6,
   },
 } as const;
