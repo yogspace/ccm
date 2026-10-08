@@ -1102,6 +1102,12 @@ button.toggle[aria-pressed="false"] .cookie {
 .cookie-spot {
   position: absolute;
   translate: -50% -50%;
+  transition: opacity 0.4s var(--ease);
+}
+
+/* No room for it above the footer (for now): out softly, not moved. */
+.cookie-spot[data-away] {
+  opacity: 0;
 }
 
 .app > :not(.cookie-background, .cookie-dock) {

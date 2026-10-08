@@ -99,33 +99,49 @@ const CookieBackground = () => {
   const layerRef = useRef<HTMLDivElement>(null);
 
   // As tall as the page above the footer – again whenever the page changes.
+  // The cookies are laid out against the page as it is at first (anew only
+  // when the window's width changes): from then on each keeps its spot when
+  // the page grows or shrinks below it – nothing stretches. Where the page
+  // gets too short for one, it fades out until there is room again.
   useEffect(() => {
     const layer = layerRef.current;
     const app = layer?.parentElement;
     const footer = app?.querySelector(":scope > footer");
     if (!(layer && app && footer)) return;
+    const spots = [...layer.children] as HTMLElement[];
+    let width = -1;
+    let tops: number[] = [];
     const fit = () => {
       const top = footer.getBoundingClientRect().top + window.scrollY;
-      layer.style.height = `${Math.max(0, top - 16)}px`;
+      const height = Math.max(0, top - 16);
+      layer.style.height = `${height}px`;
+      if (window.innerWidth !== width) {
+        width = window.innerWidth;
+        // Below the header, and wholly above the footer.
+        const header =
+          9 * parseFloat(getComputedStyle(document.documentElement).fontSize);
+        tops = cookies.map(({ y, size }) =>
+          Math.max(header, Math.min((height * y) / 100, height - size / 2))
+        );
+      }
+      spots.forEach((spot, i) => {
+        spot.style.top = `${tops[i]}px`;
+        spot.toggleAttribute(
+          "data-away",
+          tops[i] + cookies[i].size / 2 > height
+        );
+      });
     };
     const observer = new ResizeObserver(fit);
     observer.observe(app);
     observer.observe(footer);
     return () => observer.disconnect();
-  }, []);
+  }, [cookies]);
 
   return (
     <div aria-hidden className="cookie-background" ref={layerRef}>
       {cookies.map((cookie, i) => (
-        <div
-          className="cookie-spot"
-          key={i}
-          style={{
-            left: `${cookie.x}%`,
-            // Below the header, and wholly above the footer.
-            top: `clamp(9rem, ${cookie.y}%, 100% - ${cookie.size / 2}px)`,
-          }}
-        >
+        <div className="cookie-spot" key={i} style={{ left: `${cookie.x}%` }}>
           {/* Grow in one after another (the renderer animates that in 3D). */}
           {"kind" in cookie ? (
             <CookieIcon
