@@ -30,7 +30,10 @@ const cookieColor = (
     components: {
       Field: {
         path: "@/fields/card-color-field#ColorField",
-        clientProps: { fallback: SITE_DEFAULTS.cookies[name] },
+        clientProps: {
+          fallback: SITE_DEFAULTS.cookies[name],
+          dough: name === "dough" ? "plain" : "chocolate",
+        },
       },
     },
   },

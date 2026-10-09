@@ -16,8 +16,10 @@ import {
 export type CookieShape = {
   dough: Ring[];
   icing: Ring[];
-  /** Where the cutter's embossing presses into the dough. */
+  /** Where the cutter's embossing presses into the dough … */
   imprint?: Ring[];
+  /** … and the icing poured into it, clear of its walls. */
+  inlay?: Ring[];
   /** Picks the icing color and where the sprinkles land. */
   seed: number;
   /** The icing's color instead of the seed's pick (a card's favorite). */
@@ -165,7 +167,15 @@ export type Bitten = {
  * bites take is gone. Free it with `disposeCookie`.
  */
 export const createShapeCookie = (
-  { dough, icing, imprint = [], seed, glaze: chosen, chocolate }: CookieShape,
+  {
+    dough,
+    icing,
+    imprint = [],
+    inlay = [],
+    seed,
+    glaze: chosen,
+    chocolate,
+  }: CookieShape,
   bitten?: Bitten
 ) => {
   const random = seeded(Math.max(1, Math.floor(seed) % 2147483646));
@@ -196,18 +206,17 @@ export const createShapeCookie = (
       }),
       material
     );
+  const floor = DEPTH * (1 - PRESSED);
   group.add(slab([...whole, ...pressed], DEPTH));
-  if (pressed.length > 0) group.add(slab(pressed, DEPTH * (1 - PRESSED)));
+  if (pressed.length > 0) group.add(slab(pressed, floor));
   const top = DEPTH + 0.1;
 
-  const wholeGlaze = toCookie(icing);
-  const glaze = bitten ? bitten.cut(wholeGlaze) : wholeGlaze;
-  // Picked even when chosen – the sprinkles' numbers stay the same.
-  const picked = ICINGS[Math.floor(random() * ICINGS.length)];
-  const icingColor = chosen ?? picked;
-  if (glaze.length > 0) {
+  /** Icing poured over `rings`, its surface just above `surface`. */
+  const pour = (rings: THREE.Vector2[][], color: string, surface: number) => {
+    const poured = bitten ? bitten.cut(rings) : rings;
+    if (poured.length === 0) return;
     const mesh = new THREE.Mesh(
-      new THREE.ExtrudeGeometry(nest(glaze), {
+      new THREE.ExtrudeGeometry(nest(poured), {
         depth: 0.02,
         bevelEnabled: true,
         bevelThickness: 0.04,
@@ -215,15 +224,21 @@ export const createShapeCookie = (
         bevelSegments: 5,
       }),
       new THREE.MeshPhysicalMaterial({
-        color: icingColor,
+        color,
         roughness: 0.22,
         clearcoat: 0.8,
         clearcoatRoughness: 0.15,
       })
     );
-    mesh.position.z = top - 0.03;
+    mesh.position.z = surface - 0.03;
     group.add(mesh);
-  }
+  };
+
+  const wholeGlaze = toCookie(icing);
+  // Picked even when chosen – the sprinkles' numbers stay the same.
+  const picked = ICINGS[Math.floor(random() * ICINGS.length)];
+  const icingColor = chosen ?? picked;
+  pour(wholeGlaze, icingColor, top);
 
   const sprinkle = new THREE.CapsuleGeometry(0.022, 0.08, 4, 8);
   const materials = new Map<string, THREE.Material>();
@@ -253,6 +268,14 @@ export const createShapeCookie = (
     // Skipped only now – after its random numbers, so the others stay put.
     if (bitten && !bitten.keeps(p)) continue;
     group.add(mesh);
+  }
+
+  // Down in the imprint, icing of another color, clear of its walls –
+  // picked last, so the icing and the sprinkles stay as they were.
+  const poured = toCookie(inlay);
+  if (poured.length > 0) {
+    const others = [...new Set(ICINGS)].filter((color) => color !== icingColor);
+    pour(poured, others[Math.floor(random() * others.length)], floor + 0.1);
   }
   return group;
 };

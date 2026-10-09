@@ -76,6 +76,8 @@ export type Cutter = {
   icing: Ring[];
   /** Where the embossing presses into the cookie, normalised like the contour. */
   imprint: Ring[];
+  /** Icing poured into the imprint, clear of its walls. */
+  inlay: Ring[];
   /** What holds the inner blades (in mm, before mirroring). */
   connections: Connection[];
   /**
@@ -126,6 +128,11 @@ const MIN_RELIEF = 0.5;
  * edge, and the icing this far from the imprint.
  */
 const IMPRINT_RIM = 0.8;
+/**
+ * Icing in the imprint keeps clear of its walls by this share of the size:
+ * the dough's rounded rim (shape-cookie.ts) and a little room beyond it.
+ */
+const INLAY_INSET = 0.026;
 /** Hairline gaps in the flange plate up to this width (mm) are closed … */
 const HAIRLINE = 2;
 /** … and pockets enclosed by it up to this area (mm²); larger ones rounded. */
@@ -543,6 +550,17 @@ export const buildCutter = (
         )
       );
     }
+    // Icing in the imprint, its corners rounded a little; none where the
+    // imprint is too narrow for it.
+    let inlay: CrossSection | null = null;
+    if (imprint && !imprint.isEmpty()) {
+      const inset = params.size * INLAY_INSET;
+      const poured = grow(grow(imprint, -1.25 * inset), 0.25 * inset)
+        .decompose()
+        .map(track)
+        .filter((part) => part.area() > area * ICING_CRUMB * 0.1);
+      if (poured.length > 0) inlay = track(CrossSection.union(poured));
+    }
     const normalised = (section: CrossSection | null) =>
       section ? section.toPolygons().map((ring) => ring.map(fromMm)) : [];
     return {
@@ -550,6 +568,7 @@ export const buildCutter = (
       outline: normalised(shape),
       icing: iced ? normalised(icing) : [],
       imprint: normalised(imprint),
+      inlay: normalised(inlay),
       connections,
       emboss: embossId,
     };

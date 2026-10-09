@@ -220,6 +220,9 @@ const build = (kind: OutlineKind) => {
 const cache = new Map<CookieKind, Promise<THREE.Group>>();
 
 /** Returns a cookie; geometries and materials are shared between copies. */
+/** Bakes every kind anew – its colors changed (the admin's preview). */
+export const forgetKinds = () => cache.clear();
+
 export const createCookie = (kind: CookieKind) => {
   let original = cache.get(kind);
   if (!original) {

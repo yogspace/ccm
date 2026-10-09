@@ -31,6 +31,13 @@ export const setCookieColors = ({
   doughCache.clear();
 };
 
+/** One dough's color – the admin's preview, while it is being picked. */
+export const setDoughColor = (dough: Dough, color: string) =>
+  setCookieColors({
+    ...palette,
+    [dough === "plain" ? "dough" : "chocolate"]: color,
+  });
+
 export const chocolateColor = () => palette.chocolate;
 
 type Lab = [number, number, number];
@@ -130,10 +137,10 @@ const TUNED = {
   },
   chocolate: {
     from: "#4a2a17",
-    base: "#7b4a33",
-    dark: "#462414",
-    light: "#b0785a",
-    sheen: "#e8b496",
+    base: "#46271a",
+    dark: "#24120a",
+    light: "#74482f",
+    sheen: "#7e5541",
     roughness: 0.6,
   },
 } as const;

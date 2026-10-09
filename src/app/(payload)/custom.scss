@@ -164,6 +164,13 @@ $muted: #5c6080;
   }
 }
 
+// A dough's cookie, level with the picker.
+.dough-color-cookie {
+  display: flex;
+  flex: none;
+  margin-top: 0.9rem;
+}
+
 .card-color-picker {
   flex: none;
   width: 3.25rem;
@@ -291,6 +298,14 @@ $muted: #5c6080;
   font-size: 0.6rem;
   font-weight: 600;
   color: var(--card-deep);
+}
+
+.ccp-cookie {
+  position: absolute;
+  inset: 0 0 0.9rem;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
 }
 
 .ccp-shades {

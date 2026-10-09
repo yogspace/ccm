@@ -2,7 +2,20 @@
 
 import { TextField, useField, useRowLabel } from "@payloadcms/ui";
 import type { TextFieldClientComponent, TextFieldClientProps } from "payload";
-import type { CSSProperties } from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from "react";
+import { BACK_TILT } from "../card/bite";
+import CookieIcon from "../components/cookie-icon";
+import { type Dough, setDoughColor } from "../cookies/dough";
+import { forgetKinds } from "../cookies/kinds";
+import type { CookieShape } from "../cookies/shape-cookie";
+import type { Ring } from "../geometry/outline";
 import "../glaze.css";
 
 const HEX = /^#[0-9a-f]{6}$/i;
@@ -22,6 +35,91 @@ const SHADES = [
 /** A star cutter's outline, as on the card's front. */
 const STAR =
   "M12 2.8l2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z";
+
+/** The star's corners (24 × 24, y down), as in `STAR`. */
+const STAR_POINTS: [number, number][] = [
+  [12, 2.8],
+  [14.7, 8.4],
+  [20.8, 9.3],
+  [16.4, 13.6],
+  [17.4, 19.7],
+  [12, 16.8],
+  [6.6, 19.7],
+  [7.6, 13.6],
+  [3.2, 9.3],
+  [9.3, 8.4],
+];
+
+/** The star scaled about its middle, in the cookie's 0…1. */
+const star = (scale: number): Ring[] => [
+  STAR_POINTS.map(([x, y]) => [
+    (12 + (x - 12) * scale) / 24,
+    (12 + (y - 12) * scale) / 24,
+  ]),
+];
+
+/** The star cutter's cookie, its icing in the color (`glaze`). */
+const STAR_COOKIE: CookieShape = { dough: star(1), icing: star(0.72), seed: 7 };
+
+/**
+ * Cookies only in the browser: the admin renders on the server first, a
+ * cookie needs the window.
+ */
+const useMounted = () => {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  return mounted;
+};
+
+/** The star cutter's cookie iced in the color. */
+const ColorCookie = ({ color }: { color: string }) => {
+  const mounted = useMounted();
+  // Baked anew only when the color changes, not with every keystroke.
+  const shape = useMemo(() => ({ ...STAR_COOKIE, glaze: color }), [color]);
+  return mounted ? (
+    <CookieIcon
+      grown
+      idle={false}
+      interactive={false}
+      shape={shape}
+      size={84}
+      // Tilted like on the card's back – head-on, the icing only shines.
+      tilt={BACK_TILT}
+    />
+  ) : null;
+};
+
+/** No icing: the dough shows. */
+const BARE_STAR: CookieShape = { ...STAR_COOKIE, icing: [] };
+
+/**
+ * Cookies of a dough's color – every cookie here takes it (the site's are
+ * baked in the saved one), baked anew with each: the dough as a star; the
+ * chocolate as the chips of a chip cookie, as it is, and as the chocolate
+ * dough, a lighter shade of it.
+ */
+const DoughCookie = ({ color, dough }: { color: string; dough: Dough }) => {
+  const mounted = useMounted();
+  // Before the cookies below bake (their effects come after this one).
+  useLayoutEffect(() => {
+    setDoughColor(dough, color);
+    forgetKinds();
+  }, [dough, color]);
+  const shape = useMemo(
+    () => ({ ...BARE_STAR, chocolate: dough === "chocolate" }),
+    [dough]
+  );
+  if (!mounted) return null;
+  const baked = { grown: true, idle: false, interactive: false, size: 64 };
+  return (
+    <span className="dough-color-cookie">
+      {dough === "chocolate" && (
+        <CookieIcon {...baked} key={`chip${color}`} kind="chip" />
+      )}
+      <CookieIcon {...baked} key={color} shape={shape} tilt={BACK_TILT} />
+    </span>
+  );
+};
 
 /** The greeting card in small, in a color's shades – as the site has it. */
 const CardColorPreview = ({ color }: { color: string }) => (
@@ -44,6 +142,10 @@ const CardColorPreview = ({ color }: { color: string }) => (
         <div className="ccp-card ccp-back">
           <span className="ccp-message">Merry Christmas!</span>
           <small className="ccp-eat">Eat me</small>
+          {/* The cookie it bakes, on the message – iced in the color. */}
+          <span className="ccp-cookie">
+            <ColorCookie color={color} />
+          </span>
         </div>
       </div>
       <span className="ccp-from">from Max</span>
@@ -66,14 +168,16 @@ const useColor = (path: string, fallback: string) => {
   return { color, setValue };
 };
 
-/** The hex field with a color picker beside it. */
+/** The hex field with a color picker beside it – and `children` after. */
 const ColorInput = ({
   color,
   setValue,
+  children,
   ...props
 }: TextFieldClientProps & {
   color: string;
   setValue: (value: string) => void;
+  children?: ReactNode;
 }) => (
   <div className="card-color-input">
     <input
@@ -84,13 +188,15 @@ const ColorInput = ({
       value={color.toLowerCase()}
     />
     <TextField {...props} />
+    {children}
   </div>
 );
 
 /**
  * A card color in the admin (Site → Card colors): the hex field with a
  * color picker beside it, and below the card in the color's shades – the
- * page, the card, its back and their words.
+ * page, the card, its back with the cookie iced in the color, and their
+ * words.
  */
 export const CardColorField: TextFieldClientComponent = (props) => {
   const { color, setValue } = useColor(props.path, BLUE);
@@ -104,14 +210,20 @@ export const CardColorField: TextFieldClientComponent = (props) => {
 
 /**
  * Any other color (Site → Cookies): the hex field with a color picker
- * beside it – the picker at `fallback` (clientProps) until it is a color.
+ * beside it – the picker at `fallback` (clientProps) until it is a color –
+ * and, for a dough's color, a cookie of it.
  */
 export const ColorField = ({
   fallback = "#000000",
+  dough,
   ...props
-}: TextFieldClientProps & { fallback?: string }) => {
+}: TextFieldClientProps & { fallback?: string; dough?: Dough }) => {
   const { color, setValue } = useColor(props.path, fallback);
-  return <ColorInput {...props} color={color} setValue={setValue} />;
+  return (
+    <ColorInput {...props} color={color} setValue={setValue}>
+      {dough && <DoughCookie color={color} dough={dough} />}
+    </ColorInput>
+  );
 };
 
 /**

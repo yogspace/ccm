@@ -64,6 +64,7 @@ export const bakeCookie = ({
   outline,
   icing,
   imprint,
+  inlay,
 }: {
   hash: string;
   name: string;
@@ -71,8 +72,10 @@ export const bakeCookie = ({
   outline: Ring[];
   icing: Ring[];
   imprint: Ring[];
+  inlay: Ring[];
 }): SavedCookie => {
   const pressed = pack(imprint);
+  const poured = pack(inlay);
   return {
     hash,
     name: name.trim(),
@@ -82,6 +85,7 @@ export const bakeCookie = ({
       dough: pack(outline),
       icing: pack(icing),
       ...(pressed.length > 0 && { imprint: pressed }),
+      ...(poured.length > 0 && { inlay: poured }),
       seed: cookieSeed(outline),
     },
   };
@@ -96,7 +100,9 @@ const isCookie = (value: unknown): value is SavedCookie => {
     typeof cookie.size === "number" &&
     Array.isArray(cookie.shape?.dough) &&
     Array.isArray(cookie.shape.icing) &&
-    (cookie.shape.imprint === undefined || Array.isArray(cookie.shape.imprint))
+    (cookie.shape.imprint === undefined ||
+      Array.isArray(cookie.shape.imprint)) &&
+    (cookie.shape.inlay === undefined || Array.isArray(cookie.shape.inlay))
   );
 };
 

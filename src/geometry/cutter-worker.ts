@@ -22,6 +22,7 @@ export type CutterResponse =
       outline: Ring[];
       icing: Ring[];
       imprint: Ring[];
+      inlay: Ring[];
     }
   | { type: "build-error"; id: number };
 
@@ -56,13 +57,14 @@ const run = async () => {
         outline: [],
         icing: [],
         imprint: [],
+        inlay: [],
       });
       return;
     }
     const mesh = toMeshData(cutter.manifold, cutter.emboss);
     cutter.manifold.delete();
-    const { outline, icing, imprint } = cutter;
-    post({ type: "result", id: job.id, mesh, outline, icing, imprint }, [
+    const { outline, icing, imprint, inlay } = cutter;
+    post({ type: "result", id: job.id, mesh, outline, icing, imprint, inlay }, [
       mesh.positions.buffer,
       mesh.indices.buffer,
     ]);

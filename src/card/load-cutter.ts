@@ -28,6 +28,7 @@ const build = (rings: Ring[], emboss: Ring[], params: CutterParams) => {
     outline: Ring[];
     icing: Ring[];
     imprint: Ring[];
+    inlay: Ring[];
   } | null>((resolve, reject) => {
     const silent = setTimeout(() => {
       worker.terminate();
@@ -40,8 +41,8 @@ const build = (rings: Ring[], emboss: Ring[], params: CutterParams) => {
       if (data.type !== "result") reject(new Error(data.type));
       else if (!data.mesh) resolve(null);
       else {
-        const { mesh, outline, icing, imprint } = data;
-        resolve({ mesh, outline, icing, imprint });
+        const { mesh, outline, icing, imprint, inlay } = data;
+        resolve({ mesh, outline, icing, imprint, inlay });
       }
     };
     // The worker itself did not load.
