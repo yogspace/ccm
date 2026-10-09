@@ -19,8 +19,11 @@ export const JAR_SIZE = 30;
 /** Words in a passphrase – and the numbers some get, from and to. */
 export const PASSPHRASE_WORDS = 3;
 export const PASSPHRASE_NUMBER = [1, 99] as const;
-/** How long a login lasts in a browser without a visit (days). */
-export const SESSION_DAYS = 30;
+/**
+ * How long a login lasts in a browser without a visit (days) – as long as
+ * the account; every visit starts it afresh.
+ */
+export const SESSION_DAYS = IDLE_DAYS;
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 

@@ -95,10 +95,10 @@ const german = () =>
       "Ein Online-Keks hat einen Kurzlink. Der speichert nur die Form des Ausstechers: Im Link steht statt der Form ein Code, mit dem die Seite sie vom Server holt; Name, Größe, Empfänger, Absender und Nachricht bleiben im Link und erreichen den Server so nicht. Wer einen Kurzlink hat, kann die Form dahinter abrufen."
     ),
     p(
-      "Angemeldet bleibst du über ein Cookie („ccm-account“), das nur die Kennung deines Kontos trägt, signiert ist und nach 30 Tagen ohne Besuch abläuft; Abmelden löscht es. Gegen Missbrauch hält der Server beim Anlegen, Anmelden, Online-Stellen und Öffnen von Kurzlinks deine IP-Adresse höchstens eine Stunde im Arbeitsspeicher."
+      "Angemeldet bleibst du über ein Cookie („ccm-account“), das nur die Kennung deines Kontos trägt, signiert ist und nach 180 Tagen ohne Besuch abläuft – jeder Besuch verlängert es; Abmelden löscht es. Gegen Missbrauch hält der Server beim Anlegen, Anmelden, Online-Stellen und Öffnen von Kurzlinks deine IP-Adresse höchstens eine Stunde im Arbeitsspeicher."
     ),
     p(
-      "Einen Keks kannst du jederzeit wieder offline nehmen oder aufessen – dann ist er aus dem Konto verschwunden, und sein Kurzlink funktioniert nicht mehr. Das ganze Konto löschst du im Konto; deine Kekse bleiben dann nur in deinem Browser. Ohne Besuch wird ein Konto nach 180 Tagen mit allem gelöscht, eines, in dem nie etwas gespeichert wurde, schon nach 7 Tagen. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO; das Anmelde-Cookie ist für das Konto unbedingt erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG)."
+      "Einen Keks kannst du jederzeit wieder offline nehmen oder aufessen – dann ist er aus dem Konto verschwunden, und sein Kurzlink funktioniert nicht mehr. Das ganze Konto löschst du im Konto; deine Kekse bleiben dann nur in deinem Browser. Ohne Besuch wird ein Konto nach 180 Tagen mit allem gelöscht, eines, in dem nie etwas gespeichert wurde, schon nach 7 Tagen. Ich kann ein Konto niemandem zuordnen – dafür gibt es nur die Passphrase. Geht sie verloren, kann ich sie nicht wiederherstellen, und Auskunft, Löschung oder Herausgabe einzelner Konten auf Anfrage ist mir ohne sie nicht möglich (Art. 11 DSGVO); das Konto wird dann wie jedes unbesuchte nach 180 Tagen gelöscht. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO; das Anmelde-Cookie ist für das Konto unbedingt erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG)."
     ),
     h3("Hosting und Server-Logfiles"),
     p(
@@ -162,10 +162,10 @@ const english = () =>
       "An online cookie has a short link. It stores only the shape of the cookie cutter: instead of the shape the link carries a code the page uses to fetch it from the server; name, size, recipient, sender and message stay in the link and do not reach the server that way. Anyone with a short link can fetch the shape behind it."
     ),
     p(
-      "You stay logged in through a cookie (“ccm-account”) that carries only your account’s identifier, is signed and expires after 30 days without a visit; logging out deletes it. Against abuse the server keeps your IP address in memory for at most an hour when you create an account, log in, put a cookie online or open a short link."
+      "You stay logged in through a cookie (“ccm-account”) that carries only your account’s identifier, is signed and expires after 180 days without a visit – every visit renews it; logging out deletes it. Against abuse the server keeps your IP address in memory for at most an hour when you create an account, log in, put a cookie online or open a short link."
     ),
     p(
-      "You can take a cookie offline again or eat it at any time – it is then gone from the account and its short link no longer works. You delete the whole account in the account; your cookies then stay only in your browser. An account nobody visits is deleted with everything in it after 180 days – one that never kept anything after 7 days. Legal basis: Art. 6 (1) (b) GDPR; the login cookie is strictly necessary for the account (§ 25 (2) no. 2 TDDDG)."
+      "You can take a cookie offline again or eat it at any time – it is then gone from the account and its short link no longer works. You delete the whole account in the account; your cookies then stay only in your browser. An account nobody visits is deleted with everything in it after 180 days – one that never kept anything after 7 days. I cannot link an account to anyone – only the passphrase can. If it is lost, I cannot restore it, and without it I cannot give access to, delete or hand over a single account on request (Art. 11 GDPR); like every account nobody visits, it is then deleted after 180 days. Legal basis: Art. 6 (1) (b) GDPR; the login cookie is strictly necessary for the account (§ 25 (2) no. 2 TDDDG)."
     ),
     h3("Hosting and server logs"),
     p(
