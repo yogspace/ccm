@@ -32,6 +32,10 @@ export const ACTIONS = {
     en: "Cookies taken offline",
     de: "Kekse offline genommen",
   },
+  "cookie-replaced": {
+    en: "Short links switched to a new version",
+    de: "Kurzlinks auf neue Version umgestellt",
+  },
 } as const;
 
 export type ActionName = keyof typeof ACTIONS;

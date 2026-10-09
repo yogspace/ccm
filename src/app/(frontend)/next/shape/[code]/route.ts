@@ -38,7 +38,8 @@ export const GET = async (
   }
   return NextResponse.json(
     { shape: link.shape },
-    // Kept a little – but not long: deleted, it should be gone soon.
-    { headers: { "Cache-Control": "private, max-age=600" } }
+    // Asked anew every time: switched to a new version (or deleted), a
+    // short link shows that at once.
+    { headers: { "Cache-Control": "private, no-cache" } }
   );
 };

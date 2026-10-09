@@ -179,6 +179,11 @@ export const en: typeof de = {
     askHint: "Then it's on all your devices and has a short link.",
     askYes: "Save online",
     askNo: "No, thanks",
+    replaceTitle: "Point the short link of “{{name}}” to this version?",
+    replaceHint:
+      "Anyone with the short link then sees this version, and it replaces the old cookie. Otherwise it becomes a new cookie.",
+    replaceYes: "Switch short link",
+    replaceNo: "New cookie",
     backTitle: "Take “{{name}}” offline?",
     backHint:
       "It stays on this device. Its short link won't work any more, and it's gone from your other devices.",

@@ -307,7 +307,8 @@ export interface Action {
     | 'account-logout'
     | 'account-deleted'
     | 'cookie-online'
-    | 'cookie-offline';
+    | 'cookie-offline'
+    | 'cookie-replaced';
   path?: string | null;
   device?: string | null;
   updatedAt: string;
@@ -1350,6 +1351,22 @@ export interface Translation {
      */
     reopen?: string | null;
     /**
+     * DE: Wer den Kurzlink hat, sieht dann diese Version, und sie ersetzt den alten Keks. Sonst wird sie ein neuer Keks.  ·  EN: Anyone with the short link then sees this version, and it replaces the old cookie. Otherwise it becomes a new cookie.
+     */
+    replaceHint?: string | null;
+    /**
+     * DE: Neuer Keks  ·  EN: New cookie
+     */
+    replaceNo?: string | null;
+    /**
+     * DE: Kurzlink von „{{name}}“ auf diese Version umstellen?  ·  EN: Point the short link of “{{name}}” to this version?
+     */
+    replaceTitle?: string | null;
+    /**
+     * DE: Kurzlink umstellen  ·  EN: Switch short link
+     */
+    replaceYes?: string | null;
+    /**
      * DE: Als Keks speichern  ·  EN: Save as cookie
      */
     save_?: string | null;
@@ -1851,6 +1868,10 @@ export interface TranslationsSelect<T extends boolean = true> {
         online?: T;
         openIt?: T;
         reopen?: T;
+        replaceHint?: T;
+        replaceNo?: T;
+        replaceTitle?: T;
+        replaceYes?: T;
         save_?: T;
         saveHint?: T;
         saved?: T;

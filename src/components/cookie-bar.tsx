@@ -1,4 +1,11 @@
-import { ArrowUpRight, Cloud, CloudOff, KeyRound, X } from "lucide-react";
+import {
+  ArrowUpRight,
+  Cloud,
+  CloudOff,
+  KeyRound,
+  Link2,
+  X,
+} from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -8,6 +15,8 @@ import {
   eatEverywhere,
   type OnlineResult,
   putOnline,
+  replacedBy,
+  replaceOnline,
   takeBack,
 } from "../account/client";
 import { cn } from "../cn";
@@ -30,8 +39,11 @@ const plop = { type: "spring", stiffness: 520, damping: 14 } as const;
 
 type Burst = { at: { x: number; y: number }; id: number };
 
-/** Online too? Offline again? Eat one that is online? */
-type Prompt = { kind: "ask" | "back" | "eat"; hash: string };
+/**
+ * Online too? A changed version of an online one: its short link to it?
+ * Offline again? Eat one that is online?
+ */
+type Prompt = { kind: "ask" | "replace" | "back" | "eat"; hash: string };
 
 /**
  * The cookie bar: “This site uses cookies” – your own. Every creation kept
@@ -105,21 +117,35 @@ const CookieBar = () => {
   };
   const inMenu = chosen ? jar.find(({ hash }) => hash === chosen) : undefined;
 
-  // Just saved, offline: online too? Asked with every save.
+  // Just saved, offline: online too? Asked with every save – changed from
+  // an online cookie: its short link to this version, or a new cookie?
   const savedAt = newest?.savedAt;
   useEffect(() => {
     if (!(savedAt && lastSaved)) return;
     const cookie = store.jar.find(({ hash }) => hash === lastSaved);
-    if (cookie && !cookie.code) setPrompt({ kind: "ask", hash: lastSaved });
+    if (cookie && !cookie.code) {
+      const kind = replacedBy(lastSaved) ? "replace" : "ask";
+      setPrompt({ kind, hash: lastSaved });
+    }
   }, [savedAt, lastSaved]);
   const asked = prompt && jar.find(({ hash }) => hash === prompt.hash);
   // Online by now (from the share box), the question is answered.
-  const showPrompt = asked && !(prompt.kind === "ask" && asked.code);
+  const showPrompt =
+    asked &&
+    !((prompt.kind === "ask" || prompt.kind === "replace") && asked.code);
 
   const goOnline = async (hash: string) => {
     setFailed(null);
     setPrompt(null);
     const result = await putOnline(hash);
+    if (result === "login") openAccount();
+    else if (result !== "ok") setFailed(result);
+  };
+
+  const goReplace = async (hash: string) => {
+    setFailed(null);
+    setPrompt(null);
+    const result = await replaceOnline(hash);
     if (result === "login") openAccount();
     else if (result !== "ok") setFailed(result);
   };
@@ -388,7 +414,11 @@ const CookieBar = () => {
                     <p className="grid gap-px text-small leading-[1.3]">
                       <strong className="text-ink">
                         {t(`jar.${prompt.kind}Title`, {
-                          name: asked.name || t("jar.unnamed"),
+                          // Switching: the short link's own cookie.
+                          name:
+                            (prompt.kind === "replace"
+                              ? replacedBy(prompt.hash)?.name
+                              : asked.name) || t("jar.unnamed"),
                         })}
                       </strong>
                       <span className="text-muted">
@@ -400,12 +430,23 @@ const CookieBar = () => {
                     <span className="flex gap-2 max-xs:w-full max-xs:*:grow">
                       <Button
                         onClick={() => {
-                          setPrompt(null);
                           setFailed(null);
+                          // Not in its place: a new cookie – online too?
+                          setPrompt(
+                            prompt.kind === "replace"
+                              ? { kind: "ask", hash: prompt.hash }
+                              : null
+                          );
                         }}
                         type="button"
                       >
-                        {t(prompt.kind === "ask" ? "jar.askNo" : "jar.cancel")}
+                        {t(
+                          prompt.kind === "ask"
+                            ? "jar.askNo"
+                            : prompt.kind === "replace"
+                              ? "jar.replaceNo"
+                              : "jar.cancel"
+                        )}
                       </Button>
                       <Button
                         disabled={busy.includes(prompt.hash)}
@@ -413,21 +454,29 @@ const CookieBar = () => {
                         onClick={() =>
                           prompt.kind === "ask"
                             ? goOnline(prompt.hash)
-                            : prompt.kind === "back"
-                              ? goBack(prompt.hash)
-                              : eat(prompt.hash, true)
+                            : prompt.kind === "replace"
+                              ? goReplace(prompt.hash)
+                              : prompt.kind === "back"
+                                ? goBack(prompt.hash)
+                                : eat(prompt.hash, true)
                         }
                         type="button"
                       >
                         <CookieIcon
                           className={cookieInButton}
-                          icing={prompt.kind === "ask" ? "#ffc31f" : "#ff5fa8"}
+                          icing={
+                            prompt.kind === "ask" || prompt.kind === "replace"
+                              ? "#ffc31f"
+                              : "#ff5fa8"
+                          }
                           icon={
                             prompt.kind === "ask"
                               ? Cloud
-                              : prompt.kind === "back"
-                                ? CloudOff
-                                : X
+                              : prompt.kind === "replace"
+                                ? Link2
+                                : prompt.kind === "back"
+                                  ? CloudOff
+                                  : X
                           }
                           roll={-8}
                           size={44}

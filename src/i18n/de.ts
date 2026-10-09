@@ -179,6 +179,11 @@ export const de = {
     askHint: "Dann ist er auf all deinen Geräten und hat einen kurzen Link.",
     askYes: "Online speichern",
     askNo: "Nein, danke",
+    replaceTitle: "Kurzlink von „{{name}}“ auf diese Version umstellen?",
+    replaceHint:
+      "Wer den Kurzlink hat, sieht dann diese Version, und sie ersetzt den alten Keks. Sonst wird sie ein neuer Keks.",
+    replaceYes: "Kurzlink umstellen",
+    replaceNo: "Neuer Keks",
     backTitle: "„{{name}}“ offline nehmen?",
     backHint:
       "Er bleibt auf diesem Gerät. Sein Kurzlink funktioniert dann nicht mehr, und auf deinen anderen Geräten ist er weg.",

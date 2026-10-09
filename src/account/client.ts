@@ -267,6 +267,62 @@ export const putOnline = async (hash: string): Promise<OnlineResult> => {
   return status === 409 ? "full" : "failed";
 };
 
+/**
+ * The model the page was opened with: a changed version of an online cookie
+ * opened here can take over its short link (replaceOnline).
+ */
+let opened = modelOf(window.location.hash);
+
+/**
+ * The online cookie a just saved version was made from – changed – if there
+ * is one: its short link could show this version instead.
+ */
+export const replacedBy = (hash: string) => {
+  const model = modelOf(hash);
+  if (!opened || !model || model === opened) return undefined;
+  return store.jar.find(
+    (other) =>
+      other.code && other.hash !== hash && modelOf(other.hash) === opened
+  );
+};
+
+/**
+ * Puts a changed version online in place of the cookie it was made from:
+ * the same short link shows it from now on – for everyone who has it –
+ * and the old cookie goes.
+ */
+export const replaceOnline = async (hash: string): Promise<OnlineResult> => {
+  const saved = store.jar.find((other) => other.hash === hash);
+  const old = replacedBy(hash);
+  if (!saved || !old?.code) return "failed";
+  // Opened by a bare short link, it has no name – the old one's, then.
+  const cookie = { ...saved, name: saved.name || old.name };
+  // Online cookies are here only logged in – the server says if no longer.
+  const { ok, status, body } = await working(hash, () =>
+    call("/links", {
+      method: "PUT",
+      body: JSON.stringify({ cookie, replaces: old.hash }),
+    })
+  );
+  if (ok) {
+    const code = String(body.code);
+    store.jar = ref(
+      store.jar
+        .filter((other) => other.hash === hash || other.code !== code)
+        .map((other) => (other.hash === hash ? { ...cookie, code } : other))
+    );
+    // Changed again, it is this version that takes over next.
+    opened = modelOf(hash);
+    trackEvent("cookie-replaced");
+    return "ok";
+  }
+  if (status === 401) {
+    loggedOut(false);
+    return "login";
+  }
+  return "failed";
+};
+
 /** Out of the account, its short link gone – the cookie only here. */
 const leaveAccount = async (hash: string) => {
   const { ok, status } = await working(hash, () =>
