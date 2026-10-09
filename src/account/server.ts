@@ -1,8 +1,9 @@
-import { createHmac, randomInt, scrypt, timingSafeEqual } from "node:crypto";
+import { createHmac, randomInt, timingSafeEqual } from "node:crypto";
 import configPromise from "@payload-config";
 import { type NextRequest, NextResponse } from "next/server";
 import { getPayload, type Payload } from "payload";
 import type { Account } from "../payload-types";
+import { keyOf, normalizePassphrase, secret } from "./keys";
 import {
   type AccountData,
   CODE_CHARS,
@@ -16,6 +17,8 @@ import {
 } from "./rules";
 import { WORDS } from "./words";
 
+export { keyOf, normalizePassphrase };
+
 /**
  * Accounts on the server: no name, no email – a passphrase of three plain
  * words, some with a number, made here and shown once; the account follows
@@ -24,12 +27,6 @@ import { WORDS } from "./words";
  * can be guessed back. A login is a signed cookie (httpOnly) with the
  * account's id and when it runs out.
  */
-
-const secret = () => {
-  const value = process.env.PAYLOAD_SECRET;
-  if (!value) throw new Error("PAYLOAD_SECRET is not set");
-  return value;
-};
 
 export const getAccountsPayload = () => getPayload({ config: configPromise });
 
@@ -52,31 +49,6 @@ export const newPassphrase = (lang: string) => {
     )
     .join("-");
 };
-
-/**
- * As typed – upper case, spaces, commas, the number stuck to a word
- * (`marder42`) – the same passphrase.
- */
-export const normalizePassphrase = (phrase: string) =>
-  phrase
-    .normalize("NFKC")
-    .toLowerCase()
-    .replace(/([a-z])(\d)|(\d)([a-z])/g, "$1$3-$2$4")
-    .split(/[^a-z\d]+/)
-    .filter(Boolean)
-    .join("-");
-
-/** The key an account is found by – slow on purpose (about 50 ms). */
-export const keyOf = (phrase: string) =>
-  new Promise<string>((resolve, reject) => {
-    scrypt(
-      normalizePassphrase(phrase),
-      `ccm-account:${secret()}`,
-      32,
-      { N: 2 ** 14, r: 8, p: 1 },
-      (error, key) => (error ? reject(error) : resolve(key.toString("hex")))
-    );
-  });
 
 /** A short link's code – random, letters and digits. */
 export const newCode = () =>
@@ -202,7 +174,7 @@ export const onlineJar = (account: Account) =>
 /** What the browser gets of the account: its online cookies, its end. */
 export const accountData = (account: Account): AccountData => ({
   jar: onlineJar(account),
-  goneAt: goneAt(account.lastSeenAt).toISOString(),
+  goneAt: account.keep ? null : goneAt(account.lastSeenAt).toISOString(),
 });
 
 // ─── Requests ───────────────────────────────────────────────────────────────

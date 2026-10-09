@@ -33,7 +33,11 @@ export interface Config {
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
-  collectionsJoins: {};
+  collectionsJoins: {
+    accounts: {
+      shortLinks: 'short-links';
+    };
+  };
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     accounts: AccountsSelect<false> | AccountsSelect<true>;
@@ -120,7 +124,7 @@ export interface User {
   collection: 'users';
 }
 /**
- * Visitors' accounts – no names, no email, a passphrase only (stored as a key, never readable). They keep the cookies their owners put online, each with a short link. Gone after 180 days without a visit (after 7 if they never kept anything) – or when deleted here or in the account.
+ * Visitors' accounts – no names, no email, a passphrase only (stored as a key, never readable). They keep the cookies their owners put online, each with a short link. Gone after 180 days without a visit (after 7 if they never kept anything) unless kept forever – or when deleted here or in the account.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "accounts".
@@ -139,6 +143,15 @@ export interface Account {
     | boolean
     | null;
   cookies?: number | null;
+  shortLinks?: {
+    docs?: (string | ShortLink)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  /**
+   * Never deleted automatically – not after 180 days without a visit, nor when empty. Deleting it here or in the account still works.
+   */
+  keep?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -422,6 +435,8 @@ export interface AccountsSelect<T extends boolean = true> {
   lastSeenAt?: T;
   jar?: T;
   cookies?: T;
+  shortLinks?: T;
+  keep?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -713,6 +728,10 @@ export interface Translation {
      */
     haveOne?: string | null;
     /**
+     * DE: Verbergen  ·  EN: Hide
+     */
+    hidePassphrase?: string | null;
+    /**
      * DE: Ein Konto ohne Besuch wird nach sechs Monaten mit allem gelöscht.  ·  EN: An account nobody visits goes with everything in it after six months.
      */
     idle?: string | null;
@@ -769,6 +788,10 @@ export interface Translation {
      */
     passphrase?: string | null;
     /**
+     * DE: Nur in diesem Browser gespeichert – wer ihn benutzt, kann sie sehen. Abmelden löscht sie hier.  ·  EN: Kept in this browser only – whoever uses it can see it. Logging out deletes it here.
+     */
+    passphraseHere?: string | null;
+    /**
      * DE: drei Wörter, manche mit Zahl  ·  EN: three words, some with a number
      */
     placeholder?: string | null;
@@ -776,6 +799,10 @@ export interface Translation {
      * DE: Diese Passphrase ging leider nicht mehr – hier ist eine neue. Schreib dir bitte die auf.  ·  EN: That passphrase didn't work out – here is a new one. Please write this one down.
      */
     renewed?: string | null;
+    /**
+     * DE: Passphrase zeigen  ·  EN: Show passphrase
+     */
+    showPassphrase?: string | null;
     /**
      * DE: Dein Konto  ·  EN: Your account
      */
@@ -1624,6 +1651,7 @@ export interface TranslationsSelect<T extends boolean = true> {
         failed?: T;
         goneAt?: T;
         haveOne?: T;
+        hidePassphrase?: T;
         idle?: T;
         intro?: T;
         keepIt?: T;
@@ -1638,8 +1666,10 @@ export interface TranslationsSelect<T extends boolean = true> {
         online_other?: T;
         online_zero?: T;
         passphrase?: T;
+        passphraseHere?: T;
         placeholder?: T;
         renewed?: T;
+        showPassphrase?: T;
         title?: T;
         tooMany?: T;
         unknown?: T;

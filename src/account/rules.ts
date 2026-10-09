@@ -39,8 +39,8 @@ export const goneAt = (lastSeen: Date | string | number) =>
  */
 export type AccountData = {
   jar: SavedCookie[];
-  /** When it goes without another visit (ISO). */
-  goneAt: string;
+  /** When it goes without another visit (ISO) – null: kept forever. */
+  goneAt: string | null;
 };
 
 /** The model a creation's hash carries (`s`) – what a short link keeps. */

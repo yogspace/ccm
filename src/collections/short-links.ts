@@ -35,6 +35,14 @@ export const ShortLinks: CollectionConfig = {
       admin: { readOnly: true },
     },
     {
+      // Its address on the site, to open.
+      name: "open",
+      type: "ui",
+      admin: {
+        components: { Field: "@/fields/short-link-open#ShortLinkOpen" },
+      },
+    },
+    {
       // The model as links carry it (`s`, url-state.ts).
       name: "shape",
       type: "text",

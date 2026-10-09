@@ -209,6 +209,10 @@ export const en: typeof de = {
     copy: "Copy",
     copied: "Copied",
     noted: "Noted – continue",
+    showPassphrase: "Show passphrase",
+    hidePassphrase: "Hide",
+    passphraseHere:
+      "Kept in this browser only – whoever uses it can see it. Logging out deletes it here.",
     renewed:
       "That passphrase didn't work out – here is a new one. Please write this one down.",
     cancel: "Cancel",

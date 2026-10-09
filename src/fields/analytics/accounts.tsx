@@ -17,6 +17,7 @@ type AccountRow = {
   createdAt: string;
   lastSeenAt: string;
   cookies?: number | null;
+  keep?: boolean | null;
 };
 
 type Totals = { accounts: AccountRow[]; links: number };
@@ -25,12 +26,12 @@ type Totals = { accounts: AccountRow[]; links: number };
 const SOON_DAYS = 30;
 
 /**
- * Only the three fields the numbers need – never the jars (names of
+ * Only the fields the numbers need – never the jars (names of
  * creations) or anything else of an account – and of the short links only
  * how many there are.
  */
 const load = async (): Promise<Totals | null> => {
-  const select = ["createdAt", "lastSeenAt", "cookies"]
+  const select = ["createdAt", "lastSeenAt", "cookies", "keep"]
     .map((field) => `select[${field}]=true`)
     .join("&");
   const [accounts, links] = await Promise.all([
@@ -82,8 +83,9 @@ export const AnalyticsAccounts = () => {
   ).length;
   const soonBefore = Date.now() - (IDLE_DAYS - SOON_DAYS) * DAY_MS;
   const soon = accounts.filter(
-    (row) => new Date(row.lastSeenAt).getTime() < soonBefore
+    (row) => !row.keep && new Date(row.lastSeenAt).getTime() < soonBefore
   ).length;
+  const kept = accounts.filter((row) => row.keep).length;
   const online = accounts.reduce((sum, row) => sum + (row.cookies ?? 0), 0);
   const keeping = accounts.filter((row) => (row.cookies ?? 0) > 0).length;
   const empty = accounts.length - keeping;
@@ -111,7 +113,7 @@ export const AnalyticsAccounts = () => {
           value={visited}
         />
         <StatTile
-          detail={`${fmt(soon)} go within ${SOON_DAYS} days unless visited`}
+          detail={`${fmt(soon)} go within ${SOON_DAYS} days unless visited · ${fmt(kept)} kept forever`}
           label="All accounts"
           value={accounts.length}
         />

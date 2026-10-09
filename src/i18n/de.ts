@@ -209,6 +209,10 @@ export const de = {
     copy: "Kopieren",
     copied: "Kopiert",
     noted: "Notiert – weiter",
+    showPassphrase: "Passphrase zeigen",
+    hidePassphrase: "Verbergen",
+    passphraseHere:
+      "Nur in diesem Browser gespeichert – wer ihn benutzt, kann sie sehen. Abmelden löscht sie hier.",
     renewed:
       "Diese Passphrase ging leider nicht mehr – hier ist eine neue. Schreib dir bitte die auf.",
     cancel: "Abbrechen",

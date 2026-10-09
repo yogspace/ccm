@@ -1,4 +1,12 @@
-import { Check, Copy, LogIn, LogOut, Sparkles, Trash2 } from "lucide-react";
+import {
+  Check,
+  Copy,
+  KeyRound,
+  LogIn,
+  LogOut,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 import { createRef, type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
@@ -40,7 +48,8 @@ const Welcome = ({
   const { pending } = useSnapshot(account);
   const { jar } = useSnapshot(store);
   const waiting = pending && jar.find(({ hash }) => hash === pending);
-  const [typed, setTyped] = useState("");
+  // Known in this browser (the login ran out): ready to log in again.
+  const [typed, setTyped] = useState(() => account.passphrase ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<LoginResult | null>(null);
 
@@ -242,10 +251,71 @@ const Fresh = ({
  * out (the online cookies leave it), or delete the account (they stay on
  * this device, offline, their short links gone).
  */
+/**
+ * The passphrase as this browser keeps it (made or typed here) – behind a
+ * button, with copying.
+ */
+const KeptPassphrase = ({ passphrase }: { passphrase: string }) => {
+  const { t } = useTranslation();
+  const [shown, setShown] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(passphrase);
+      setCopied(true);
+    } catch {
+      window.prompt(t("account.yourPassphrase"), passphrase);
+    }
+  };
+  if (!shown) {
+    return (
+      <Button
+        className="justify-self-start"
+        kind="ghost"
+        onClick={() => setShown(true)}
+        title={t("account.passphraseHere")}
+        type="button"
+      >
+        <CookieIcon
+          className={cookieInButton}
+          icing="#ffc31f"
+          icon={KeyRound}
+          roll={-14}
+          size={40}
+        />
+        {t("account.showPassphrase")}
+      </Button>
+    );
+  }
+  return (
+    <div className="grid gap-2">
+      <p className="rounded-2xl bg-surface-2 px-5 py-3 text-lead leading-tight font-bold tracking-tight wrap-anywhere select-all">
+        {passphrase}
+      </p>
+      <p className="text-small text-muted">{t("account.passphraseHere")}</p>
+      <div className="flex flex-wrap justify-end gap-2.5 max-xs:*:grow">
+        <Button onClick={() => setShown(false)} type="button">
+          {t("account.hidePassphrase")}
+        </Button>
+        <Button onClick={copy} type="button">
+          <CookieIcon
+            className={cookieInButton}
+            icing={copied ? "#00b86b" : "#2a44ff"}
+            icon={copied ? Check : Copy}
+            key={copied ? "ok" : "copy"}
+            size={48}
+          />
+          {copied ? t("account.copied") : t("account.copy")}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 const Manage = () => {
   const { t } = useTranslation();
   const lang = useLang();
-  const { goneAt } = useSnapshot(account);
+  const { goneAt, passphrase } = useSnapshot(account);
   const { jar } = useSnapshot(store);
   const online = jar.filter(({ code }) => code).length;
   const [confirming, setConfirming] = useState(false);
@@ -266,6 +336,7 @@ const Manage = () => {
         <p>{t("account.onlineHint")}</p>
         {date && <p>{t("account.goneAt", { date })}</p>}
       </div>
+      {passphrase && <KeptPassphrase passphrase={passphrase} />}
       {confirming ? (
         <div className="grid gap-3 rounded-2xl bg-surface-2 p-4">
           <p className="font-bold">{t("account.confirmDelete")}</p>

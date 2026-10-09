@@ -24,7 +24,31 @@ export const account = proxy({
   pending: null as string | null,
   /** Cookies on their way online or back (their hashes). */
   busy: [] as string[],
+  /** The passphrase, if this browser knows it (see keepPassphrase). */
+  passphrase: null as string | null,
 });
+
+/**
+ * The passphrase, kept in this browser – to look it up in the account. Only
+ * here: the server knows its key alone. Logging out or deleting forgets it.
+ */
+const PASSPHRASE = "ccm.account.passphrase";
+const keepPassphrase = (phrase: string | null) => {
+  account.passphrase = phrase;
+  try {
+    if (phrase) localStorage.setItem(PASSPHRASE, phrase);
+    else localStorage.removeItem(PASSPHRASE);
+  } catch {
+    // Then it is only known until the page closes.
+  }
+};
+const keptPassphrase = () => {
+  try {
+    return localStorage.getItem(PASSPHRASE);
+  } catch {
+    return null;
+  }
+};
 
 /** Logged in in this browser last time? Then the server is asked. */
 const FLAG = "ccm.account";
@@ -115,6 +139,7 @@ const loggedOut = (leave: boolean) => {
 
 /** Starts the account in the editor: logged in last time, it is asked. */
 export const startAccount = () => {
+  account.passphrase = keptPassphrase();
   if (!remembered()) {
     account.state = "out";
     return;
@@ -167,7 +192,10 @@ export const createAccount = async (proposal: Proposal) => {
     method: "POST",
     body: JSON.stringify(proposal),
   });
-  if (answer.ok) loggedIn(answer.body as AccountData);
+  if (answer.ok) {
+    loggedIn(answer.body as AccountData);
+    keepPassphrase(proposal.passphrase);
+  }
   return answer.status === 400 || answer.status === 409
     ? "renew"
     : result(answer);
@@ -180,6 +208,13 @@ export const logIn = async (passphrase: string) => {
   });
   if (answer.ok) {
     loggedIn(answer.body as AccountData);
+    // As typed, tidied: lower case, hyphens between the parts.
+    keepPassphrase(
+      passphrase
+        .trim()
+        .toLowerCase()
+        .replace(/[\s,]+/g, "-")
+    );
     trackEvent("account-login");
   }
   return result(answer);
@@ -188,6 +223,7 @@ export const logIn = async (passphrase: string) => {
 export const logOut = async () => {
   await call("/logout", { method: "POST" });
   loggedOut(true);
+  keepPassphrase(null);
   trackEvent("account-logout");
 };
 
@@ -201,6 +237,7 @@ export const deleteAccount = async () => {
     loggedOut(false);
     store.jar = ref(store.jar.map(({ code: _, ...cookie }) => cookie));
   }
+  if (ok) keepPassphrase(null);
   if (ok) trackEvent("account-deleted");
   return ok;
 };
