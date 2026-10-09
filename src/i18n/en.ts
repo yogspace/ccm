@@ -90,6 +90,9 @@ export const en: typeof de = {
     textCopied:
       "Text and link are on the clipboard – if the app only takes the image, just paste them.",
     sharePage: "Share page",
+    online: "Short link? Save online",
+    onlineHint:
+      "Saves the creation as a cookie in your account – on all your devices, with a short link.",
   },
   card: {
     intro:
@@ -120,6 +123,7 @@ export const en: typeof de = {
     failed: "That didn’t work just now.",
     retry: "Try again",
     empty: "There is no cookie cutter on this card.",
+    gone: "This cookie cutter is gone – its short link was deleted.",
     cutterAlt: "Cookie cutter “{{name}}”",
     download: "Download 3MF",
     stl: "STL",
@@ -145,14 +149,79 @@ export const en: typeof de = {
     subtitle_other: "Your own – you baked {{count}}.",
     fresh: "Freshly baked: “{{name}}”",
     close: "Close the cookie bar",
-    open: "Open “{{name}}”",
-    eat: "Eat “{{name}}”",
     reopen: "Your cookies ({{count}})",
     save: "Save as cookie",
     saveHint:
       "Keeps your creation as a cookie in the cookie bar – so you find it again.",
     saved: "Saved",
     unnamed: "Untitled",
+    subtitle_zero: "Still empty – save a creation as a cookie.",
+    logIn: "Log in",
+    logInHint: "Got cookies online? This brings them to this device.",
+    account: "Your account",
+    statusOnline: "Online – on all your devices, with a short link",
+    statusOffline: "Offline – on this device only",
+    openIt: "Open",
+    online: "Save online",
+    offline: "Take offline",
+    eatIt: "Eat it",
+    askTitle: "Save “{{name}}” online too?",
+    askHint: "Then it's on all your devices and has a short link.",
+    askYes: "Save online",
+    askNo: "No, thanks",
+    backTitle: "Take “{{name}}” offline?",
+    backHint:
+      "It stays on this device. Its short link won't work any more, and it's gone from your other devices.",
+    backYes: "Take offline",
+    eatTitle: "Eat “{{name}}”?",
+    eatHint:
+      "It's online: its short link won't work any more, and it's gone from your other devices too.",
+    eatYes: "Eat it",
+    cancel: "Cancel",
+    full: "At most 30 cookies fit online – take one back first.",
+  },
+  account: {
+    logIn: "Log in",
+    title: "Your account",
+    needed: "To save “{{name}}” online, you need an account.",
+    intro:
+      "Cookies you put online are kept in your account: on all your devices, with a short link. No name, no email – just a passphrase of three words, some with a number.",
+    create: "Create account",
+    createHint:
+      "You get a passphrase – the account is only created once you've noted it.",
+    haveOne: "Have an account?",
+    passphrase: "Passphrase",
+    placeholder: "three words, some with a number",
+    unknown: "We don't know this passphrase.",
+    tooMany: "Too many tries – wait a few minutes.",
+    failed: "That didn't work just now. Try again in a moment.",
+    yourPassphrase: "Your passphrase",
+    keepIt:
+      "Write it down. It is the only way back into your account – if it's lost, nobody can restore it.",
+    copy: "Copy",
+    copied: "Copied",
+    noted: "Noted – continue",
+    renewed:
+      "That passphrase didn't work out – here is a new one. Please write this one down.",
+    cancel: "Cancel",
+    cancelHint:
+      "No account after all – none is created, your cookies stay on this device.",
+    loggedIn: "You're logged in.",
+    online_zero: "No cookie is online yet – tap the cloud in your cookie jar.",
+    online_one: "One cookie is online.",
+    online_other: "{{count}} cookies are online.",
+    onlineHint:
+      "Online cookies are on all your devices and have a short link. It keeps only the cookie cutter – names and messages are in the link itself.",
+    goneAt:
+      "If you don't drop by until {{date}}, your account goes with everything in it.",
+    idle: "An account nobody visits goes with everything in it after six months.",
+    logOut: "Log out",
+    logOutHint:
+      "Your online cookies leave this device and stay in the account.",
+    delete: "Delete account",
+    confirmDelete:
+      "Your account will be deleted. Your online cookies stay offline on this device – their short links won't work any more, and they're gone from your other devices.",
+    confirm: "Yes, delete",
   },
   gallery: {
     label: "Examples",
@@ -186,5 +255,6 @@ export const en: typeof de = {
     invalidSvg: "Not a valid SVG file.",
     noCanvas: "Your browser does not support canvas.",
     empty: "No shape found in this file.",
+    gone: "This cookie cutter is gone – its short link was deleted.",
   },
 };

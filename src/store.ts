@@ -13,12 +13,12 @@ import { flushSync } from "react-dom";
 import { proxy, ref, snapshot, subscribe, useSnapshot } from "valtio";
 import {
   bakeCookie,
-  JAR_SIZE,
   jarClosed,
   loadJar,
   rememberJarClosed,
   type SavedCookie,
   storeJar,
+  trimJar,
 } from "./cookie-jar";
 import {
   type CutterParams,
@@ -30,6 +30,7 @@ import type { MeshData } from "./geometry/mesh";
 import { InputError, type Ring, traceOutline } from "./geometry/outline";
 import { type Greeting, greetingUrl } from "./greeting";
 import type { de } from "./i18n/de";
+import { shortShapeMissing } from "./short-shape";
 import { initialUnit, storeUnit, type Unit } from "./units";
 import { type Drawing, isEmptyDrawing, readHash, writeHash } from "./url-state";
 
@@ -140,6 +141,8 @@ export const store = proxy<State>({
   jar: ref(savedCookies),
   jarOpen: savedCookies.length > 0 && !jarClosed(),
   lastSaved: null,
+  // A short link whose model is gone (short-shape.ts): said right away.
+  inputError: shortShapeMissing() ? "gone" : undefined,
 });
 
 /**
@@ -267,18 +270,20 @@ export const saveCookie = () => {
   const { mesh, outline, icing } = store.cutter;
   if (!mesh || outline.length === 0) return null;
   const hash = currentHash();
-  const cookie = bakeCookie({
-    hash,
-    name: store.name,
-    size: store.params.size,
-    outline,
-    icing,
-  });
+  // Saved again, an online cookie stays online.
+  const { code } = store.jar.find((other) => other.hash === hash) ?? {};
+  const cookie = {
+    ...bakeCookie({
+      hash,
+      name: store.name,
+      size: store.params.size,
+      outline,
+      icing,
+    }),
+    ...(code && { code }),
+  };
   store.jar = ref(
-    [cookie, ...store.jar.filter((other) => other.hash !== hash)].slice(
-      0,
-      JAR_SIZE
-    )
+    trimJar([cookie, ...store.jar.filter((other) => other.hash !== hash)])
   );
   store.lastSaved = hash;
   setJarOpen(true);

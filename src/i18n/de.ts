@@ -91,6 +91,9 @@ export const de = {
     textCopied:
       "Text und Link sind in der Zwischenablage – falls die App nur das Bild übernimmt, einfach einfügen.",
     sharePage: "Seite teilen",
+    online: "Kurzer Link? Online speichern",
+    onlineHint:
+      "Speichert die Kreation als Keks in deinem Konto – auf all deinen Geräten, mit kurzem Link.",
   },
   card: {
     intro:
@@ -121,6 +124,7 @@ export const de = {
     failed: "Das hat gerade nicht geklappt.",
     retry: "Nochmal versuchen",
     empty: "Auf dieser Karte ist kein Ausstecher.",
+    gone: "Diesen Ausstecher gibt es nicht mehr – sein Kurzlink wurde gelöscht.",
     cutterAlt: "Ausstecher „{{name}}“",
     download: "3MF herunterladen",
     stl: "STL",
@@ -146,14 +150,80 @@ export const de = {
     subtitle_other: "Deine eigenen – {{count}} hast du gebacken.",
     fresh: "Frisch gebacken: „{{name}}“",
     close: "Keksleiste schließen",
-    open: "„{{name}}“ öffnen",
-    eat: "„{{name}}“ aufessen",
     reopen: "Deine Kekse ({{count}})",
     save: "Als Keks speichern",
     saveHint:
       "Speichert deine Kreation als Keks in der Keksleiste – so findest du sie wieder.",
     saved: "Gespeichert",
     unnamed: "Ohne Namen",
+    subtitle_zero: "Noch leer – speichere eine Kreation als Keks.",
+    logIn: "Anmelden",
+    logInHint: "Hast du Kekse online, holst du sie so auf dieses Gerät.",
+    account: "Dein Konto",
+    statusOnline: "Online – auf all deinen Geräten, mit kurzem Link",
+    statusOffline: "Offline – nur auf diesem Gerät",
+    openIt: "Öffnen",
+    online: "Online speichern",
+    offline: "Offline nehmen",
+    eatIt: "Aufessen",
+    askTitle: "„{{name}}“ auch online speichern?",
+    askHint: "Dann ist er auf all deinen Geräten und hat einen kurzen Link.",
+    askYes: "Online speichern",
+    askNo: "Nein, danke",
+    backTitle: "„{{name}}“ offline nehmen?",
+    backHint:
+      "Er bleibt auf diesem Gerät. Sein Kurzlink funktioniert dann nicht mehr, und auf deinen anderen Geräten ist er weg.",
+    backYes: "Offline nehmen",
+    eatTitle: "„{{name}}“ aufessen?",
+    eatHint:
+      "Er ist online: Sein Kurzlink funktioniert dann nicht mehr, und auf deinen anderen Geräten ist er auch weg.",
+    eatYes: "Aufessen",
+    cancel: "Abbrechen",
+    full: "Online passen höchstens 30 Kekse – nimm erst einen zurück.",
+  },
+  account: {
+    logIn: "Anmelden",
+    title: "Dein Konto",
+    needed: "Um „{{name}}“ online zu speichern, brauchst du ein Konto.",
+    intro:
+      "Kekse, die du online stellst, liegen in deinem Konto: auf all deinen Geräten und mit kurzem Link. Kein Name, keine E-Mail – nur eine Passphrase aus drei Wörtern, manche mit Zahl.",
+    create: "Konto anlegen",
+    createHint:
+      "Du bekommst eine Passphrase – angelegt wird das Konto erst, wenn du sie notiert hast.",
+    haveOne: "Schon ein Konto?",
+    passphrase: "Passphrase",
+    placeholder: "drei Wörter, manche mit Zahl",
+    unknown: "Diese Passphrase kennen wir nicht.",
+    tooMany: "Zu viele Versuche – warte ein paar Minuten.",
+    failed: "Das hat gerade nicht geklappt. Versuch es gleich noch mal.",
+    yourPassphrase: "Deine Passphrase",
+    keepIt:
+      "Schreib sie dir auf. Sie ist der einzige Weg zurück in dein Konto – geht sie verloren, kann sie niemand wiederherstellen.",
+    copy: "Kopieren",
+    copied: "Kopiert",
+    noted: "Notiert – weiter",
+    renewed:
+      "Diese Passphrase ging leider nicht mehr – hier ist eine neue. Schreib dir bitte die auf.",
+    cancel: "Abbrechen",
+    cancelHint:
+      "Doch kein Konto – es wird keins angelegt, deine Kekse bleiben auf diesem Gerät.",
+    loggedIn: "Du bist angemeldet.",
+    online_zero:
+      "Noch kein Keks ist online – tipp in der Keksdose auf die Wolke.",
+    online_one: "Ein Keks ist online.",
+    online_other: "{{count}} Kekse sind online.",
+    onlineHint:
+      "Online-Kekse sind auf all deinen Geräten und haben einen kurzen Link. Der speichert nur den Ausstecher – Namen und Nachrichten stehen im Link selbst.",
+    goneAt:
+      "Kommst du bis zum {{date}} nicht vorbei, wird dein Konto mit allem gelöscht.",
+    idle: "Ein Konto ohne Besuch wird nach sechs Monaten mit allem gelöscht.",
+    logOut: "Abmelden",
+    logOutHint:
+      "Deine Online-Kekse verschwinden von diesem Gerät und bleiben im Konto.",
+    delete: "Konto löschen",
+    confirmDelete:
+      "Dein Konto wird gelöscht. Deine Online-Kekse bleiben offline auf diesem Gerät – ihre Kurzlinks funktionieren dann nicht mehr, und auf deinen anderen Geräten sind sie weg.",
+    confirm: "Ja, löschen",
   },
   gallery: {
     label: "Beispiele",
@@ -188,5 +258,6 @@ export const de = {
     invalidSvg: "Keine gültige SVG-Datei.",
     noCanvas: "Dein Browser unterstützt kein Canvas.",
     empty: "In der Datei wurde keine Form gefunden.",
+    gone: "Diesen Ausstecher gibt es nicht mehr – sein Kurzlink wurde gelöscht.",
   },
 };

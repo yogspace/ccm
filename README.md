@@ -2,7 +2,7 @@
 
 Draw or upload an SVG → get a print-ready cookie cutter (3MF/STL) for MakerWorld. Live at https://ccm.mxwr.de.
 
-The geometry is built entirely in the browser. The server ([Next.js](https://nextjs.org)) delivers the pages; a small [Payload](https://payloadcms.com) backend with MongoDB holds the anonymous statistics and the interface texts, editable in an admin.
+The geometry is built entirely in the browser. The server ([Next.js](https://nextjs.org)) delivers the pages; a small [Payload](https://payloadcms.com) backend with MongoDB holds the anonymous statistics, the interface texts and the optional visitor accounts, editable in an admin.
 
 ## Features
 
@@ -24,8 +24,9 @@ The geometry is built entirely in the browser. The server ([Next.js](https://nex
 - Printing tips and error messages as popovers in neon pink, anchored with CSS anchor positioning
 - Sharing: at the top the page itself; at the bottom of the page, in front of a fan of example cutters, “Share creation” opens a dialog with a picture of the cutter from above, the link to the drawing (a click copies it), saving the picture and sharing it with text and link (the complete state lives in the URL hash) – and a sun cookie for donations
 - Bake it: every creation also makes a 3D cookie in its shape – dough with a rounded edge, holes and all, icing poured a little inside the edge (narrower or left off where the shape is thin) and sprinkles on top, always the same for the same shape
-- Cookie bar: “Save as cookie” (and every download) keeps the creation as such a cookie in this browser. “This site uses cookies” – your own: a bar slides up from the bottom with the first scroll, sticks to the bottom of the screen and stops right above the footer; a click on a cookie opens its creation, the small cross eats it, closed it becomes a jar. Filling it is a little show: the cookie flies from its button into its place along an arc, the others make room, it plops in with crumbs; eaten ones leave with a twist
+- Cookie bar: “Save as cookie” (and every download) keeps the creation as such a cookie in this browser “This site uses cookies” – your own: a bar slides up from the bottom with the first scroll, sticks to the bottom of the screen and stops right above the footer; a click on a cookie opens a little menu – open it, save it online or take it offline, eat it – closed it becomes a jar. Filling it is a little show: the cookie flies from its button into its place along an arc, the others make room, it plops in with crumbs; eaten ones leave with a twist
 - Share as a card: in the share dialog, add who it is for, who it is from and a message (a little preview shows it running around the cutter) and get a link to the card's own page – one screen without scrolling: the cutter in 3D on a card, the message turning around it, 3MF/STL to download and a way to the maker. A click turns the card over – on its back lies the cookie it bakes. Like every link, it all lives in the hash
+- Online cookies, optional: each cookie in the jar is offline (on this device only) or online – its cloud says which, a click changes it, and saving asks. Online, it is kept in an account – on every device logged in – and has a short link: shared, its link is short, only the model (`s=`) goes to the server, everything else stays in the link. Taken offline (or eaten), it is on this device only again and its short link goes – asked first. The account comes with the first cookie online: no name, no email, a passphrase of three words, some with a number, made by the server and shown once (see below)
 - Example gallery: cards like the share picture – built in the admin from a creation's link (the cutter rendered from above) or from any picture in Media; five are drawn at random on every load
 - German/English (i18next) under `/de` and `/en` with their own texts for search engines; `/` redirects by browser language. The interface texts can be edited in the admin (see below)
 - Anonymous statistics without cookies: page views (page, coarse source, device class, OS, browser) and actions (downloads, sharing, cards, imports) on our own server – no IP, no identifier, nothing linking two rows, deleted after 90 days; Global Privacy Control is respected. Evaluated in the admin, optionally as a mail report (see below)
@@ -39,7 +40,7 @@ The geometry is built entirely in the browser. The server ([Next.js](https://nex
 src/
   app/
     (frontend)/[locale]/      the pages: /de and /en (editor), /de/card and /en/card (greeting card) – layout with meta texts
-    (frontend)/next/          internal routes: track, action (statistics beacons), analytics-exclude, cron/stats-digest (mail report), fixture (dev only)
+    (frontend)/next/          internal routes: track, action (statistics beacons), analytics-exclude, account/ (create, login, logout, links: a cookie online or back), shape/[code] (a short link's model), cron/stats-digest (mail report), cron/accounts (pruning), fixture (dev only)
     (payload)/                the admin (/admin) and Payload's REST API (/api) – generated by Payload; custom.scss styles only the previews (legal text editor, its blocks) like the site
   proxy.ts                    “/” and “/card” → /de or /en by browser language
   editor-root.tsx, editor.tsx the editor in the browser only (next/dynamic without SSR): texts, templates, gallery handed over by the page
@@ -50,7 +51,8 @@ src/
   card/                       the greeting card: card-root/card-entry (browser only), card-page (the page), greeting-card (the card that turns), card-front/card-back, card-actions (files, picture), speech-bubble, sprinkles, card-cookies (raining down), card-cutter (3D on the card), use-cutter/load-cutter, use-bites/bite (biting the cookie), card-link (what the link brings)
   store.ts                    state (valtio): actions, cutter worker, link in the hash, scroll lock
   draw/                       the drawing area: draw-canvas (puts it together), use-drawing (the drawing, selection, undo), use-pen (drawing, erasing), use-move (selecting, moving, scaling), use-area-fit (its size beside or above the bars), tool-picker, draw-templates, draw-actions, brush-options, draw-marks, draw-grid, shape-head
-  components/                 preview-3d, parameter-panel, share-creation, gallery-fan, cookie-bar, cookie-fx (flight, crumbs), button, card, dev-fixture (dev server only: saves the drawing as a test case), …; styles.ts: classes shared by several
+  components/                 preview-3d, parameter-panel, share-creation, gallery-fan, cookie-bar, cookie-fx (flight, crumbs), button, card, dialog (shared by imprint and account), account-dialog (opened from the cookie bar), link-field (copy – short when the creation is online, else “Save online”), dev-fixture (dev server only: saves the drawing as a test case), …; styles.ts: classes shared by several
+  account/                    the accounts: rules (limits, checks – browser and server), server (passphrase, its key, login cookie), client (login, cookies online and back, short links), prune (deleting idle ones), words (passphrase words, de/en)
   drawing.ts                  the drawing as vectors: painting, finding objects, moving/rotating/scaling, erasing
   presets.ts                  a template's outline from its SVG
   content.ts, assets.ts       templates and the gallery's cards from the CMS; the editor gets them through a context
@@ -69,7 +71,7 @@ src/
   i18n/                       de.ts, en.ts (the texts' seed and shape), index.ts (i18next with the texts from the server)
   translations/               the Translations global: fields from the keys (tree.ts), seeding (seed.ts), reading for the pages (texts.ts)
   payload.config.ts           Payload: MongoDB, collections, globals, seeding at start
-  collections/                templates (SVG uploads), gallery (cards), media (pictures with alt texts), users (admin login), page-views, actions
+  collections/                templates (SVG uploads), gallery (cards), media (pictures with alt texts), users (admin login), accounts and short-links (visitors), page-views, actions
   globals/                    site (links, address), legal (imprint & privacy, rich text), translations, analytics (statistics, mail report, own devices)
   legal/                      the legal text's blocks, its rendering on the server, its seed (the text as it stood in the code)
   site-defaults.ts, site-context.ts   links and address before the CMS (seed and fallback); the links in the browser
@@ -78,7 +80,8 @@ src/
   analytics.ts                sends page views and actions (sendBeacon)
   seo.ts                      meta texts, link previews, JSON-LD per language
   url-state.ts                state ↔ URL hash
-  cookie-jar.ts, cookie-flight.ts   the cookie bar's cookies in localStorage; a cookie's flight into the bar
+  short-shape.ts              short links: the model for `k=` fetched and put back as `s=` before the page reads its link
+  cookie-jar.ts, cookie-flight.ts   the cookie bar's cookies in localStorage (online ones also in the account); a cookie's flight into the bar
   filaments.ts, hash-text.ts  filament colors, stable numbers from texts (same color, same sprinkles everywhere)
   greeting.ts                 the card's link: recipient, sender, message on top of the creation's hash
   units.ts                    mm/inch
@@ -112,13 +115,15 @@ Pally (Indian Type Foundry, [ITF Free Font License](https://www.fontshare.com)) 
 
 `#n=<name>&<parameter>=<value>&s=<drawing>`. Parameters are only included when they differ from the defaults. The drawing itself is stored, so it looks just the same after opening: per stroke the smoothed pen points and the stroke width (erasers with a negative width) and, after an SVG import, its silhouette as an area. Strokes are simplified depending on their width (Douglas-Peucker, 1.5–4 px), rounded to 2 px and encoded as chained ZigZag varint deltas; the whole thing is deflate-compressed and base64url-encoded. The first varint is the format version (currently 3); versions 1 (contour only) and 2 are still read. Shared links have no language path, so recipients land in their own language. A greeting card is the same link under `/<language>/card` – the sender's language, like the message – plus `&t=<recipient>&f=<sender>&m=<message>` (older links with `to=`/`from=` are still read); `/card` alone (older links) follows the browser. Older links with a trailing slash (`/de/card/#…`) are redirected; the hash survives. The hash is never sent to the server.
 
+A short link has `k=<code>` in place of `s=<drawing>` – seven letters and digits standing for the model of a cookie put online; everything else stays in the link as it was. Opened, the page fetches the model (`/next/shape/<code>`) and turns the address back into the full link (`history.replaceState`) before reading it, so whoever got it keeps a link that works even once the short link is gone. A dead code shows a message instead of the cutter.
+
 ### Bambu Studio
 
 When opening a 3MF, Bambu Studio reports “The 3mf file has invalid config, load geometry data only”. That happens with every 3MF not made by Bambu Studio itself (Fusion 360 too). The geometry is still loaded completely. Via *File → Import* the message does not appear.
 
 ## Planned
 
-- Short links with real link previews (Payload is in place now; the hash links stay valid).
+- Link previews for short links: the code would have to move from the hash into the path, so the server sees which creation to show.
 - An API you send an SVG to and get the finished cutter back from (with API tokens and a database).
 - “Get it printed”: hand the finished cutter straight to a print service (e.g. Craftcloud or Treatstock) to choose material and shop and order there.
 
@@ -149,6 +154,17 @@ In the admin under **Analytics**: page views and actions over a time range (toda
 - **Contact form:** in the imprint (dialog) – mailed to `MAIL_CONTACT_RECIPIENT` via Resend, nothing stored; a honeypot and a rate limit (5 per 10 minutes and IP, in memory only) against abuse.
 - **Mail report:** in the sidebar daily, weekly or monthly (off by default), “Send the report now” to try it. Needs the secrets `CRON_SECRET`, `RESEND_API_KEY`, `MAIL_FROM` and `MAIL_STATS_RECIPIENT`; the cron job is installed by every deploy. The route also prunes rows older than 90 days.
 
+### Accounts
+
+Two roles: the admin's **Users** (Payload's own login) and visitors' **Accounts** on the site. For visitors an account is where their online cookies are kept: it comes with the first cookie put online (in the cookie bar, or “Short link? Save online” under the share link), and “Log in” in the bar fetches the online cookies on another device – the closed jar stays even when empty for that.
+
+- **Passphrase:** three words in the visitor's language, one to three of them with a number from 1 to 99 – `kuh7-traktor-waffel21` (`src/account/words.ts`, about 40 bits), made by the server and shown once. The database keeps only `scrypt(passphrase)` peppered with `PAYLOAD_SECRET` – **changing that secret makes every passphrase useless and logs everyone out**. Upper case, spaces or commas don't matter when typing it, nor whether a number sticks to its word.
+- **Login:** a signed httpOnly cookie `ccm-account` with the account's id, for 30 days, renewed on every visit. A visit takes the account's online cookies as they are (one taken offline or eaten elsewhere goes here too); the offline cookies stay. Logging out takes the online cookies off that browser (it may be someone else's device); deleting the account keeps them there, offline.
+- **Short links:** one per model and account, made when a cookie goes online (`POST /next/account/links` with the cookie), gone when it is taken offline or eaten (`DELETE`, unless another online cookie has the same model) or with the account. A link is short when its model belongs to an online cookie – the creation's, the card's.
+- **What an account keeps:** its online cookies (at most 30, like the jar) with their short links' models. Nothing else: no name, no email, no IP.
+- **Going:** deleted with its short links after 180 days without a visit, after 7 if it never kept anything – daily by `/next/cron/accounts` (cron job from `scripts/setup-cron.sh`, with `CRON_SECRET`) – or by the visitor (“Delete account”), or in the admin under **Accounts**, which shows when each was made and last visited and how many cookies it keeps online.
+- **Against abuse:** rate limits in memory per IP – 5 new accounts an hour, 10 logins in 10 minutes (and 1,000 an hour altogether), 60 cookies online an hour, 120 models fetched a minute; changes only from the site's own pages (Origin check, SameSite cookie).
+
 ### Imprint, privacy and links
 
 - **Site:** the links (mxwr.de in the footer and on the card, MakerWorld, PayPal, GitHub) and the address – in one place.
@@ -176,7 +192,7 @@ A push to `main` → GitHub Actions ([`deploy.yml`](.github/workflows/deploy.yml
 
 1. **verify:** Biome + TypeScript + geometry tests
 2. **build:** Docker image (Next.js standalone, see [`Dockerfile`](Dockerfile)) → `ghcr.io/yogspace/ccm`
-3. **deploy:** via SSH to the Hetzner server, `/opt/apps/ccm`: writes `.env` from the secrets (stops if the essential ones are missing), `docker compose pull && up -d --remove-orphans`, then installs the mail report's cron job (`scripts/setup-cron.sh`, idempotent)
+3. **deploy:** via SSH to the Hetzner server, `/opt/apps/ccm`: writes `.env` from the secrets (stops if the essential ones are missing), `docker compose pull && up -d --remove-orphans`, then installs the cron jobs – mail report and account pruning (`scripts/setup-cron.sh`, idempotent)
 
 Two services (see [`docker-compose.yml`](docker-compose.yml)): `ccm` speaks plain HTTP on `:3000`, keeps the uploads in the `media` volume and is attached to the external Docker network `web` – HTTPS and domain routing are handled by the central proxy stack (repo `proxy`, `/opt/apps/proxy`). `mongo` only lives in the internal network, its data in the `mongo_data` volume; pinned to 8.2.9 with shadow stacks off (see the comment there).
 
@@ -188,8 +204,8 @@ Two services (see [`docker-compose.yml`](docker-compose.yml)): `ccm` speaks plai
 | `HETZNER_USER` | SSH user |
 | `HETZNER_SSH_KEY` | private SSH key |
 | `NEXT_PUBLIC_SERVER_URL` | `https://ccm.mxwr.de` |
-| `PAYLOAD_SECRET` | `openssl rand -hex 32` |
-| `CRON_SECRET` | `openssl rand -hex 32` (mail report) |
+| `PAYLOAD_SECRET` | `openssl rand -hex 32` – also keys the account passphrases: changing it locks every visitor out of their account |
+| `CRON_SECRET` | `openssl rand -hex 32` (mail report, account pruning) |
 | `RESEND_API_KEY` | Resend API key (contact form, mail report) |
 | `MAIL_FROM` | sender on a domain verified at Resend |
 | `MAIL_CONTACT_RECIPIENT` | who gets the contact form's messages |

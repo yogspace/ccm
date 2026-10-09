@@ -1,8 +1,7 @@
-import { ArrowRight, Check, Copy, Download, Gift, Share2 } from "lucide-react";
+import { ArrowRight, Download, Gift, Share2 } from "lucide-react";
 import {
   type CSSProperties,
   type RefObject,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -27,6 +26,7 @@ import {
 } from "./card-image";
 import ColorSwatches from "./color-swatches";
 import CookieIcon from "./cookie-icon";
+import LinkField, { useShareLink } from "./link-field";
 import type { PreviewHandle } from "./preview-3d";
 import RingText from "./ring-text";
 import Segmented from "./segmented";
@@ -36,9 +36,7 @@ import {
   ringOnGlaze,
   shareContent,
   shareIntro,
-  shareLink,
   shareMore,
-  shareUrl,
   shareVisual,
 } from "./styles";
 import { useGrow } from "./use-grow";
@@ -83,12 +81,12 @@ const ShareCreation = ({ preview }: Props) => {
     color: 0,
   });
   const { chosen, glaze } = useCardColor(greeting.color);
-  const [copied, setCopied] = useState(false);
   /** After “Share image”: a note that text and link were copied too. */
   const [textCopied, setTextCopied] = useState(false);
   const title = name.trim() || "Cookie Cutter Maker";
   const pictureName = name.trim() || "Cookie Cutter";
-  const url = creationUrl();
+  // The creation's link – short if it is online (link-field.tsx).
+  const url = useShareLink(creationUrl());
   useGrow(boxRef, bodyRef);
 
   // The cutter from above in the favorite color, for the picture and the
@@ -108,12 +106,6 @@ const ShareCreation = ({ preview }: Props) => {
     }
   );
 
-  useEffect(() => {
-    if (!copied) return;
-    const timer = setTimeout(() => setCopied(false), 2000);
-    return () => clearTimeout(timer);
-  }, [copied]);
-
   /**
    * The picture as a file, for what the box shows – painted on the first
    * press (it starts on pointer down already), kept while nothing changes.
@@ -132,16 +124,6 @@ const ShareCreation = ({ preview }: Props) => {
     ).then((blob) => blob && new File([blob], fileName, { type: "image/png" }));
     painted.current = { cutter: cutterView, key, file };
     return file;
-  };
-
-  const copy = async () => {
-    trackEvent("share-link");
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-    } catch {
-      window.prompt(t("share.copy"), url);
-    }
   };
 
   const shareImage = async () => {
@@ -281,37 +263,11 @@ const ShareCreation = ({ preview }: Props) => {
                     size={40}
                   />
                 </Button>
-                {/* The link itself is the button: a click copies it. */}
-                <Button
-                  aria-label={copied ? t("share.copied") : t("share.copy")}
-                  className={shareLink}
-                  data-copied={copied || undefined}
+                <LinkField
                   disabled={!cutter.mesh}
-                  onClick={copy}
-                  title={t("share.copy")}
-                  type="button"
-                >
-                  <span aria-live="polite" className={shareUrl}>
-                    {copied ? t("share.copied") : url}
-                  </span>
-                  {copied ? (
-                    <CookieIcon
-                      className={cookieInButton}
-                      icing="#00b86b"
-                      icon={Check}
-                      key="ok"
-                      size={44}
-                    />
-                  ) : (
-                    <CookieIcon
-                      className={cookieInButton}
-                      icing="#2a44ff"
-                      icon={Copy}
-                      key="copy"
-                      size={44}
-                    />
-                  )}
-                </Button>
+                  link={url}
+                  onCopy={() => trackEvent("share-link")}
+                />
                 <div className={shareMore}>
                   <Button
                     disabled={!cutterView}

@@ -6,10 +6,12 @@ import { de } from "@payloadcms/translations/languages/de";
 import { en } from "@payloadcms/translations/languages/en";
 import { buildConfig } from "payload";
 import sharp from "sharp";
+import { Accounts } from "./collections/accounts";
 import { Actions } from "./collections/actions";
 import { Gallery } from "./collections/gallery";
 import { Media } from "./collections/media";
 import { PageViews } from "./collections/page-views";
+import { ShortLinks } from "./collections/short-links";
 import { Templates } from "./collections/templates";
 import { Users } from "./collections/users";
 import { Analytics } from "./globals/analytics";
@@ -25,8 +27,9 @@ const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * The backend: an admin for the anonymous statistics, the interface texts,
- * the templates, the gallery and its pictures, the links and the legal text. The
- * editor itself stays in the browser.
+ * the templates, the gallery and its pictures, the links and the legal text –
+ * and the visitors' accounts (no names, a passphrase each) with their cookie
+ * jars and short links. The editor itself stays in the browser.
  *
  * Everything that differs between machines comes from the environment (see
  * .env.example): the database, the secrets, the mail settings.
@@ -62,8 +65,18 @@ export default buildConfig({
     supportedLanguages: { de, en },
     fallbackLanguage: "de",
   },
-  // The admin's groups follow this order: Users, then Content, then Settings.
-  collections: [Users, Templates, Gallery, Media, PageViews, Actions],
+  // The admin's groups follow this order: Users, Accounts, then Content,
+  // then Settings.
+  collections: [
+    Users,
+    Accounts,
+    ShortLinks,
+    Templates,
+    Gallery,
+    Media,
+    PageViews,
+    Actions,
+  ],
   globals: [Site, Legal, Translations, Analytics],
   endpoints: [seedEndpoint],
   // The legal text brings its own editor (globals/legal.ts); this is the

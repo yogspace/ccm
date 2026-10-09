@@ -1,16 +1,25 @@
+import { JAR_SIZE } from "./account/rules";
 import type { CookieShape } from "./cookies/shape-cookie";
 import type { Ring } from "./geometry/outline";
 import { hashText } from "./hash-text";
 import { simplifyRing } from "./url-state";
 
+export { JAR_SIZE };
+
 /**
- * Creations kept as cookies – the cookie bar. Only in this browser
- * (localStorage), never on the server: the link to open the creation again,
- * its name and size, and its contours to bake the cookie from.
+ * Creations kept as cookies – the cookie bar. In this browser
+ * (localStorage) – and, those put online, in the account too
+ * (account/client.ts): the link to open the creation again, its name and
+ * size, and its contours to bake the cookie from.
  */
 export type SavedCookie = {
   /** The creation's link hash (`#n=…&s=…`). */
   hash: string;
+  /**
+   * Online: its short link's code – the cookie is kept in the account too,
+   * on every device (account/client.ts). Without it, only in this browser.
+   */
+  code?: string;
   name: string;
   /** Longest side in mm. */
   size: number;
@@ -19,8 +28,6 @@ export type SavedCookie = {
 };
 
 const KEY = "ccm.cookies";
-/** The oldest cookies make room beyond this many. */
-export const JAR_SIZE = 30;
 /** Tolerance (share of the drawing area) when thinning the contours. */
 const TOLERANCE = 0.0008;
 
@@ -77,11 +84,26 @@ const isCookie = (value: unknown): value is SavedCookie => {
   const cookie = value as SavedCookie;
   return (
     typeof cookie?.hash === "string" &&
+    (cookie.code === undefined || typeof cookie.code === "string") &&
     typeof cookie.name === "string" &&
     typeof cookie.size === "number" &&
     Array.isArray(cookie.shape?.dough) &&
     Array.isArray(cookie.shape.icing)
   );
+};
+
+/**
+ * At most JAR_SIZE cookies, newest first: beyond, the oldest that is only
+ * here makes room – an online one only if there is none, so short links do
+ * not go without a word.
+ */
+export const trimJar = (jar: readonly SavedCookie[]) => {
+  const kept = [...jar];
+  while (kept.length > JAR_SIZE) {
+    const local = kept.findLastIndex((cookie) => !cookie.code);
+    kept.splice(local === -1 ? kept.length - 1 : local, 1);
+  }
+  return kept;
 };
 
 export const loadJar = (): SavedCookie[] => {
@@ -95,7 +117,7 @@ export const loadJar = (): SavedCookie[] => {
 
 export const storeJar = (jar: readonly SavedCookie[]) => {
   try {
-    localStorage.setItem(KEY, JSON.stringify(jar.slice(0, JAR_SIZE)));
+    localStorage.setItem(KEY, JSON.stringify(trimJar(jar)));
   } catch {
     // Without storage the cookies last until the tab closes – no harm.
   }

@@ -1,5 +1,5 @@
-import { ArrowUpRight, Check, Copy, Share2 } from "lucide-react";
-import { type CSSProperties, useEffect, useId, useState } from "react";
+import { ArrowUpRight, Check, Share2 } from "lucide-react";
+import { type CSSProperties, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { trackEvent } from "../analytics";
@@ -13,6 +13,7 @@ import CanvasView from "./canvas-view";
 import ColorSwatches from "./color-swatches";
 import CookieIcon from "./cookie-icon";
 import Field from "./field";
+import LinkField, { useShareLink } from "./link-field";
 import RingText from "./ring-text";
 import {
   cookieInButton,
@@ -21,9 +22,7 @@ import {
   ringOnGlaze,
   shareContent,
   shareIntro,
-  shareLink,
   shareMore,
-  shareUrl,
   shareVisual,
 } from "./styles";
 
@@ -50,7 +49,6 @@ const CardComposer = ({ greeting, onChange, picture }: Props) => {
     link: string;
     creation: string;
   } | null>(null);
-  const [copied, setCopied] = useState(false);
   const ids = useId();
   const title = name.trim() || "Cookie Cutter";
   const canSend = "share" in navigator;
@@ -58,14 +56,9 @@ const CardComposer = ({ greeting, onChange, picture }: Props) => {
   // The favorite color from the CMS; an unknown number is the first.
   const { chosen, glaze } = useCardColor(greeting.color);
   const creation = creationUrl();
-  // Drawn on since: the card is made anew.
-  const link = created?.creation === creation ? created.link : null;
-
-  useEffect(() => {
-    if (!copied) return;
-    const timer = setTimeout(() => setCopied(false), 2000);
-    return () => clearTimeout(timer);
-  }, [copied]);
+  // Drawn on since: the card is made anew. Short if the creation is online.
+  const link =
+    useShareLink(created?.creation === creation ? created.link : "") || null;
 
   const set = (field: "to" | "from" | "message") => (value: string) => {
     onChange({ ...greeting, [field]: value });
@@ -75,16 +68,6 @@ const CardComposer = ({ greeting, onChange, picture }: Props) => {
   const pick = (color: number) => {
     onChange({ ...greeting, color });
     setCreated(null);
-  };
-
-  const copy = async () => {
-    if (!link) return;
-    try {
-      await navigator.clipboard.writeText(link);
-      setCopied(true);
-    } catch {
-      window.prompt(t("share.copy"), link);
-    }
   };
 
   const send = () => {
@@ -201,35 +184,7 @@ const CardComposer = ({ greeting, onChange, picture }: Props) => {
         {link ? (
           <>
             <p className="font-bold text-ink">{t("card.ready")}</p>
-            <Button
-              aria-label={copied ? t("share.copied") : t("share.copy")}
-              className={shareLink}
-              data-copied={copied || undefined}
-              onClick={copy}
-              title={t("share.copy")}
-              type="button"
-            >
-              <span aria-live="polite" className={shareUrl}>
-                {copied ? t("share.copied") : link}
-              </span>
-              {copied ? (
-                <CookieIcon
-                  className={cookieInButton}
-                  icing="#00b86b"
-                  icon={Check}
-                  key="ok"
-                  size={44}
-                />
-              ) : (
-                <CookieIcon
-                  className={cookieInButton}
-                  icing="#2a44ff"
-                  icon={Copy}
-                  key="copy"
-                  size={44}
-                />
-              )}
-            </Button>
+            <LinkField link={link} />
             <div className={shareMore}>
               <Button
                 kind={canSend ? undefined : "primary"}

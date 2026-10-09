@@ -19,6 +19,7 @@ export const ACTIONS = {
   "card-picture": { en: "Card as picture", de: "Karte als Bild" },
   "svg-import": { en: "SVG imports", de: "SVG-Importe" },
   template: { en: "Templates used", de: "Vorlagen genutzt" },
+  "account-created": { en: "Accounts created", de: "Konten angelegt" },
 } as const;
 
 export type ActionName = keyof typeof ACTIONS;

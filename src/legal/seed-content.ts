@@ -79,13 +79,26 @@ const german = () =>
     p("Maximilian Weber, Anschrift siehe oben."),
     h3("Verarbeitung im Browser"),
     p(
-      "Zeichnungen, hochgeladene SVGs und die erzeugten 3D-Modelle werden ausschließlich in deinem Browser verarbeitet und nicht an den Server übertragen. Ein geteilter Link enthält die Form im Teil hinter dem „#“; dieser Teil wird vom Browser nicht an den Server gesendet. Das gilt auch für Grußkarten samt Namen und Nachricht."
+      "Zeichnungen, hochgeladene SVGs und die erzeugten 3D-Modelle werden in deinem Browser verarbeitet und nicht an den Server übertragen – es sei denn, du stellst einen Keks online (siehe „Online-Kekse und Kurzlinks“). Ein geteilter Link enthält die Form im Teil hinter dem „#“; dieser Teil wird vom Browser nicht an den Server gesendet. Das gilt auch für Grußkarten samt Namen und Nachricht."
     ),
     p(
-      "Sprache und Maßeinheit werden im lokalen Speicher deines Browsers abgelegt, damit sie beim nächsten Besuch erhalten bleiben – ebenso die Kreationen, die du als Keks speicherst (Link, Name, Größe und Umriss). Sie verlassen deinen Browser nicht; „Aufessen“ löscht einen Keks. Von sich aus setzt die Seite keine Cookies (nur gebackene), und Analyse- oder Tracking-Dienste Dritter kommen nicht zum Einsatz."
+      "Sprache und Maßeinheit werden im lokalen Speicher deines Browsers abgelegt, damit sie beim nächsten Besuch erhalten bleiben – ebenso die Kreationen, die du als Keks speicherst (Link, Name, Größe und Umriss). Solange du sie nicht online stellst, verlassen sie deinen Browser nicht; „Aufessen“ löscht einen Keks. Ohne Konto setzt die Seite keine Cookies (nur gebackene), mit Konto nur das Anmelde-Cookie. Analyse- oder Tracking-Dienste Dritter kommen nicht zum Einsatz."
     ),
     p(
       "Die Schriftart „Pally“ (Indian Type Foundry, über Fontshare) wird vom eigenen Server geladen. Beim Aufruf werden dafür keine Daten an Dritte übertragen."
+    ),
+    h3("Online-Kekse und Kurzlinks"),
+    p(
+      "Einen Keks kannst du online stellen. Dann liegt er in deinem Konto – Link samt Zeichnung, Name, Größe und Umriss – und ist auf allen Geräten da, auf denen du angemeldet bist. Hast du noch kein Konto, entsteht es dabei. Es hat weder Namen noch E-Mail-Adresse: Der Server erzeugt eine Passphrase aus drei Wörtern, manche mit einer Zahl, und zeigt sie dir ein einziges Mal; gespeichert wird nur ein daraus abgeleiteter Schlüssel, aus dem sich die Passphrase nicht zurückgewinnen lässt, und wann das Konto angelegt und zuletzt besucht wurde."
+    ),
+    p(
+      "Ein Online-Keks hat einen Kurzlink. Der speichert nur die Form des Ausstechers: Im Link steht statt der Form ein Code, mit dem die Seite sie vom Server holt; Name, Größe, Empfänger, Absender und Nachricht bleiben im Link und erreichen den Server so nicht. Wer einen Kurzlink hat, kann die Form dahinter abrufen."
+    ),
+    p(
+      "Angemeldet bleibst du über ein Cookie („ccm-account“), das nur die Kennung deines Kontos trägt, signiert ist und nach 30 Tagen ohne Besuch abläuft; Abmelden löscht es. Gegen Missbrauch hält der Server beim Anlegen, Anmelden, Online-Stellen und Öffnen von Kurzlinks deine IP-Adresse höchstens eine Stunde im Arbeitsspeicher."
+    ),
+    p(
+      "Einen Keks kannst du jederzeit wieder offline nehmen oder aufessen – dann ist er aus dem Konto verschwunden, und sein Kurzlink funktioniert nicht mehr. Das ganze Konto löschst du im Konto; deine Kekse bleiben dann nur in deinem Browser. Ohne Besuch wird ein Konto nach 180 Tagen mit allem gelöscht, eines, in dem nie etwas gespeichert wurde, schon nach 7 Tagen. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO; das Anmelde-Cookie ist für das Konto unbedingt erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG)."
     ),
     h3("Hosting und Server-Logfiles"),
     p(
@@ -133,13 +146,26 @@ const english = () =>
     p("Maximilian Weber, address see above."),
     h3("Processing in your browser"),
     p(
-      "Drawings, uploaded SVGs and the generated 3D models are processed entirely in your browser and are never sent to the server. A shared link carries the shape in the part after the “#”, which browsers do not send to the server. The same goes for greeting cards with their names and message."
+      "Drawings, uploaded SVGs and the generated 3D models are processed in your browser and are not sent to the server – unless you put a cookie online (see “Online cookies and short links”). A shared link carries the shape in the part after the “#”, which browsers do not send to the server. The same goes for greeting cards with their names and message."
     ),
     p(
-      "Your language and unit are kept in your browser’s local storage so they persist between visits – and so are the creations you save as cookies (link, name, size and outline). They never leave your browser; eating a cookie deletes it. The site sets no cookies of its own accord (only baked ones), and no third-party analytics or tracking services are used."
+      "Your language and unit are kept in your browser’s local storage so they persist between visits – and so are the creations you save as cookies (link, name, size and outline). Unless you put them online, they never leave your browser; eating a cookie deletes it. Without an account the site sets no cookies (only baked ones), with one only the login cookie. No third-party analytics or tracking services are used."
     ),
     p(
       "The typeface “Pally” (Indian Type Foundry, via Fontshare) is served from our own server, so no data is sent to third parties to load it."
+    ),
+    h3("Online cookies and short links"),
+    p(
+      "You can put a cookie online. It is then kept in your account – its link with the drawing, name, size and outline – and is there on every device you are logged in on. If you have no account yet, one is made for it. It has neither a name nor an email address: the server makes a passphrase of three words, some with a number, and shows it to you once; only a key derived from it is stored, from which the passphrase cannot be recovered, and when the account was created and last visited."
+    ),
+    p(
+      "An online cookie has a short link. It stores only the shape of the cookie cutter: instead of the shape the link carries a code the page uses to fetch it from the server; name, size, recipient, sender and message stay in the link and do not reach the server that way. Anyone with a short link can fetch the shape behind it."
+    ),
+    p(
+      "You stay logged in through a cookie (“ccm-account”) that carries only your account’s identifier, is signed and expires after 30 days without a visit; logging out deletes it. Against abuse the server keeps your IP address in memory for at most an hour when you create an account, log in, put a cookie online or open a short link."
+    ),
+    p(
+      "You can take a cookie offline again or eat it at any time – it is then gone from the account and its short link no longer works. You delete the whole account in the account; your cookies then stay only in your browser. An account nobody visits is deleted with everything in it after 180 days – one that never kept anything after 7 days. Legal basis: Art. 6 (1) (b) GDPR; the login cookie is strictly necessary for the account (§ 25 (2) no. 2 TDDDG)."
     ),
     h3("Hosting and server logs"),
     p(

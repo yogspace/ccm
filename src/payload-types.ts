@@ -21,6 +21,8 @@ export interface Config {
   blocks: {};
   collections: {
     users: User;
+    accounts: Account;
+    'short-links': ShortLink;
     templates: Template;
     gallery: Gallery;
     media: Media;
@@ -34,6 +36,8 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
+    accounts: AccountsSelect<false> | AccountsSelect<true>;
+    'short-links': ShortLinksSelect<false> | ShortLinksSelect<true>;
     templates: TemplatesSelect<false> | TemplatesSelect<true>;
     gallery: GallerySelect<false> | GallerySelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
@@ -114,6 +118,43 @@ export interface User {
     | null;
   password?: string | null;
   collection: 'users';
+}
+/**
+ * Visitors' accounts – no names, no email, a passphrase only (stored as a key, never readable). They keep the cookies their owners put online, each with a short link. Gone after 180 days without a visit (after 7 if they never kept anything) – or when deleted here or in the account.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "accounts".
+ */
+export interface Account {
+  id: string;
+  key: string;
+  lastSeenAt: string;
+  jar?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  cookies?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * The models behind short links (…&k=<code> in a link) – made when a visitor puts a cookie online, gone when it is taken back or with the account. Only the model: names and messages stay in the links.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "short-links".
+ */
+export interface ShortLink {
+  id: string;
+  code: string;
+  shape: string;
+  account: string | Account;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * SVG templates next to the drawing area, in this order (drag & drop). Name them in both languages (locale at the top).
@@ -237,7 +278,8 @@ export interface Action {
     | 'card-download-stl'
     | 'card-picture'
     | 'svg-import'
-    | 'template';
+    | 'template'
+    | 'account-created';
   path?: string | null;
   device?: string | null;
   updatedAt: string;
@@ -270,6 +312,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'users';
         value: string | User;
+      } | null)
+    | ({
+        relationTo: 'accounts';
+        value: string | Account;
+      } | null)
+    | ({
+        relationTo: 'short-links';
+        value: string | ShortLink;
       } | null)
     | ({
         relationTo: 'templates';
@@ -356,6 +406,29 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "accounts_select".
+ */
+export interface AccountsSelect<T extends boolean = true> {
+  key?: T;
+  lastSeenAt?: T;
+  jar?: T;
+  cookies?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "short-links_select".
+ */
+export interface ShortLinksSelect<T extends boolean = true> {
+  code?: T;
+  shape?: T;
+  account?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -584,6 +657,136 @@ export interface Legal {
  */
 export interface Translation {
   id: string;
+  account?: {
+    /**
+     * DE: Abbrechen  ·  EN: Cancel
+     */
+    cancel?: string | null;
+    /**
+     * DE: Doch kein Konto – es wird keins angelegt, deine Kekse bleiben auf diesem Gerät.  ·  EN: No account after all – none is created, your cookies stay on this device.
+     */
+    cancelHint?: string | null;
+    /**
+     * DE: Ja, löschen  ·  EN: Yes, delete
+     */
+    confirm?: string | null;
+    /**
+     * DE: Dein Konto wird gelöscht. Deine Online-Kekse bleiben offline auf diesem Gerät – ihre Kurzlinks funktionieren dann nicht mehr, und auf deinen anderen Geräten sind sie weg.  ·  EN: Your account will be deleted. Your online cookies stay offline on this device – their short links won't work any more, and they're gone from your other devices.
+     */
+    confirmDelete?: string | null;
+    /**
+     * DE: Kopiert  ·  EN: Copied
+     */
+    copied?: string | null;
+    /**
+     * DE: Kopieren  ·  EN: Copy
+     */
+    copy?: string | null;
+    /**
+     * DE: Konto anlegen  ·  EN: Create account
+     */
+    create?: string | null;
+    /**
+     * DE: Du bekommst eine Passphrase – angelegt wird das Konto erst, wenn du sie notiert hast.  ·  EN: You get a passphrase – the account is only created once you've noted it.
+     */
+    createHint?: string | null;
+    /**
+     * DE: Konto löschen  ·  EN: Delete account
+     */
+    delete?: string | null;
+    /**
+     * DE: Das hat gerade nicht geklappt. Versuch es gleich noch mal.  ·  EN: That didn't work just now. Try again in a moment.
+     */
+    failed?: string | null;
+    /**
+     * DE: Kommst du bis zum {{date}} nicht vorbei, wird dein Konto mit allem gelöscht.  ·  EN: If you don't drop by until {{date}}, your account goes with everything in it.
+     */
+    goneAt?: string | null;
+    /**
+     * DE: Schon ein Konto?  ·  EN: Have an account?
+     */
+    haveOne?: string | null;
+    /**
+     * DE: Ein Konto ohne Besuch wird nach sechs Monaten mit allem gelöscht.  ·  EN: An account nobody visits goes with everything in it after six months.
+     */
+    idle?: string | null;
+    /**
+     * DE: Kekse, die du online stellst, liegen in deinem Konto: auf all deinen Geräten und mit kurzem Link. Kein Name, keine E-Mail – nur eine Passphrase aus drei Wörtern, manche mit Zahl.  ·  EN: Cookies you put online are kept in your account: on all your devices, with a short link. No name, no email – just a passphrase of three words, some with a number.
+     */
+    intro?: string | null;
+    /**
+     * DE: Schreib sie dir auf. Sie ist der einzige Weg zurück in dein Konto – geht sie verloren, kann sie niemand wiederherstellen.  ·  EN: Write it down. It is the only way back into your account – if it's lost, nobody can restore it.
+     */
+    keepIt?: string | null;
+    /**
+     * DE: Anmelden  ·  EN: Log in
+     */
+    logIn?: string | null;
+    /**
+     * DE: Abmelden  ·  EN: Log out
+     */
+    logOut?: string | null;
+    /**
+     * DE: Deine Online-Kekse verschwinden von diesem Gerät und bleiben im Konto.  ·  EN: Your online cookies leave this device and stay in the account.
+     */
+    logOutHint?: string | null;
+    /**
+     * DE: Du bist angemeldet.  ·  EN: You're logged in.
+     */
+    loggedIn?: string | null;
+    /**
+     * DE: Um „{{name}}“ online zu speichern, brauchst du ein Konto.  ·  EN: To save “{{name}}” online, you need an account.
+     */
+    needed?: string | null;
+    /**
+     * DE: Notiert – weiter  ·  EN: Noted – continue
+     */
+    noted?: string | null;
+    /**
+     * DE: Online-Kekse sind auf all deinen Geräten und haben einen kurzen Link. Der speichert nur den Ausstecher – Namen und Nachrichten stehen im Link selbst.  ·  EN: Online cookies are on all your devices and have a short link. It keeps only the cookie cutter – names and messages are in the link itself.
+     */
+    onlineHint?: string | null;
+    /**
+     * DE: Ein Keks ist online.  ·  EN: One cookie is online.
+     */
+    online_one?: string | null;
+    /**
+     * DE: {{count}} Kekse sind online.  ·  EN: {{count}} cookies are online.
+     */
+    online_other?: string | null;
+    /**
+     * DE: Noch kein Keks ist online – tipp in der Keksdose auf die Wolke.  ·  EN: No cookie is online yet – tap the cloud in your cookie jar.
+     */
+    online_zero?: string | null;
+    /**
+     * DE: Passphrase  ·  EN: Passphrase
+     */
+    passphrase?: string | null;
+    /**
+     * DE: drei Wörter, manche mit Zahl  ·  EN: three words, some with a number
+     */
+    placeholder?: string | null;
+    /**
+     * DE: Diese Passphrase ging leider nicht mehr – hier ist eine neue. Schreib dir bitte die auf.  ·  EN: That passphrase didn't work out – here is a new one. Please write this one down.
+     */
+    renewed?: string | null;
+    /**
+     * DE: Dein Konto  ·  EN: Your account
+     */
+    title?: string | null;
+    /**
+     * DE: Zu viele Versuche – warte ein paar Minuten.  ·  EN: Too many tries – wait a few minutes.
+     */
+    tooMany?: string | null;
+    /**
+     * DE: Diese Passphrase kennen wir nicht.  ·  EN: We don't know this passphrase.
+     */
+    unknown?: string | null;
+    /**
+     * DE: Deine Passphrase  ·  EN: Your passphrase
+     */
+    yourPassphrase?: string | null;
+  };
   card?: {
     /**
      * DE: gebacken  ·  EN: baked
@@ -673,6 +876,10 @@ export interface Translation {
      * DE: Dein Name  ·  EN: Your name
      */
     fromPlaceholder?: string | null;
+    /**
+     * DE: Diesen Ausstecher gibt es nicht mehr – sein Kurzlink wurde gelöscht.  ·  EN: This cookie cutter is gone – its short link was deleted.
+     */
+    gone?: string | null;
     /**
      * DE: Schreib ein paar Zeilen dazu – auf der Karte laufen sie rund um deinen Ausstecher.  ·  EN: Add a few lines – on the card they run all the way around your cutter.
      */
@@ -892,6 +1099,10 @@ export interface Translation {
      */
     engine?: string | null;
     /**
+     * DE: Diesen Ausstecher gibt es nicht mehr – sein Kurzlink wurde gelöscht.  ·  EN: This cookie cutter is gone – its short link was deleted.
+     */
+    gone?: string | null;
+    /**
      * DE: Keine gültige SVG-Datei.  ·  EN: Not a valid SVG file.
      */
     invalidSvg?: string | null;
@@ -982,25 +1193,93 @@ export interface Translation {
   };
   jar?: {
     /**
+     * DE: Dein Konto  ·  EN: Your account
+     */
+    account?: string | null;
+    /**
+     * DE: Dann ist er auf all deinen Geräten und hat einen kurzen Link.  ·  EN: Then it's on all your devices and has a short link.
+     */
+    askHint?: string | null;
+    /**
+     * DE: Nein, danke  ·  EN: No, thanks
+     */
+    askNo?: string | null;
+    /**
+     * DE: „{{name}}“ auch online speichern?  ·  EN: Save “{{name}}” online too?
+     */
+    askTitle?: string | null;
+    /**
+     * DE: Online speichern  ·  EN: Save online
+     */
+    askYes?: string | null;
+    /**
+     * DE: Er bleibt auf diesem Gerät. Sein Kurzlink funktioniert dann nicht mehr, und auf deinen anderen Geräten ist er weg.  ·  EN: It stays on this device. Its short link won't work any more, and it's gone from your other devices.
+     */
+    backHint?: string | null;
+    /**
+     * DE: „{{name}}“ offline nehmen?  ·  EN: Take “{{name}}” offline?
+     */
+    backTitle?: string | null;
+    /**
+     * DE: Offline nehmen  ·  EN: Take offline
+     */
+    backYes?: string | null;
+    /**
+     * DE: Abbrechen  ·  EN: Cancel
+     */
+    cancel?: string | null;
+    /**
      * DE: Keksleiste schließen  ·  EN: Close the cookie bar
      */
     close?: string | null;
     /**
-     * DE: „{{name}}“ aufessen  ·  EN: Eat “{{name}}”
+     * DE: Er ist online: Sein Kurzlink funktioniert dann nicht mehr, und auf deinen anderen Geräten ist er auch weg.  ·  EN: It's online: its short link won't work any more, and it's gone from your other devices too.
      */
-    eat?: string | null;
+    eatHint?: string | null;
+    /**
+     * DE: Aufessen  ·  EN: Eat it
+     */
+    eatIt?: string | null;
+    /**
+     * DE: „{{name}}“ aufessen?  ·  EN: Eat “{{name}}”?
+     */
+    eatTitle?: string | null;
+    /**
+     * DE: Aufessen  ·  EN: Eat it
+     */
+    eatYes?: string | null;
     /**
      * DE: Frisch gebacken: „{{name}}“  ·  EN: Freshly baked: “{{name}}”
      */
     fresh?: string | null;
     /**
+     * DE: Online passen höchstens 30 Kekse – nimm erst einen zurück.  ·  EN: At most 30 cookies fit online – take one back first.
+     */
+    full?: string | null;
+    /**
      * DE: Deine Kekse  ·  EN: Your cookies
      */
     label?: string | null;
     /**
-     * DE: „{{name}}“ öffnen  ·  EN: Open “{{name}}”
+     * DE: Anmelden  ·  EN: Log in
      */
-    open?: string | null;
+    logIn?: string | null;
+    /**
+     * DE: Hast du Kekse online, holst du sie so auf dieses Gerät.  ·  EN: Got cookies online? This brings them to this device.
+     */
+    logInHint?: string | null;
+    /**
+     * DE: Offline nehmen  ·  EN: Take offline
+     */
+    offline?: string | null;
+    /**
+     * DE: Online speichern  ·  EN: Save online
+     */
+    online?: string | null;
+    /**
+     * DE: Öffnen  ·  EN: Open
+     */
+    openIt?: string | null;
     /**
      * DE: Deine Kekse ({{count}})  ·  EN: Your cookies ({{count}})
      */
@@ -1018,6 +1297,14 @@ export interface Translation {
      */
     saved?: string | null;
     /**
+     * DE: Offline – nur auf diesem Gerät  ·  EN: Offline – on this device only
+     */
+    statusOffline?: string | null;
+    /**
+     * DE: Online – auf all deinen Geräten, mit kurzem Link  ·  EN: Online – on all your devices, with a short link
+     */
+    statusOnline?: string | null;
+    /**
      * DE: Deine eigenen – einen hast du gebacken.  ·  EN: Your own – you baked one.
      */
     subtitle_one?: string | null;
@@ -1025,6 +1312,10 @@ export interface Translation {
      * DE: Deine eigenen – {{count}} hast du gebacken.  ·  EN: Your own – you baked {{count}}.
      */
     subtitle_other?: string | null;
+    /**
+     * DE: Noch leer – speichere eine Kreation als Keks.  ·  EN: Still empty – save a creation as a cookie.
+     */
+    subtitle_zero?: string | null;
     /**
      * DE: Diese Seite verwendet Kekse.  ·  EN: This site uses cookies.
      */
@@ -1158,6 +1449,14 @@ export interface Translation {
      */
     imageAlt?: string | null;
     /**
+     * DE: Kurzer Link? Online speichern  ·  EN: Short link? Save online
+     */
+    online?: string | null;
+    /**
+     * DE: Speichert die Kreation als Keks in deinem Konto – auf all deinen Geräten, mit kurzem Link.  ·  EN: Saves the creation as a cookie in your account – on all your devices, with a short link.
+     */
+    onlineHint?: string | null;
+    /**
      * DE: Cookie Cutter Maker – Ausstecher selbst gestalten und 3D-drucken:  ·  EN: Cookie Cutter Maker – design your own cookie cutters and 3D print them:
      */
     pageText?: string | null;
@@ -1280,6 +1579,42 @@ export interface LegalSelect<T extends boolean = true> {
  * via the `definition` "translations_select".
  */
 export interface TranslationsSelect<T extends boolean = true> {
+  account?:
+    | T
+    | {
+        cancel?: T;
+        cancelHint?: T;
+        confirm?: T;
+        confirmDelete?: T;
+        copied?: T;
+        copy?: T;
+        create?: T;
+        createHint?: T;
+        delete?: T;
+        failed?: T;
+        goneAt?: T;
+        haveOne?: T;
+        idle?: T;
+        intro?: T;
+        keepIt?: T;
+        logIn?: T;
+        logOut?: T;
+        logOutHint?: T;
+        loggedIn?: T;
+        needed?: T;
+        noted?: T;
+        onlineHint?: T;
+        online_one?: T;
+        online_other?: T;
+        online_zero?: T;
+        passphrase?: T;
+        placeholder?: T;
+        renewed?: T;
+        title?: T;
+        tooMany?: T;
+        unknown?: T;
+        yourPassphrase?: T;
+      };
   card?:
     | T
     | {
@@ -1305,6 +1640,7 @@ export interface TranslationsSelect<T extends boolean = true> {
         from?: T;
         fromName?: T;
         fromPlaceholder?: T;
+        gone?: T;
         intro?: T;
         loading?: T;
         makeOwn?: T;
@@ -1370,6 +1706,7 @@ export interface TranslationsSelect<T extends boolean = true> {
         build?: T;
         empty?: T;
         engine?: T;
+        gone?: T;
         invalidSvg?: T;
         noCanvas?: T;
         read?: T;
@@ -1410,17 +1747,37 @@ export interface TranslationsSelect<T extends boolean = true> {
   jar?:
     | T
     | {
+        account?: T;
+        askHint?: T;
+        askNo?: T;
+        askTitle?: T;
+        askYes?: T;
+        backHint?: T;
+        backTitle?: T;
+        backYes?: T;
+        cancel?: T;
         close?: T;
-        eat?: T;
+        eatHint?: T;
+        eatIt?: T;
+        eatTitle?: T;
+        eatYes?: T;
         fresh?: T;
+        full?: T;
         label?: T;
-        open?: T;
+        logIn?: T;
+        logInHint?: T;
+        offline?: T;
+        online?: T;
+        openIt?: T;
         reopen?: T;
         save_?: T;
         saveHint?: T;
         saved?: T;
+        statusOffline?: T;
+        statusOnline?: T;
         subtitle_one?: T;
         subtitle_other?: T;
+        subtitle_zero?: T;
         title?: T;
         unnamed?: T;
       };
@@ -1468,6 +1825,8 @@ export interface TranslationsSelect<T extends boolean = true> {
         creation?: T;
         creationText?: T;
         imageAlt?: T;
+        online?: T;
+        onlineHint?: T;
         pageText?: T;
         saveImage?: T;
         share?: T;

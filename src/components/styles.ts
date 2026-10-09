@@ -36,6 +36,16 @@ export const cookieInStageHint = "-mt-3 -mb-1";
 export const popup =
   "m-auto max-w-[min(26rem,100vw-2rem)] translate-y-1.5 rounded-2xl bg-neon px-5 py-4 text-body font-bold text-on-neon opacity-0 shadow-[0_1rem_2.5rem_rgb(5_10_60/0.3)] text-shadow-[0_1px_2px_rgb(110_0_70/0.35)] transition-[opacity,translate,display,overlay] transition-discrete open:translate-y-0 open:opacity-100 starting:open:translate-y-1.5 starting:open:opacity-0 supports-[anchor-name:--a]:inset-auto supports-[anchor-name:--a]:m-2 supports-[anchor-name:--a]:[position-try-fallbacks:flip-block,flip-inline,flip-block_flip-inline]";
 
+/**
+ * A small menu by its anchor (the cookie bar's cookies) – placed like the
+ * popups, in the bar's colors.
+ */
+export const menu =
+  "m-auto w-60 max-w-[calc(100vw-2rem)] translate-y-1.5 rounded-2xl bg-surface p-1.5 text-ink opacity-0 shadow-[0_0.3rem_0.8rem_rgb(4_8_60/0.16),0_1.6rem_3rem_-1rem_rgb(4_8_60/0.5)] transition-[opacity,translate,display,overlay] transition-discrete open:translate-y-0 open:opacity-100 starting:open:translate-y-1.5 starting:open:opacity-0 supports-[anchor-name:--a]:inset-auto supports-[anchor-name:--a]:m-1 supports-[anchor-name:--a]:[position-try-fallbacks:flip-block,flip-inline,flip-block_flip-inline]";
+/** An entry in such a menu. */
+export const menuItem =
+  "h-10 w-full justify-start gap-2 rounded-xl bg-transparent px-3 text-body text-ink hover:enabled:bg-surface-2";
+
 /** The text fields of the card composer and the contact form (field.tsx). */
 export const fieldInput =
   "w-full rounded-lg bg-field px-3.5 py-2 text-body font-semibold text-field-ink outline-2 outline-transparent transition-[outline-color,background-color] placeholder:font-medium placeholder:text-field-muted focus:bg-paper focus:outline-accent";

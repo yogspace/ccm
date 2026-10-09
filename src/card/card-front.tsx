@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { MeshData } from "../geometry/mesh";
+import { shortShapeMissing } from "../short-shape";
 import CardCutter from "./card-cutter";
 import { hasShape } from "./card-link";
 import { CardLabel, Paper, TurnSticker, WaitingNote } from "./card-parts";
@@ -48,7 +49,13 @@ const CardFront = ({
           spin={!failed}
         >
           {failed
-            ? t(hasShape ? "card.failed" : "card.empty")
+            ? t(
+                hasShape
+                  ? "card.failed"
+                  : shortShapeMissing()
+                    ? "card.gone"
+                    : "card.empty"
+              )
             : t("card.loading")}
         </WaitingNote>
       )}

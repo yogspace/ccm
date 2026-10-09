@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Installs the server-side cron job for the statistics report
-# (/next/cron/stats-digest): once a day; the route itself decides from the
-# interval set in the admin whether a report is due, and prunes old rows.
+# Installs the server-side cron jobs, once a day each:
+# - the statistics report (/next/cron/stats-digest): the route itself decides
+#   from the interval set in the admin whether a report is due, and prunes
+#   old rows;
+# - the accounts (/next/cron/accounts): those nobody visits any more go.
 #
 # Runs ON THE HETZNER SERVER (not locally) – by the deploy pipeline after
 # every deploy, or by hand:
@@ -35,8 +37,12 @@ fi
 
 # The node one-liner follows no redirects and fails on a status other than
 # 2xx, so cron and logger see it. Output goes to syslog: journalctl -t ccm-cron
-URL="http://localhost:3000/next/cron/stats-digest?secret=${CRON_SECRET}"
-STATS_CMD="$(printf 'cd %s && docker compose exec -T ccm node -e '\''const u=process.argv[1];require("http").get(u,r=>{let d="";r.on("data",c=>d+=c);r.on("end",()=>{console.log(r.statusCode,d.slice(0,200));process.exit(r.statusCode>=200&&r.statusCode<300?0:1)})}).on("error",e=>{console.error(e.message);process.exit(1)})'\'' %q 2>&1 | logger -t ccm-cron' "$APP_DIR" "$URL")"
+cron_cmd() {
+  local url="http://localhost:3000$1?secret=${CRON_SECRET}"
+  printf 'cd %s && docker compose exec -T ccm node -e '\''const u=process.argv[1];require("http").get(u,r=>{let d="";r.on("data",c=>d+=c);r.on("end",()=>{console.log(r.statusCode,d.slice(0,200));process.exit(r.statusCode>=200&&r.statusCode<300?0:1)})}).on("error",e=>{console.error(e.message);process.exit(1)})'\'' %q 2>&1 | logger -t ccm-cron' "$APP_DIR" "$url"
+}
+STATS_CMD="$(cron_cmd /next/cron/stats-digest)"
+ACCOUNTS_CMD="$(cron_cmd /next/cron/accounts)"
 
 # The current crontab WITHOUT our old block.
 CURRENT="$(crontab -l 2>/dev/null | sed "/${MARKER}/,/${MARKER_END}/d" || true)"
@@ -44,8 +50,9 @@ CURRENT="$(crontab -l 2>/dev/null | sed "/${MARKER}/,/${MARKER_END}/d" || true)"
 {
   printf '%s\n' "$CURRENT"
   printf '%s\n' "$MARKER"
-  # Daily at 06:15 UTC.
+  # Daily at 06:15 and 06:30 UTC.
   printf '15 6 * * * %s\n' "$STATS_CMD"
+  printf '30 6 * * * %s\n' "$ACCOUNTS_CMD"
   printf '%s\n' "$MARKER_END"
 } | crontab -
 

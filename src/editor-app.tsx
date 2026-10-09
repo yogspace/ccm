@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { cn } from "./cn";
+import AccountDialog from "./components/account-dialog";
 import Button from "./components/button";
 import { Card, CardHead, CardTitle } from "./components/card";
 import CookieBackground from "./components/cookie-background";
@@ -159,8 +160,10 @@ const App = () => {
         <ShareCreation preview={preview} />
       </div>
 
-      {/* Floats at the bottom while scrolling, stops right above the footer. */}
+      {/* Floats at the bottom while scrolling, stops right above the footer.
+          The account is the jar's, on every device – it opens from there. */}
       <CookieBar />
+      <AccountDialog />
 
       <SiteFooter className="relative z-1" />
     </div>

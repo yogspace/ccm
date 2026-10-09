@@ -1,6 +1,7 @@
 "use client";
 
 import { lazy, Suspense, useEffect, useState } from "react";
+import { startAccount } from "./account/client";
 import { trackView } from "./analytics";
 import { type Assets, AssetsContext } from "./assets";
 import { setCookieColors } from "./cookies/dough";
@@ -46,6 +47,8 @@ const Editor = ({ texts, links, colors, cookies, ...assets }: EditorProps) => {
   useEffect(() => {
     fontReady.finally(() => setReady(true));
   }, []);
+  // The account: logged in here last time, its cookie jar comes along.
+  useEffect(() => startAccount(), []);
   if (!ready) return null;
   return (
     <SiteLinksContext value={links}>
