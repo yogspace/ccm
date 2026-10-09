@@ -1059,13 +1059,9 @@ export interface Translation {
      */
     hint?: string | null;
     /**
-     * DE: Geschlossene Linien werden gefüllt, Formen in Formen ausgeschnitten – was du in Pink malst, wird eingeprägt.  ·  EN: Closed lines get filled, shapes inside shapes cut out – what you draw in pink is embossed.
+     * DE: Geschlossene Linien werden gefüllt, Formen in Formen ausgeschnitten. Mit dem pinken Punkt am Regler malst du, was eingeprägt wird.  ·  EN: Closed lines get filled, shapes inside shapes cut out. With the pink dot by the slider you draw what is embossed.
      */
     hintSub?: string | null;
-    /**
-     * DE: Farbe  ·  EN: Ink
-     */
-    ink?: string | null;
     /**
      * DE: {{name}} einfügen  ·  EN: Insert {{name}}
      */
@@ -1726,7 +1722,6 @@ export interface TranslationsSelect<T extends boolean = true> {
         expand?: T;
         hint?: T;
         hintSub?: T;
-        ink?: T;
         insert?: T;
         move?: T;
         moveHint?: T;

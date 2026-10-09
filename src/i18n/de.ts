@@ -11,7 +11,7 @@ export const de = {
   draw: {
     hint: "Umriss malen oder SVG hierher ziehen",
     hintSub:
-      "Geschlossene Linien werden gefüllt, Formen in Formen ausgeschnitten – was du in Pink malst, wird eingeprägt.",
+      "Geschlossene Linien werden gefüllt, Formen in Formen ausgeschnitten. Mit dem pinken Punkt am Regler malst du, was eingeprägt wird.",
     brush: "Pinselstärke",
     undo: "Rückgängig",
     redo: "Wiederholen",
@@ -29,7 +29,6 @@ export const de = {
     presets: "Vorlagen",
     removeSelection: "Ausgewählte Form entfernen (Entf)",
     insert: "{{name}} einfügen",
-    ink: "Farbe",
     cut: "Ausstechen",
     cutHint: "Schwarz: wird ausgestochen – außen die Form, innen Löcher.",
     emboss: "Prägen",

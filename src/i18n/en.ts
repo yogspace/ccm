@@ -12,7 +12,7 @@ export const en: typeof de = {
   draw: {
     hint: "Draw an outline or drop an SVG here",
     hintSub:
-      "Closed lines get filled, shapes inside shapes cut out – what you draw in pink is embossed.",
+      "Closed lines get filled, shapes inside shapes cut out. With the pink dot by the slider you draw what is embossed.",
     brush: "Brush size",
     undo: "Undo",
     redo: "Redo",
@@ -30,7 +30,6 @@ export const en: typeof de = {
     presets: "Templates",
     removeSelection: "Remove the selected shape (Del)",
     insert: "Insert {{name}}",
-    ink: "Ink",
     cut: "Cut out",
     cutHint: "Black: cut out – the shape outside, holes inside.",
     emboss: "Emboss",

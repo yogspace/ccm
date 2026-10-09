@@ -8,64 +8,66 @@ type Props = {
   shown: boolean;
   brush: number;
   onChange: (value: number) => void;
-  /** The ink swatches – for the pen, or something selected to recolour. */
+  /** The ink can change – for the pen, or something selected to recolour. */
   inks: boolean;
   ink: Ink;
   onInk: (ink: Ink) => void;
 };
 
-const INKS = [
-  ["cut", "#000000", "draw.cut", "draw.cutHint"],
-  ["emboss", EMBOSS_INK, "draw.emboss", "draw.embossHint"],
-] as const;
+const LABEL = { cut: "draw.cut", emboss: "draw.emboss" } as const;
+const HINT = { cut: "draw.cutHint", emboss: "draw.embossHint" } as const;
 
 /**
- * Below (or beside) the drawing area: the pen's ink – black cuts, pink
- * embosses – and the brush size, a dot as big as it next to the slider –
- * while moving with nothing selected, a hint instead. As tall as the slider
- * even then: no jumping.
+ * Below (or beside) the drawing area: the brush size – two dots as big as
+ * it, black (cuts) and pink (embosses), the pen's ink ringed, a click takes
+ * the other (the eraser has one dot, no ink) – and the slider. While moving
+ * with nothing selected, a hint instead. As tall as the slider even then: no
+ * jumping.
  */
 const BrushOptions = ({ shown, brush, onChange, inks, ink, onInk }: Props) => {
   const { t } = useTranslation();
+  const size = { "--dot": `${4 + ((brush - 6) / 58) * 16}px` } as CSSProperties;
+  // A dot as big as the brush in its box; ringed (springing out from under
+  // a gap, like the favorite colors) when it is the ink.
+  const dot =
+    "grid size-6 shrink-0 place-items-center p-0 after:size-(--dot) after:rounded-full after:bg-(--dot-ink) after:[transition:width_0.15s,height_0.15s,box-shadow_0.45s_var(--ease-spring)]";
+
   return (
-    <div className="flex min-h-9 min-w-0 items-center gap-3 [grid-area:options]">
-      {inks && (
-        // biome-ignore lint/a11y/useSemanticElements: a pair of toggles, not a form
-        <div
-          aria-label={t("draw.ink")}
-          className="flex flex-none items-center gap-2"
-          role="group"
-        >
-          {INKS.map(([value, color, label, hint]) => (
-            <button
-              aria-label={t(label)}
-              aria-pressed={ink === value}
-              // As the favorite colors (color-swatches.tsx): the chosen one
-              // ringed, the ring springing out from under the gap.
-              className="size-6 rounded-full bg-(--swatch) p-0 [box-shadow:0_0_0_2px_var(--color-card),0_0_0_2px_var(--swatch)] [transition:box-shadow_0.45s_var(--ease-spring),scale_0.25s_var(--ease-spring)] hover:enabled:scale-110 aria-pressed:[box-shadow:0_0_0_2px_var(--color-card),0_0_0_4px_var(--swatch)]"
-              key={value}
-              onClick={() => onInk(value)}
-              style={{ "--swatch": color } as CSSProperties}
-              title={`${t(label)} – ${t(hint)}`}
-              type="button"
-            />
-          ))}
-        </div>
-      )}
+    <div className="flex min-h-9 min-w-0 items-center [grid-area:options]">
       {shown ? (
-        <div className="flex max-w-64 min-w-28 flex-1 items-center gap-3 @max-[34rem]/draw:max-w-none beside:max-w-72 xl:not-in-data-expanded:min-w-24">
-          <span
-            aria-hidden
-            className="grid size-6 shrink-0 place-items-center after:size-(--dot) after:rounded-full after:bg-(--dot-ink) after:transition-[width,height,background-color] after:duration-150"
-            style={
-              {
-                "--dot": `${4 + ((brush - 6) / 58) * 16}px`,
-                // In the pen's ink – black stays the page's ink colour.
-                "--dot-ink":
-                  inks && ink === "emboss" ? EMBOSS_INK : "var(--color-ink)",
-              } as CSSProperties
-            }
-          />
+        <div className="flex max-w-64 min-w-28 flex-1 items-center gap-2.5 @max-[34rem]/draw:max-w-none beside:max-w-72 xl:not-in-data-expanded:min-w-24">
+          {inks ? (
+            // biome-ignore lint/a11y/useSemanticElements: a pair of toggles, not a form
+            <div className="flex shrink-0 items-center gap-1" role="group">
+              {(["cut", "emboss"] as const).map((value) => (
+                <button
+                  aria-label={`${t(LABEL[value])} – ${t(HINT[value])}`}
+                  aria-pressed={ink === value}
+                  className={`${dot} rounded-full bg-transparent after:[box-shadow:0_0_0_2px_var(--color-card),0_0_0_2px_var(--dot-ink)] hover:after:scale-115 aria-pressed:after:[box-shadow:0_0_0_2px_var(--color-card),0_0_0_3.5px_var(--dot-ink)]`}
+                  key={value}
+                  onClick={() => onInk(value)}
+                  style={
+                    {
+                      ...size,
+                      // Black stays the page's ink colour.
+                      "--dot-ink":
+                        value === "emboss" ? EMBOSS_INK : "var(--color-ink)",
+                    } as CSSProperties
+                  }
+                  title={`${t(LABEL[value])} – ${t(HINT[value])}`}
+                  type="button"
+                />
+              ))}
+            </div>
+          ) : (
+            <span
+              aria-hidden
+              className={dot}
+              style={
+                { ...size, "--dot-ink": "var(--color-ink)" } as CSSProperties
+              }
+            />
+          )}
           <CookieSlider
             label={t("draw.brush")}
             max={64}
