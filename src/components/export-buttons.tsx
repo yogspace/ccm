@@ -56,68 +56,74 @@ const ExportButtons = () => {
   };
 
   return (
-    // Right-aligned, wrapping instead of sticking out of the card
-    <div className="flex flex-wrap items-center justify-end gap-4 self-stretch">
-      <Button
-        disabled={!mesh}
-        onClick={(event) => {
-          keep(event.currentTarget);
-          setSaved(true);
-          trackEvent("cookie-saved");
-        }}
-        title={t("jar.saveHint")}
-        type="button"
-      >
-        {shape ? (
+    <>
+      {/* Right-aligned, wrapping instead of sticking out of the card */}
+      <div className="flex flex-wrap items-center justify-end gap-4 self-stretch">
+        <Button
+          disabled={!mesh}
+          onClick={(event) => {
+            keep(event.currentTarget);
+            setSaved(true);
+            trackEvent("cookie-saved");
+          }}
+          title={t("jar.saveHint")}
+          type="button"
+        >
+          {shape ? (
+            <CookieIcon
+              className={cookieInButton}
+              roll={-10}
+              shape={shape}
+              size={58}
+            />
+          ) : (
+            <CookieIcon
+              className={cookieInButton}
+              kind="chip"
+              roll={-10}
+              size={58}
+            />
+          )}
+          {saved ? t("jar.saved") : t("jar.save")}
+        </Button>
+        <Button
+          disabled={!mesh}
+          onClick={(event) =>
+            mesh && save(event.currentTarget, toStl(mesh), "stl")
+          }
+          type="button"
+        >
           <CookieIcon
             className={cookieInButton}
-            roll={-10}
-            shape={shape}
+            icing="#2a44ff"
+            icon={Download}
+            roll={-14}
             size={58}
           />
-        ) : (
+          {t("export.stl")}
+        </Button>
+        <Button
+          disabled={!mesh}
+          kind="primary"
+          onClick={(event) =>
+            mesh && save(event.currentTarget, toThreeMf(mesh, title), "3mf")
+          }
+          type="button"
+        >
           <CookieIcon
             className={cookieInButton}
-            kind="chip"
-            roll={-10}
+            icon={Download}
+            roll={12}
             size={58}
           />
-        )}
-        {saved ? t("jar.saved") : t("jar.save")}
-      </Button>
-      <Button
-        disabled={!mesh}
-        onClick={(event) =>
-          mesh && save(event.currentTarget, toStl(mesh), "stl")
-        }
-        type="button"
-      >
-        <CookieIcon
-          className={cookieInButton}
-          icing="#2a44ff"
-          icon={Download}
-          roll={-14}
-          size={58}
-        />
-        {t("export.stl")}
-      </Button>
-      <Button
-        disabled={!mesh}
-        kind="primary"
-        onClick={(event) =>
-          mesh && save(event.currentTarget, toThreeMf(mesh, title), "3mf")
-        }
-        type="button"
-      >
-        <CookieIcon
-          className={cookieInButton}
-          icon={Download}
-          roll={12}
-          size={58}
-        />
-        {t("export.threeMf")}
-      </Button>
-    </div>
+          {t("export.threeMf")}
+        </Button>
+      </div>
+      {/* Said before printing, not found after: the maker's mark. */}
+      <p className="-mt-2 self-end text-right text-small text-muted">
+        {t("export.signature")}
+      </p>
+    </>
   );
 };
 

@@ -6,8 +6,10 @@ import { cn } from "../cn";
 import {
   type CutterParams,
   defaultParams,
+  flangeOf,
   SIZE_RANGE,
 } from "../geometry/cutter";
+import { SIGNATURE_BAND } from "../geometry/signature";
 import { resetParams, setParam, store } from "../store";
 import { formatLength } from "../units";
 import Button from "./button";
@@ -28,7 +30,7 @@ const fields: Field[] = [
   { key: "wall", min: 0.8, max: 2.4, step: 0.1 },
   { key: "edge", min: 0.4, max: 1.2, step: 0.1 },
   { key: "taper", min: 0, max: 10, step: 0.2 },
-  { key: "flangeWidth", min: 0, max: 12, step: 0.5 },
+  { key: "flangeWidth", min: 0, max: 12, step: 0.1 },
   { key: "flangeHeight", min: 1, max: 4, step: 0.2 },
   { key: "smoothing", min: 0, max: 5, step: 0.1 },
 ];
@@ -191,7 +193,16 @@ const ParameterPanel = () => {
         </Idle>
       </div>
       <div className={grid}>
-        {fields.map((field) => slider(field))}
+        {fields.map((field) =>
+          // The flange carries the maker's mark: never narrower than it
+          // needs – the slider starts there and shows what is built.
+          field.key === "flangeWidth"
+            ? slider(
+                { ...field, min: params.wall + SIGNATURE_BAND },
+                flangeOf(params)
+              )
+            : slider(field)
+        )}
         {/* Last: the embossing's height – as high as the walls at most, the
             slider ends at the blade height and shows what is built. */}
         <Idle hint={t("params.reliefIdle")} idle={emboss.length === 0}>

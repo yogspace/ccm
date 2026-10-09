@@ -67,6 +67,8 @@ export const de = {
     namePlaceholder: "Name deiner Kreation, z. B. Herz",
     threeMf: "3MF herunterladen",
     stl: "STL",
+    signature:
+      "Jeder Ausstecher trägt klein „MXWR“ auf der Falz – so erkennt man, wo er herkommt.",
   },
   hints: {
     title: "Druckhinweise",

@@ -9,6 +9,7 @@ import {
 } from "../src/geometry/cutter";
 import type { Ring } from "../src/geometry/outline";
 import { segmentDistance } from "../src/geometry/rings";
+import { SIGNATURE_BAND } from "../src/geometry/signature";
 import { inspect } from "./clean";
 import { blob, shapes, stroke } from "./shapes";
 
@@ -263,5 +264,58 @@ describe("embossing", () => {
     } finally {
       cutter.manifold.delete();
     }
+  });
+});
+
+describe("the maker's mark", () => {
+  // A plain round cookie: walls and flange, nothing else that could stand
+  // in the way or be counted along.
+  const round = stroke(0.5, 0.5, 0.4);
+
+  /** Cross-section area at height `z`. */
+  const at = (overrides: Partial<CutterParams>, z: number) => {
+    const { cutter } = build(round, overrides);
+    const slice = cutter.manifold.slice(z);
+    const area = slice.area();
+    slice.delete();
+    cutter.manifold.delete();
+    return area;
+  };
+
+  it.each([0, 1])("stands on the flange (mirror %i)", (mirror) => {
+    const { flangeHeight } = defaultParams;
+    // Just above the flange it is there, a little higher only the walls.
+    expect(
+      at({ mirror }, flangeHeight + 0.3) - at({ mirror }, flangeHeight + 0.9)
+    ).toBeGreaterThan(5);
+  });
+
+  it("signs every piece that hangs on nothing else", () => {
+    // Two round cookies far apart: two pieces, each signed.
+    const apart = [...stroke(0.2, 0.5, 0.15), ...stroke(0.8, 0.5, 0.15)];
+    const { cutter, params } = build(apart);
+    const z = params.flangeHeight;
+    const pieces = cutter.manifold.decompose();
+    try {
+      expect(pieces.length).toBe(2);
+      for (const piece of pieces) {
+        const low = piece.slice(z + 0.3);
+        const high = piece.slice(z + 0.9);
+        expect(low.area() - high.area()).toBeGreaterThan(5);
+        low.delete();
+        high.delete();
+      }
+    } finally {
+      for (const piece of pieces) piece.delete();
+      cutter.manifold.delete();
+    }
+  });
+
+  it("keeps the flange wide enough for it", () => {
+    const least = defaultParams.wall + SIGNATURE_BAND;
+    expect(at({ flangeWidth: 1 }, 0.15)).toBeCloseTo(
+      at({ flangeWidth: least }, 0.15),
+      0
+    );
   });
 });

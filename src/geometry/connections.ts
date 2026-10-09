@@ -150,8 +150,9 @@ const angleBetween = (a: number, b: number) => {
  *    arched, and not crowding another connection. Where a flange comes
  *    close to the wall, that is a short flat link.
  *
- * Short open spans become flat links, longer ones arches. Cookie in a hole is
- * only ever held by arches across the opening, never joined.
+ * Short open spans become flat links, longer ones arches – embossing only
+ * ever flat. Cookie in a hole is only ever held by arches across the
+ * opening, never joined.
  */
 const planInside = (
   parent: Island,
@@ -244,7 +245,9 @@ const planInside = (
   ): Candidate => {
     const length = distance(from, to);
     const open = length - reach(start) - reach(end);
-    const kind = !overOpening && open <= options.flatSpan ? "flat" : "arch";
+    // Embossing is held flat however far – it cuts nothing.
+    const flat = start.relief || end.relief || open <= options.flatSpan;
+    const kind = !overOpening && flat ? "flat" : "arch";
     const cost = Math.max(open, 0) + (kind === "arch" ? ARCH_COST : 0);
     return { from, to, length, start, end, kind, cost };
   };

@@ -11,6 +11,7 @@ import { type Connection, planConnections } from "./connections";
 import { type Island, isHole, nestIslands } from "./islands";
 import type { Point, Ring } from "./outline";
 import { bounds, contains, signedArea } from "./rings";
+import { SIGNATURE_BAND, SIGNATURE_RAISE, signatureArea } from "./signature";
 
 /** All dimensions in millimetres. */
 export type CutterParams = {
@@ -106,6 +107,10 @@ const ICING_INSET = 0.05;
 const ICING_SHARE = 0.4;
 /** … and without bits of icing below this share. */
 const ICING_CRUMB = 0.03;
+/** The flange as wide as asked – and wide enough for the maker's mark. */
+export const flangeOf = ({ flangeWidth, wall }: CutterParams) =>
+  Math.max(flangeWidth, wall + SIGNATURE_BAND);
+
 /** How far (mm) embossing reaches out of the flange – at most as the walls. */
 export const reliefReach = ({ bladeHeight, relief }: CutterParams) =>
   Math.max(0, Math.min(bladeHeight, relief));
@@ -141,7 +146,7 @@ const fitToSize = (rings: Ring[], size: number) => {
  *
  * `emboss`: what was drawn in the embossing ink (same coordinates). Where it
  * lies on the cookie it is made like a hole – its flange around it, held by
- * the same links and arches – only filled, and reaching `relief` out of the
+ * flat links (never arches) – only filled, and reaching `relief` out of the
  * flange instead of up to the cutting edge.
  */
 export const buildCutter = (
@@ -179,7 +184,8 @@ export const buildCutter = (
 
     // Drop the strokes' holes only after closing the gaps: an almost closed
     // stroke should become a ring, not a double cutter.
-    const { flangeHeight, flangeWidth, bladeHeight, wall, edge } = params;
+    const { flangeHeight, bladeHeight, wall, edge } = params;
+    const flangeWidth = flangeOf(params);
     const all = nestIslands(
       shape.toPolygons().filter((ring) => signedArea(ring) > 0)
     );
@@ -249,6 +255,7 @@ export const buildCutter = (
         area: signedArea(ring),
         parent,
         depth: parent.depth + 1,
+        relief: true,
       });
     }
 
@@ -431,8 +438,68 @@ export const buildCutter = (
       solids.filter((piece) => piece.volume() > 1)
     );
     // Mirrored across the y axis: the contour on the drawing stays as it is.
-    const manifold = params.mirror ? solid.mirror([1, 0, 0]) : solid;
-    if (manifold !== solid) solid.delete();
+    const mirrored = params.mirror ? solid.mirror([1, 0, 0]) : solid;
+    if (mirrored !== solid) solid.delete();
+
+    // The maker's mark, raised on the outer flange along its middle – on
+    // every piece that hangs on nothing else (shapes side by side), so none
+    // goes out unsigned. Placed on the cutter as it ends up (mirrored or
+    // not), so it always reads right from above.
+    let manifold = mirrored;
+    const roots = islands.filter(({ depth }) => depth === 0);
+    // Shapes whose flanges run into each other are one piece.
+    const reach = roots.map((root) => grow(areaOf(root), flangeWidth));
+    const pieceOf = roots.map((_, i) => i);
+    const find = (i: number): number =>
+      pieceOf[i] === i ? i : find(pieceOf[i]);
+    for (let i = 0; i < roots.length; i++) {
+      for (let j = i + 1; j < roots.length; j++) {
+        if (!track(reach[i].intersect(reach[j])).isEmpty()) {
+          pieceOf[find(i)] = find(j);
+        }
+      }
+    }
+    // On each piece along its largest shape.
+    const largest = new Map<number, Island>();
+    for (const [i, root] of roots.entries()) {
+      const best = largest.get(find(i));
+      if (!best || root.area > best.area) largest.set(find(i), root);
+    }
+    // On the flange, clear of every wall and of the flange's edge.
+    const room = track(
+      grow(
+        track(CrossSection.union(roots.map(areaOf))),
+        flangeWidth - 0.1
+      ).subtract(grow(shape, wall + 0.1))
+    );
+    const flip = ([x, y]: Point): Point => [-x, y];
+    const marks: CrossSection[] = [];
+    for (const root of largest.values()) {
+      const middle = grow(areaOf(root), (wall + flangeWidth) / 2)
+        .toPolygons()
+        .filter((ring) => signedArea(ring) > 0)
+        .sort((a, b) => signedArea(b) - signedArea(a))[0];
+      if (!middle) continue;
+      const mark = params.mirror
+        ? signatureArea(
+            scope,
+            // Mirrored, the ring runs the other way – turned back.
+            middle.map(flip).reverse(),
+            track(room.mirror([1, 0]))
+          )
+        : signatureArea(scope, middle, room);
+      if (mark) marks.push(mark);
+    }
+    if (marks.length > 0) {
+      const raised = track(
+        track(
+          track(CrossSection.union(marks)).extrude(SIGNATURE_RAISE + OVERLAP)
+        ).translate(0, 0, flangeHeight - OVERLAP)
+      );
+      manifold = Manifold.union(mirrored, raised);
+      mirrored.delete();
+    }
+
     // For the baked cookie: icing poured on top, a little inside the edge,
     // its corners rounded like a glaze would run. Narrow shapes get a
     // narrower rim; if even that leaves little, no icing at all – crumbs of

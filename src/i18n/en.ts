@@ -68,6 +68,8 @@ export const en: typeof de = {
     namePlaceholder: "Name your creation, e.g. Heart",
     threeMf: "Download 3MF",
     stl: "STL",
+    signature:
+      "Every cutter carries a small “MXWR” on its flange – so you can tell where it comes from.",
   },
   hints: {
     title: "Printing tips",

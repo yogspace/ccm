@@ -1178,6 +1178,10 @@ export interface Translation {
      */
     namePlaceholder?: string | null;
     /**
+     * DE: Jeder Ausstecher trägt klein „MXWR“ auf der Falz – so erkennt man, wo er herkommt.  ·  EN: Every cutter carries a small “MXWR” on its flange – so you can tell where it comes from.
+     */
+    signature?: string | null;
+    /**
      * DE: STL  ·  EN: STL
      */
     stl?: string | null;
@@ -1781,6 +1785,7 @@ export interface TranslationsSelect<T extends boolean = true> {
         clearName?: T;
         name?: T;
         namePlaceholder?: T;
+        signature?: T;
         stl?: T;
         threeMf?: T;
       };

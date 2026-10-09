@@ -9,6 +9,11 @@ export type Island = {
   parent: Island | null;
   /** 0 = outside, 1 = hole in it, 2 = cookie in the hole … */
   depth: number;
+  /**
+   * Embossing (cutter.ts): held like a hole, but only by flat links in the
+   * flange plate – it cuts nothing, so no arch is needed over its span.
+   */
+  relief?: boolean;
 };
 
 /** A hole in the cookie (odd depth) – as opposed to cookie (even depth). */
