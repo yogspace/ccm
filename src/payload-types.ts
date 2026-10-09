@@ -124,7 +124,7 @@ export interface User {
   collection: 'users';
 }
 /**
- * Visitors' accounts – no names, no email, a passphrase only (stored as a key, never readable). They keep the cookies their owners put online, each with a short link. Gone after 180 days without a visit (after 7 if they never kept anything) unless kept forever – or when deleted here or in the account.
+ * Visitors' accounts – no names, no email, a passphrase only (stored as a key, never readable). They keep the cookies their owners put online, each with a short link. Gone after 180 days without a visit (after 7 with nothing online) unless kept forever – or when deleted here or in the account.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "accounts".

@@ -3,9 +3,9 @@ import { DAY_MS, EMPTY_DAYS, IDLE_DAYS } from "./rules";
 
 /**
  * Accounts nobody visits any more go, with everything in them: after
- * IDLE_DAYS without a visit, or after EMPTY_DAYS if they never kept a cookie
- * or a short link – unless kept forever in the admin. Their short links go
- * along (collections/accounts.ts).
+ * IDLE_DAYS without a visit, or after EMPTY_DAYS if nothing is online in
+ * them – no cookie, no short link – unless kept forever in the admin.
+ * Their short links go along (collections/accounts.ts).
  */
 export const pruneAccounts = async (payload: Payload, now = Date.now()) => {
   const before = (days: number) => new Date(now - days * DAY_MS).toISOString();
@@ -20,7 +20,7 @@ export const pruneAccounts = async (payload: Payload, now = Date.now()) => {
     overrideAccess: true,
   });
 
-  // Never kept anything: no cookies – and no short links either.
+  // Nothing online: no cookies – and no short links either.
   const { docs: empty } = await payload.find({
     collection: "accounts",
     where: {

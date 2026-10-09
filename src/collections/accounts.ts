@@ -41,7 +41,7 @@ export const Accounts: CollectionConfig = {
     components: {
       beforeListTable: ["@/fields/account-finder#AccountFinder"],
     },
-    description: `Visitors' accounts – no names, no email, a passphrase only (stored as a key, never readable). They keep the cookies their owners put online, each with a short link. Gone after ${IDLE_DAYS} days without a visit (after ${EMPTY_DAYS} if they never kept anything) unless kept forever – or when deleted here or in the account.`,
+    description: `Visitors' accounts – no names, no email, a passphrase only (stored as a key, never readable). They keep the cookies their owners put online, each with a short link. Gone after ${IDLE_DAYS} days without a visit (after ${EMPTY_DAYS} with nothing online) unless kept forever – or when deleted here or in the account.`,
   },
   fields: [
     {

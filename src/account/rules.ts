@@ -9,7 +9,7 @@ import type { SavedCookie } from "../cookie-jar";
 
 /** Days without a visit, then the account goes with everything in it. */
 export const IDLE_DAYS = 180;
-/** An account that never kept anything goes after these many idle days. */
+/** An account with nothing online goes after these many idle days. */
 export const EMPTY_DAYS = 7;
 /**
  * Cookies a jar keeps – the oldest make room beyond this many; online, an
