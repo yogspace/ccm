@@ -21,6 +21,7 @@ export type CutterResponse =
       mesh: MeshData | null;
       outline: Ring[];
       icing: Ring[];
+      imprint: Ring[];
     }
   | { type: "build-error"; id: number };
 
@@ -48,13 +49,20 @@ const run = async () => {
   try {
     const cutter = buildCutter(await wasm, job.rings, job.params, job.emboss);
     if (!cutter) {
-      post({ type: "result", id: job.id, mesh: null, outline: [], icing: [] });
+      post({
+        type: "result",
+        id: job.id,
+        mesh: null,
+        outline: [],
+        icing: [],
+        imprint: [],
+      });
       return;
     }
     const mesh = toMeshData(cutter.manifold, cutter.emboss);
     cutter.manifold.delete();
-    const { outline, icing } = cutter;
-    post({ type: "result", id: job.id, mesh, outline, icing }, [
+    const { outline, icing, imprint } = cutter;
+    post({ type: "result", id: job.id, mesh, outline, icing, imprint }, [
       mesh.positions.buffer,
       mesh.indices.buffer,
     ]);

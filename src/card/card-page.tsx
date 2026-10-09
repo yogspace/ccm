@@ -53,6 +53,7 @@ const CardPage = () => {
         ? {
             dough: cutter.outline,
             icing: cutter.icing,
+            imprint: cutter.imprint,
             seed: cookieSeed(cutter.outline),
           }
         : null,

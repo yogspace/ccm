@@ -229,6 +229,34 @@ describe("embossing", () => {
     }
   });
 
+  it("presses into the baked cookie, its icing clear of it", () => {
+    const { cutter } = solid(shapes.face, {}, emboss);
+    const plain = solid(shapes.face, {}, []);
+    const area = (rings: Ring[]) => {
+      const section = new wasm.CrossSection(rings, "EvenOdd");
+      const value = section.area();
+      section.delete();
+      return value;
+    };
+    try {
+      expect(plain.cutter.imprint).toEqual([]);
+      expect(area(cutter.imprint)).toBeGreaterThan(0);
+      // Only on cookie – the blot over the eye is left out there.
+      const both = new wasm.CrossSection(cutter.imprint, "EvenOdd");
+      const dough = new wasm.CrossSection(cutter.outline, "EvenOdd");
+      const icing = new wasm.CrossSection(cutter.icing, "EvenOdd");
+      const outside = both.subtract(dough);
+      const iced = both.intersect(icing);
+      expect(outside.area()).toBeLessThan(1e-6);
+      expect(iced.area()).toBeLessThan(1e-6);
+      expect(area(cutter.icing)).toBeLessThan(area(plain.cutter.icing));
+      for (const object of [both, dough, icing, outside, iced]) object.delete();
+    } finally {
+      cutter.manifold.delete();
+      plain.cutter.manifold.delete();
+    }
+  });
+
   it("reaches as far out of the flange as set, no further", () => {
     const { flangeHeight, relief } = defaultParams;
     const end = flangeHeight + relief;

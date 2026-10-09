@@ -57,6 +57,8 @@ type Cutter = {
   outline: Ref<Ring[]>;
   /** Icing of the baked cookie, normalised like the contour. */
   icing: Ref<Ring[]>;
+  /** Where its embossing presses into the cookie, normalised too. */
+  imprint: Ref<Ring[]>;
   error?: "engine" | "build";
 };
 
@@ -142,7 +144,13 @@ export const store = proxy<State>({
   drawing: ref(shared.drawing),
   rings: ref(shared.rings),
   emboss: ref([]),
-  cutter: { ready: false, mesh: null, outline: ref([]), icing: ref([]) },
+  cutter: {
+    ready: false,
+    mesh: null,
+    outline: ref([]),
+    icing: ref([]),
+    imprint: ref([]),
+  },
   unit: initialUnit(),
   tool: "pen",
   brush: 24,
@@ -284,7 +292,7 @@ export const greetingLink = (greeting: Greeting, lang: string) =>
  */
 /** Keeps the creation as a cookie in the bar; its hash, or null if none yet. */
 export const saveCookie = () => {
-  const { mesh, outline, icing } = store.cutter;
+  const { mesh, outline, icing, imprint } = store.cutter;
   if (!mesh || outline.length === 0) return null;
   const hash = currentHash();
   // Saved again, an online cookie stays online.
@@ -296,6 +304,7 @@ export const saveCookie = () => {
       size: store.params.size,
       outline,
       icing,
+      imprint,
     }),
     ...(code && { code }),
   };
@@ -362,6 +371,7 @@ export const connectStore = () => {
         mesh: data.mesh && ref(data.mesh),
         outline: ref(data.outline),
         icing: ref(data.icing),
+        imprint: ref(data.imprint),
       };
     } else store.cutter.error = "build";
   };

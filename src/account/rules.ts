@@ -86,6 +86,7 @@ export const isSavedCookie = (value: unknown): value is SavedCookie => {
     typeof cookie.savedAt === "number" &&
     typeof cookie.shape?.seed === "number" &&
     isRings(cookie.shape.dough) &&
-    isRings(cookie.shape.icing)
+    isRings(cookie.shape.icing) &&
+    (cookie.shape.imprint === undefined || isRings(cookie.shape.imprint))
   );
 };

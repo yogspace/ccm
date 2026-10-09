@@ -69,8 +69,13 @@ export type Cutter = {
   manifold: Manifold;
   /** Final contour in the same normalised coordinates as the input. */
   outline: Ring[];
-  /** The cookie's icing: the contour a little smaller, corners rounded. */
+  /**
+   * The cookie's icing: the contour a little smaller, corners rounded – and
+   * clear of the imprint.
+   */
   icing: Ring[];
+  /** Where the embossing presses into the cookie, normalised like the contour. */
+  imprint: Ring[];
   /** What holds the inner blades (in mm, before mirroring). */
   connections: Connection[];
   /**
@@ -116,6 +121,11 @@ export const reliefReach = ({ bladeHeight, relief }: CutterParams) =>
   Math.max(0, Math.min(bladeHeight, relief));
 /** Embossing leaves out crumbs below this area (mm²). */
 const MIN_RELIEF = 0.5;
+/**
+ * On the baked cookie, the imprint keeps this far (mm) inside the cookie's
+ * edge, and the icing this far from the imprint.
+ */
+const IMPRINT_RIM = 0.8;
 /** Hairline gaps in the flange plate up to this width (mm) are closed … */
 const HAIRLINE = 2;
 /** … and pockets enclosed by it up to this area (mm²); larger ones rounded. */
@@ -517,10 +527,29 @@ export const buildCutter = (
     let icing = pour(inset);
     if (icing.area() < area * ICING_SHARE) icing = pour(inset / 2);
     const iced = icing.area() >= area * ICING_SHARE;
+    // The embossing pressed into the dough, a little inside its edge – the
+    // icing keeps clear of it, so the imprint shows.
+    const imprint = relief
+      ? track(relief.intersect(grow(shape, -IMPRINT_RIM)))
+      : null;
+    if (iced && imprint && !imprint.isEmpty()) {
+      const clear = track(icing.subtract(grow(imprint, IMPRINT_RIM)));
+      icing = track(
+        CrossSection.union(
+          clear
+            .decompose()
+            .map(track)
+            .filter((part) => part.area() > area * ICING_CRUMB)
+        )
+      );
+    }
+    const normalised = (section: CrossSection | null) =>
+      section ? section.toPolygons().map((ring) => ring.map(fromMm)) : [];
     return {
       manifold,
-      outline: shape.toPolygons().map((ring) => ring.map(fromMm)),
-      icing: iced ? icing.toPolygons().map((ring) => ring.map(fromMm)) : [],
+      outline: normalised(shape),
+      icing: iced ? normalised(icing) : [],
+      imprint: normalised(imprint),
       connections,
       emboss: embossId,
     };

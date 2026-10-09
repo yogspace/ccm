@@ -158,7 +158,7 @@ export interface Account {
    */
   keep?: boolean | null;
   /**
-   * Kept accounts only – set with “New passphrase”. The old one stops working then.
+   * Kept accounts only – set with “New passphrase”. The old one stops working then. A click copies it.
    */
   passphrase?: string | null;
   updatedAt: string;

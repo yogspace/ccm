@@ -22,7 +22,7 @@ import { cookieInButton } from "./styles";
 const ExportButtons = () => {
   const { t } = useTranslation();
   const { cutter, name, params } = useSnapshot(store);
-  const { mesh, outline, icing } = cutter;
+  const { mesh, outline, icing, imprint } = cutter;
   const { size } = params;
   const fileName = fileBase(name, size);
   const title = name.trim() || "Cookie Cutter";
@@ -31,9 +31,9 @@ const ExportButtons = () => {
   const shape = useMemo(
     () =>
       outline.length > 0
-        ? { dough: outline, icing, seed: cookieSeed(outline) }
+        ? { dough: outline, icing, imprint, seed: cookieSeed(outline) }
         : null,
-    [outline, icing]
+    [outline, icing, imprint]
   );
 
   useEffect(() => {

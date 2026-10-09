@@ -16,6 +16,8 @@ import {
 export type CookieShape = {
   dough: Ring[];
   icing: Ring[];
+  /** Where the cutter's embossing presses into the dough. */
+  imprint?: Ring[];
   /** Picks the icing color and where the sprinkles land. */
   seed: number;
   /** The icing's color instead of the seed's pick (a card's favorite). */
@@ -23,6 +25,9 @@ export type CookieShape = {
   /** Baked of chocolate dough. */
   chocolate?: boolean;
 };
+
+/** How deep the embossing presses into the dough – a share of it. */
+const PRESSED = 0.4;
 
 /** Mostly white icing, sometimes colored. */
 const ICINGS = ["#ffffff", "#ffffff", "#ff5fa8", "#ffc31f", "#a9b6ff"];
@@ -154,13 +159,13 @@ export type Bitten = {
 
 /**
  * Bakes a creation: the dough in its shape with a rounded edge, holes and
- * all, icing on top and sprinkles on the icing – like the cookies in the
- * background. Where the shape is too thin for icing, the sprinkles sit on
- * the dough. Bitten (bites.ts), what the bites take is gone. Free it with
- * `disposeCookie`.
+ * all, the embossing pressed into it, icing on top and sprinkles on the
+ * icing – like the cookies in the background. Where the shape is too thin
+ * for icing, the sprinkles sit on the dough. Bitten (bites.ts), what the
+ * bites take is gone. Free it with `disposeCookie`.
  */
 export const createShapeCookie = (
-  { dough, icing, seed, glaze: chosen, chocolate }: CookieShape,
+  { dough, icing, imprint = [], seed, glaze: chosen, chocolate }: CookieShape,
   bitten?: Bitten
 ) => {
   const random = seeded(Math.max(1, Math.floor(seed) % 2147483646));
@@ -170,26 +175,29 @@ export const createShapeCookie = (
   const kind = chocolate ? "chocolate" : "plain";
   const { map, bumpMap } = doughTextures(kind);
   const whole = toCookie(dough);
-  const body = bitten ? bitten.cut(whole) : whole;
-  group.add(
+  // The imprint: holes through the dough, with lower dough in them.
+  const pressed = toCookie(imprint);
+  const material = new THREE.MeshPhysicalMaterial({
+    map,
+    bumpMap,
+    bumpScale: 1.4,
+    roughness: doughLook(kind).roughness,
+    sheen: 0.4,
+    sheenColor: doughLook(kind).sheen,
+  });
+  const slab = (rings: THREE.Vector2[][], depth: number) =>
     new THREE.Mesh(
-      new THREE.ExtrudeGeometry(nest(body), {
-        depth: DEPTH,
+      new THREE.ExtrudeGeometry(nest(bitten ? bitten.cut(rings) : rings), {
+        depth,
         bevelEnabled: true,
         bevelThickness: 0.1,
         bevelSize: 0.045,
         bevelSegments: 6,
       }),
-      new THREE.MeshPhysicalMaterial({
-        map,
-        bumpMap,
-        bumpScale: 1.4,
-        roughness: doughLook(kind).roughness,
-        sheen: 0.4,
-        sheenColor: doughLook(kind).sheen,
-      })
-    )
-  );
+      material
+    );
+  group.add(slab([...whole, ...pressed], DEPTH));
+  if (pressed.length > 0) group.add(slab(pressed, DEPTH * (1 - PRESSED)));
   const top = DEPTH + 0.1;
 
   const wholeGlaze = toCookie(icing);
@@ -225,7 +233,9 @@ export const createShapeCookie = (
   const ground = onIcing
     ? icingColor
     : `#${doughLook(kind).base.getHexString(THREE.SRGBColorSpace)}`;
-  for (const p of sprinkleSpots(onIcing ? wholeGlaze : whole, 0.06, random)) {
+  // Never in the imprint (the icing keeps clear of it already).
+  const bed = onIcing ? wholeGlaze : [...whole, ...pressed];
+  for (const p of sprinkleSpots(bed, 0.06, random)) {
     const color = sprinkleColor(random, ground);
     let material = materials.get(color);
     if (!material) {
