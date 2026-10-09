@@ -10,6 +10,7 @@ import { fileBase } from "../export/file-name";
 import { toStl } from "../export/stl";
 import { toThreeMf } from "../export/three-mf";
 import { saveCookie, store } from "../store";
+import { hasEmboss } from "../url-state";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
 import { cookieInButton } from "./styles";
@@ -50,6 +51,7 @@ const ExportButtons = () => {
   const save = (button: HTMLElement, file: Blob, extension: "3mf" | "stl") => {
     download(file, `${fileName}.${extension}`);
     trackEvent(`download-${extension}`);
+    if (hasEmboss(store.drawing)) trackEvent("download-embossed");
     keep(button);
   };
 

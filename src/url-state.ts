@@ -8,7 +8,7 @@ import type { Point, Ring } from "./geometry/outline";
  *
  * Format: `#n=<name>&size=90&…&s=<drawing>`; dimensions only when they differ
  * from the defaults. The drawing itself is stored (strokes and imported
- * areas), so it looks just the same after opening.
+ * areas, each stroke with its ink), so it looks just the same after opening.
  */
 
 /** A stroke: smoothed pen points in drawing-area pixels, and its width. */
@@ -17,6 +17,8 @@ export type Stroke = {
   points: Point[];
   /** Eraser: takes ink away instead of putting some down. */
   erase?: boolean;
+  /** Drawn in the embossing ink: pressed into the cookie, not cut. */
+  emboss?: boolean;
 };
 
 export type Drawing = {
@@ -31,6 +33,10 @@ export const emptyDrawing: Drawing = { base: [], baseLine: 0, strokes: [] };
 
 export const isEmptyDrawing = ({ base, strokes }: Drawing) =>
   base.length === 0 && strokes.length === 0;
+
+/** Anything in the embossing ink? */
+export const hasEmboss = ({ strokes }: Drawing) =>
+  strokes.some(({ emboss, erase }) => emboss && !erase);
 
 /** Stroke width used to redraw old links (contour only). */
 const LEGACY_LINE = 48;
@@ -55,8 +61,13 @@ const STROKE_STEP = 2;
 /** The thicker the stroke, the more its centre line may deviate. */
 const strokeTolerance = (width: number) =>
   Math.min(4, Math.max(1.5, width * 0.1));
-/** Format version: 1 = contour only, 2 = drawing, 3 = compact drawing. */
+/**
+ * Format version: 1 = contour only, 2 = drawing, 3 = compact drawing, 4 = with
+ * embossing. Only drawings with embossing are written as 4 – the others stay
+ * as they were, byte for byte.
+ */
 const VERSION = 3;
+const EMBOSS_VERSION = 4;
 
 /** Douglas-Peucker for open lines: which points stay. */
 const keepPoints = (points: Point[], tolerance: number) => {
@@ -197,7 +208,8 @@ const encodeDrawing = ({ base, baseLine, strokes }: Drawing) => {
       ).map(round)
     )
     .filter((ring) => ring.length >= 3);
-  writeVarint(out, VERSION);
+  const embossed = hasEmboss({ base, baseLine, strokes });
+  writeVarint(out, embossed ? EMBOSS_VERSION : VERSION);
   writeVarint(out, Math.round(baseLine));
   writeVarint(out, rings.length);
   const ringFrom = origin();
@@ -205,15 +217,20 @@ const encodeDrawing = ({ base, baseLine, strokes }: Drawing) => {
   writeVarint(out, strokes.length);
   // Every stroke starts relative to the end of the previous one.
   const strokeFrom = origin();
-  for (const { width, points, erase } of strokes) {
+  for (const { width, points, erase, emboss } of strokes) {
     const simplified = simplifyLine(points, strokeTolerance(width)).map(
       ([x, y]): Point => [
         Math.round(x / STROKE_STEP),
         Math.round(y / STROKE_STEP),
       ]
     );
-    // Erasers as negative widths – old links only have positive ones.
-    writeVarint(out, Math.max(1, Math.round(width)) * (erase ? -1 : 1));
+    // Erasers as negative widths – old links only have positive ones. With
+    // embossing, a pen's width is doubled, its lowest bit the ink.
+    const rounded = Math.max(1, Math.round(width));
+    writeVarint(
+      out,
+      erase ? -rounded : embossed ? rounded * 2 + (emboss ? 1 : 0) : rounded
+    );
     writePoints(out, simplified, strokeFrom);
   }
   return toBase64Url(deflateSync(new Uint8Array(out), { level: 9 }));
@@ -242,9 +259,10 @@ const decodeDrawing = (text: string): { drawing: Drawing; rings: Ring[] } => {
       rings,
     };
   }
-  if (version !== 2 && version !== VERSION) {
+  if (version !== 2 && version !== VERSION && version !== EMBOSS_VERSION) {
     throw new Error("Unbekanntes Format");
   }
+  const inks = version === EMBOSS_VERSION;
 
   const baseLine = readVarint(bytes, cursor);
   const base: Ring[] = [];
@@ -255,12 +273,14 @@ const decodeDrawing = (text: string): { drawing: Drawing; rings: Ring[] } => {
   const strokeFrom = origin();
   const strokeCount = readVarint(bytes, cursor);
   for (let i = 0; i < strokeCount; i++) {
-    const width = readVarint(bytes, cursor);
+    const value = readVarint(bytes, cursor);
     const points = readPoints(bytes, cursor, chained ? strokeFrom : origin());
+    const emboss = inks && value > 0 && value % 2 === 1;
     strokes.push({
-      width: Math.abs(width),
+      width: value < 0 ? -value : inks ? Math.floor(value / 2) : value,
       points: points.map(([x, y]): Point => [x * step, y * step]),
-      ...(width < 0 && { erase: true }),
+      ...(value < 0 && { erase: true }),
+      ...(emboss && { emboss: true }),
     });
   }
   return { drawing: { base, baseLine, strokes }, rings: [] };

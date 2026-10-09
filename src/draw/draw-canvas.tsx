@@ -42,7 +42,7 @@ import { usePen } from "./use-pen";
  */
 const DrawCanvas = () => {
   const { t } = useTranslation();
-  const { tool, brush, unit, cutter } = useSnapshot(store);
+  const { tool, brush, ink, unit, cutter } = useSnapshot(store);
   const mmPerCanvas = useMmPerCanvas();
   const areaRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -241,7 +241,10 @@ const DrawCanvas = () => {
         <ToolPicker onChoose={onChooseTool} tool={tool} />
         <BrushOptions
           brush={brush}
+          ink={ink}
+          inks={tool === "pen" || (tool === "move" && !!selection)}
           onChange={drawing.changeBrush}
+          onInk={drawing.changeInk}
           shown={mode === "draw" || !!selection}
         />
         <DrawActions

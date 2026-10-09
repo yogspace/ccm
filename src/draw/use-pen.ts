@@ -1,5 +1,5 @@
 import { type PointerEvent, useRef, useState } from "react";
-import { applyEraser } from "../drawing";
+import { applyEraser, EMBOSS_INK } from "../drawing";
 import type { Point } from "../geometry/outline";
 import { store } from "../store";
 import type { Stroke } from "../url-state";
@@ -7,6 +7,10 @@ import { toPoint } from "./gesture-math";
 import type { DrawingModel } from "./use-drawing";
 
 type Pen = { x: number; y: number };
+
+/** The pen in the embossing ink? (The eraser has none.) */
+const embossing = () => store.tool === "pen" && store.ink === "emboss";
+const inkColor = () => (embossing() ? EMBOSS_INK : "#000");
 
 /** Share by which the stroke catches up with the real pen position per sample. */
 const FOLLOW = 0.35;
@@ -32,8 +36,8 @@ const toPen = (event: { clientX: number; clientY: number }, rect: DOMRect) => {
 };
 
 /**
- * Drawing and erasing on the canvas: smoothed strokes in the brush's width,
- * a dot for a tap. Once lifted, the stroke joins the drawing – or, erasing,
+ * Drawing and erasing on the canvas: smoothed strokes in the brush's width
+ * and the pen's ink, a dot for a tap. Once lifted, the stroke joins the drawing – or, erasing,
  * really takes away what it covered. `penDown`: while the pen is on it.
  */
 export const usePen = ({
@@ -52,7 +56,7 @@ export const usePen = ({
     if (!ctx) return;
     ctx.globalCompositeOperation =
       store.tool === "eraser" ? "destination-out" : "source-over";
-    ctx.strokeStyle = "#000";
+    ctx.strokeStyle = inkColor();
     ctx.lineWidth = store.brush;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
@@ -78,7 +82,7 @@ export const usePen = ({
     if (!ctx) return;
     ctx.globalCompositeOperation =
       store.tool === "eraser" ? "destination-out" : "source-over";
-    ctx.fillStyle = "#000";
+    ctx.fillStyle = inkColor();
     ctx.beginPath();
     ctx.arc(point.x, point.y, store.brush / 2, 0, Math.PI * 2);
     ctx.fill();
@@ -123,7 +127,11 @@ export const usePen = ({
       ctx.lineTo(state.smoothed.x, state.smoothed.y);
     });
     pen.current = null;
-    const stroke: Stroke = { width: store.brush, points: state.points };
+    const stroke: Stroke = {
+      width: store.brush,
+      points: state.points,
+      ...(embossing() && { emboss: true }),
+    };
     if (store.tool === "eraser") {
       // Really remove what was erased and repaint from the model.
       drawing.current = applyEraser(drawing.current, stroke);

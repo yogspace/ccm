@@ -9,7 +9,8 @@ const view = (name: string, Field: string): Field => ({
 
 /**
  * The statistics in the admin. The views read the anonymous page views and
- * actions over the REST API (fields/analytics/data.ts); data of its own is
+ * actions over the REST API (fields/analytics/data.ts), the accounts as
+ * totals (fields/analytics/accounts.tsx); data of its own is
  * only what steers the mail report (interval, last sent) and the token of
  * the excluded devices.
  *
@@ -26,7 +27,7 @@ export const Analytics: GlobalConfig = {
   admin: {
     group: "Settings",
     description:
-      "Anonymous page views and actions (no IP, no cookies). The time range in the sidebar applies to every section.",
+      "Anonymous page views and actions (no IP, no cookies), and visitors' accounts as totals only. The time range in the sidebar applies to every section.",
   },
   fields: [
     {
@@ -47,6 +48,13 @@ export const Analytics: GlobalConfig = {
       type: "collapsible",
       label: "Actions",
       fields: [view("actions", "@/fields/analytics/actions#AnalyticsActions")],
+    },
+    {
+      type: "collapsible",
+      label: "Accounts",
+      fields: [
+        view("accounts", "@/fields/analytics/accounts#AnalyticsAccounts"),
+      ],
     },
     {
       // Unnamed groups: only a heading and a line in the sidebar, no nesting

@@ -11,7 +11,8 @@ export const en: typeof de = {
   },
   draw: {
     hint: "Draw an outline or drop an SVG here",
-    hintSub: "Closed lines get filled, shapes inside shapes cut out.",
+    hintSub:
+      "Closed lines get filled, shapes inside shapes cut out – what you draw in pink is embossed.",
     brush: "Brush size",
     undo: "Undo",
     redo: "Redo",
@@ -29,6 +30,12 @@ export const en: typeof de = {
     presets: "Templates",
     removeSelection: "Remove the selected shape (Del)",
     insert: "Insert {{name}}",
+    ink: "Ink",
+    cut: "Cut out",
+    cutHint: "Black: cut out – the shape outside, holes inside.",
+    emboss: "Emboss",
+    embossHint:
+      "Pink: pressed into the cookie – lines as grooves, areas as hollows.",
   },
   preview: {
     empty: "Your cookie cutter will appear here.",
@@ -36,7 +43,6 @@ export const en: typeof de = {
     rotate: "Rotate automatically",
   },
   params: {
-    title: "Dimensions",
     size: "Size",
     bladeHeight: "Blade height",
     wall: "Wall",
@@ -47,6 +53,9 @@ export const en: typeof de = {
     smoothing: "Close gaps",
     bridgeWidth: "Bridge width",
     cutouts: "Cut out inner shapes",
+    relief: "Embossing from the flange",
+    reliefIdle: "Only once you draw in pink.",
+    bridgeIdle: "Only with “Cut out inner shapes”.",
     mirror: "Mirror (for text)",
     mirrorHint:
       "Cookies are cut with the cutter upside down – mirrored, text on the cookie reads the right way round.",

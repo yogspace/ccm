@@ -20,6 +20,7 @@ import {
   storeJar,
   trimJar,
 } from "./cookie-jar";
+import { type Ink, traceLayer } from "./drawing";
 import {
   type CutterParams,
   defaultParams,
@@ -32,7 +33,13 @@ import { type Greeting, greetingUrl } from "./greeting";
 import type { de } from "./i18n/de";
 import { shortShapeMissing } from "./short-shape";
 import { initialUnit, storeUnit, type Unit } from "./units";
-import { type Drawing, isEmptyDrawing, readHash, writeHash } from "./url-state";
+import {
+  type Drawing,
+  hasEmboss,
+  isEmptyDrawing,
+  readHash,
+  writeHash,
+} from "./url-state";
 
 type ErrorKey = keyof (typeof de)["errors"];
 
@@ -61,6 +68,8 @@ type State = {
   drawing: Ref<Drawing>;
   /** The traced contour of the drawing – the cutter is made from it. */
   rings: Ref<Ring[]>;
+  /** What is drawn in the embossing ink, traced – pressed into the cookie. */
+  emboss: Ref<Ring[]>;
   /** Error while reading the drawing or a file. */
   inputError?: ErrorKey;
   cutter: Cutter;
@@ -68,6 +77,8 @@ type State = {
   tool: Tool;
   /** Brush size in pixels of the drawing area. */
   brush: number;
+  /** The pen's ink: cut out, or pressed into the cookie. */
+  ink: Ink;
   /** Turntable of the 3D view. */
   autoRotate: boolean;
   /** Drawing area enlarged. */
@@ -130,10 +141,12 @@ export const store = proxy<State>({
   params: { ...shared.params },
   drawing: ref(shared.drawing),
   rings: ref(shared.rings),
+  emboss: ref([]),
   cutter: { ready: false, mesh: null, outline: ref([]), icing: ref([]) },
   unit: initialUnit(),
   tool: "pen",
   brush: 24,
+  ink: "cut",
   autoRotate: true,
   expanded: false,
   dialogs: 0,
@@ -181,12 +194,16 @@ export const setUnit = (unit: Unit) => {
  * After every stroke, import, undo or clear: keep the drawing, trace the
  * contour. The grid keeps its scale – what measures 50 mm on it becomes a
  * 50 mm cutter, so the size follows the drawing (within the slider's range).
+ * With embossing, each ink is traced on its own – the drawing area shows
+ * both in one.
  */
 export const drawingChanged = (canvas: HTMLCanvasElement, drawing: Drawing) => {
   store.drawing = ref(drawing);
   try {
-    const rings = traceOutline(canvas);
+    const embossed = hasEmboss(drawing);
+    const rings = embossed ? traceLayer(drawing, "cut") : traceOutline(canvas);
     store.rings = ref(rings);
+    store.emboss = ref(embossed ? traceLayer(drawing, "emboss") : []);
     store.inputError = undefined;
     const extent = extentOf(rings);
     if (extent === 0) return;
@@ -353,6 +370,7 @@ export const connectStore = () => {
     const request: CutterRequest = {
       id: ++latest,
       rings: store.rings,
+      emboss: store.emboss,
       params: { ...store.params },
     };
     worker.postMessage(request);
@@ -380,7 +398,7 @@ export const connectStore = () => {
   const unsubscribe = subscribe(store, () => {
     const next = snapshot(store);
     const changed = (key: keyof State) => next[key] !== last[key];
-    if (changed("rings") || changed("params")) build();
+    if (changed("rings") || changed("emboss") || changed("params")) build();
     if (changed("name") || changed("params") || changed("drawing")) writeLink();
     if (changed("dialogs")) lockScroll();
     if (changed("jar")) storeJar(store.jar);

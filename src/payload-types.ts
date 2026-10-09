@@ -279,7 +279,13 @@ export interface Action {
     | 'card-picture'
     | 'svg-import'
     | 'template'
-    | 'account-created';
+    | 'download-embossed'
+    | 'account-created'
+    | 'account-login'
+    | 'account-logout'
+    | 'account-deleted'
+    | 'cookie-online'
+    | 'cookie-offline';
   path?: string | null;
   device?: string | null;
   updatedAt: string;
@@ -1021,9 +1027,25 @@ export interface Translation {
      */
     clear?: string | null;
     /**
+     * DE: Ausstechen  ·  EN: Cut out
+     */
+    cut?: string | null;
+    /**
+     * DE: Schwarz: wird ausgestochen – außen die Form, innen Löcher.  ·  EN: Black: cut out – the shape outside, holes inside.
+     */
+    cutHint?: string | null;
+    /**
      * DE: Loslassen zum Importieren  ·  EN: Release to import
      */
     drop?: string | null;
+    /**
+     * DE: Prägen  ·  EN: Emboss
+     */
+    emboss?: string | null;
+    /**
+     * DE: Pink: wird in den Keks geprägt – Linien als Rillen, Flächen als Vertiefung.  ·  EN: Pink: pressed into the cookie – lines as grooves, areas as hollows.
+     */
+    embossHint?: string | null;
     /**
      * DE: Radiergummi  ·  EN: Eraser
      */
@@ -1037,9 +1059,13 @@ export interface Translation {
      */
     hint?: string | null;
     /**
-     * DE: Geschlossene Linien werden gefüllt, Formen in Formen ausgeschnitten.  ·  EN: Closed lines get filled, shapes inside shapes cut out.
+     * DE: Geschlossene Linien werden gefüllt, Formen in Formen ausgeschnitten – was du in Pink malst, wird eingeprägt.  ·  EN: Closed lines get filled, shapes inside shapes cut out – what you draw in pink is embossed.
      */
     hintSub?: string | null;
+    /**
+     * DE: Farbe  ·  EN: Ink
+     */
+    ink?: string | null;
     /**
      * DE: {{name}} einfügen  ·  EN: Insert {{name}}
      */
@@ -1341,6 +1367,10 @@ export interface Translation {
      */
     bladeHeight?: string | null;
     /**
+     * DE: Erst mit „Innere Formen ausschneiden“.  ·  EN: Only with “Cut out inner shapes”.
+     */
+    bridgeIdle?: string | null;
+    /**
      * DE: Stegbreite  ·  EN: Bridge width
      */
     bridgeWidth?: string | null;
@@ -1373,6 +1403,14 @@ export interface Translation {
      */
     mirrorHint?: string | null;
     /**
+     * DE: Prägung ab Falz  ·  EN: Embossing from the flange
+     */
+    relief?: string | null;
+    /**
+     * DE: Erst wenn du mit Pink malst.  ·  EN: Only once you draw in pink.
+     */
+    reliefIdle?: string | null;
+    /**
      * DE: Zurücksetzen  ·  EN: Reset
      */
     reset?: string | null;
@@ -1388,10 +1426,6 @@ export interface Translation {
      * DE: Verjüngung  ·  EN: Taper
      */
     taper?: string | null;
-    /**
-     * DE: Maße  ·  EN: Dimensions
-     */
-    title?: string | null;
     /**
      * DE: Wandstärke  ·  EN: Wall
      */
@@ -1507,7 +1541,7 @@ export interface Translation {
   createdAt?: string | null;
 }
 /**
- * Anonymous page views and actions (no IP, no cookies). The time range in the sidebar applies to every section.
+ * Anonymous page views and actions (no IP, no cookies), and visitors' accounts as totals only. The time range in the sidebar applies to every section.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "analytics".
@@ -1683,11 +1717,16 @@ export interface TranslationsSelect<T extends boolean = true> {
     | {
         brush?: T;
         clear?: T;
+        cut?: T;
+        cutHint?: T;
         drop?: T;
+        emboss?: T;
+        embossHint?: T;
         eraser?: T;
         expand?: T;
         hint?: T;
         hintSub?: T;
+        ink?: T;
         insert?: T;
         move?: T;
         moveHint?: T;
@@ -1791,6 +1830,7 @@ export interface TranslationsSelect<T extends boolean = true> {
     | T
     | {
         bladeHeight?: T;
+        bridgeIdle?: T;
         bridgeWidth?: T;
         cutouts?: T;
         cutoutsHint?: T;
@@ -1799,11 +1839,12 @@ export interface TranslationsSelect<T extends boolean = true> {
         flangeWidth?: T;
         mirror?: T;
         mirrorHint?: T;
+        relief?: T;
+        reliefIdle?: T;
         reset?: T;
         size?: T;
         smoothing?: T;
         taper?: T;
-        title?: T;
         wall?: T;
       };
   preview?:

@@ -19,7 +19,19 @@ export const ACTIONS = {
   "card-picture": { en: "Card as picture", de: "Karte als Bild" },
   "svg-import": { en: "SVG imports", de: "SVG-Importe" },
   template: { en: "Templates used", de: "Vorlagen genutzt" },
+  "download-embossed": {
+    en: "Downloads with embossing",
+    de: "Downloads mit Prägung",
+  },
   "account-created": { en: "Accounts created", de: "Konten angelegt" },
+  "account-login": { en: "Logins", de: "Anmeldungen" },
+  "account-logout": { en: "Logouts", de: "Abmeldungen" },
+  "account-deleted": { en: "Accounts deleted", de: "Konten gelöscht" },
+  "cookie-online": { en: "Cookies put online", de: "Kekse online gestellt" },
+  "cookie-offline": {
+    en: "Cookies taken offline",
+    de: "Kekse offline genommen",
+  },
 } as const;
 
 export type ActionName = keyof typeof ACTIONS;

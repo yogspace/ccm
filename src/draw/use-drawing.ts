@@ -3,13 +3,16 @@ import { trackEvent } from "../analytics";
 import {
   type Box,
   detachErasers,
+  type Ink,
   paint,
   presetStrokes,
   DRAW_RES as RES,
   removeSelection,
   type Selection,
   selectionBox,
+  selectionInk,
   selectionWidth,
+  setStrokeInk,
   setStrokeWidth,
 } from "../drawing";
 import { loadSilhouette, traceOutline } from "../geometry/outline";
@@ -86,9 +89,12 @@ export const useDrawing = () => {
     const nextBox = next ? selectionBox(drawing.current, next) : null;
     setBox(nextBox);
     live.current = { selection: next, box: nextBox };
-    // The slider shows the selection's stroke width (and changes it).
+    // The slider shows the selection's stroke width (and changes it), the
+    // swatches its ink.
     const width = next ? selectionWidth(drawing.current, next) : null;
     if (width) store.brush = Math.round(Math.min(64, Math.max(6, width)));
+    const ink = next ? selectionInk(drawing.current, next) : null;
+    if (ink) store.ink = ink;
   };
 
   /** Restores a saved state. */
@@ -131,6 +137,18 @@ export const useDrawing = () => {
       commit();
     }, 300);
     widthEdit.current = { before, timer };
+  };
+
+  /** The pen's ink; with a selection in move mode, its strokes take it. */
+  const changeInk = (ink: Ink) => {
+    store.ink = ink;
+    const chosen = live.current.selection;
+    if (store.tool !== "move" || !chosen) return;
+    if (selectionInk(drawing.current, chosen) === ink) return;
+    snapshot();
+    drawing.current = setStrokeInk(drawing.current, chosen, ink);
+    repaint();
+    commit();
   };
 
   const clear = () => {
@@ -183,7 +201,7 @@ export const useDrawing = () => {
   };
 
   /**
-   * Inserts a template as an outline in brush width – large on an empty area,
+   * Inserts a template as an outline in brush width and the pen's ink – large on an empty area,
    * otherwise smaller in the middle (e.g. as a hole in a shape) – and selects
    * it for moving.
    */
@@ -195,7 +213,8 @@ export const useDrawing = () => {
         shape.rings,
         [RES / 2, RES / 2],
         size,
-        store.brush
+        store.brush,
+        store.ink
       );
       if (strokes.length === 0) return;
       snapshot();
@@ -266,6 +285,7 @@ export const useDrawing = () => {
     undo,
     redo,
     changeBrush,
+    changeInk,
     clear,
     removeSelected,
     importFile,

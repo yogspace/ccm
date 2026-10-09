@@ -13,12 +13,14 @@ const circle = (cx: number, cy: number, r: number, n = 96): Ring =>
   ]);
 
 /** A drawn circle: a thin ring – its inside is filled. */
-const stroke = (cx: number, cy: number, r: number, w = 0.03): Ring[] => [
+export const stroke = (cx: number, cy: number, r: number, w = 0.03): Ring[] => [
   circle(cx, cy, r + w / 2),
   circle(cx, cy, r - w / 2),
 ];
 
-const blob = (cx: number, cy: number, r: number): Ring[] => [circle(cx, cy, r)];
+export const blob = (cx: number, cy: number, r: number): Ring[] => [
+  circle(cx, cy, r),
+];
 
 const star = (cx: number, cy: number, outer: number, inner: number): Ring =>
   Array.from({ length: 10 }, (_, i) => {

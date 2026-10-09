@@ -8,7 +8,8 @@ The geometry is built entirely in the browser. The server ([Next.js](https://nex
 
 - Freehand drawing (mouse, touch, pen) with a smoothed stroke and brush preview, an eraser (erased parts are really removed from the strokes), undo/redo (also ⌘/Ctrl+Z, ⌘/Ctrl+Shift+Z), clear, an enlargeable drawing area with a coordinate system in real dimensions – origin at the bottom left, like at school
 - Tools pen, eraser and move: whatever touches is one object; it can be moved, rotated and scaled at the corners (two fingers on touch), given another stroke width and removed. Select several by dragging a box on empty space (everything entirely inside it) or with shift-click
-- Templates: SVGs uploaded in the admin (see below), inserted as an outline in brush width
+- Embossing: the pen has two inks – black is cut out, pink is pressed into the cookie, exactly as drawn: lines as grooves, areas as hollows, only where there is cookie (never over an opening). An embossed area is made like a hole – its half-wide flange around it, held by the same links and arches – only filled, and instead of up to the cutting edge it reaches “Embossing from the flange” out of the plate (shown only then): from 0, flush, up to the blade height, as high as the walls. The 3D view never picks the pink filament then. The cookie around it stays open. In the 3D view the embossing is pink; the file is one piece. With the move tool the swatches recolour a selection
+- Templates: SVGs uploaded in the admin (see below), inserted as an outline in brush width and the pen's ink
 - The bars adapt to the room: unless the card is clearly taller than wide (desktop, also enlarged), tools sit left and templates right of the drawing area, otherwise below – the area is always the largest square that fits
 - SVG/PNG import via button or drag & drop; it lands on the drawing area and you can keep drawing. It copes with white lines on a transparent background and with pure hairlines; if no shape is found, the drawing stays and a message pops up
 - Shapes inside shapes become holes (can be switched off): inner blades with a flange half as wide around them on the cookie side, never over an opening. What holds them is planned so the cutter stays easy to clean – as few connections as needed, no sharp corners:
@@ -17,7 +18,7 @@ The geometry is built entirely in the browser. The server ([Next.js](https://nex
   - open spans up to 8 mm are flat links at flange height, longer ones arched bridges: low in the middle, running into the walls with fillets measured by the real distance to the wall, always leaving room below the cutting edge for the dough
   - links and bridges blend into walls and flanges with round fillets; hairline gaps between flanges are closed, small pockets in the plate filled, larger ones rounded
   - adjustable bridge width
-- Geometry tests (`pnpm test`, also in the pipeline): drawn and generated shapes must come out as one part, with nothing in the dough's room, nothing over an opening, no hairline slits or sharp corners next to inner blades, and no more arches than needed. In the dev server, a “Test case” button in the corner saves the drawing on screen as a new one
+- Geometry tests (`pnpm test`, also in the pipeline): drawn and generated shapes must come out as one part, with nothing in the dough's room, nothing over an opening, no hairline slits or sharp corners next to inner blades, and no more arches than needed; embossing reaches exactly as deep as set and never near the cutting edge; links keep each stroke's ink. In the dev server, a “Test case” button in the corner saves the drawing on screen as a new one
 - Live contour (cutting line) over the drawing, 3D preview as a turntable (floor and model turn together, can be stopped); every new cutter gets a different filament color
 - 3D cookies as icons (rendered live, looking at the mouse, turning on hover) and in the background
 - Dimensions in mm or inch, a name for the creation, download as 3MF and STL (`<name>-80mm.3mf`)
@@ -86,7 +87,7 @@ src/
   greeting.ts                 the card's link: recipient, sender, message on top of the creation's hash
   units.ts                    mm/inch
 scripts/                      prepare.mjs (Pally + manifold.wasm before dev/build), sync-db.sh, sync-media.sh, setup-cron.sh
-test/                         geometry tests (Vitest): cutter.test.ts, clean.ts (inspects a cutter in slices), shapes.ts, fixtures/ (drawn shapes)
+test/                         tests (Vitest): cutter.test.ts (geometry, embossing), clean.ts (inspects a cutter in slices), shapes.ts, fixtures/ (drawn shapes), url-state.test.ts (link format)
 ```
 
 File names are kebab-case (enforced by a Biome rule). Code comments and this README are in English.
@@ -113,13 +114,17 @@ Pally (Indian Type Foundry, [ITF Free Font License](https://www.fontshare.com)) 
 
 ### Link format
 
-`#n=<name>&<parameter>=<value>&s=<drawing>`. Parameters are only included when they differ from the defaults. The drawing itself is stored, so it looks just the same after opening: per stroke the smoothed pen points and the stroke width (erasers with a negative width) and, after an SVG import, its silhouette as an area. Strokes are simplified depending on their width (Douglas-Peucker, 1.5–4 px), rounded to 2 px and encoded as chained ZigZag varint deltas; the whole thing is deflate-compressed and base64url-encoded. The first varint is the format version (currently 3); versions 1 (contour only) and 2 are still read. Shared links have no language path, so recipients land in their own language. A greeting card is the same link under `/<language>/card` – the sender's language, like the message – plus `&t=<recipient>&f=<sender>&m=<message>` (older links with `to=`/`from=` are still read); `/card` alone (older links) follows the browser. Older links with a trailing slash (`/de/card/#…`) are redirected; the hash survives. The hash is never sent to the server.
+`#n=<name>&<parameter>=<value>&s=<drawing>`. Parameters are only included when they differ from the defaults. The drawing itself is stored, so it looks just the same after opening: per stroke the smoothed pen points and the stroke width (erasers with a negative width) and, after an SVG import, its silhouette as an area. Strokes are simplified depending on their width (Douglas-Peucker, 1.5–4 px), rounded to 2 px and encoded as chained ZigZag varint deltas; the whole thing is deflate-compressed and base64url-encoded. The first varint is the format version (currently 3; 4 when something is embossed – then a pen stroke's width is written doubled, its lowest bit the ink, so links without embossing stay byte for byte as before); versions 1 (contour only) and 2 are still read. Shared links have no language path, so recipients land in their own language. A greeting card is the same link under `/<language>/card` – the sender's language, like the message – plus `&t=<recipient>&f=<sender>&m=<message>` (older links with `to=`/`from=` are still read); `/card` alone (older links) follows the browser. Older links with a trailing slash (`/de/card/#…`) are redirected; the hash survives. The hash is never sent to the server.
 
 A short link has `k=<code>` in place of `s=<drawing>` – seven letters and digits standing for the model of a cookie put online; everything else stays in the link as it was. Opened, the page fetches the model (`/next/shape/<code>`) and turns the address back into the full link (`history.replaceState`) before reading it, so whoever got it keeps a link that works even once the short link is gone. A dead code shows a message instead of the cutter.
 
 ### Bambu Studio
 
 When opening a 3MF, Bambu Studio reports “The 3mf file has invalid config, load geometry data only”. That happens with every 3MF not made by Bambu Studio itself (Fusion 360 too). The geometry is still loaded completely. Via *File → Import* the message does not appear.
+
+## License
+
+The source code is public so it can be read – to show how the site works and that it keeps its privacy promises. It is **not open source**: all rights reserved. Hosting or running it yourself, copying or reusing it (or parts of it), redistributing it or using it commercially needs written permission. See [LICENSE](LICENSE).
 
 ## Planned
 

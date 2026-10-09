@@ -1,5 +1,10 @@
 import { type Point, type Ring, traceOutline } from "./geometry/outline";
-import { type Drawing, type Stroke, simplifyLine } from "./url-state";
+import {
+  type Drawing,
+  hasEmboss,
+  type Stroke,
+  simplifyLine,
+} from "./url-state";
 
 /**
  * Helpers for the drawing as vectors (strokes + an area from an import):
@@ -8,6 +13,15 @@ import { type Drawing, type Stroke, simplifyLine } from "./url-state";
 
 /** Resolution of the drawing area (pixels per side). */
 export const DRAW_RES = 1024;
+
+/**
+ * The pen's inks: what is drawn in black is cut out, what is drawn in the
+ * embossing ink is pressed into the cookie (geometry/cutter.ts).
+ */
+export type Ink = "cut" | "emboss";
+
+/** The embossing ink on the drawing area: pink, apart from black and the blue cut line. */
+export const EMBOSS_INK = "#ff5fa8";
 
 /** Grid on which touching is decided – fine enough for narrow eraser gaps. */
 const GROUP_RES = 512;
@@ -29,13 +43,19 @@ const ringsPath = (rings: Ring[]) => {
 /**
  * Paints a drawing: first the area, then the strokes. As a polyline through the
  * points, simplified strokes (from links) stay close to the original too.
+ * Each ink in its colour – or, with `layer`, only that ink, in black, to be
+ * traced on its own (erasers take from both).
  */
-export const paint = (ctx: CanvasRenderingContext2D, drawing: Drawing) => {
+export const paint = (
+  ctx: CanvasRenderingContext2D,
+  drawing: Drawing,
+  layer?: Ink
+) => {
   ctx.fillStyle = "#000";
   ctx.strokeStyle = "#000";
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  if (drawing.base.length > 0) {
+  if (drawing.base.length > 0 && layer !== "emboss") {
     const path = ringsPath(drawing.base);
     if (drawing.baseLine === 0) ctx.fill(path, "evenodd");
     else {
@@ -48,9 +68,13 @@ export const paint = (ctx: CanvasRenderingContext2D, drawing: Drawing) => {
       ctx.restore();
     }
   }
-  for (const { width, points, erase } of drawing.strokes) {
+  for (const { width, points, erase, emboss } of drawing.strokes) {
     const [first, ...rest] = points;
     if (!first) continue;
+    if (!erase && layer && (layer === "emboss") !== Boolean(emboss)) continue;
+    const ink = emboss && !layer ? EMBOSS_INK : "#000";
+    ctx.fillStyle = ink;
+    ctx.strokeStyle = ink;
     // Erasers punch out whatever is painted up to then.
     ctx.globalCompositeOperation = erase ? "destination-out" : "source-over";
     ctx.beginPath();
@@ -65,6 +89,27 @@ export const paint = (ctx: CanvasRenderingContext2D, drawing: Drawing) => {
   }
   ctx.globalCompositeOperation = "source-over";
 };
+
+/** One ink of a drawing, painted on a canvas of its own and traced. */
+export const traceLayer = (drawing: Drawing, layer: Ink): Ring[] => {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = DRAW_RES;
+  const ctx = canvas.getContext("2d");
+  try {
+    if (!ctx) throw new Error("No canvas");
+    paint(ctx, drawing, layer);
+    return traceOutline(canvas);
+  } finally {
+    // Freed right away: iOS Safari's canvas memory is tight and freed late.
+    canvas.width = canvas.height = 0;
+  }
+};
+
+/** What is cut and what is embossed – each ink traced on its own. */
+export const traceInks = (drawing: Drawing) => ({
+  rings: traceLayer(drawing, "cut"),
+  emboss: hasEmboss(drawing) ? traceLayer(drawing, "emboss") : [],
+});
 
 /** Selected parts: strokes and contours of the imported area (indices each). */
 export type Selection = { strokes: number[]; rings: number[] };
@@ -315,6 +360,34 @@ export const setStrokeWidth = (
       chosen.has(index) && !stroke.erase ? { ...stroke, width } : stroke
     ),
   };
+};
+
+/** Puts the selected strokes into an ink (erasers stay as they are). */
+export const setStrokeInk = (
+  drawing: Drawing,
+  selection: Selection,
+  ink: Ink
+): Drawing => {
+  const chosen = new Set(selection.strokes);
+  return {
+    ...drawing,
+    strokes: drawing.strokes.map((stroke, index) => {
+      if (!chosen.has(index) || stroke.erase) return stroke;
+      const { emboss: _, ...plain } = stroke;
+      return ink === "emboss" ? { ...plain, emboss: true } : plain;
+    }),
+  };
+};
+
+/** Ink of the selection (of its first stroke), otherwise `null`. */
+export const selectionInk = (
+  drawing: Drawing,
+  selection: Selection
+): Ink | null => {
+  const stroke = selection.strokes
+    .map((index) => drawing.strokes[index])
+    .find((candidate) => candidate && !candidate.erase);
+  return stroke ? (stroke.emboss ? "emboss" : "cut") : null;
 };
 
 /** Stroke width of the selection (of its first stroke), otherwise `null`. */
@@ -594,14 +667,15 @@ export const detachErasers = (
 };
 
 /**
- * A template's contours (normalised 0…1) as closed strokes: centred on
- * `center`, the longer side `size` pixels.
+ * A template's contours (normalised 0…1) as closed strokes in an ink: centred
+ * on `center`, the longer side `size` pixels.
  */
 export const presetStrokes = (
   rings: Ring[],
   [cx, cy]: Point,
   size: number,
-  width: number
+  width: number,
+  ink: Ink = "cut"
 ): Stroke[] => {
   let minX = Infinity;
   let minY = Infinity;
@@ -623,6 +697,10 @@ export const presetStrokes = (
       ([x, y]): Point => [cx + (x - mx) * scale, cy + (y - my) * scale]
     );
     const closed = [...points, points[0]];
-    return { width, points: simplifyLine(closed, 0.8) };
+    return {
+      width,
+      points: simplifyLine(closed, 0.8),
+      ...(ink === "emboss" && { emboss: true }),
+    };
   });
 };

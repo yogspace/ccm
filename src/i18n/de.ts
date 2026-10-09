@@ -11,7 +11,7 @@ export const de = {
   draw: {
     hint: "Umriss malen oder SVG hierher ziehen",
     hintSub:
-      "Geschlossene Linien werden gefüllt, Formen in Formen ausgeschnitten.",
+      "Geschlossene Linien werden gefüllt, Formen in Formen ausgeschnitten – was du in Pink malst, wird eingeprägt.",
     brush: "Pinselstärke",
     undo: "Rückgängig",
     redo: "Wiederholen",
@@ -29,6 +29,12 @@ export const de = {
     presets: "Vorlagen",
     removeSelection: "Ausgewählte Form entfernen (Entf)",
     insert: "{{name}} einfügen",
+    ink: "Farbe",
+    cut: "Ausstechen",
+    cutHint: "Schwarz: wird ausgestochen – außen die Form, innen Löcher.",
+    emboss: "Prägen",
+    embossHint:
+      "Pink: wird in den Keks geprägt – Linien als Rillen, Flächen als Vertiefung.",
   },
   preview: {
     empty: "Hier erscheint dein Ausstecher.",
@@ -36,7 +42,6 @@ export const de = {
     rotate: "Automatisch drehen",
   },
   params: {
-    title: "Maße",
     size: "Größe",
     bladeHeight: "Klingenhöhe",
     wall: "Wandstärke",
@@ -47,6 +52,9 @@ export const de = {
     smoothing: "Lücken schließen",
     bridgeWidth: "Stegbreite",
     cutouts: "Innere Formen ausschneiden",
+    relief: "Prägung ab Falz",
+    reliefIdle: "Erst wenn du mit Pink malst.",
+    bridgeIdle: "Erst mit „Innere Formen ausschneiden“.",
     mirror: "Spiegeln (für Schrift)",
     mirrorHint:
       "Ausgestochen wird mit dem umgedrehten Ausstecher – gespiegelt steht Schrift auf dem Keks richtig herum.",

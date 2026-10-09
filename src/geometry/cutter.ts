@@ -10,7 +10,7 @@ import {
 import { type Connection, planConnections } from "./connections";
 import { type Island, isHole, nestIslands } from "./islands";
 import type { Point, Ring } from "./outline";
-import { bounds, signedArea } from "./rings";
+import { bounds, contains, signedArea } from "./rings";
 
 /** All dimensions in millimetres. */
 export type CutterParams = {
@@ -37,6 +37,11 @@ export type CutterParams = {
    * mirrored to the cutter as printed – mirroring keeps text the right way round.
    */
   mirror: number;
+  /**
+   * How far (mm) embossing reaches out of the flange plate – 0: flush with
+   * it, the blade height: as high as the walls.
+   */
+  relief: number;
 };
 
 /** Range of the size slider (mm); drawing can go smaller, never larger. */
@@ -55,6 +60,7 @@ export const defaultParams: CutterParams = {
   cutouts: 1,
   bridgeWidth: 3,
   mirror: 0,
+  relief: 10,
 };
 
 export type Cutter = {
@@ -66,6 +72,11 @@ export type Cutter = {
   icing: Ring[];
   /** What holds the inner blades (in mm, before mirroring). */
   connections: Connection[];
+  /**
+   * The embossing's originalID – its faces keep it through every boolean,
+   * so the view can show them in the embossing ink (mesh.ts). Null without.
+   */
+  emboss: number | null;
 };
 
 /** Layer height in which the taper is stepped – invisible in print. */
@@ -95,6 +106,11 @@ const ICING_INSET = 0.05;
 const ICING_SHARE = 0.4;
 /** … and without bits of icing below this share. */
 const ICING_CRUMB = 0.03;
+/** How far (mm) embossing reaches out of the flange – at most as the walls. */
+export const reliefReach = ({ bladeHeight, relief }: CutterParams) =>
+  Math.max(0, Math.min(bladeHeight, relief));
+/** Embossing leaves out crumbs below this area (mm²). */
+const MIN_RELIEF = 0.5;
 /** Hairline gaps in the flange plate up to this width (mm) are closed … */
 const HAIRLINE = 2;
 /** … and pockets enclosed by it up to this area (mm²); larger ones rounded. */
@@ -122,11 +138,17 @@ const fitToSize = (rings: Ring[], size: number) => {
  * lies on the cookie side; what holds it is planned in `planConnections`:
  * flat links in the flange plate where flanges come close, arched bridges
  * across longer gaps.
+ *
+ * `emboss`: what was drawn in the embossing ink (same coordinates). Where it
+ * lies on the cookie it is made like a hole – its flange around it, held by
+ * the same links and arches – only filled, and reaching `relief` out of the
+ * flange instead of up to the cutting edge.
  */
 export const buildCutter = (
   wasm: ManifoldToplevel,
   rings: Ring[],
-  params: CutterParams
+  params: CutterParams,
+  emboss: Ring[] = []
 ): Cutter | null => {
   if (rings.length === 0) return null;
   const garbage: (CrossSection | Manifold)[] = [];
@@ -196,6 +218,40 @@ export const buildCutter = (
     );
     if (shape.isEmpty()) return null;
 
+    // Embossing only where there is cookie – not over openings, not outside.
+    let relief: CrossSection | null = null;
+    if (emboss.length > 0) {
+      const drawn = track(
+        new CrossSection(
+          emboss.map((ring) => ring.map(toMm)),
+          "EvenOdd"
+        )
+      );
+      const pads = track(drawn.intersect(shape))
+        .decompose()
+        .map(track)
+        .filter((pad) => pad.area() > MIN_RELIEF);
+      if (pads.length > 0) relief = track(CrossSection.union(pads));
+    }
+    // To be held, each embossed area counts as a hole in the cookie it lies
+    // on – for the links and arches only, the cookie keeps it.
+    const reliefs: Island[] = [];
+    for (const ring of relief?.toPolygons() ?? []) {
+      if (signedArea(ring) <= 0) continue;
+      const around = islands
+        .filter((island) => contains(island.ring, ring[0]))
+        .sort((a, b) => b.depth - a.depth)[0];
+      // Right on a hole's edge the hole may claim it – its cookie is meant.
+      const parent = around && isHole(around) ? around.parent : around;
+      if (!parent) continue;
+      reliefs.push({
+        ring,
+        area: signedArea(ring),
+        parent,
+        depth: parent.depth + 1,
+      });
+    }
+
     /** Wall of thickness `thickness` around the cookie, from `z` to `z + height`. */
     const band = (thickness: number, height: number, z = 0) => {
       const ring = track(grow(shape, thickness).subtract(shape));
@@ -217,7 +273,7 @@ export const buildCutter = (
 
     const bridgeWidth = Math.max(1, params.bridgeWidth);
     const innerFlange = flangeWidth / 2;
-    const connections = planConnections(islands, {
+    const connections = planConnections([...islands, ...reliefs], {
       innerFlange,
       join: LINK_GAP,
       flatSpan: FLAT_SPAN,
@@ -238,7 +294,7 @@ export const buildCutter = (
     const inner: CrossSection[] = [];
     const links: CrossSection[] = [];
     if (flangeWidth > wall) {
-      for (const island of islands) {
+      for (const island of [...islands, ...reliefs]) {
         const area = areaOf(island);
         if (island.depth === 0) {
           outer.push(track(grow(area, flangeWidth).subtract(area)));
@@ -321,15 +377,27 @@ export const buildCutter = (
       parts.push(track(plate.extrude(flangeHeight)));
     }
 
+    let embossId: number | null = null;
+    if (relief) {
+      // Filled from the bed up, `relief` out of the flange.
+      const pads = track(
+        track(relief.extrude(flangeHeight + reliefReach(params))).asOriginal()
+      );
+      embossId = pads.originalID();
+      parts.push(pads);
+    }
+
     // Arched bridges, below the dough's room.
+    const solidWalls = relief ? track(walls.add(relief)) : walls;
+    const blend = plate ? track(solidWalls.add(plate)) : solidWalls;
     const midHeight = Math.max(BRIDGE_MID_HEIGHT, flangeHeight + 1);
     const style: ArchStyle = {
       width: bridgeWidth,
       midHeight,
       ceiling: Math.max(midHeight + 1, top - BRIDGE_CLEARANCE),
       wall,
-      // Bridges blend into walls and flanges alike.
-      walls: plate ? track(walls.add(plate)) : walls,
+      // Bridges blend into walls, flanges and embossing alike.
+      walls: blend,
     };
     for (const { from, to, start, end, kind } of connections) {
       if (kind !== "arch" || !start.parent) continue;
@@ -387,6 +455,7 @@ export const buildCutter = (
       outline: shape.toPolygons().map((ring) => ring.map(fromMm)),
       icing: iced ? icing.toPolygons().map((ring) => ring.map(fromMm)) : [],
       connections,
+      emboss: embossId,
     };
   } finally {
     for (const object of garbage) object.delete();

@@ -123,9 +123,9 @@ const german = () =>
 
     h2("Projekt"),
     p(
-      "Der Quellcode liegt offen auf ",
+      "Der Quellcode ist auf ",
       siteLink("source", "GitHub"),
-      ". Wenn dir der Cookie Cutter Maker gefällt, kannst du mir über ",
+      " einsehbar – alle Rechte vorbehalten: Selbst hosten, kopieren oder weiterverwenden ist ohne meine Erlaubnis nicht gestattet. Wenn dir der Cookie Cutter Maker gefällt, kannst du mir über ",
       siteLink("donate", "PayPal"),
       " einen Keks spendieren."
     ),
@@ -190,9 +190,9 @@ const english = () =>
 
     h2("Project"),
     p(
-      "The source code is open on ",
+      "The source code can be read on ",
       siteLink("source", "GitHub"),
-      ". If you like Cookie Cutter Maker, you can buy me a cookie via ",
+      " – all rights reserved: hosting, copying or reusing it needs my permission. If you like Cookie Cutter Maker, you can buy me a cookie via ",
       siteLink("donate", "PayPal"),
       "."
     ),

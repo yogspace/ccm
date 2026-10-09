@@ -2,6 +2,7 @@ import { memo, type Ref, useEffect, useImperativeHandle, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { useSnapshot } from "valtio";
+import { EMBOSS_INK } from "../drawing";
 import { FILAMENTS } from "../filaments";
 import type { MeshData } from "../geometry/mesh";
 import { renderTopView } from "../render-top";
@@ -27,8 +28,12 @@ type Props = {
 type View = {
   camera: THREE.PerspectiveCamera;
   controls: OrbitControls;
-  object: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
+  /** The cutter in its filament, the embossing in its ink. */
+  object: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial[]>;
+  material: THREE.MeshStandardMaterial;
   rise: () => void;
+  /** Away from a colour: the filament changes if it is that one. */
+  avoid: (color: string) => void;
   /** Turntable on/off. */
   spin: { on: boolean };
 };
@@ -73,7 +78,7 @@ const Preview3d = ({ ref }: Props) => {
         if (!view || !geometry?.getAttribute("position")) return null;
         return renderTopView(
           geometry,
-          color ? new THREE.Color(color) : view.object.material.color,
+          color ? new THREE.Color(color) : view.material.color,
           width,
           height
         );
@@ -115,7 +120,17 @@ const Preview3d = ({ ref }: Props) => {
       roughness: 0.45,
       flatShading: true,
     });
-    const object = new THREE.Mesh(new THREE.BufferGeometry(), material);
+    // What presses into the cookie, pink as on the drawing – only on screen,
+    // the file is one piece in one filament.
+    const embossMaterial = new THREE.MeshStandardMaterial({
+      roughness: 0.45,
+      flatShading: true,
+      color: EMBOSS_INK,
+    });
+    const object = new THREE.Mesh(new THREE.BufferGeometry(), [
+      material,
+      embossMaterial,
+    ]);
     turntable.add(object);
 
     let filament = pickFilament("");
@@ -133,6 +148,12 @@ const Preview3d = ({ ref }: Props) => {
       // New shape: reset the turntable so it starts aligned like the drawing.
       turntable.rotation.z = 0;
       if (!reducedMotion()) riseStart = performance.now();
+    };
+
+    const avoid = (color: string) => {
+      if (filament !== color) return;
+      filament = pickFilament(color);
+      material.color.set(filament);
     };
 
     // The turntable spins (not the camera): time-based and clockwise seen from
@@ -162,13 +183,22 @@ const Preview3d = ({ ref }: Props) => {
     });
     observer.observe(container);
 
-    viewRef.current = { camera, controls, object, rise, spin };
+    viewRef.current = {
+      camera,
+      controls,
+      object,
+      material,
+      rise,
+      avoid,
+      spin,
+    };
     return () => {
       renderer.setAnimationLoop(null);
       observer.disconnect();
       controls.dispose();
       object.geometry.dispose();
       material.dispose();
+      embossMaterial.dispose();
       renderer.dispose();
       renderer.domElement.remove();
       viewRef.current = null;
@@ -189,7 +219,7 @@ const Preview3d = ({ ref }: Props) => {
   useEffect(() => {
     const view = viewRef.current;
     if (!view) return;
-    const { object, camera, controls, rise } = view;
+    const { object, camera, controls, rise, avoid } = view;
 
     object.geometry.dispose();
     object.geometry = new THREE.BufferGeometry();
@@ -201,11 +231,19 @@ const Preview3d = ({ ref }: Props) => {
     );
     // No normals: flat shading computes them in the shader from the faces.
     object.geometry.setIndex(new THREE.BufferAttribute(mesh.indices, 1));
+    // The embossing's triangles come last (mesh.ts): in their own material.
+    const count = mesh.indices.length;
+    object.geometry.addGroup(0, mesh.embossFrom, 0);
+    if (mesh.embossFrom < count) {
+      object.geometry.addGroup(mesh.embossFrom, count - mesh.embossFrom, 1);
+    }
 
     if (pendingRise.current) {
       pendingRise.current = false;
       rise();
     }
+    // Embossed: never a filament in the embossing's own pink.
+    if (mesh.embossFrom < count) avoid(EMBOSS_INK);
 
     // Only move the camera when the size changes noticeably.
     const size = Math.max(...mesh.dimensions);

@@ -1,9 +1,9 @@
-import { DRAW_RES, paint } from "../drawing";
+import { traceInks } from "../drawing";
 import type { CutterParams } from "../geometry/cutter";
 import type { CutterRequest, CutterResponse } from "../geometry/cutter-worker";
 import type { MeshData } from "../geometry/mesh";
-import { type Ring, traceOutline } from "../geometry/outline";
-import type { Drawing, readHash } from "../url-state";
+import type { Ring } from "../geometry/outline";
+import type { readHash } from "../url-state";
 
 /** Pauses (ms) before trying again – time for Safari to free canvas memory. */
 const RETRIES = [600, 1500];
@@ -18,22 +18,7 @@ const SILENCE = 20_000;
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** New links bring the drawing – traced like the drawing area does it. */
-const trace = (drawing: Drawing) => {
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = DRAW_RES;
-  const ctx = canvas.getContext("2d");
-  try {
-    if (!ctx) throw new Error("No canvas");
-    paint(ctx, drawing);
-    return traceOutline(canvas);
-  } finally {
-    // Freed right away: iOS Safari's canvas memory is tight and freed late.
-    canvas.width = canvas.height = 0;
-  }
-};
-
-const build = (rings: Ring[], params: CutterParams) => {
+const build = (rings: Ring[], emboss: Ring[], params: CutterParams) => {
   const worker = new Worker(
     new URL("../geometry/cutter-worker.ts", import.meta.url),
     { type: "module" }
@@ -63,7 +48,7 @@ const build = (rings: Ring[], params: CutterParams) => {
       worker.terminate();
       reject(new Error(`worker: ${event.message}`));
     };
-    const request: CutterRequest = { id: 1, rings, params };
+    const request: CutterRequest = { id: 1, rings, emboss, params };
     worker.postMessage(request);
   });
 };
@@ -81,9 +66,11 @@ export const loadCutter = async ({
 }: ReturnType<typeof readHash>) => {
   for (let attempt = 0; ; attempt++) {
     try {
-      // Old links bring the contour itself.
-      const rings = shared.length > 0 ? shared : trace(drawing);
-      return await build(rings, params);
+      // Old links bring the contour itself; new ones the drawing – traced
+      // like the drawing area does it, each ink on its own.
+      const { rings, emboss } =
+        shared.length > 0 ? { rings: shared, emboss: [] } : traceInks(drawing);
+      return await build(rings, emboss, params);
     } catch (error) {
       if (attempt >= RETRIES.length) throw error;
       console.warn("Shaping the cutter failed, trying again", error);

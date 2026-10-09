@@ -4,7 +4,13 @@ import { loadManifold } from "./manifold";
 import { type MeshData, toMeshData } from "./mesh";
 import type { Ring } from "./outline";
 
-export type CutterRequest = { id: number; rings: Ring[]; params: CutterParams };
+export type CutterRequest = {
+  id: number;
+  rings: Ring[];
+  /** What is drawn in the embossing ink, traced like the rings. */
+  emboss: Ring[];
+  params: CutterParams;
+};
 
 export type CutterResponse =
   | { type: "ready" }
@@ -40,12 +46,12 @@ const run = async () => {
   next = null;
   if (!job) return;
   try {
-    const cutter = buildCutter(await wasm, job.rings, job.params);
+    const cutter = buildCutter(await wasm, job.rings, job.params, job.emboss);
     if (!cutter) {
       post({ type: "result", id: job.id, mesh: null, outline: [], icing: [] });
       return;
     }
-    const mesh = toMeshData(cutter.manifold);
+    const mesh = toMeshData(cutter.manifold, cutter.emboss);
     cutter.manifold.delete();
     const { outline, icing } = cutter;
     post({ type: "result", id: job.id, mesh, outline, icing }, [

@@ -18,12 +18,14 @@ const save = async () => {
         defaultParams[key as keyof typeof defaultParams] !== value
     )
   );
-  const rings = store.rings.map((ring) =>
-    ring.map(([x, y]) => [round(x), round(y)])
-  );
+  const pack = (rings: typeof store.rings) =>
+    rings.map((ring) => ring.map(([x, y]) => [round(x), round(y)]));
+  const rings = pack(store.rings);
+  // What is drawn in the embossing ink, if anything.
+  const emboss = store.emboss.length > 0 ? pack(store.emboss) : undefined;
   const response = await fetch("/next/fixture", {
     method: "POST",
-    body: JSON.stringify({ name, ...params, rings }),
+    body: JSON.stringify({ name, ...params, rings, emboss }),
   });
   window.alert(
     response.ok
@@ -34,8 +36,8 @@ const save = async () => {
 
 /**
  * Dev server only (editor.tsx): a button in the corner, beside Next's own,
- * that saves the drawing on screen as a geometry test case – contours and
- * every dimension that differs from the defaults – in
+ * that saves the drawing on screen as a geometry test case – contours (and
+ * embossing) and every dimension that differs from the defaults – in
  * test/fixtures/<name>.json. `pnpm test` then checks it like the others.
  */
 const DevFixture = () => {

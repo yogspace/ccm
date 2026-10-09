@@ -1,4 +1,5 @@
 import { proxy, ref } from "valtio";
+import { trackEvent } from "../analytics";
 import { type SavedCookie, trimJar } from "../cookie-jar";
 import { shapeOf, shortened } from "../short-shape";
 import { eatCookie, store } from "../store";
@@ -177,13 +178,17 @@ export const logIn = async (passphrase: string) => {
     method: "POST",
     body: JSON.stringify({ passphrase }),
   });
-  if (answer.ok) loggedIn(answer.body as AccountData);
+  if (answer.ok) {
+    loggedIn(answer.body as AccountData);
+    trackEvent("account-login");
+  }
   return result(answer);
 };
 
 export const logOut = async () => {
   await call("/logout", { method: "POST" });
   loggedOut(true);
+  trackEvent("account-logout");
 };
 
 /**
@@ -196,6 +201,7 @@ export const deleteAccount = async () => {
     loggedOut(false);
     store.jar = ref(store.jar.map(({ code: _, ...cookie }) => cookie));
   }
+  if (ok) trackEvent("account-deleted");
   return ok;
 };
 
@@ -217,14 +223,15 @@ export const putOnline = async (hash: string): Promise<OnlineResult> => {
   );
   if (ok) {
     setCode(hash, String(body.code));
+    trackEvent("cookie-online");
     return "ok";
   }
   if (status === 401) loggedOut(false);
   return status === 409 ? "full" : "failed";
 };
 
-/** Back to this browser only: out of the account, its short link gone. */
-export const takeBack = async (hash: string) => {
+/** Out of the account, its short link gone – the cookie only here. */
+const leaveAccount = async (hash: string) => {
   const { ok, status } = await working(hash, () =>
     call("/links", { method: "DELETE", body: JSON.stringify({ hash }) })
   );
@@ -233,10 +240,17 @@ export const takeBack = async (hash: string) => {
   return ok;
 };
 
+/** Back to this browser only: out of the account, its short link gone. */
+export const takeBack = async (hash: string) => {
+  const ok = await leaveAccount(hash);
+  if (ok) trackEvent("cookie-offline");
+  return ok;
+};
+
 /** Eats a cookie – online, it leaves the account first. */
 export const eatEverywhere = async (hash: string) => {
   const cookie = store.jar.find((other) => other.hash === hash);
-  if (cookie?.code && !(await takeBack(hash))) return false;
+  if (cookie?.code && !(await leaveAccount(hash))) return false;
   eatCookie(hash);
   return true;
 };

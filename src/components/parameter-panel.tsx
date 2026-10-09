@@ -1,5 +1,5 @@
 import { Check, RotateCcw } from "lucide-react";
-import { memo } from "react";
+import { memo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { cn } from "../cn";
@@ -35,6 +35,37 @@ const fields: Field[] = [
 
 /** Only matters with cut-out inner shapes – shown next to that checkbox. */
 const bridgeField: Field = { key: "bridgeWidth", min: 1.5, max: 8, step: 0.5 };
+
+/**
+ * Only matters with embossing – shown once something is drawn in its ink, up
+ * to the blade height.
+ */
+const reliefField: Field = { key: "relief", min: 0, max: 15, step: 0.1 };
+
+/**
+ * A slider that does nothing right now (no inner shapes cut out, nothing
+ * drawn in pink): still there, so nothing jumps – faded and inert.
+ */
+const Idle = ({
+  idle,
+  hint,
+  children,
+}: {
+  idle: boolean;
+  hint: string;
+  children: ReactNode;
+}) => (
+  <div
+    className={cn(
+      "transition-opacity duration-300 ease-soft",
+      idle && "opacity-35"
+    )}
+    inert={idle}
+    title={idle ? hint : undefined}
+  >
+    {children}
+  </div>
+);
 
 /**
  * An on/off parameter as a checkbox with a cookie tick (a real input, just
@@ -86,19 +117,23 @@ const Toggle = ({
 };
 
 /**
- * Dimension sliders below the 3D view: heading, the checkbox for cutting out
- * inner shapes (with the bridge width next to it while it is on), the
- * sliders, and reset at the very bottom.
+ * Dimension sliders below the 3D view: the checkbox for cutting out
+ * inner shapes with the bridge width next to it, the sliders – the
+ * embossing's height last – and reset at the very bottom. What does nothing
+ * right now (bridges without cut-outs, embossing without pink) stays, faded.
  */
 const ParameterPanel = () => {
   const { t, i18n } = useTranslation();
-  const { params, unit } = useSnapshot(store);
+  const { params, unit, emboss } = useSnapshot(store);
   const changed = (Object.keys(defaultParams) as (keyof CutterParams)[]).some(
     (key) => params[key] !== defaultParams[key]
   );
   const cutouts = params.cutouts === 1;
 
-  const slider = ({ key, min, max, step }: Field) => (
+  const slider = (
+    { key, min, max, step }: Field,
+    value: number = params[key]
+  ) => (
     <div
       className="flex flex-col gap-2 text-body"
       key={key}
@@ -110,7 +145,7 @@ const ParameterPanel = () => {
           {t(`params.${key}`)}
         </span>
         <output className="flex-none font-bold whitespace-nowrap text-ink tabular-nums">
-          {formatLength(params[key], unit, i18n.resolvedLanguage)}
+          {formatLength(value, unit, i18n.resolvedLanguage)}
         </output>
       </span>
       <CookieSlider
@@ -119,7 +154,7 @@ const ParameterPanel = () => {
         min={min}
         onChange={(value) => setParam(key, value)}
         step={step}
-        value={params[key]}
+        value={value}
       />
     </div>
   );
@@ -130,9 +165,6 @@ const ParameterPanel = () => {
 
   return (
     <div className="flex flex-col gap-4 @container">
-      <h3 className="text-small font-bold tracking-label text-muted uppercase">
-        {t("params.title")}
-      </h3>
       <div className={grid}>
         {/* Shapes inside shapes become holes – or, as before, only the
             outside counts. Built like a slider (an empty label line, then
@@ -154,20 +186,21 @@ const ParameterPanel = () => {
             name="cutouts"
           />
         </div>
-        {/* Always laid out (no jump), faded out and inert while unticked. */}
-        <div
-          aria-hidden={!cutouts}
-          className={cn(
-            "[transition:opacity_0.3s_var(--ease-soft),visibility_0s]",
-            !cutouts &&
-              "invisible opacity-0 [transition:opacity_0.3s_var(--ease-soft),visibility_0s_0.3s]"
-          )}
-          inert={!cutouts}
-        >
+        <Idle hint={t("params.bridgeIdle")} idle={!cutouts}>
           {slider(bridgeField)}
-        </div>
+        </Idle>
       </div>
-      <div className={grid}>{fields.map(slider)}</div>
+      <div className={grid}>
+        {fields.map((field) => slider(field))}
+        {/* Last: the embossing's height – as high as the walls at most, the
+            slider ends at the blade height and shows what is built. */}
+        <Idle hint={t("params.reliefIdle")} idle={emboss.length === 0}>
+          {slider(
+            { ...reliefField, max: params.bladeHeight },
+            Math.min(params.relief, params.bladeHeight)
+          )}
+        </Idle>
+      </div>
       {/* At the bottom: mirroring (the cutter is used upside down – mirrored,
           text on the cookie reads right) and reset. */}
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
