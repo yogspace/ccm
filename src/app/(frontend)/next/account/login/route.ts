@@ -46,7 +46,10 @@ export const POST = async (request: NextRequest) => {
   const account = await payload.update({
     collection: "accounts",
     id: docs[0].id,
-    data: { lastSeenAt: new Date().toISOString() },
+    data: {
+      lastSeenAt: new Date().toISOString(),
+      lastLoginAt: new Date().toISOString(),
+    },
     depth: 0,
     overrideAccess: true,
   });

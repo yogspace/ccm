@@ -3,7 +3,7 @@ import configPromise from "@payload-config";
 import { type NextRequest, NextResponse } from "next/server";
 import { getPayload, type Payload } from "payload";
 import type { Account } from "../payload-types";
-import { keyOf, normalizePassphrase, secret } from "./keys";
+import { keyOf, newPassphrase, normalizePassphrase, secret } from "./keys";
 import {
   type AccountData,
   CODE_CHARS,
@@ -11,13 +11,10 @@ import {
   DAY_MS,
   goneAt,
   isSavedCookie,
-  PASSPHRASE_NUMBER,
-  PASSPHRASE_WORDS,
   SESSION_DAYS,
 } from "./rules";
-import { WORDS } from "./words";
 
-export { keyOf, normalizePassphrase };
+export { keyOf, newPassphrase, normalizePassphrase };
 
 /**
  * Accounts on the server: no name, no email – a passphrase of three plain
@@ -29,26 +26,6 @@ export { keyOf, normalizePassphrase };
  */
 
 export const getAccountsPayload = () => getPayload({ config: configPromise });
-
-/**
- * A fresh passphrase in the visitor's language: three words, hyphenated,
- * each by chance with a number – one at least, or the weakest ones (no
- * number) would be tried first: `kuh7-traktor-waffel21`.
- */
-export const newPassphrase = (lang: string) => {
-  const words = lang === "de" ? WORDS.de : WORDS.en;
-  let numbered: boolean[];
-  do {
-    numbered = Array.from({ length: PASSPHRASE_WORDS }, () => randomInt(2) > 0);
-  } while (!numbered.includes(true));
-  const [from, to] = PASSPHRASE_NUMBER;
-  return numbered
-    .map(
-      (number) =>
-        words[randomInt(words.length)] + (number ? randomInt(from, to + 1) : "")
-    )
-    .join("-");
-};
 
 /** A short link's code – random, letters and digits. */
 export const newCode = () =>

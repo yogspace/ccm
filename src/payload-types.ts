@@ -132,11 +132,12 @@ export interface User {
 export interface Account {
   id: string;
   /**
-   * Only for you, to find it again – e.g. “mine”. Visitors never see it.
+   * Only for you, to find it again. Visitors never see it.
    */
   label?: string | null;
   key: string;
   lastSeenAt: string;
+  lastLoginAt?: string | null;
   jar?:
     | {
         [k: string]: unknown;
@@ -156,6 +157,10 @@ export interface Account {
    * Never deleted automatically – not after 180 days without a visit, nor when empty. Deleting it here or in the account still works.
    */
   keep?: boolean | null;
+  /**
+   * Kept accounts only – set with “New passphrase”. The old one stops working then.
+   */
+  passphrase?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -438,10 +443,12 @@ export interface AccountsSelect<T extends boolean = true> {
   label?: T;
   key?: T;
   lastSeenAt?: T;
+  lastLoginAt?: T;
   jar?: T;
   cookies?: T;
   shortLinks?: T;
   keep?: T;
+  passphrase?: T;
   updatedAt?: T;
   createdAt?: T;
 }

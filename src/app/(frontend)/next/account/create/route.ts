@@ -38,7 +38,13 @@ export const POST = async (request: NextRequest) => {
   if (await isTaken(payload, key)) return failure("Taken", 409);
   const account = await payload.create({
     collection: "accounts",
-    data: { key, lastSeenAt: new Date().toISOString(), jar: [], cookies: 0 },
+    data: {
+      key,
+      lastSeenAt: new Date().toISOString(),
+      lastLoginAt: new Date().toISOString(),
+      jar: [],
+      cookies: 0,
+    },
     depth: 0,
     overrideAccess: true,
   });

@@ -1,10 +1,12 @@
-import { scrypt } from "node:crypto";
+import { randomInt, scrypt } from "node:crypto";
+import { PASSPHRASE_NUMBER, PASSPHRASE_WORDS } from "./rules";
+import { WORDS } from "./words";
 
 /**
- * A passphrase's key – what the database keeps of it, and finds an account
- * by: scrypt, peppered with the server's secret. Apart from server.ts, so
- * the accounts collection (its admin search) can use it without loading the
- * Payload config it belongs to.
+ * Passphrases – made here – and their keys, what the database keeps of them
+ * and finds an account by: scrypt, peppered with the server's secret. Apart
+ * from server.ts, so the accounts collection (its admin tools) can use them
+ * without loading the Payload config it belongs to.
  */
 
 export const secret = () => {
@@ -37,3 +39,23 @@ export const keyOf = (phrase: string) =>
       (error, key) => (error ? reject(error) : resolve(key.toString("hex")))
     );
   });
+
+/**
+ * A fresh passphrase in the visitor's language: three words, hyphenated,
+ * each by chance with a number – one at least, or the weakest ones (no
+ * number) would be tried first: `kuh7-traktor-waffel21`.
+ */
+export const newPassphrase = (lang: string) => {
+  const words = lang === "de" ? WORDS.de : WORDS.en;
+  let numbered: boolean[];
+  do {
+    numbered = Array.from({ length: PASSPHRASE_WORDS }, () => randomInt(2) > 0);
+  } while (!numbered.includes(true));
+  const [from, to] = PASSPHRASE_NUMBER;
+  return numbered
+    .map(
+      (number) =>
+        words[randomInt(words.length)] + (number ? randomInt(from, to + 1) : "")
+    )
+    .join("-");
+};
