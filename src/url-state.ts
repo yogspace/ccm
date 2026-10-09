@@ -1,14 +1,16 @@
 import { deflateSync, inflateSync } from "fflate";
 import { type CutterParams, defaultParams } from "./geometry/cutter";
 import type { Point, Ring } from "./geometry/outline";
+import { PARAM_KEYS, paramKeys, paramOf } from "./link-keys";
 
 /**
  * The complete state lives in the URL hash, so links can be shared. The hash
  * never reaches the server – nothing is stored.
  *
- * Format: `#n=<name>&size=90&…&s=<drawing>`; dimensions only when they differ
- * from the defaults. The drawing itself is stored (strokes and imported
- * areas, each stroke with its ink), so it looks just the same after opening.
+ * Format: `#n=<name>&z=90&…&s=<drawing>`; dimensions by their letter
+ * (link-keys.ts), only when they differ from the defaults. The drawing
+ * itself is stored (strokes and imported areas, each stroke with its ink),
+ * so it looks just the same after opening.
  */
 
 /** A stroke: smoothed pen points in drawing-area pixels, and its width. */
@@ -286,8 +288,6 @@ const decodeDrawing = (text: string): { drawing: Drawing; rings: Ring[] } => {
   return { drawing: { base, baseLine, strokes }, rings: [] };
 };
 
-const paramKeys = Object.keys(defaultParams) as (keyof CutterParams)[];
-
 export const writeHash = ({
   name,
   params,
@@ -296,7 +296,9 @@ export const writeHash = ({
   const query = new URLSearchParams();
   if (name) query.set("n", name);
   for (const key of paramKeys) {
-    if (params[key] !== defaultParams[key]) query.set(key, String(params[key]));
+    if (params[key] !== defaultParams[key]) {
+      query.set(PARAM_KEYS[key], String(params[key]));
+    }
   }
   if (!isEmptyDrawing(drawing)) query.set("s", encodeDrawing(drawing));
   return query.size > 0 ? `#${query}` : "";
@@ -306,8 +308,9 @@ export const readHash = (hash: string): SharedState => {
   const query = new URLSearchParams(hash.replace(/^#/, ""));
   const params = { ...defaultParams };
   for (const key of paramKeys) {
-    const value = Number(query.get(key));
-    if (query.has(key) && Number.isFinite(value)) params[key] = value;
+    const text = paramOf(query, key);
+    const value = Number(text);
+    if (text !== null && Number.isFinite(value)) params[key] = value;
   }
   let shape = { drawing: emptyDrawing, rings: [] as Ring[] };
   const encoded = query.get("s");

@@ -1,7 +1,13 @@
 import { inflateSync } from "fflate";
 import { describe, expect, it } from "vitest";
 import { defaultParams } from "../src/geometry/cutter";
-import { type Drawing, readHash, writeHash } from "../src/url-state";
+import { currentForm } from "../src/link-keys";
+import {
+  type Drawing,
+  emptyDrawing,
+  readHash,
+  writeHash,
+} from "../src/url-state";
 
 const share = (drawing: Drawing) =>
   writeHash({ name: "", params: defaultParams, drawing });
@@ -41,6 +47,30 @@ describe("links", () => {
       [12, true, undefined],
       [30, undefined, true],
     ]);
+  });
+
+  it("write the dimensions by their letters", () => {
+    const params = { ...defaultParams, size: 90, bladeHeight: 12, mirror: 1 };
+    const hash = writeHash({ name: "Ottifant", params, drawing: emptyDrawing });
+    expect(hash).toBe("#n=Ottifant&z=90&h=12&x=1");
+    expect(readHash(hash).params).toEqual(params);
+  });
+
+  it("still read older ones, spelled out", () => {
+    const drawing: Drawing = {
+      base: [],
+      baseLine: 0,
+      strokes: [{ width: 24, points: line(200) }],
+    };
+    const params = { ...defaultParams, size: 90, bridgeWidth: 4, relief: 2 };
+    const today = writeHash({ name: "Ottifant", params, drawing });
+    const s = new URLSearchParams(today.slice(1)).get("s");
+    const older = `#n=Ottifant&size=90&bridgeWidth=4&relief=2&s=${s}`;
+    expect(readHash(older).params).toEqual(params);
+    expect(readHash(older).drawing).toEqual(readHash(today).drawing);
+    // Saved from an older link, a cookie still matches the same creation.
+    expect(currentForm(older)).toBe(today);
+    expect(currentForm(today)).toBe(today);
   });
 
   it("stay as they were without embossing", () => {

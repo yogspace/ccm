@@ -134,7 +134,10 @@ export const Accounts: CollectionConfig = {
         readOnly: true,
         condition: (data) => Boolean(data?.keep),
         description:
-          "Kept accounts only – set with “New passphrase”. The old one stops working then.",
+          "Kept accounts only – set with “New passphrase”. The old one stops working then. A click copies it.",
+        components: {
+          Field: "@/fields/passphrase-copy#PassphraseCopy",
+        },
       },
     },
     {

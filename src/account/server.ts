@@ -2,6 +2,7 @@ import { createHmac, randomInt, timingSafeEqual } from "node:crypto";
 import configPromise from "@payload-config";
 import { type NextRequest, NextResponse } from "next/server";
 import { getPayload, type Payload } from "payload";
+import { currentForm } from "../link-keys";
 import type { Account } from "../payload-types";
 import { keyOf, newPassphrase, normalizePassphrase, secret } from "./keys";
 import {
@@ -146,7 +147,10 @@ export const currentAccount = async (
 
 /** The cookies an account keeps online – each with its short link's code. */
 export const onlineJar = (account: Account) =>
-  (Array.isArray(account.jar) ? account.jar : []).filter(isSavedCookie);
+  (Array.isArray(account.jar) ? account.jar : [])
+    .filter(isSavedCookie)
+    // Put online from older links: their hash as written today.
+    .map((cookie) => ({ ...cookie, hash: currentForm(cookie.hash) }));
 
 /** What the browser gets of the account: its online cookies, its end. */
 export const accountData = (account: Account): AccountData => ({

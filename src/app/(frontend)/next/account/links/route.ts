@@ -10,6 +10,7 @@ import {
   newCode,
   onlineJar,
 } from "@/account/server";
+import { currentForm } from "@/link-keys";
 import type { Account } from "@/payload-types";
 import { clientIp, rateLimit } from "@/stats/rate-limit";
 
@@ -38,8 +39,10 @@ const keepJar = (payload: Payload, account: Account, jar: unknown[]) =>
 export const POST = async (request: NextRequest) => {
   if (!fromThisSite(request)) return failure("Forbidden", 403);
   if (tooMany(clientIp(request))) return failure("Too many requests", 429);
-  const { cookie } = await bodyOf(request);
-  if (!isSavedCookie(cookie)) return failure("Invalid cookie", 400);
+  const body = await bodyOf(request);
+  if (!isSavedCookie(body.cookie)) return failure("Invalid cookie", 400);
+  // Kept as links are written today, like the jar it joins (onlineJar).
+  const cookie = { ...body.cookie, hash: currentForm(body.cookie.hash) };
   const shape = modelOf(cookie.hash);
   if (!isShape(shape)) return failure("Invalid shape", 400);
   const payload = await getAccountsPayload();
@@ -80,8 +83,9 @@ export const POST = async (request: NextRequest) => {
 
 export const DELETE = async (request: NextRequest) => {
   if (!fromThisSite(request)) return failure("Forbidden", 403);
-  const { hash } = await bodyOf(request);
-  if (typeof hash !== "string") return failure("Invalid hash", 400);
+  const body = await bodyOf(request);
+  if (typeof body.hash !== "string") return failure("Invalid hash", 400);
+  const hash = currentForm(body.hash);
   const payload = await getAccountsPayload();
   const account = await currentAccount(request, payload);
   if (!account) return failure("Not logged in", 401);

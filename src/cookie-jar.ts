@@ -2,6 +2,7 @@ import { JAR_SIZE } from "./account/rules";
 import type { CookieShape } from "./cookies/shape-cookie";
 import type { Ring } from "./geometry/outline";
 import { hashText } from "./hash-text";
+import { currentForm } from "./link-keys";
 import { simplifyRing } from "./url-state";
 
 export { JAR_SIZE };
@@ -109,7 +110,12 @@ export const trimJar = (jar: readonly SavedCookie[]) => {
 export const loadJar = (): SavedCookie[] => {
   try {
     const stored: unknown = JSON.parse(localStorage.getItem(KEY) ?? "[]");
-    return Array.isArray(stored) ? stored.filter(isCookie) : [];
+    // Saved from older links: their hash as written today.
+    return Array.isArray(stored)
+      ? stored
+          .filter(isCookie)
+          .map((cookie) => ({ ...cookie, hash: currentForm(cookie.hash) }))
+      : [];
   } catch {
     return [];
   }
