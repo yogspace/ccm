@@ -8,9 +8,9 @@ import { EMPTY_DAYS, IDLE_DAYS } from "../account/rules";
  * only, kept as its key. They keep the cookies put online, each with a short
  * link. Made on the site, never here; the admin sees when each was made and
  * last visited and how many cookies it keeps online, finds one by its
- * passphrase (nothing kept), can keep it forever
- * (no deleting when idle) – the only thing to change here – and can delete
- * it; its short links go along.
+ * passphrase (nothing kept), labels it to find it again, can keep it forever
+ * (no deleting when idle) – label and keeping the only things to change
+ * here – and can delete it; its short links go along.
  */
 export const Accounts: CollectionConfig = {
   slug: "accounts",
@@ -18,13 +18,16 @@ export const Accounts: CollectionConfig = {
   access: {
     read: authenticated,
     create: () => false,
-    // Only “keep forever” – every other field refuses changes itself.
+    // Only label and “keep forever” – every other field refuses changes.
     update: authenticated,
     delete: authenticated,
   },
   admin: {
     group: "Accounts",
-    defaultColumns: ["id", "cookies", "lastSeenAt", "keep", "createdAt"],
+    // Labelled ones by their label, the others by their id.
+    useAsTitle: "label",
+    listSearchableFields: ["label"],
+    defaultColumns: ["label", "cookies", "lastSeenAt", "keep", "createdAt"],
     // Above the list: find an account by its passphrase.
     components: {
       beforeListTable: ["@/fields/account-finder#AccountFinder"],
@@ -32,6 +35,16 @@ export const Accounts: CollectionConfig = {
     description: `Visitors' accounts – no names, no email, a passphrase only (stored as a key, never readable). They keep the cookies their owners put online, each with a short link. Gone after ${IDLE_DAYS} days without a visit (after ${EMPTY_DAYS} if they never kept anything) unless kept forever – or when deleted here or in the account.`,
   },
   fields: [
+    {
+      // The admin's own note on an account – never sent to the site.
+      name: "label",
+      type: "text",
+      label: "Label",
+      admin: {
+        description:
+          "Only for you, to find it again. Visitors never see it.",
+      },
+    },
     {
       // scrypt of the passphrase – what a login finds the account by.
       name: "key",

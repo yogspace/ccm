@@ -131,6 +131,10 @@ export interface User {
  */
 export interface Account {
   id: string;
+  /**
+   * Only for you, to find it again – e.g. “mine”. Visitors never see it.
+   */
+  label?: string | null;
   key: string;
   lastSeenAt: string;
   jar?:
@@ -431,6 +435,7 @@ export interface UsersSelect<T extends boolean = true> {
  * via the `definition` "accounts_select".
  */
 export interface AccountsSelect<T extends boolean = true> {
+  label?: T;
   key?: T;
   lastSeenAt?: T;
   jar?: T;
