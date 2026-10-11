@@ -155,11 +155,11 @@ The first admin comes from `PAYLOAD_ADMIN_EMAIL`/`PAYLOAD_ADMIN_PASSWORD` in `.e
 
 ### Statistics
 
-In the admin under **Analytics**: page views and actions over a time range (today, yesterday, 7/30/90 days, since the last report) with the same span before for comparison, page views per hour or day (a click on a bar narrows everything down), pages × devices as a heatmap, sources, and what people did. Deleting by range, everything or one device profile.
+In the admin under **Analytics**: page views and actions over a time range (today, yesterday, 7/30/90 days, since the last report) with the same span before for comparison – key figures with their course, page views per hour or day as an area chart against the period before (a click narrows everything down to that hour or day), devices as a ring, pages × devices as a heatmap, sources and what people did as bars against before, and when accounts go. Every chart has a table view; colors from one checked palette (`.ccm-viz` in `custom.scss`), charts in `fields/analytics/charts.tsx`. Deleting by range, everything or one device profile.
 
 - **Own devices:** in the sidebar “Don't count this device” – once per device, logged in; afterwards it is not counted even logged out. Logged-in admins are never counted.
 - **Contact form:** in the imprint (dialog) – mailed to `MAIL_CONTACT_RECIPIENT` via Resend, nothing stored; a honeypot and a rate limit (5 per 10 minutes and IP, in memory only) against abuse.
-- **Mail report:** in the sidebar daily, weekly or monthly (off by default), “Send the report now” to try it. Needs the secrets `CRON_SECRET`, `RESEND_API_KEY`, `MAIL_FROM` and `MAIL_STATS_RECIPIENT`; the cron job is installed by every deploy. The route also prunes rows older than 90 days.
+- **Mail report:** in the sidebar daily, weekly or monthly (off by default), “Send the report now” to try it. It shows the same as the admin: the page views as an area chart against the period before, the devices as a ring and the figures' course as pictures in the mail (drawn with `next/og` in `stats-digest/chart-image.tsx`, sent inline through Resend's `content_id`; phones get a narrower chart), lists as bars – where a picture fails, columns and bars in plain HTML. Needs the secrets `CRON_SECRET`, `RESEND_API_KEY`, `MAIL_FROM` and `MAIL_STATS_RECIPIENT`; the cron job is installed by every deploy. The route also prunes rows older than 90 days.
 
 ### Accounts
 
