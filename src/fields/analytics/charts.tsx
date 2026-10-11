@@ -662,7 +662,8 @@ export const Ring = ({ slices, unit }: { slices: Slice[]; unit: string }) => {
   const total = slices.reduce((sum, slice) => sum + slice.value, 0);
   const size = 132;
   const stroke = 16;
-  const r = (size - stroke) / 2;
+  // Room for the hovered part, which grows by 4 px.
+  const r = (size - stroke - 4) / 2;
   const c = 2 * Math.PI * r;
   const gap = slices.length > 1 ? 2.5 : 0;
   let at = 0;
@@ -690,14 +691,16 @@ export const Ring = ({ slices, unit }: { slices: Slice[]; unit: string }) => {
           style={{ transform: "rotate(-90deg)" }}
           width={size}
         >
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            fill="none"
-            r={r}
-            stroke="var(--theme-elevation-100)"
-            strokeWidth={stroke}
-          />
+          {total === 0 && (
+            <circle
+              cx={size / 2}
+              cy={size / 2}
+              fill="none"
+              r={r}
+              stroke="var(--theme-elevation-100)"
+              strokeWidth={stroke}
+            />
+          )}
           {arcs.map((arc, i) =>
             arc.length <= 0 ? null : (
               <circle
@@ -712,7 +715,7 @@ export const Ring = ({ slices, unit }: { slices: Slice[]; unit: string }) => {
                 stroke={arc.color}
                 strokeDasharray={`${Math.max(0.5, arc.length - gap)} ${c}`}
                 strokeDashoffset={-arc.start}
-                strokeWidth={active === i ? stroke + 3 : stroke}
+                strokeWidth={active === i ? stroke + 4 : stroke}
                 style={{
                   transition: "opacity 120ms ease, stroke-width 120ms ease",
                 }}
