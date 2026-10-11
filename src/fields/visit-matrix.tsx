@@ -20,11 +20,11 @@ type Hover =
 const MAX_ROWS = 10;
 
 /**
- * The shading as steps of the admin's “success” color (Payload's blue) – via
- * the theme variables, which Payload turns around in dark mode, so “more
- * views = further from the ground” holds in both modes.
+ * The shading as the seven steps of the charts' blue ramp (custom.scss,
+ * `--viz-seq-*`), turned round in dark mode – “more views = further from
+ * the ground” holds in both – with a text color that reads on each step.
  */
-const RAMP = [100, 200, 300, 400, 500, 600, 700] as const;
+const RAMP = [1, 2, 3, 4, 5, 6, 7] as const;
 
 const muted = { color: "var(--theme-elevation-400)" } as const;
 
@@ -80,10 +80,8 @@ export const VisitMatrix = ({
     const index = Math.ceil(visitShade(count, max) * RAMP.length) - 1;
     const step = RAMP[Math.max(0, Math.min(RAMP.length - 1, index))];
     return {
-      background: `var(--theme-success-${step})`,
-      // From the middle of the ramp on, the ground's text color no longer
-      // reads – `elevation-0` is the ground in both modes.
-      color: step >= 500 ? "var(--theme-elevation-0)" : "var(--theme-text)",
+      background: `var(--viz-seq-${step})`,
+      color: `var(--viz-seq-ink-${step})`,
     };
   };
 
@@ -248,14 +246,7 @@ export const VisitMatrix = ({
   };
 
   return (
-    <div
-      style={{
-        marginTop: 4,
-        marginBottom: 16,
-        paddingBottom: 14,
-        borderBottom: "1px solid var(--theme-elevation-150)",
-      }}
-    >
+    <div>
       <div
         style={{
           display: "flex",
@@ -279,8 +270,8 @@ export const VisitMatrix = ({
             style={{
               border: "none",
               borderRadius: 999,
-              background: "var(--theme-success-600)",
-              color: "var(--theme-elevation-0)",
+              background: "var(--viz-1)",
+              color: "#ffffff",
               font: "inherit",
               fontSize: 12,
               fontWeight: 600,
@@ -319,9 +310,9 @@ export const VisitMatrix = ({
                       padding: 0,
                       // The mark on the CELL, not the button: headers differ
                       // in height, the cell is always as high as the row.
-                      background: active ? "var(--theme-success-100)" : "none",
+                      background: active ? "var(--viz-select)" : "none",
                       borderBottom: active
-                        ? "3px solid var(--theme-success-500)"
+                        ? "3px solid var(--viz-1)"
                         : "3px solid transparent",
                       borderRadius: "4px 4px 0 0",
                       fontWeight: active ? 600 : 400,
@@ -426,8 +417,8 @@ export const VisitMatrix = ({
                         }
                         style={{
                           textAlign: "center",
-                          padding: "5px 4px",
-                          borderRadius: 4,
+                          padding: "6px 4px",
+                          borderRadius: 6,
                           fontWeight: 600,
                           fontVariantNumeric: "tabular-nums",
                           outline: isHovered

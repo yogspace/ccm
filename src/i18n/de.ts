@@ -234,7 +234,7 @@ export const de = {
       "Online-Kekse sind auf all deinen Geräten und haben einen kurzen Link. Der speichert nur den Ausstecher – Namen und Nachrichten stehen im Link selbst.",
     goneAt:
       "Kommst du bis zum {{date}} nicht vorbei, wird dein Konto mit allem gelöscht.",
-    idle: "Ein Konto ohne Besuch wird nach sechs Monaten mit allem gelöscht.",
+    idle: "Ein Konto ohne Besuch wird nach sechs Monaten mit allem gelöscht, eines ohne Online-Kekse schon nach 30 Tagen.",
     logOut: "Abmelden",
     logOutHint:
       "Deine Online-Kekse verschwinden von diesem Gerät und bleiben im Konto.",

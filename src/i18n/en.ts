@@ -233,7 +233,7 @@ export const en: typeof de = {
       "Online cookies are on all your devices and have a short link. It keeps only the cookie cutter – names and messages are in the link itself.",
     goneAt:
       "If you don't drop by until {{date}}, your account goes with everything in it.",
-    idle: "An account nobody visits goes with everything in it after six months.",
+    idle: "An account nobody visits goes with everything in it after six months – one with no cookies online after 30 days.",
     logOut: "Log out",
     logOutHint:
       "Your online cookies leave this device and stay in the account.",

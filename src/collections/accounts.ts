@@ -31,10 +31,10 @@ export const Accounts: CollectionConfig = {
     listSearchableFields: ["label"],
     defaultColumns: [
       "label",
+      "deletedIn",
       "cookies",
       "lastSeenAt",
       "lastLoginAt",
-      "keep",
       "createdAt",
     ],
     // Above the list: find an account by its passphrase.
@@ -112,6 +112,19 @@ export const Accounts: CollectionConfig = {
       admin: { defaultColumns: ["code", "createdAt"] },
     },
     {
+      // When it goes (prune.ts) – a dot at a glance, in the list too.
+      name: "deletedIn",
+      type: "ui",
+      label: "Deleted in",
+      admin: {
+        position: "sidebar",
+        components: {
+          Cell: "@/fields/account-end#AccountEndCell",
+          Field: "@/fields/account-end#AccountEndField",
+        },
+      },
+    },
+    {
       // Set here only: never deleted for being idle or empty (prune.ts).
       name: "keep",
       type: "checkbox",
@@ -124,7 +137,7 @@ export const Accounts: CollectionConfig = {
       },
     },
     {
-      // Kept only for accounts kept forever, set only by “New passphrase”
+      // Kept only for accounts kept forever, set only by “Generate new”
       // (the hook below guards it) – no other passphrase is ever stored.
       name: "passphrase",
       type: "text",
@@ -134,27 +147,16 @@ export const Accounts: CollectionConfig = {
         readOnly: true,
         condition: (data) => Boolean(data?.keep),
         description:
-          "Kept accounts only – set with “New passphrase”. The old one stops working then. A click copies it.",
+          "Kept accounts only. “Generate new” replaces it – the old one stops working then.",
         components: {
-          Field: "@/fields/passphrase-copy#PassphraseCopy",
-        },
-      },
-    },
-    {
-      name: "newPassphrase",
-      type: "ui",
-      admin: {
-        position: "sidebar",
-        condition: (data) => Boolean(data?.keep),
-        components: {
-          Field: "@/fields/new-passphrase#NewPassphrase",
+          Field: "@/fields/passphrase-field#PassphraseField",
         },
       },
     },
   ],
   endpoints: [
     {
-      // “New passphrase” (fields/new-passphrase.tsx): for an account kept
+      // “Generate new” (fields/passphrase-field.tsx): for an account kept
       // forever – your own – a fresh passphrase, kept with it to look up.
       path: "/:id/passphrase",
       method: "post",
@@ -234,7 +236,7 @@ export const Accounts: CollectionConfig = {
   hooks: {
     beforeChange: [
       ({ data, originalDoc, req }) => {
-        // The passphrase changes only through “New passphrase”, and goes as
+        // The passphrase changes only through “Generate new”, and goes as
         // soon as the account is no longer kept.
         if (!req.context?.newPassphrase) {
           data.passphrase = originalDoc?.passphrase ?? null;

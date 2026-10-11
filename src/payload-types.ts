@@ -124,7 +124,7 @@ export interface User {
   collection: 'users';
 }
 /**
- * Visitors' accounts – no names, no email, a passphrase only (stored as a key, never readable). They keep the cookies their owners put online, each with a short link. Gone after 180 days without a visit (after 7 with nothing online) unless kept forever – or when deleted here or in the account.
+ * Visitors' accounts – no names, no email, a passphrase only (stored as a key, never readable). They keep the cookies their owners put online, each with a short link. Gone after 180 days without a visit (after 30 with nothing online) unless kept forever – or when deleted here or in the account.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "accounts".
@@ -158,7 +158,7 @@ export interface Account {
    */
   keep?: boolean | null;
   /**
-   * Kept accounts only – set with “New passphrase”. The old one stops working then. A click copies it.
+   * Kept accounts only. “Generate new” replaces it – the old one stops working then.
    */
   passphrase?: string | null;
   updatedAt: string;
@@ -745,7 +745,7 @@ export interface Translation {
      */
     hidePassphrase?: string | null;
     /**
-     * DE: Ein Konto ohne Besuch wird nach sechs Monaten mit allem gelöscht.  ·  EN: An account nobody visits goes with everything in it after six months.
+     * DE: Ein Konto ohne Besuch wird nach sechs Monaten mit allem gelöscht, eines ohne Online-Kekse schon nach 30 Tagen.  ·  EN: An account nobody visits goes with everything in it after six months – one with no cookies online after 30 days.
      */
     idle?: string | null;
     /**

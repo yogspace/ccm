@@ -1,5 +1,6 @@
-import { PassphraseCopy as PassphraseCopy_edc52e73840c2ca5509fe00a8522fa4b } from '@/fields/passphrase-copy'
-import { NewPassphrase as NewPassphrase_7047f93f6e3d6bbef28d82c4d37738c5 } from '@/fields/new-passphrase'
+import { AccountEndCell as AccountEndCell_c0aabdee28504ea6fbd03e1b99707b33 } from '@/fields/account-end'
+import { AccountEndField as AccountEndField_c0aabdee28504ea6fbd03e1b99707b33 } from '@/fields/account-end'
+import { PassphraseField as PassphraseField_15ef3acca1e1eb9413efd8009fb9a01b } from '@/fields/passphrase-field'
 import { AccountFinder as AccountFinder_25ee25c1b43dae615a503f07ca23b573 } from '@/fields/account-finder'
 import { ShortLinkOpen as ShortLinkOpen_e5cc19105f404cc3e2afed9494c39329 } from '@/fields/short-link-open'
 import { GalleryColorField as GalleryColorField_b82447014a4072087d806e281ca6fa7b } from '@/fields/gallery-color-field'
@@ -37,8 +38,9 @@ import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } f
 
 /** @type import('payload').ImportMap */
 export const importMap = {
-  "@/fields/passphrase-copy#PassphraseCopy": PassphraseCopy_edc52e73840c2ca5509fe00a8522fa4b,
-  "@/fields/new-passphrase#NewPassphrase": NewPassphrase_7047f93f6e3d6bbef28d82c4d37738c5,
+  "@/fields/account-end#AccountEndCell": AccountEndCell_c0aabdee28504ea6fbd03e1b99707b33,
+  "@/fields/account-end#AccountEndField": AccountEndField_c0aabdee28504ea6fbd03e1b99707b33,
+  "@/fields/passphrase-field#PassphraseField": PassphraseField_15ef3acca1e1eb9413efd8009fb9a01b,
   "@/fields/account-finder#AccountFinder": AccountFinder_25ee25c1b43dae615a503f07ca23b573,
   "@/fields/short-link-open#ShortLinkOpen": ShortLinkOpen_e5cc19105f404cc3e2afed9494c39329,
   "@/fields/gallery-color-field#GalleryColorField": GalleryColorField_b82447014a4072087d806e281ca6fa7b,

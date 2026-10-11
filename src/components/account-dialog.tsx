@@ -315,16 +315,16 @@ const KeptPassphrase = ({ passphrase }: { passphrase: string }) => {
 const Manage = () => {
   const { t } = useTranslation();
   const lang = useLang();
-  const { goneAt, passphrase } = useSnapshot(account);
+  const { goneAt, emptyGoneAt, passphrase } = useSnapshot(account);
   const { jar } = useSnapshot(store);
   const online = jar.filter(({ code }) => code).length;
+  // With nothing online, an account goes sooner.
+  const end = online > 0 ? goneAt : emptyGoneAt;
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const date =
-    goneAt &&
-    new Intl.DateTimeFormat(lang, { dateStyle: "long" }).format(
-      new Date(goneAt)
-    );
+    end &&
+    new Intl.DateTimeFormat(lang, { dateStyle: "long" }).format(new Date(end));
 
   return (
     <div className="mt-3 grid gap-6">

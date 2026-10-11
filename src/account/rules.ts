@@ -9,8 +9,11 @@ import type { SavedCookie } from "../cookie-jar";
 
 /** Days without a visit, then the account goes with everything in it. */
 export const IDLE_DAYS = 180;
-/** An account with nothing online goes after these many idle days. */
-export const EMPTY_DAYS = 7;
+/**
+ * An account with nothing online – no cookie, no short link – goes after
+ * these many days without a visit.
+ */
+export const EMPTY_DAYS = 30;
 /**
  * Cookies a jar keeps – the oldest make room beyond this many; online, an
  * account keeps as many.
@@ -27,9 +30,27 @@ export const SESSION_DAYS = IDLE_DAYS;
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** When an account last seen at `lastSeen` goes, unless visited again. */
-export const goneAt = (lastSeen: Date | string | number) =>
-  new Date(new Date(lastSeen).getTime() + IDLE_DAYS * DAY_MS);
+/**
+ * When an account last seen at `lastSeen` goes, unless visited again –
+ * after `days` (EMPTY_DAYS with nothing online).
+ */
+export const goneAt = (lastSeen: Date | string | number, days = IDLE_DAYS) =>
+  new Date(new Date(lastSeen).getTime() + days * DAY_MS);
+
+/**
+ * When an account goes as prune.ts sees it: its last visit, and whether
+ * anything is online (`cookies`) – null: kept forever.
+ */
+export const endOf = ({
+  lastSeenAt,
+  keep,
+  cookies,
+}: {
+  lastSeenAt: Date | string | number;
+  keep?: boolean | null;
+  cookies?: number | null;
+}) =>
+  keep ? null : goneAt(lastSeenAt, (cookies ?? 0) > 0 ? IDLE_DAYS : EMPTY_DAYS);
 
 /**
  * What the browser gets of its account: the cookies put online, each with
@@ -39,8 +60,10 @@ export const goneAt = (lastSeen: Date | string | number) =>
  */
 export type AccountData = {
   jar: SavedCookie[];
-  /** When it goes without another visit (ISO) – null: kept forever. */
+  /** When it goes without another visit (ISO) – null: kept forever … */
   goneAt: string | null;
+  /** … and when, with nothing online. */
+  emptyGoneAt: string | null;
 };
 
 /** The model a creation's hash carries (`s`) – what a short link keeps. */

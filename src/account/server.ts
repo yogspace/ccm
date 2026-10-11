@@ -10,6 +10,7 @@ import {
   CODE_CHARS,
   CODE_LENGTH,
   DAY_MS,
+  EMPTY_DAYS,
   goneAt,
   isSavedCookie,
   SESSION_DAYS,
@@ -152,10 +153,16 @@ export const onlineJar = (account: Account) =>
     // Put online from older links: their hash as written today.
     .map((cookie) => ({ ...cookie, hash: currentForm(cookie.hash) }));
 
-/** What the browser gets of the account: its online cookies, its end. */
+/**
+ * What the browser gets of the account: its online cookies, its end – with
+ * something online, and without (it may put some online or take all back).
+ */
 export const accountData = (account: Account): AccountData => ({
   jar: onlineJar(account),
   goneAt: account.keep ? null : goneAt(account.lastSeenAt).toISOString(),
+  emptyGoneAt: account.keep
+    ? null
+    : goneAt(account.lastSeenAt, EMPTY_DAYS).toISOString(),
 });
 
 // ─── Requests ───────────────────────────────────────────────────────────────

@@ -299,6 +299,102 @@ export const rangeWindow = (
   };
 };
 
+// ─── Time slots ──────────────────────────────────────────────────────────────
+
+const two = (n: number) => String(n).padStart(2, "0");
+const weekdayDay = (d: Date) =>
+  d.toLocaleDateString("de-DE", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+  });
+
+/** An hour or a day of the range – where the charts count. */
+export type Slot = {
+  from: number;
+  to: number;
+  /** Axis label, shown where `tick` is set. */
+  label: string;
+  /** Long name: “Do., 09.10., 13:00–14:00”. */
+  title: string;
+  tick: boolean;
+  /** Still running (this hour, today). */
+  partial: boolean;
+};
+
+/**
+ * The range in hours (up to three days) or days – EVERY one, even without
+ * rows: without the empty ones the course would look denser than it was.
+ * Counted on by the date, not fixed milliseconds: at the clock change a day
+ * has 23 or 25 hours.
+ */
+export const timeSlots = (w: Window): Slot[] => {
+  const floor = (t: number) => {
+    const d = new Date(t);
+    if (w.grain === "hour") d.setMinutes(0, 0, 0);
+    else d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  };
+  const multiDay = w.to - w.from > DAY_MS + 60 * 60 * 1000;
+  const out: Slot[] = [];
+  const cursor = new Date(floor(w.from));
+  while (cursor.getTime() < w.to) {
+    const from = cursor.getTime();
+    const d = new Date(from);
+    if (w.grain === "hour") {
+      const h = d.getHours();
+      cursor.setHours(cursor.getHours() + 1);
+      out.push({
+        from,
+        to: cursor.getTime(),
+        label: multiDay && h === 0 ? weekdayDay(d) : `${two(h)}:00`,
+        title: `${weekdayDay(d)}, ${two(h)}:00–${two((h + 1) % 24)}:00`,
+        tick: multiDay ? h % 12 === 0 : h % 3 === 0,
+        partial: false,
+      });
+    } else {
+      cursor.setDate(cursor.getDate() + 1);
+      out.push({
+        from,
+        to: cursor.getTime(),
+        label: d
+          .toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })
+          .replace(/\.$/, ""),
+        title: weekdayDay(d),
+        tick: true,
+        partial: false,
+      });
+    }
+  }
+  const last = out.at(-1);
+  if (w.open && last) last.partial = true;
+  if (w.grain === "day" && out.length > 10) {
+    const every = out.length > 40 ? 14 : 7;
+    out.forEach((slot, i) => {
+      slot.tick = i % every === 0 || i === out.length - 1;
+    });
+  }
+  return out;
+};
+
+/** How many rows fall into each slot. */
+export const countInSlots = (
+  slots: Pick<Slot, "from" | "to">[],
+  rows: { createdAt: string }[]
+) => {
+  const counts = slots.map(() => 0);
+  if (slots.length === 0) return counts;
+  const start = slots[0].from;
+  for (const row of rows) {
+    const at = new Date(row.createdAt).getTime();
+    if (at < start) continue;
+    // Slots are in order – a binary search would do, but they are few.
+    const i = slots.findIndex((slot) => at >= slot.from && at < slot.to);
+    if (i >= 0) counts[i]++;
+  }
+  return counts;
+};
+
 export const inWindow =
   (from: number, to: number) =>
   (row: { createdAt: string }): boolean => {

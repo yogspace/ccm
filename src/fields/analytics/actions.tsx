@@ -1,23 +1,73 @@
 "use client";
 
-import { ACTION_NAMES, actionLabel } from "../../stats/actions";
+import {
+  ACTION_NAMES,
+  type ActionName,
+  actionLabel,
+} from "../../stats/actions";
 import { pathLabel } from "../../stats/page-names";
 import { tally } from "../../stats/tally";
-import { inWindow, rangeWindow, useAnalytics } from "./data";
 import {
-  type Entry,
-  fmt,
-  Loading,
-  MUTED,
-  Note,
-  RankList,
-  Subsection,
-} from "./parts";
+  type BarEntry,
+  BarList,
+  barTable,
+  ChartCard,
+  deviceSlices,
+  Key,
+  Ring,
+} from "./charts";
+import { inWindow, rangeWindow, useAnalytics } from "./data";
+import { fmt, Loading, MUTED, Note, TEXT } from "./parts";
+
+/** The actions by what they are about – anything new lands in “Other”. */
+const GROUPS: { title: string; names: ActionName[] }[] = [
+  { title: "Making", names: ["cookie-saved", "template", "svg-import"] },
+  {
+    title: "Downloads",
+    names: ["download-3mf", "download-stl", "download-embossed"],
+  },
+  {
+    title: "Sharing",
+    names: ["share-open", "share-link", "share-image", "save-image"],
+  },
+  {
+    title: "Cards",
+    names: [
+      "card-created",
+      "card-turned",
+      "card-eaten",
+      "card-picture",
+      "card-download-3mf",
+      "card-download-stl",
+    ],
+  },
+  {
+    title: "Accounts",
+    names: [
+      "account-created",
+      "account-login",
+      "account-logout",
+      "account-deleted",
+      "cookie-online",
+      "cookie-replaced",
+      "cookie-offline",
+    ],
+  },
+];
+
+const grouped = new Set(GROUPS.flatMap((group) => group.names));
+const ALL_GROUPS = [
+  ...GROUPS,
+  {
+    title: "Other",
+    names: ACTION_NAMES.filter((name) => !grouped.has(name)),
+  },
+];
 
 /**
- * What people did: downloads, sharing, cards, imports – in the range from
- * the sidebar (or the bar chosen in the chart), each with the same span
- * before for comparison.
+ * What people did: making, downloads, sharing, cards, accounts – in the
+ * range from the sidebar (or the hour or day chosen in the chart), each
+ * against the same span before. Where it happened, and on which devices.
  */
 export const AnalyticsActions = () => {
   const { data, range, focus } = useAnalytics();
@@ -28,55 +78,118 @@ export const AnalyticsActions = () => {
     ? inWindow(focus.from, focus.to)
     : inWindow(w.from, w.open ? Number.POSITIVE_INFINITY : w.to);
   const actions = data.actions.filter(inRange);
-  const before =
+  const previous =
     !focus && w.previous
-      ? tally(
-          data.actions
-            .filter(inWindow(w.previous.from, w.previous.to))
-            .map((row) => row.name)
+      ? new Map(
+          tally(
+            data.actions
+              .filter(inWindow(w.previous.from, w.previous.to))
+              .map((row) => row.name)
+          )
         )
       : null;
-  const previous = new Map(before ?? []);
   const counts = new Map(tally(actions.map((row) => row.name)));
 
-  // In the fixed order of the list (downloads first), only what happened.
-  const entries: Entry[] = ACTION_NAMES.filter(
-    (name) => counts.has(name) || previous.has(name)
-  ).map((name) => [
-    actionLabel(name),
-    counts.get(name) ?? 0,
-    before ? `before: ${fmt(previous.get(name) ?? 0)}` : undefined,
-  ]);
+  // In each group's fixed order, only what happened (now or before).
+  const groups = ALL_GROUPS.map((group) => ({
+    title: group.title,
+    entries: group.names
+      .filter((name) => counts.has(name) || previous?.has(name))
+      .map(
+        (name): BarEntry => ({
+          name: actionLabel(name),
+          value: counts.get(name) ?? 0,
+          ...(previous && { before: previous.get(name) ?? 0 }),
+        })
+      ),
+  })).filter((group) => group.entries.length > 0);
+  const all = groups.flatMap((group) => group.entries);
+  // One scale for every group: bars in different groups compare too.
+  const max = Math.max(
+    1,
+    ...all.map((entry) => Math.max(entry.value, entry.before ?? 0))
+  );
 
-  const devices = tally(actions.map((row) => row.device));
-  const pages = tally(actions.map((row) => pathLabel(row.path ?? "—")));
+  const pages = tally(actions.map((row) => pathLabel(row.path ?? "—"))).map(
+    ([name, value]) => ({ name, value })
+  );
+  const devices = deviceSlices(actions.map((row) => row.device));
 
   return (
-    <>
+    <div className="ccm-viz">
       <Note>
         {focus ? focus.label : w.label} · {fmt(actions.length)} actions
-        {before && w.previous && (
+        {previous && w.previous && (
           <span style={{ color: MUTED }}>
             {" "}
             – “before” is {w.previous.label}
           </span>
         )}
       </Note>
-      {entries.length === 0 ? (
+      {all.length === 0 ? (
         <Note>Nothing done in this time range.</Note>
       ) : (
         <>
-          <Subsection title="Actions">
-            <RankList entries={entries} />
-          </Subsection>
-          <Subsection title="On which page">
-            <RankList entries={pages} />
-          </Subsection>
-          <Subsection title="On which device">
-            <RankList entries={devices} />
-          </Subsection>
+          <ChartCard
+            aside={
+              previous && (
+                <Key color="var(--viz-before)" line>
+                  before
+                </Key>
+              )
+            }
+            table={barTable(all, "Action")}
+            title="What people did"
+          >
+            <div
+              style={{
+                display: "grid",
+                gap: "18px 32px",
+                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+              }}
+            >
+              {groups.map((group) => (
+                <div key={group.title}>
+                  <h5
+                    style={{
+                      color: TEXT,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      letterSpacing: "0.06em",
+                      margin: "0 0 10px",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {group.title}
+                  </h5>
+                  <BarList
+                    entries={group.entries}
+                    legend={false}
+                    limit={20}
+                    max={max}
+                  />
+                </div>
+              ))}
+            </div>
+          </ChartCard>
+          {actions.length > 0 && (
+            <div className="ccm-viz__grid">
+              <ChartCard table={barTable(pages, "Page")} title="On which page">
+                <BarList entries={pages} />
+              </ChartCard>
+              <ChartCard
+                table={{
+                  head: ["Device", "Actions"],
+                  rows: devices.map((slice) => [slice.name, slice.value]),
+                }}
+                title="On which device"
+              >
+                <Ring slices={devices} unit="actions" />
+              </ChartCard>
+            </div>
+          )}
         </>
       )}
-    </>
+    </div>
   );
 };

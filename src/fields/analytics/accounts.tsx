@@ -1,8 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { EMPTY_DAYS, IDLE_DAYS } from "../../account/rules";
-import { DAY_MS, inWindow, rangeWindow, useAnalytics } from "./data";
+import { EMPTY_DAYS, endOf, IDLE_DAYS } from "../../account/rules";
+import { ChartCard, EndTimeline, type Fate, Meter, Sparkline } from "./charts";
+import {
+  countInSlots,
+  DAY_MS,
+  inWindow,
+  rangeWindow,
+  timeSlots,
+  useAnalytics,
+} from "./data";
 import {
   compare,
   fmt,
@@ -52,7 +60,8 @@ const load = async (): Promise<Totals | null> => {
 /**
  * Visitors' accounts as totals – none of them listed, nothing that tells one
  * from another: new ones and visits in the range from the sidebar, how many
- * there are, what they keep online, which go soon. What people do with them
+ * there are, what they keep online, and when each goes (a dot per account,
+ * days left only). What people do with them
  * (logging in, putting cookies online …) is under Actions, anonymous like
  * every action.
  */
@@ -81,17 +90,34 @@ export const AnalyticsAccounts = () => {
   const visited = accounts.filter(
     (row) => new Date(row.lastSeenAt).getTime() >= w.from
   ).length;
-  const soonBefore = Date.now() - (IDLE_DAYS - SOON_DAYS) * DAY_MS;
+  // Each goes after its own time: sooner with nothing online.
+  const soonBefore = Date.now() + SOON_DAYS * DAY_MS;
   const soon = accounts.filter(
-    (row) => !row.keep && new Date(row.lastSeenAt).getTime() < soonBefore
+    (row) => (endOf(row)?.getTime() ?? Number.POSITIVE_INFINITY) < soonBefore
   ).length;
   const kept = accounts.filter((row) => row.keep).length;
   const online = accounts.reduce((sum, row) => sum + (row.cookies ?? 0), 0);
   const keeping = accounts.filter((row) => (row.cookies ?? 0) > 0).length;
-  const empty = accounts.length - keeping;
+  // Kept ones never go, empty or not.
+  const empty = accounts.filter(
+    (row) => !row.keep && !((row.cookies ?? 0) > 0)
+  ).length;
+
+  // Every account as days left and cookies online – nothing else.
+  const fates: Fate[] = accounts.map((row) => {
+    const end = endOf(row);
+    return {
+      days:
+        end === null
+          ? null
+          : Math.max(0, Math.ceil((end.getTime() - Date.now()) / DAY_MS)),
+      cookies: row.cookies ?? 0,
+    };
+  });
+  const slots = timeSlots(w);
 
   return (
-    <>
+    <div className="ccm-viz">
       <Note>
         {w.label} – totals only, no account is listed.
         <span style={{ color: MUTED }}>
@@ -106,28 +132,63 @@ export const AnalyticsAccounts = () => {
           {...(before !== null && w.previous
             ? compare(created, before, w.previous.label)
             : {})}
-        />
+        >
+          <Sparkline values={countInSlots(slots, accounts)} />
+        </StatTile>
         <StatTile
           detail="last visit in this range"
           label="Accounts visited"
           value={visited}
         />
         <StatTile
-          detail={`${fmt(soon)} go within ${SOON_DAYS} days unless visited · ${fmt(kept)} kept forever`}
+          detail={`${fmt(soon)} go within ${SOON_DAYS} days · ${fmt(kept)} kept forever`}
           label="All accounts"
           value={accounts.length}
         />
         <StatTile
-          detail={`in ${fmt(keeping)} accounts · ${fmt(empty)} without (go after ${EMPTY_DAYS} days)`}
+          detail={`in ${fmt(keeping)} accounts · ${fmt(empty)} empty, gone after ${EMPTY_DAYS} days unvisited`}
           label="Cookies online"
           value={online}
-        />
+        >
+          <Meter part={keeping} whole={accounts.length} />
+        </StatTile>
         <StatTile
           detail="one per model put online"
           label="Short links"
           value={links}
         />
       </StatGrid>
-    </>
+
+      <div style={{ height: 12 }} />
+      <ChartCard
+        aside="unless visited – every visit starts it afresh"
+        table={{
+          head: ["Goes", "Accounts"],
+          rows: [
+            [
+              "within 7 days",
+              fates.filter((f) => f.days !== null && f.days < 7).length,
+            ],
+            [
+              "within 30 days",
+              fates.filter((f) => f.days !== null && f.days >= 7 && f.days < 30)
+                .length,
+            ],
+            [
+              "later",
+              fates.filter((f) => f.days !== null && f.days >= 30).length,
+            ],
+            ["never (kept forever)", kept],
+          ],
+        }}
+        title="When accounts go"
+      >
+        {accounts.length === 0 ? (
+          <Note>No accounts yet.</Note>
+        ) : (
+          <EndTimeline fates={fates} horizon={IDLE_DAYS} marks={[7, 30, 90]} />
+        )}
+      </ChartCard>
+    </div>
   );
 };

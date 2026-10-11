@@ -3,6 +3,7 @@
 import { tally } from "../../stats/tally";
 import { deviceName, type Visit } from "../../stats/visit-matrix";
 import { VisitMatrix } from "../visit-matrix";
+import { BarList, barTable, ChartCard, deviceSlices, Ring } from "./charts";
 import {
   deviceRows,
   inWindow,
@@ -11,20 +12,13 @@ import {
   setFocus,
   useAnalytics,
 } from "./data";
-import {
-  fmt,
-  Loading,
-  MUTED,
-  Note,
-  RankList,
-  ResetChip,
-  Subsection,
-} from "./parts";
+import { fmt, Loading, MUTED, Note, ResetChip } from "./parts";
 
 /**
- * Who opened what – and where they came from. In the range from the sidebar,
- * the same as in Overview, so the numbers here add up to those there. A bar
- * clicked in the chart narrows down to its hour or day (`focus`).
+ * Who opened what – on which devices, and where they came from. In the
+ * range from the sidebar, the same as in Overview, so the numbers here add
+ * up to those there. The hour or day chosen in the chart narrows down
+ * (`focus`).
  */
 export const AnalyticsVisitors = () => {
   const { data, busy, range, focus } = useAnalytics();
@@ -50,7 +44,8 @@ export const AnalyticsVisitors = () => {
   // came from and would dwarf everything else.
   const sources = tally(
     views.filter((r) => r.referrer !== "internal").map((r) => r.referrer)
-  );
+  ).map(([name, value]) => ({ name, value }));
+  const devices = deviceSlices(views.map((row) => row.device));
 
   // Deletes all views of a device profile – one's own devices from before
   // “Own devices”. Over ALL 90 days, not just the range: a half-deleted
@@ -68,7 +63,7 @@ export const AnalyticsVisitors = () => {
   };
 
   return (
-    <>
+    <div className="ccm-viz">
       {focus ? (
         <div
           style={{
@@ -93,7 +88,7 @@ export const AnalyticsVisitors = () => {
           {w.label} · {fmt(views.length)} page views
           <span style={{ color: MUTED }}>
             {" "}
-            – click a bar in the chart to narrow down
+            – click the chart in Overview to narrow down
           </span>
         </Note>
       )}
@@ -102,18 +97,33 @@ export const AnalyticsVisitors = () => {
         <Note>No visits in this time range.</Note>
       ) : (
         <>
-          <Subsection title="Pages × devices">
+          <div className="ccm-viz__grid">
+            <ChartCard
+              table={{
+                head: ["Device", "Page views"],
+                rows: devices.map((slice) => [slice.name, slice.value]),
+              }}
+              title="Devices"
+            >
+              <Ring slices={devices} unit="page views" />
+            </ChartCard>
+            <ChartCard
+              aside="without internal navigation"
+              table={barTable(sources, "Source")}
+              title="Sources"
+            >
+              <BarList entries={sources} />
+            </ChartCard>
+          </div>
+          <ChartCard title="Pages × devices">
             <VisitMatrix
               busy={busy}
               onResetDevice={onResetDevice}
               visits={visits}
             />
-          </Subsection>
-          <Subsection title="Sources (without internal navigation)">
-            <RankList entries={sources} />
-          </Subsection>
+          </ChartCard>
         </>
       )}
-    </>
+    </div>
   );
 };

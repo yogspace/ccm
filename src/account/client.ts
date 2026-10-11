@@ -18,8 +18,10 @@ type State = "unknown" | "out" | "in";
 
 export const account = proxy({
   state: "unknown" as State,
-  /** When it goes without another visit (ISO). */
+  /** When it goes without another visit (ISO) … */
   goneAt: null as string | null,
+  /** … and when, with nothing online. */
+  emptyGoneAt: null as string | null,
   /** A cookie to put online once logged in (its hash). */
   pending: null as string | null,
   /** Cookies on their way online or back (their hashes). */
@@ -114,6 +116,7 @@ const loggedIn = (data: AccountData) => {
   const here = store.jar.filter(({ hash, code }) => !(code || known.has(hash)));
   account.state = "in";
   account.goneAt = data.goneAt;
+  account.emptyGoneAt = data.emptyGoneAt;
   store.jar = ref(
     trimJar([...online, ...here].sort((a, b) => b.savedAt - a.savedAt))
   );
@@ -130,6 +133,7 @@ const loggedIn = (data: AccountData) => {
 const loggedOut = (leave: boolean) => {
   account.state = "out";
   account.goneAt = null;
+  account.emptyGoneAt = null;
   remember(false);
   if (leave) {
     store.jar = ref(store.jar.filter(({ code }) => !code));
