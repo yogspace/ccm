@@ -77,7 +77,7 @@ src/
   globals/                    site (links, address), legal (imprint & privacy, rich text), translations, analytics (statistics, mail report, own devices)
   legal/                      the legal text's blocks, its rendering on the server, its seed (the text as it stood in the code)
   site-defaults.ts, site-context.ts   links and address before the CMS (seed and fallback); the links in the browser
-  fields/                     admin views: analytics/ (overview, visitors, actions, range), visit-matrix, buttons
+  fields/                     admin views: analytics/ (overview, visitors, actions, accounts, range; charts: area, sparkline, ring, bars, account timeline – each with a table view), visit-matrix, account-end (when an account goes), passphrase-field, buttons
   stats/                      statistics on the server: device classes, sources, exclusion, auth, mail, page names
   analytics.ts                sends page views and actions (sendBeacon)
   seo.ts                      meta texts, link previews, JSON-LD per language
