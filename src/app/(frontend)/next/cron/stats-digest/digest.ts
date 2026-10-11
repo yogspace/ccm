@@ -3,7 +3,14 @@ import { ACTION_NAMES, actionLabel } from "@/stats/actions";
 import { pathLabel } from "@/stats/page-names";
 import { tally } from "@/stats/tally";
 import { deviceName, type Visit } from "@/stats/visit-matrix";
-import { CHART_ID, ringPng, sparkPng, viewsChartPng } from "./chart-image";
+import {
+  CHART_ID,
+  PHONE_H,
+  PHONE_W,
+  ringPng,
+  sparkPng,
+  viewsChartPng,
+} from "./chart-image";
 import { compare, deviceParts, renderReportHtml, reportBuckets } from "./email";
 
 /**
@@ -218,50 +225,32 @@ export const buildDigest = async (
     downloads: sparkOf(downloadRows),
     cards: sparkOf(cardRows),
   };
-  const [png, ring, viewsSpark, downloadsSpark, cardsSpark] = await Promise.all(
-    [
+  const [png, phonePng, ring, viewsSpark, downloadsSpark, cardsSpark] =
+    await Promise.all([
       picture(() => viewsChartPng(chart.buckets, beforeShown)),
+      picture(() =>
+        viewsChartPng(chart.buckets, beforeShown, {
+          width: PHONE_W,
+          height: PHONE_H,
+        })
+      ),
       picture(() => ringPng(deviceParts(byClass), total, "Aufrufe")),
       picture(() => sparkPng(sparks.views)),
       picture(() => sparkPng(sparks.downloads)),
       picture(() => sparkPng(sparks.cards)),
-    ]
+    ]);
+  // Each an embedded file of its own, referred to as `cid:<contentId>`.
+  const files = [
+    ["seitenaufrufe.png", CHART_ID, png],
+    ["seitenaufrufe-handy.png", `${CHART_ID}-phone`, phonePng],
+    ["geraete.png", "devices-ring", ring],
+    ["verlauf-aufrufe.png", "spark-views", viewsSpark],
+    ["verlauf-downloads.png", "spark-downloads", downloadsSpark],
+    ["verlauf-karten.png", "spark-cards", cardsSpark],
+  ] as const;
+  const inline = files.flatMap(([filename, contentId, content]) =>
+    content ? [{ filename, contentId, content }] : []
   );
-  const inline = [
-    ...(png
-      ? [{ filename: "seitenaufrufe.png", contentId: CHART_ID, content: png }]
-      : []),
-    ...(ring
-      ? [{ filename: "geraete.png", contentId: "devices-ring", content: ring }]
-      : []),
-    ...(viewsSpark
-      ? [
-          {
-            filename: "verlauf-aufrufe.png",
-            contentId: "spark-views",
-            content: viewsSpark,
-          },
-        ]
-      : []),
-    ...(downloadsSpark
-      ? [
-          {
-            filename: "verlauf-downloads.png",
-            contentId: "spark-downloads",
-            content: downloadsSpark,
-          },
-        ]
-      : []),
-    ...(cardsSpark
-      ? [
-          {
-            filename: "verlauf-karten.png",
-            contentId: "spark-cards",
-            content: cardsSpark,
-          },
-        ]
-      : []),
-  ];
   const html = renderReportHtml({
     title,
     period: periodLabel,
@@ -305,7 +294,11 @@ export const buildDigest = async (
         share: topSource ? topSource[1] / sourceRows.length : 0,
       },
     ],
-    chart: { ...chart, image: png ? `cid:${CHART_ID}` : undefined },
+    chart: {
+      ...chart,
+      image: png ? `cid:${CHART_ID}` : undefined,
+      phoneImage: png && phonePng ? `cid:${CHART_ID}-phone` : undefined,
+    },
     devices: byClass,
     devicesImage: ring ? "cid:devices-ring" : undefined,
     visits,

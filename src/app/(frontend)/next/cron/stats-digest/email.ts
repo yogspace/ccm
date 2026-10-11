@@ -5,7 +5,7 @@ import {
   type Visit,
   visitShade,
 } from "@/stats/visit-matrix";
-import { CHART_W, RING_SIZE, SPARK_W } from "./chart-image";
+import { CHART_W, PHONE_W, RING_SIZE, SPARK_W } from "./chart-image";
 
 /**
  * The mail report as HTML – tiles, columns, heatmap, lists, in the app's
@@ -651,8 +651,10 @@ export type ReportData = {
     buckets: ReportBucket[];
     /** The same hours or days of the period before. */
     before?: number[];
-    /** The chart as a picture (`cid:…`) – without it, columns. */
+    /** The chart as a picture (`cid:…`) – without it, columns … */
     image?: string;
+    /** … and the phone's narrower one. */
+    phoneImage?: string;
   };
   /** Page views by device class … */
   devices: [string, number][];
@@ -686,6 +688,7 @@ const RESPONSIVE_CSS = `
   .r-mx-label { padding-right: 4px !important; }
   .r-mx-cell { padding-left: 1px !important; padding-right: 1px !important; }
   .r-wrap { white-space: normal !important; }
+  .r-show { display: block !important; max-height: none !important; overflow: visible !important; }
 }
 `;
 
@@ -721,7 +724,13 @@ const renderHtml = (r: ReportData): string => {
       !(chartTotal || beforeTotal)
         ? `<div style="color:${C.muted};font-size:12px;">Keine Aufrufe im Zeitraum.</div>`
         : r.chart.image
-          ? `<img src="${escapeHtml(r.chart.image)}" width="${CHART_W}" alt="Seitenaufrufe: ${fmt(chartTotal)} im Zeitraum${r.chart.before ? `, ${fmt(beforeTotal)} davor` : ""}" style="display:block;width:100%;max-width:${CHART_W}px;height:auto;border:0;">`
+          ? `<img class="${r.chart.phoneImage ? "r-hide" : ""}" src="${escapeHtml(r.chart.image)}" width="${CHART_W}" alt="Seitenaufrufe: ${fmt(chartTotal)} im Zeitraum${r.chart.before ? `, ${fmt(beforeTotal)} davor` : ""}" style="display:block;width:100%;max-width:${CHART_W}px;height:auto;border:0;">${
+              r.chart.phoneImage
+                ? // Only on the phone (media query); hidden everywhere else,
+                  // classic Outlook included.
+                  `<!--[if !mso]><!--><div class="r-show" style="display:none;max-height:0;overflow:hidden;mso-hide:all;"><img src="${escapeHtml(r.chart.phoneImage)}" width="${PHONE_W}" alt="Seitenaufrufe: ${fmt(chartTotal)} im Zeitraum${r.chart.before ? `, ${fmt(beforeTotal)} davor` : ""}" style="display:block;width:100%;max-width:${PHONE_W}px;height:auto;border:0;"></div><!--<![endif]-->`
+                : ""
+            }`
           : chartHtml(r.chart.buckets, beforeTotal ? r.chart.before : undefined)
     }`
   );

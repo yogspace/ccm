@@ -16,6 +16,9 @@ export const CHART_ID = "views-chart";
 /** Size as shown in the mail – drawn at twice it. */
 export const CHART_W = 880;
 export const CHART_H = 220;
+/** The phone's own, narrower one – the wide one would shrink to unreadable. */
+export const PHONE_W = 360;
+export const PHONE_H = 200;
 const SCALE = 2;
 
 const AXIS_W = 34;
@@ -98,7 +101,8 @@ const fmt = (n: number) => n.toLocaleString("de-DE");
  */
 export const viewsChartPng = async (
   buckets: ReportBucket[],
-  before?: number[]
+  before?: number[],
+  { width: CW, height: CH } = { width: CHART_W, height: CHART_H }
 ): Promise<Buffer | null> => {
   const n = buckets.length;
   if (n === 0) return null;
@@ -106,8 +110,8 @@ export const viewsChartPng = async (
   const max = Math.max(1, ...counts, ...(before ?? []));
   if (max === 0) return null;
   const { top, ticks } = axisTicks(max);
-  const plotW = CHART_W - AXIS_W - 8;
-  const plotH = CHART_H - TOP - BOTTOM;
+  const plotW = CW - AXIS_W - 8;
+  const plotH = CH - TOP - BOTTOM;
   const xOf = (i: number) =>
     AXIS_W + (n <= 1 ? plotW / 2 : (i / (n - 1)) * plotW);
   const yOf = (v: number) => TOP + plotH - (v / top) * plotH;
@@ -118,11 +122,18 @@ export const viewsChartPng = async (
   const beforeLine = before
     ? smooth(before.map((v, i): XY => [xOf(i), yOf(v)]))
     : null;
+  // Where the labels would crowd (the phone), only every other one.
+  const ticked = buckets.filter((b) => b.tick).length;
+  const thin = ticked > 1 && plotW / ticked < 56;
+  const shownTick = (b: ReportBucket, i: number) =>
+    b.tick &&
+    (!thin ||
+      buckets.slice(0, i + 1).filter((other) => other.tick).length % 2 === 1);
   const peak = counts.indexOf(Math.max(...counts));
   const last = buckets[n - 1];
 
   // Drawn in the mail's size, scaled up by the viewBox.
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${CHART_W * SCALE}" height="${CHART_H * SCALE}" viewBox="0 0 ${CHART_W} ${CHART_H}">
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${CW * SCALE}" height="${CH * SCALE}" viewBox="0 0 ${CW} ${CH}">
     <defs><linearGradient id="wash" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="${C.data}" stop-opacity="0.22"/>
       <stop offset="1" stop-color="${C.data}" stop-opacity="0.02"/>
@@ -130,7 +141,7 @@ export const viewsChartPng = async (
     ${ticks
       .map(
         (v) =>
-          `<line x1="${AXIS_W}" x2="${CHART_W}" y1="${yOf(v)}" y2="${yOf(v)}" stroke="${v === 0 ? C.base : C.line}" stroke-width="1"/>`
+          `<line x1="${AXIS_W}" x2="${CW}" y1="${yOf(v)}" y2="${yOf(v)}" stroke="${v === 0 ? C.base : C.line}" stroke-width="1"/>`
       )
       .join("")}
     ${beforeLine ? `<path d="${beforeLine}" fill="none" stroke="${C.before}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` : ""}
@@ -183,25 +194,25 @@ export const viewsChartPng = async (
         background: C.ground,
         display: "flex",
         fontFamily: FONT,
-        height: CHART_H * SCALE,
+        height: CH * SCALE,
         position: "relative",
-        width: CHART_W * SCALE,
+        width: CW * SCALE,
       }}
     >
       <img
         alt=""
-        height={CHART_H * SCALE}
+        height={CH * SCALE}
         src={src}
         style={{ position: "absolute" }}
-        width={CHART_W * SCALE}
+        width={CW * SCALE}
       />
       {ticks.map((v) => label(fmt(v), AXIS_W - 8, yOf(v) - 8, "right"))}
       {buckets.map((b, i) =>
-        b.tick
+        shownTick(b, i)
           ? label(
               b.label,
               xOf(i),
-              CHART_H - 17,
+              CH - 17,
               i === 0 ? "left" : i === n - 1 ? "right" : "center"
             )
           : null
@@ -219,8 +230,8 @@ export const viewsChartPng = async (
   );
 
   const response = new ImageResponse(element, {
-    width: CHART_W * SCALE,
-    height: CHART_H * SCALE,
+    width: CW * SCALE,
+    height: CH * SCALE,
   });
   return Buffer.from(await response.arrayBuffer());
 };
