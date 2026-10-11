@@ -89,13 +89,13 @@ export const GET = async (request: Request) => {
   const sinceMs = force
     ? now - interval.windowMs
     : (lastAt ?? now - interval.windowMs);
-  const { subject, text, html, total } = await buildDigest(payload, {
+  const { subject, text, html, total, inline } = await buildDigest(payload, {
     sinceMs,
     now,
     interval,
   });
 
-  const result = await sendMail({ to: recipient, subject, text, html });
+  const result = await sendMail({ to: recipient, subject, text, html, inline });
   if (!result.ok) {
     const status = result.error === "Mail not configured" ? 500 : 502;
     return NextResponse.json({ error: result.error }, { status });

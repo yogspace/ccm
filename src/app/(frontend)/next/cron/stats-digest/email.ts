@@ -5,6 +5,7 @@ import {
   type Visit,
   visitShade,
 } from "@/stats/visit-matrix";
+import { CHART_W, RING_SIZE, SPARK_W } from "./chart-image";
 
 /**
  * The mail report as HTML – tiles, columns, heatmap, lists, in the app's
@@ -38,7 +39,18 @@ const C = {
   dataSoft: "#8c9bff",
   down: "#ff47d0",
   empty: "#d9cfbb",
+  // The period before and a figure's course: quiet, beside the data.
+  before: "#c9bfab",
+  track: "#efe6d4",
 } as const;
+
+// Device classes in fixed colors – brand blue, brand orange, aqua (checked
+// on the cream ground; the numbers always stand beside them).
+const DEVICES: Record<string, { name: string; color: string }> = {
+  desktop: { name: "Desktop", color: "#2a44ff" },
+  mobile: { name: "Mobil", color: "#ff6a1f" },
+  tablet: { name: "Tablet", color: "#1baf7a" },
+};
 
 const FONT =
   "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
@@ -217,9 +229,50 @@ export type Tile = {
   value: number;
   detail?: string;
   delta?: Delta | null;
+  /** Its course over the period – small columns under the number … */
+  spark?: number[];
+  /** … or, where it could be drawn, as a picture (`cid:…`). */
+  sparkImage?: string;
+  /** Its share of a whole (0…1) – a thin track under the number. */
+  share?: number;
 };
 
-const tile = ({ label, value, detail, delta }: Tile) => {
+/**
+ * A figure's course as tiny columns – grey, the last one blue, like the
+ * admin's sparklines. Cells, not a picture: every mail program draws them.
+ */
+const sparkHtml = (values: number[]) => {
+  if (values.length < 2) return "";
+  const max = Math.max(...values, 1);
+  const H = 22;
+  const cells = values
+    .map((v, i) => {
+      const h = v ? Math.max(2, Math.round((v / max) * H)) : 1;
+      const color = i === values.length - 1 ? C.data : v ? C.before : C.track;
+      return `<td valign="bottom" style="vertical-align:bottom;height:${H}px;padding:0 ${values.length > 40 ? 0 : 1}px;"><div style="height:${h}px;line-height:${h}px;font-size:1px;background:${color};border-radius:1px;">&nbsp;</div></td>`;
+    })
+    .join("");
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed;border-collapse:collapse;margin-top:10px;"><tr>${cells}</tr></table>`;
+};
+
+/** A share as a thin track – for “63 of 223 views”. */
+const meterHtml = (share: number) => {
+  const pct = Math.max(2, Math.min(100, Math.round(share * 100)));
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;margin-top:12px;"><tr>
+    <td width="${pct}%" style="height:6px;line-height:6px;font-size:1px;background:${C.data};border-radius:3px;">&nbsp;</td>
+    ${pct < 100 ? `<td style="height:6px;line-height:6px;font-size:1px;background:${C.track};border-radius:3px;">&nbsp;</td>` : ""}
+  </tr></table>`;
+};
+
+const tile = ({
+  label,
+  value,
+  detail,
+  delta,
+  spark,
+  sparkImage,
+  share,
+}: Tile) => {
   const sub = delta
     ? `<div style="font-size:11px;line-height:15px;color:${TREND_COLOR[delta.trend]};padding-top:6px;"><span style="font-size:8px;">${TREND_ICON[delta.trend]}</span> ${escapeHtml(delta.text)}</div>`
     : detail
@@ -228,7 +281,7 @@ const tile = ({ label, value, detail, delta }: Tile) => {
   return card(
     `<div style="font-size:11px;line-height:14px;color:${C.muted};">${label}</div>
      <div style="font-size:26px;line-height:32px;font-weight:700;color:${C.ink};padding-top:4px;letter-spacing:-0.01em;">${fmt(value)}</div>
-     ${sub}`,
+     ${sub}${sparkImage ? `<img src="${escapeHtml(sparkImage)}" width="${SPARK_W}" alt="" style="display:block;width:100%;max-width:${SPARK_W}px;height:auto;border:0;margin-top:10px;">` : spark ? sparkHtml(spark) : ""}${share !== undefined ? meterHtml(share) : ""}`,
     "14px 16px"
   );
 };
@@ -240,11 +293,12 @@ const PLOT_H = 110;
 /**
  * Columns as a table – every column a cell, the bar a block of fixed height:
  * the form every mail program draws the same. A number only at the tallest
- * bar; the running hour or day lighter.
+ * bar; the running hour or day lighter. With `before`, the same hour or day
+ * of the period before stands as a grey column beside each.
  */
-const chartHtml = (buckets: ReportBucket[]) => {
+const chartHtml = (buckets: ReportBucket[], before?: number[]) => {
   const n = buckets.length;
-  const max = Math.max(...buckets.map((b) => b.count), 1);
+  const max = Math.max(...buckets.map((b) => b.count), ...(before ?? []), 1);
   const peak = buckets.findIndex((b) => b.count === max && b.count > 0);
   const pad = n > 48 ? 0 : 1;
   // Narrow bars like in the admin (at most 24 px); `max-width` so it fits
@@ -261,6 +315,18 @@ const chartHtml = (buckets: ReportBucket[]) => {
       const bar = h
         ? `<div style="height:${h}px;line-height:${h}px;font-size:1px;width:${barW}px;max-width:100%;margin:0 auto;background:${b.partial ? C.dataSoft : C.data};border-radius:3px 3px 0 0;">&nbsp;</div>`
         : "";
+      const was = before?.[i] ?? 0;
+      if (before) {
+        // Side by side in a little table: grey before, blue now.
+        const bh = was ? Math.max(3, Math.round((was / max) * PLOT_H)) : 0;
+        const ghost = bh
+          ? `<div style="height:${bh}px;line-height:${bh}px;font-size:1px;background:${C.before};border-radius:2px 2px 0 0;">&nbsp;</div>`
+          : "";
+        const nowBar = h
+          ? `<div style="height:${h}px;line-height:${h}px;font-size:1px;background:${b.partial ? C.dataSoft : C.data};border-radius:2px 2px 0 0;">&nbsp;</div>`
+          : "";
+        return `<td valign="bottom" style="vertical-align:bottom;height:${PLOT_H + 16}px;padding:0 ${pad}px;">${label}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed;border-collapse:collapse;"><tr><td valign="bottom" style="vertical-align:bottom;width:40%;padding-right:1px;">${ghost}</td><td valign="bottom" style="vertical-align:bottom;width:60%;">${nowBar}</td></tr></table></td>`;
+      }
       return `<td valign="bottom" style="vertical-align:bottom;height:${PLOT_H + 16}px;padding:0 ${pad}px;">${label}${bar}</td>`;
     })
     .join("");
@@ -367,26 +433,211 @@ const matrixHtml = (visits: Visit[]) => {
 
 // ─── Lists ───────────────────────────────────────────────────────────────────
 
-/** Ranking with a thin bar – like the admin's lists. */
+/** A bar of `pct` % on a cream track, `h` px high. */
+const barHtml = (pct: number, color: string, h: number) =>
+  `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;"><tr>${
+    // Nothing is nothing – no stub for a zero.
+    pct > 0
+      ? `<td width="${Math.max(1, pct)}%" style="height:${h}px;line-height:${h}px;font-size:1px;background:${color};border-radius:0 ${h / 2}px ${h / 2}px 0;">&nbsp;</td>`
+      : ""
+  }<td style="height:${h}px;line-height:${h}px;font-size:1px;">&nbsp;</td></tr></table>`;
+
+/**
+ * Ranking as bars from one baseline, the number and the share beside –
+ * like the admin's lists.
+ */
 const rankList = (entries: [string, number, string?][], limit = 8) => {
   if (!entries.length) {
     return `<div style="color:${C.muted};font-size:12px;">Nichts im Zeitraum.</div>`;
   }
   const max = Math.max(...entries.map(([, n]) => n), 1);
+  const total = entries.reduce((sum, [, n]) => sum + n, 0);
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">${entries
     .slice(0, limit)
     .map(
       ([name, count, detail]) => `<tr>
-        <td style="padding:7px 12px 7px 0;border-top:1px solid ${C.line};font-size:12px;line-height:16px;color:${C.text};">${escapeHtml(name)}${detail ? ` <span style="color:${C.muted};font-size:11px;">${escapeHtml(detail)}</span>` : ""}
-          <div style="height:3px;line-height:3px;font-size:1px;background:${C.data};opacity:0.6;border-radius:2px;width:${Math.max(2, Math.round((count / max) * 100))}%;margin-top:5px;">&nbsp;</div>
+        <td style="padding:8px 12px 8px 0;font-size:12px;line-height:16px;color:${C.text};">${escapeHtml(name)}${detail ? ` <span style="color:${C.muted};font-size:11px;">${escapeHtml(detail)}</span>` : ""}
+          <div style="padding-top:5px;">${barHtml(Math.round((count / max) * 100), C.data, 6)}</div>
         </td>
-        <td style="padding:7px 0;border-top:1px solid ${C.line};font-size:13px;font-weight:600;color:${C.ink};text-align:right;white-space:nowrap;vertical-align:top;">${fmt(count)}</td>
+        <td style="padding:8px 0;font-size:13px;font-weight:600;color:${C.ink};text-align:right;white-space:nowrap;vertical-align:top;">${fmt(count)} <span style="font-size:11px;font-weight:400;color:${C.muted};">${Math.round((count / total) * 100)} %</span></td>
       </tr>`
     )
     .join("")}</table>`;
 };
 
+/**
+ * The device classes as ONE stacked bar – the mail's ring: desktop, mobile,
+ * tablet in fixed colors, the rest as “Andere” – with every number and
+ * share in the legend below.
+ */
+/**
+ * The device classes in their fixed colors, the rest as “Andere” – for the
+ * stacked bar and the ring picture alike.
+ */
+export const deviceParts = (devices: [string, number][]) => {
+  const merged = new Map<string, number>();
+  for (const [key, count] of devices) {
+    const name = DEVICES[key] ? key : "other";
+    merged.set(name, (merged.get(name) ?? 0) + count);
+  }
+  return [...Object.keys(DEVICES), "other"]
+    .filter((key) => merged.has(key))
+    .map((key) => ({
+      name: DEVICES[key]?.name ?? "Andere",
+      color: DEVICES[key]?.color ?? C.before,
+      count: merged.get(key) ?? 0,
+    }));
+};
+
+const devicesHtml = (devices: [string, number][], ring?: string) => {
+  const total = devices.reduce((sum, [, n]) => sum + n, 0);
+  if (!total) {
+    return `<div style="color:${C.muted};font-size:12px;">Keine Aufrufe im Zeitraum.</div>`;
+  }
+  const parts = deviceParts(devices);
+  const segments = parts
+    .map(
+      (part, i) =>
+        `<td width="${Math.max(1, Math.round((part.count / total) * 100))}%" style="height:14px;line-height:14px;font-size:1px;background:${part.color};${i < parts.length - 1 ? `border-right:2px solid ${C.card};` : ""}${i === 0 ? "border-radius:7px 0 0 7px;" : ""}${i === parts.length - 1 ? "border-radius:0 7px 7px 0;" : ""}${parts.length === 1 ? "border-radius:7px;" : ""}">&nbsp;</td>`
+    )
+    .join("");
+  const legend = parts
+    .map(
+      (part) => `<tr>
+        <td style="padding:7px 0 0;font-size:12px;line-height:16px;color:${C.text};"><span style="display:inline-block;width:8px;height:8px;border-radius:4px;background:${part.color};margin-right:6px;"></span>${part.name}</td>
+        <td style="padding:7px 0 0;font-size:13px;font-weight:600;color:${C.ink};text-align:right;white-space:nowrap;">${fmt(part.count)} <span style="font-size:11px;font-weight:400;color:${C.muted};">${Math.round((part.count / total) * 100)} %</span></td>
+      </tr>`
+    )
+    .join("");
+  const legendTable = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:6px;">${legend}</table>`;
+  // The ring as a picture, the legend beside it – else one stacked bar.
+  if (ring) {
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;"><tr>
+      <td width="${RING_SIZE}" style="width:${RING_SIZE}px;vertical-align:middle;padding-right:18px;"><img src="${escapeHtml(ring)}" width="${RING_SIZE}" height="${RING_SIZE}" alt="Geräte: ${parts.map((p) => `${p.name} ${p.count}`).join(", ")}" style="display:block;width:${RING_SIZE}px;height:${RING_SIZE}px;border:0;"></td>
+      <td style="vertical-align:middle;">${legendTable}</td>
+    </tr></table>`;
+  }
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;table-layout:fixed;"><tr>${segments}</tr></table>${legendTable}`;
+};
+
+/** The actions by what they are about – as in the admin; new ones in “Weitere”. */
+const ACTION_GROUPS: { title: string; names: string[] }[] = [
+  { title: "Erstellen", names: ["cookie-saved", "template", "svg-import"] },
+  {
+    title: "Downloads",
+    names: ["download-3mf", "download-stl", "download-embossed"],
+  },
+  {
+    title: "Teilen",
+    names: ["share-open", "share-link", "share-image", "save-image"],
+  },
+  {
+    title: "Karten",
+    names: [
+      "card-created",
+      "card-turned",
+      "card-eaten",
+      "card-picture",
+      "card-download-3mf",
+      "card-download-stl",
+    ],
+  },
+  {
+    title: "Konten",
+    names: [
+      "account-created",
+      "account-login",
+      "account-logout",
+      "account-deleted",
+      "cookie-online",
+      "cookie-replaced",
+      "cookie-offline",
+    ],
+  },
+];
+
+/**
+ * Each action as a blue bar for now and a thin grey one for before, on one
+ * scale, the change as a number with an arrow – grouped like in the admin.
+ */
+const actionsHtml = (actions: ReportAction[]) => {
+  if (!actions.length) {
+    return `<div style="color:${C.muted};font-size:12px;">Nichts im Zeitraum.</div>`;
+  }
+  const max = Math.max(...actions.map((a) => Math.max(a.count, a.before)), 1);
+  const grouped = new Set(ACTION_GROUPS.flatMap((group) => group.names));
+  const groups = [
+    ...ACTION_GROUPS,
+    {
+      title: "Weitere",
+      names: actions.map((a) => a.name).filter((name) => !grouped.has(name)),
+    },
+  ]
+    .map((group) => ({
+      title: group.title,
+      items: group.names.flatMap((name) =>
+        actions.filter((a) => a.name === name)
+      ),
+    }))
+    .filter((group) => group.items.length > 0);
+  const groupHtml = (list: typeof groups) =>
+    list
+      .map(
+        (
+          group
+        ) => `<div style="font-size:10px;line-height:14px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:${C.muted};padding:10px 0 2px;">${group.title}</div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">${group.items
+        .map((a) => {
+          const diff = a.count - a.before;
+          const trend: Trend = diff > 0 ? "up" : diff < 0 ? "down" : "flat";
+          const change =
+            diff === 0
+              ? "wie vorher"
+              : `${diff > 0 ? "+" : "−"}${fmt(Math.abs(diff))}`;
+          return `<tr>
+            <td style="padding:7px 12px 7px 0;font-size:12px;line-height:16px;color:${C.text};">${escapeHtml(a.label)}
+              <div style="padding-top:5px;">${barHtml(Math.round((a.count / max) * 100), C.data, 6)}</div>
+              <div style="padding-top:2px;">${barHtml(Math.round((a.before / max) * 100), C.before, 3)}</div>
+            </td>
+            <td style="padding:7px 0;text-align:right;white-space:nowrap;vertical-align:top;font-size:13px;font-weight:600;color:${C.ink};">${fmt(a.count)}<div style="font-size:10px;font-weight:400;color:${TREND_COLOR[trend]};padding-top:2px;"><span style="font-size:7px;">${TREND_ICON[trend]}</span> ${change}</div></td>
+          </tr>`;
+        })
+        .join("")}</table>`
+      )
+      .join("");
+  // Two columns, balanced by rows – the groups stay whole: split where the
+  // two sides come closest.
+  const sizes = groups.map((group) => group.items.length + 1);
+  const rows = sizes.reduce((sum, n) => sum + n, 0);
+  let split = 1;
+  let filled = 0;
+  let best = Number.POSITIVE_INFINITY;
+  sizes.forEach((size, i) => {
+    filled += size;
+    const off = Math.abs(2 * filled - rows);
+    if (off < best && i < sizes.length - 1) {
+      best = off;
+      split = i + 1;
+    }
+  });
+  const left = groups.slice(0, split);
+  const right = groups.slice(split);
+  if (!right.length) return groupHtml(left);
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;table-layout:fixed;"><tr>
+    <td class="r-col" width="50%" style="width:50%;vertical-align:top;padding:0 14px 0 0;">${groupHtml(left)}</td>
+    <td class="r-col" width="50%" style="width:50%;vertical-align:top;padding:0 0 0 14px;">${groupHtml(right)}</td>
+  </tr></table>`;
+};
+
 // ─── The mail ────────────────────────────────────────────────────────────────
+
+export type ReportAction = {
+  /** Its key (stats/actions) – for the groups. */
+  name: string;
+  label: string;
+  count: number;
+  before: number;
+};
 
 export type ReportData = {
   /** “Wochenreport” … */
@@ -395,10 +646,21 @@ export type ReportData = {
   adminUrl: string;
   /** Five tiles: three in the first row, two in the second. */
   tiles: Tile[];
-  chart: { grain: "hour" | "day"; buckets: ReportBucket[] };
+  chart: {
+    grain: "hour" | "day";
+    buckets: ReportBucket[];
+    /** The same hours or days of the period before. */
+    before?: number[];
+    /** The chart as a picture (`cid:…`) – without it, columns. */
+    image?: string;
+  };
+  /** Page views by device class … */
+  devices: [string, number][];
+  /** … and as a ring picture (`cid:…`), if it could be drawn. */
+  devicesImage?: string;
   visits: Visit[];
   sources: [string, number][];
-  actions: { label: string; count: number; before: number }[];
+  actions: ReportAction[];
 };
 
 /**
@@ -446,13 +708,22 @@ const renderHtml = (r: ReportData): string => {
   </table>`;
 
   const chartTotal = r.chart.buckets.reduce((sum, b) => sum + b.count, 0);
+  const beforeTotal = (r.chart.before ?? []).reduce((sum, n) => sum + n, 0);
+  const key = (color: string, text: string) =>
+    `<span style="display:inline-block;width:10px;height:3px;border-radius:2px;background:${color};vertical-align:middle;margin:0 5px 2px 12px;"></span>${text}`;
   const chart = card(
     `${sectionTitle(
       r.chart.grain === "hour"
         ? "Seitenaufrufe pro Stunde"
         : "Seitenaufrufe pro Tag",
-      `${fmt(chartTotal)} gesamt`
-    )}${chartTotal ? chartHtml(r.chart.buckets) : `<div style="color:${C.muted};font-size:12px;">Keine Aufrufe im Zeitraum.</div>`}`
+      `${key(C.data, `${fmt(chartTotal)} jetzt`)}${r.chart.before ? key(C.before, `${fmt(beforeTotal)} davor`) : ""}`
+    )}${
+      !(chartTotal || beforeTotal)
+        ? `<div style="color:${C.muted};font-size:12px;">Keine Aufrufe im Zeitraum.</div>`
+        : r.chart.image
+          ? `<img src="${escapeHtml(r.chart.image)}" width="${CHART_W}" alt="Seitenaufrufe: ${fmt(chartTotal)} im Zeitraum${r.chart.before ? `, ${fmt(beforeTotal)} davor` : ""}" style="display:block;width:100%;max-width:${CHART_W}px;height:auto;border:0;">`
+          : chartHtml(r.chart.buckets, beforeTotal ? r.chart.before : undefined)
+    }`
   );
 
   const matrix = card(
@@ -461,12 +732,17 @@ const renderHtml = (r: ReportData): string => {
   const sources = card(
     `${sectionTitle("Quellen", "ohne interne Navigation")}${rankList(r.sources)}`
   );
-  const actions = card(
-    `${sectionTitle("Aktionen", "im Vergleich zum Zeitraum davor")}${rankList(
-      r.actions.map((a) => [a.label, a.count, `vorher ${fmt(a.before)}`]),
-      20
-    )}`
+  const devices = card(
+    `${sectionTitle("Geräte")}${devicesHtml(r.devices, r.devicesImage)}`
   );
+  const actions = card(
+    `${sectionTitle("Aktionen", `${key(C.data, "jetzt")}${key(C.before, "davor")}`)}${actionsHtml(r.actions)}`
+  );
+  // Devices and sources side by side – one below the other on the phone.
+  const pair = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;table-layout:fixed;"><tr>
+    <td class="r-col" width="50%" style="width:50%;vertical-align:top;padding:0 5px 0 0;">${devices}</td>
+    <td class="r-col" width="50%" style="width:50%;vertical-align:top;padding:0 0 0 5px;">${sources}</td>
+  </tr></table>`;
 
   return `<!DOCTYPE html>
 <html lang="de">
@@ -497,9 +773,9 @@ const renderHtml = (r: ReportData): string => {
   <tr><td>${gap(10)}</td></tr>
   <tr><td>${actions}</td></tr>
   <tr><td>${gap(10)}</td></tr>
-  <tr><td>${matrix}</td></tr>
+  <tr><td>${pair}</td></tr>
   <tr><td>${gap(10)}</td></tr>
-  <tr><td>${sources}</td></tr>
+  <tr><td>${matrix}</td></tr>
 
   <tr><td style="padding:28px 4px 0;">
     <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate;"><tr>

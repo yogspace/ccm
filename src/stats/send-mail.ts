@@ -10,6 +10,11 @@ type SendMailArgs = {
   html?: string;
   /** Answers go here (the contact form: whoever wrote). */
   replyTo?: string;
+  /**
+   * Pictures in the mail – shown where the HTML says `cid:<contentId>`
+   * (the report's chart).
+   */
+  inline?: { filename: string; contentId: string; content: Buffer }[];
 };
 
 type SendMailResult = { ok: true } | { ok: false; error: string };
@@ -20,6 +25,7 @@ export const sendMail = async ({
   text,
   html,
   replyTo,
+  inline,
 }: SendMailArgs): Promise<SendMailResult> => {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.MAIL_FROM;
@@ -39,6 +45,13 @@ export const sendMail = async ({
         text,
         ...(html && { html }),
         ...(replyTo && { reply_to: replyTo }),
+        ...(inline?.length && {
+          attachments: inline.map((file) => ({
+            filename: file.filename,
+            content: file.content.toString("base64"),
+            content_id: file.contentId,
+          })),
+        }),
       }),
     });
     if (!response.ok) {
