@@ -124,6 +124,13 @@ export const reliefReach = ({ bladeHeight, relief }: CutterParams) =>
 /** Embossing leaves out crumbs below this area (mm²). */
 const MIN_RELIEF = 0.5;
 /**
+ * Embossing has no flange: it stands on a foot this wide (mm) at the bed,
+ * slanting in at 45° – firm even for thin strokes, without corners.
+ */
+export const FOOT = 1;
+/** How far (mm) a link reaches into embossing – not through a thin stroke. */
+const TUCK = 0.3;
+/**
  * On the baked cookie, the imprint keeps this far (mm) inside the cookie's
  * edge, and the icing this far from the imprint.
  */
@@ -168,9 +175,9 @@ const fitToSize = (rings: Ring[], size: number) => {
  * across longer gaps.
  *
  * `emboss`: what was drawn in the embossing ink (same coordinates). Where it
- * lies on the cookie it is made like a hole – its flange around it, held by
- * flat links (never arches) – only filled, and reaching `relief` out of the
- * flange instead of up to the cutting edge.
+ * lies on the cookie it is held like a hole – but by straight flat links
+ * only, no arches, no flange: filled from the bed up on a slanted foot, and
+ * reaching `relief` out of the flange instead of up to the cutting edge.
  */
 export const buildCutter = (
   wasm: ManifoldToplevel,
@@ -305,6 +312,7 @@ export const buildCutter = (
     const innerFlange = flangeWidth / 2;
     const connections = planConnections([...islands, ...reliefs], {
       innerFlange,
+      foot: FOOT,
       join: LINK_GAP,
       flatSpan: FLAT_SPAN,
       width: bridgeWidth,
@@ -317,14 +325,18 @@ export const buildCutter = (
     // out. Every flange keeps its width. Plus the flat links, their corners
     // rounded off where they meet a flange or wall. Hairline gaps between
     // inner flanges are closed, pockets enclosed by the plate rounded off or,
-    // if small, closed – they print badly and catch crumbs.
+    // if small, closed – they print badly and catch crumbs. Embossing cuts
+    // nothing: it is held plainly, by straight links to the strokes – no
+    // flange, nothing rounded, its pockets open but for hairlines.
     const cookieAndWalls = grow(shape, wall);
     const walls = track(cookieAndWalls.subtract(shape));
     const outer: CrossSection[] = [];
     const inner: CrossSection[] = [];
     const links: CrossSection[] = [];
+    /** Links holding the embossing. */
+    const plain: CrossSection[] = [];
     if (flangeWidth > wall) {
-      for (const island of [...islands, ...reliefs]) {
+      for (const island of islands) {
         const area = areaOf(island);
         if (island.depth === 0) {
           outer.push(track(grow(area, flangeWidth).subtract(area)));
@@ -339,21 +351,28 @@ export const buildCutter = (
         }
       }
     }
-    for (const { from, to, length, kind } of connections) {
+    for (const { from, to, length, kind, start, end } of connections) {
       if (kind !== "flat" || length <= 0) continue;
       const dir: Point = [
         (to[0] - from[0]) / length,
         (to[1] - from[1]) / length,
       ];
-      // From inside one wall into the other.
+      // From inside one wall into the other – into a stroke just a little.
+      const into = (island: Island) => (island.relief ? TUCK : wall);
       const link = track(
-        strip(scope, from, dir, -wall, length + wall, bridgeWidth).intersect(
-          cookieAndWalls
-        )
+        strip(
+          scope,
+          from,
+          dir,
+          -into(start),
+          length + into(end),
+          bridgeWidth
+        ).intersect(cookieAndWalls)
       );
-      if (!link.isEmpty()) links.push(link);
+      if (link.isEmpty()) continue;
+      (start.relief || end.relief ? plain : links).push(link);
     }
-    const pieces = [...outer, ...inner, ...links];
+    const pieces = [...outer, ...inner, ...links, ...plain];
     let plate: CrossSection | null = null;
     if (pieces.length > 0) {
       const joined = track(CrossSection.union(pieces));
@@ -403,17 +422,27 @@ export const buildCutter = (
         )
       );
       const rim = track(grow(roots, 0.05).subtract(grow(roots, -0.05)));
+      const embossing = track(
+        CrossSection.union(relief ? [...plain, grow(relief, FOOT)] : plain)
+      );
       const plugs = track(shape.subtract(filled))
         .decompose()
         .map(track)
         .filter((pocket) => track(pocket.intersect(rim)).isEmpty())
-        .map((pocket) =>
-          pocket.area() < POCKET
-            ? pocket
-            : track(
-                pocket.subtract(grow(grow(grow(pocket, -FILLET), FILLET), DUST))
-              )
-        );
+        .flatMap((pocket) => {
+          if (!track(grow(pocket, DUST).intersect(embossing)).isEmpty()) {
+            return grow(pocket, -HAIRLINE / 2).isEmpty() ? [pocket] : [];
+          }
+          return pocket.area() < POCKET
+            ? [pocket]
+            : [
+                track(
+                  pocket.subtract(
+                    grow(grow(grow(pocket, -FILLET), FILLET), DUST)
+                  )
+                ),
+              ];
+        });
       // Pieces that only share an edge can be joined by a crack of no width
       // – printed, the plate would fall apart along it. Closed.
       plate = close(track(filled.add(track(CrossSection.union(plugs)))), DUST);
@@ -422,10 +451,20 @@ export const buildCutter = (
 
     let embossId: number | null = null;
     if (relief) {
-      // Filled from the bed up, `relief` out of the flange.
-      const pads = track(
-        track(relief.extrude(flangeHeight + reliefReach(params))).asOriginal()
-      );
+      // Filled from the bed up, `relief` out of the flange – on its foot,
+      // stepped in layers like the taper, over cookie and walls only.
+      const height = flangeHeight + reliefReach(params);
+      const rise = Math.min(FOOT, height);
+      const footSteps = Math.round(rise / LAYER);
+      const layers = [track(relief.extrude(height))];
+      for (let i = 0; i < footSteps; i++) {
+        const out = (rise * (footSteps - i)) / footSteps;
+        const step = track(grow(relief, out).intersect(cookieAndWalls));
+        layers.push(
+          track(track(step.extrude(LAYER + OVERLAP)).translate(0, 0, i * LAYER))
+        );
+      }
+      const pads = track(track(Manifold.union(layers)).asOriginal());
       embossId = pads.originalID();
       parts.push(pads);
     }

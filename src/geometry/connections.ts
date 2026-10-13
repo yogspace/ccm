@@ -33,6 +33,8 @@ export type Connection = {
 export type PlanOptions = {
   /** How far (mm) the flange reaches from an inner contour into the cookie. */
   innerFlange: number;
+  /** How far (mm) the foot of embossing reaches out – it has no flange. */
+  foot: number;
   /**
    * Flanges closer than this (mm) are linked: those of neighbouring holes
    * always, those near the wall when a support is needed there.
@@ -161,9 +163,11 @@ const planInside = (
   options: PlanOptions
 ) => {
   const overOpening = isHole(parent);
-  /** How far an island's flange reaches into the gap between contours. */
-  const reach = (island: Island) =>
-    !overOpening && island.depth > 0 ? options.innerFlange : 0;
+  /** How far an island's flange (or foot) reaches into the gap between contours. */
+  const reach = (island: Island) => {
+    if (overOpening || island.depth === 0) return 0;
+    return island.relief ? options.foot : options.innerFlange;
+  };
   /** How far apart two connections must stay. */
   const spacing = (a: Connection, b: Connection) =>
     a.kind === "flat" && b.kind === "flat"

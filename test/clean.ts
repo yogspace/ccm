@@ -124,15 +124,12 @@ export const inspect = (
 
     // Nesting depth of the wall contours: 0 outside of the outer wall,
     // 1 the cookie, 2 an inner blade, 3 its opening, 4 cookie in it …
-    const nesting = (slice: CrossSection) => {
-      const rings = slice.toPolygons();
-      const depthOf = (ring: Ring) =>
-        rings.filter((other) => other !== ring && contains(other, ring[0]))
-          .length;
-      return (...depths: number[]) =>
-        rings.filter((ring) => depths.includes(depthOf(ring)));
-    };
-    const atDepth = nesting(edges);
+    const rings = edges.toPolygons();
+    const depthOf = (ring: Ring) =>
+      rings.filter((other) => other !== ring && contains(other, ring[0]))
+        .length;
+    const atDepth = (...depths: number[]) =>
+      rings.filter((ring) => depths.includes(depthOf(ring)));
     const section = (polygons: Ring[]) =>
       track(
         polygons.length > 0
@@ -147,8 +144,8 @@ export const inspect = (
         (ring) => !inOpenings.some((inner) => contains(ring, inner[0]))
       )
     );
-    // Slits next to embossing count too.
-    const blades = section(nesting(walls)(2));
+    // Only next to blades: embossing is held plainly, its corners as they come.
+    const blades = section(atDepth(2));
 
     const open = track(cookie.subtract(plate));
     const r = SLIT_WIDTH / 2;

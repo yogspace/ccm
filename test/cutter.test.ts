@@ -5,6 +5,7 @@ import {
   buildCutter,
   type CutterParams,
   defaultParams,
+  FOOT,
   reliefReach,
 } from "../src/geometry/cutter";
 import type { Ring } from "../src/geometry/outline";
@@ -227,6 +228,41 @@ describe("embossing", () => {
       expect(covered.isEmpty()).toBe(true);
     } finally {
       for (const object of [covered, middle, plate]) object.delete();
+      cutter.manifold.delete();
+    }
+  });
+
+  it("stands on a foot, held plainly – no flange, nothing rounded", () => {
+    // A thin square drawn in the embossing ink on a round cookie.
+    const square = (half: number): Ring => [
+      [0.5 - half, 0.5 - half],
+      [0.5 + half, 0.5 - half],
+      [0.5 + half, 0.5 + half],
+      [0.5 - half, 0.5 + half],
+    ];
+    const { cutter, params } = solid(blob(0.5, 0.5, 0.45), {}, [
+      square(0.2),
+      square(0.19),
+    ]);
+    // Inside the square, in mm (the cookie is 0.9 wide).
+    const inside = (0.19 * 2 * params.size) / 0.9 - 0.1;
+    const middle = wasm.CrossSection.square([inside, inside], true);
+    const within = (z: number) => {
+      const slice = cutter.manifold.slice(z);
+      const part = slice.intersect(middle);
+      const area = part.area();
+      for (const object of [part, slice]) object.delete();
+      return area;
+    };
+    try {
+      // Above the foot no plate at all – no flange, no corners filled …
+      expect(within((FOOT + params.flangeHeight) / 2)).toBeLessThan(0.01);
+      // … at the bed the foot, a band along the stroke.
+      const band = 4 * inside * FOOT;
+      expect(within(0.1)).toBeGreaterThan(0.8 * band);
+      expect(within(0.1)).toBeLessThan(band);
+    } finally {
+      middle.delete();
       cutter.manifold.delete();
     }
   });
