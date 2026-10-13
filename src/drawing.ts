@@ -5,6 +5,7 @@ import {
   hasEmboss,
   type Stroke,
   simplifyLine,
+  withAreaInks,
 } from "./url-state";
 
 /**
@@ -44,7 +45,7 @@ const ringsPath = (rings: Ring[]) => {
 /**
  * Paints a drawing: first the area, then the strokes. As a polyline through the
  * points, simplified strokes (from links) stay close to the original too.
- * Each ink in its colour – or, with `layer`, only that ink, in black, to be
+ * Each ink in its color – or, with `layer`, only that ink, in black, to be
  * traced on its own (erasers take from both).
  */
 export const paint = (
@@ -52,12 +53,20 @@ export const paint = (
   drawing: Drawing,
   layer?: Ink
 ) => {
-  ctx.fillStyle = "#000";
-  ctx.strokeStyle = "#000";
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  if (drawing.base.length > 0 && layer !== "emboss") {
-    const path = ringsPath(drawing.base);
+  // The area, its contours in each ink apart (a contour and its holes always
+  // share one).
+  for (const emboss of [false, true]) {
+    if (layer && (layer === "emboss") !== emboss) continue;
+    const rings = drawing.base.filter(
+      (_, i) => (drawing.baseEmboss?.[i] === true) === emboss
+    );
+    if (rings.length === 0) continue;
+    const ink = emboss && !layer ? EMBOSS_INK : "#000";
+    ctx.fillStyle = ink;
+    ctx.strokeStyle = ink;
+    const path = ringsPath(rings);
     if (drawing.baseLine === 0) ctx.fill(path, "evenodd");
     else {
       // Old links: a stroke along the inside of the contour instead of an area –
@@ -205,6 +214,7 @@ export const transformDrawing = (
   const wholeBase =
     drawing.base.length > 0 && rings.size === drawing.base.length;
   return {
+    ...drawing,
     base: drawing.base.map((ring, index) =>
       rings.has(index)
         ? ring.map(([x, y]): Point => {
@@ -356,24 +366,33 @@ export const applyEraser = (drawing: Drawing, eraser: Stroke): Drawing => {
   if (!baseBox || !boxesOverlap(baseBox, reachBox)) {
     return { ...drawing, strokes };
   }
-  // The imported area is traced again with the eraser: what is gone is gone,
-  // and pieces cut apart become contours of their own.
+  // The imported area is traced again with the eraser, each ink on its own:
+  // what is gone is gone, and pieces cut apart become contours of their own.
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = DRAW_RES;
   const ctx = canvas.getContext("2d");
   if (!ctx) return { ...drawing, strokes };
-  paint(ctx, {
-    base: drawing.base,
-    baseLine: drawing.baseLine,
-    strokes: [{ ...eraser, erase: true }],
-  });
-  return {
-    base: traceOutline(canvas)
+  const retrace = (emboss: boolean) => {
+    const base = drawing.base.filter(
+      (_, i) => (drawing.baseEmboss?.[i] === true) === emboss
+    );
+    if (base.length === 0) return [];
+    ctx.clearRect(0, 0, DRAW_RES, DRAW_RES);
+    paint(ctx, {
+      base,
+      baseLine: drawing.baseLine,
+      strokes: [{ ...eraser, erase: true }],
+    });
+    return traceOutline(canvas)
       .map((ring) => simplifyLine(ring, 0.0008))
-      .filter((ring) => ring.length >= 3),
-    baseLine: 0,
-    strokes,
+      .filter((ring) => ring.length >= 3);
   };
+  const cut = retrace(false);
+  const pink = retrace(true);
+  return withAreaInks({ base: [...cut, ...pink], baseLine: 0, strokes }, [
+    ...cut.map(() => false),
+    ...pink.map(() => true),
+  ]);
 };
 
 /** Sets the width of the selected strokes (erasers stay as they are). */
@@ -391,24 +410,33 @@ export const setStrokeWidth = (
   };
 };
 
-/** Puts the selected strokes into an ink (erasers stay as they are). */
+/**
+ * Puts the selected strokes and contours of the imported area into an ink
+ * (erasers stay as they are).
+ */
 export const setStrokeInk = (
   drawing: Drawing,
   selection: Selection,
   ink: Ink
 ): Drawing => {
   const chosen = new Set(selection.strokes);
-  return {
-    ...drawing,
-    strokes: drawing.strokes.map((stroke, index) => {
-      if (!chosen.has(index) || stroke.erase) return stroke;
-      const { emboss: _, ...plain } = stroke;
-      return ink === "emboss" ? { ...plain, emboss: true } : plain;
-    }),
-  };
+  const rings = new Set(selection.rings);
+  return withAreaInks(
+    {
+      ...drawing,
+      strokes: drawing.strokes.map((stroke, index) => {
+        if (!chosen.has(index) || stroke.erase) return stroke;
+        const { emboss: _, ...plain } = stroke;
+        return ink === "emboss" ? { ...plain, emboss: true } : plain;
+      }),
+    },
+    drawing.base.map((_, index) =>
+      rings.has(index) ? ink === "emboss" : drawing.baseEmboss?.[index] === true
+    )
+  );
 };
 
-/** Ink of the selection (of its first stroke), otherwise `null`. */
+/** Ink of the selection (of its first stroke or contour), otherwise `null`. */
 export const selectionInk = (
   drawing: Drawing,
   selection: Selection
@@ -416,7 +444,10 @@ export const selectionInk = (
   const stroke = selection.strokes
     .map((index) => drawing.strokes[index])
     .find((candidate) => candidate && !candidate.erase);
-  return stroke ? (stroke.emboss ? "emboss" : "cut") : null;
+  if (stroke) return stroke.emboss ? "emboss" : "cut";
+  const [ring] = selection.rings;
+  if (ring === undefined) return null;
+  return drawing.baseEmboss?.[ring] ? "emboss" : "cut";
 };
 
 /** Stroke width of the selection (of its first stroke), otherwise `null`. */
@@ -435,11 +466,16 @@ export const removeSelection = (
   const chosen = new Set(selection.strokes);
   const rings = new Set(selection.rings);
   const base = drawing.base.filter((_, index) => !rings.has(index));
-  return {
-    base,
-    baseLine: base.length > 0 ? drawing.baseLine : 0,
-    strokes: drawing.strokes.filter((_, index) => !chosen.has(index)),
-  };
+  return withAreaInks(
+    {
+      base,
+      baseLine: base.length > 0 ? drawing.baseLine : 0,
+      strokes: drawing.strokes.filter((_, index) => !chosen.has(index)),
+    },
+    drawing.base.flatMap((_, index) =>
+      rings.has(index) ? [] : [drawing.baseEmboss?.[index] === true]
+    )
+  );
 };
 
 /**

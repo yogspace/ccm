@@ -35,6 +35,11 @@ export type Drawing = {
   base: Ring[];
   /** 0 = filled; otherwise drawn along the inside of the contour in this width. */
   baseLine: number;
+  /**
+   * Which of the area's contours are in the embossing ink, by index – the
+   * rest is cut. Missing: all of it.
+   */
+  baseEmboss?: boolean[];
   strokes: Stroke[];
 };
 
@@ -44,8 +49,16 @@ export const isEmptyDrawing = ({ base, strokes }: Drawing) =>
   base.length === 0 && strokes.length === 0;
 
 /** Anything in the embossing ink? */
-export const hasEmboss = ({ strokes }: Drawing) =>
-  strokes.some(({ emboss, erase }) => emboss && !erase);
+export const hasEmboss = ({ strokes, baseEmboss }: Drawing) =>
+  strokes.some(({ emboss, erase }) => emboss && !erase) ||
+  Boolean(baseEmboss?.some(Boolean));
+
+/** The drawing with these inks for its area's contours – none kept if all cut. */
+export const withAreaInks = (
+  { baseEmboss: _, ...drawing }: Drawing,
+  inks: readonly boolean[]
+): Drawing =>
+  inks.some(Boolean) ? { ...drawing, baseEmboss: [...inks] } : drawing;
 
 /** Stroke width used to redraw old links (contour only). */
 const LEGACY_LINE = 48;
@@ -72,12 +85,13 @@ const strokeTolerance = (width: number) =>
   Math.min(4, Math.max(1.5, width * 0.1));
 /**
  * Format version: 1 = contour only, 2 = drawing, 3 = compact drawing, 4 = with
- * embossing, 5 = with anchored lines (bezier.ts). Only drawings that need it
- * are written as 4 or 5 – the others stay as they were, byte for byte.
+ * embossing, 5 = with anchored lines (bezier.ts) or an area in the embossing
+ * ink. Only drawings that need it are written as 4 or 5 – the others stay as
+ * they were, byte for byte.
  */
 const VERSION = 3;
 const EMBOSS_VERSION = 4;
-const LINE_VERSION = 5;
+const FULL_VERSION = 5;
 
 /** Douglas-Peucker for open lines: which points stay. */
 const keepPoints = (points: Point[], tolerance: number) => {
@@ -259,23 +273,29 @@ const readAnchors = (
   return { anchors, closed: head % 2 === 1 };
 };
 
-const encodeDrawing = ({ base, baseLine, strokes }: Drawing) => {
+const encodeDrawing = (drawing: Drawing) => {
+  const { base, baseLine, baseEmboss, strokes } = drawing;
   const out: number[] = [];
   const rings = base
-    .map((ring) =>
-      simplifyRing(
+    .map((ring, i) => ({
+      points: simplifyRing(
         ring.map(([x, y]): Point => [x * GRID, y * GRID]),
         TOLERANCE
-      ).map(round)
-    )
-    .filter((ring) => ring.length >= 3);
-  const embossed = hasEmboss({ base, baseLine, strokes });
-  const lines = strokes.some(anchored);
-  writeVarint(out, lines ? LINE_VERSION : embossed ? EMBOSS_VERSION : VERSION);
+      ).map(round),
+      emboss: baseEmboss?.[i] === true,
+    }))
+    .filter(({ points }) => points.length >= 3);
+  const embossed = hasEmboss(drawing);
+  const full = strokes.some(anchored) || rings.some(({ emboss }) => emboss);
+  writeVarint(out, full ? FULL_VERSION : embossed ? EMBOSS_VERSION : VERSION);
   writeVarint(out, Math.round(baseLine));
   writeVarint(out, rings.length);
   const ringFrom = origin();
-  for (const ring of rings) writePoints(out, ring, ringFrom);
+  for (const { points, emboss } of rings) {
+    // Each contour's ink first.
+    if (full) writeVarint(out, emboss ? 1 : 0);
+    writePoints(out, points, ringFrom);
+  }
   writeVarint(out, strokes.length);
   // Every stroke starts relative to the end of the previous one, every
   // anchored line relative to the last anchor before.
@@ -292,13 +312,13 @@ const encodeDrawing = ({ base, baseLine, strokes }: Drawing) => {
       out,
       erase
         ? -rounded
-        : lines
+        : full
           ? rounded * 4 + (anchored(stroke) ? 2 : 0) + ink
           : embossed
             ? rounded * 2 + ink
             : rounded
     );
-    if (lines && anchored(stroke)) {
+    if (full && anchored(stroke)) {
       writeAnchors(
         out,
         stroke.anchors ?? [],
@@ -345,17 +365,21 @@ const decodeDrawing = (text: string): { drawing: Drawing; rings: Ring[] } => {
     version !== 2 &&
     version !== VERSION &&
     version !== EMBOSS_VERSION &&
-    version !== LINE_VERSION
+    version !== FULL_VERSION
   ) {
     throw new Error("Unbekanntes Format");
   }
   const inks = version >= EMBOSS_VERSION;
-  const lines = version === LINE_VERSION;
+  const full = version === FULL_VERSION;
 
   const baseLine = readVarint(bytes, cursor);
   const base: Ring[] = [];
+  const baseEmboss: boolean[] = [];
   const ringCount = readVarint(bytes, cursor);
-  for (let r = 0; r < ringCount; r++) base.push(nextRing());
+  for (let r = 0; r < ringCount; r++) {
+    baseEmboss.push(full && readVarint(bytes, cursor) === 1);
+    base.push(nextRing());
+  }
   const strokes: Stroke[] = [];
   const step = chained ? STROKE_STEP : 1;
   const strokeFrom = origin();
@@ -364,9 +388,9 @@ const decodeDrawing = (text: string): { drawing: Drawing; rings: Ring[] } => {
   for (let i = 0; i < strokeCount; i++) {
     const value = readVarint(bytes, cursor);
     const emboss = inks && value > 0 && value % 2 === 1;
-    const flags = lines ? 4 : inks ? 2 : 1;
+    const flags = full ? 4 : inks ? 2 : 1;
     const width = value < 0 ? -value : Math.floor(value / flags);
-    if (lines && value > 0 && value & 2) {
+    if (full && value > 0 && value & 2) {
       // Its points from its anchors, whatever they were when it was shared.
       const { anchors, closed } = readAnchors(bytes, cursor, anchorFrom);
       strokes.push(lineStroke({ width, emboss }, anchors, closed));
@@ -380,7 +404,10 @@ const decodeDrawing = (text: string): { drawing: Drawing; rings: Ring[] } => {
       ...(emboss && { emboss: true }),
     });
   }
-  return { drawing: { base, baseLine, strokes }, rings: [] };
+  return {
+    drawing: withAreaInks({ base, baseLine, strokes }, baseEmboss),
+    rings: [],
+  };
 };
 
 export const writeHash = ({

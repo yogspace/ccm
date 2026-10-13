@@ -20,8 +20,8 @@ import {
   toggleSmooth,
 } from "../src/bezier";
 import { applyEraser, transformDrawing } from "../src/drawing";
-import type { Point } from "../src/geometry/outline";
 import { defaultParams } from "../src/geometry/cutter";
+import type { Point } from "../src/geometry/outline";
 import {
   type Drawing,
   readHash,
@@ -160,8 +160,9 @@ describe("editing an anchored line's points", () => {
     const a = [...smooth(100, 500, 200, 400), ...corner(800, 500)];
     expect(pathGrip(a, false, 103, 502, 8)).toEqual({ kind: "anchor", i: 0 });
     expect(pathGrip(a, false, 198, 402, 8)).toEqual({ kind: "out", i: 0 });
-    expect(pathGrip(a, false, 500, 520, 8)).toBeNull();
-    expect(pathGrip(a, false, 500, 520, 8, 30)?.kind).toBe("line");
+    // Halfway, the line passes (487.5, 462.5) – this is 20 px below it.
+    expect(pathGrip(a, false, 487, 482, 8)).toBeNull();
+    expect(pathGrip(a, false, 487, 482, 8, 15)?.kind).toBe("line");
   });
 
   it("snaps to 45° about a point", () => {
@@ -189,7 +190,13 @@ describe("anchored lines in the drawing", () => {
       [...corner(100, 100), ...corner(400, 100), ...corner(250, 300)],
       true
     );
-    const plain: Stroke = { width: 24, points: [[50, 900], [900, 900]] };
+    const plain: Stroke = {
+      width: 24,
+      points: [
+        [50, 900],
+        [900, 900],
+      ],
+    };
     const hash = share([curve, plain, closed]);
     expect(versionOf(hash)).toBe(5);
     const [a, b, c] = readHash(hash).drawing.strokes;
@@ -199,7 +206,13 @@ describe("anchored lines in the drawing", () => {
   });
 
   it("leave links without them as they were", () => {
-    const plain: Stroke = { width: 24, points: [[50, 900], [900, 900]] };
+    const plain: Stroke = {
+      width: 24,
+      points: [
+        [50, 900],
+        [900, 900],
+      ],
+    };
     expect(versionOf(share([plain]))).toBe(3);
     expect(versionOf(share([{ ...plain, emboss: true }]))).toBe(4);
   });
@@ -220,7 +233,10 @@ describe("anchored lines in the drawing", () => {
     const drawing: Drawing = { base: [], baseLine: 0, strokes: [curve] };
     const { strokes } = applyEraser(drawing, {
       width: 40,
-      points: [[500, 0], [500, 1024]],
+      points: [
+        [500, 0],
+        [500, 1024],
+      ],
     });
     expect(strokes.length).toBeGreaterThan(0);
     for (const stroke of strokes) {

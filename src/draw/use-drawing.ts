@@ -18,7 +18,12 @@ import {
 import { loadSilhouette, traceOutline } from "../geometry/outline";
 import { loadPreset, type Preset } from "../presets";
 import { drawingChanged, importFailed, initial, store } from "../store";
-import { type Drawing, emptyDrawing, isEmptyDrawing } from "../url-state";
+import {
+  type Drawing,
+  emptyDrawing,
+  isEmptyDrawing,
+  withAreaInks,
+} from "../url-state";
 import { useHistory } from "./use-history";
 
 /** Margin around imported SVGs, so they do not stick to the edge. */
@@ -196,13 +201,15 @@ export const useDrawing = () => {
       snapshot();
       ctx.clearRect(0, 0, RES, RES);
       ctx.drawImage(silhouette, (RES - w) / 2, (RES - h) / 2, w, h);
-      // The silhouette is shared as an area, not the SVG itself.
+      // The silhouette is shared as an area, not the SVG itself – in the
+      // pen's ink, like a template; shown as it is shared.
       const canvas = canvasRef.current;
-      drawing.current = {
-        base: canvas ? traceOutline(canvas) : [],
-        baseLine: 0,
-        strokes: [],
-      };
+      const base = canvas ? traceOutline(canvas) : [];
+      drawing.current = withAreaInks(
+        { base, baseLine: 0, strokes: [] },
+        base.map(() => store.ink === "emboss")
+      );
+      repaint();
       select(null);
       commit();
       trackEvent("svg-import");

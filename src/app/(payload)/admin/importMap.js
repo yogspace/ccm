@@ -32,6 +32,8 @@ import { AnalyticsAccounts as AnalyticsAccounts_a9cfcfba7d9df05c10e0d423af555cea
 import { AnalyticsRange as AnalyticsRange_73ce8286c5cae4d48ec5095a15f5a7ae } from '@/fields/analytics/range'
 import { TriggerStatsButton as TriggerStatsButton_eb03edef892c9c02a36f144dba4ae577 } from '@/fields/trigger-stats-button'
 import { AnalyticsExcludeField as AnalyticsExcludeField_86ec8aaed1749b716c70af0352522945 } from '@/fields/analytics-exclude-field'
+import { Icon as Icon_0f61d8a452fc840f3cb79384f2b128a3 } from '@/admin/logo'
+import { Logo as Logo_0f61d8a452fc840f3cb79384f2b128a3 } from '@/admin/logo'
 import { SeedsNavLink as SeedsNavLink_2806f3e9879ac831e41503f591e16ea2 } from '@/admin/seeds-nav-link'
 import { SeedsView as SeedsView_8969475260d8a0cf45502aae7a4bc08a } from '@/admin/seeds-view'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
@@ -72,6 +74,8 @@ export const importMap = {
   "@/fields/analytics/range#AnalyticsRange": AnalyticsRange_73ce8286c5cae4d48ec5095a15f5a7ae,
   "@/fields/trigger-stats-button#TriggerStatsButton": TriggerStatsButton_eb03edef892c9c02a36f144dba4ae577,
   "@/fields/analytics-exclude-field#AnalyticsExcludeField": AnalyticsExcludeField_86ec8aaed1749b716c70af0352522945,
+  "@/admin/logo#Icon": Icon_0f61d8a452fc840f3cb79384f2b128a3,
+  "@/admin/logo#Logo": Logo_0f61d8a452fc840f3cb79384f2b128a3,
   "@/admin/seeds-nav-link#SeedsNavLink": SeedsNavLink_2806f3e9879ac831e41503f591e16ea2,
   "@/admin/seeds-view#SeedsView": SeedsView_8969475260d8a0cf45502aae7a4bc08a,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1

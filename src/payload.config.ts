@@ -45,6 +45,11 @@ export default buildConfig({
     // The Seeds page: what the code brings along for the CMS, applied by hand
     // (seeds/definitions.ts) – not at start or deploy.
     components: {
+      // The site's cookie and name instead of Payload's logo.
+      graphics: {
+        Logo: "@/admin/logo#Logo",
+        Icon: "@/admin/logo#Icon",
+      },
       afterNavLinks: ["@/admin/seeds-nav-link#SeedsNavLink"],
       views: {
         seeds: {
