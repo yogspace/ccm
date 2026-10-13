@@ -1,4 +1,5 @@
 import { deflateSync, inflateSync } from "fflate";
+import { ANCHOR, anchorCount, cleanAnchors, lineStroke } from "./bezier";
 import { type CutterParams, defaultParams } from "./geometry/cutter";
 import type { Point, Ring } from "./geometry/outline";
 import { PARAM_KEYS, paramKeys, paramOf } from "./link-keys";
@@ -21,6 +22,12 @@ export type Stroke = {
   erase?: boolean;
   /** Drawn in the embossing ink: pressed into the cookie, not cut. */
   emboss?: boolean;
+  /**
+   * Drawn with the line tool: its anchors, six numbers each (bezier.ts) –
+   * `points` are worked out from them. `closed`: back to the first.
+   */
+  anchors?: number[];
+  closed?: boolean;
 };
 
 export type Drawing = {
@@ -65,11 +72,12 @@ const strokeTolerance = (width: number) =>
   Math.min(4, Math.max(1.5, width * 0.1));
 /**
  * Format version: 1 = contour only, 2 = drawing, 3 = compact drawing, 4 = with
- * embossing. Only drawings with embossing are written as 4 – the others stay
- * as they were, byte for byte.
+ * embossing, 5 = with anchored lines (bezier.ts). Only drawings that need it
+ * are written as 4 or 5 – the others stay as they were, byte for byte.
  */
 const VERSION = 3;
 const EMBOSS_VERSION = 4;
+const LINE_VERSION = 5;
 
 /** Douglas-Peucker for open lines: which points stay. */
 const keepPoints = (points: Point[], tolerance: number) => {
@@ -200,6 +208,57 @@ const readPoints = (
 
 const round = ([x, y]: Point): Point => [Math.round(x), Math.round(y)];
 
+/** Has it anchors to keep – a line tool's line, not an eraser? */
+const anchored = ({ anchors, erase }: Stroke) =>
+  !erase && anchors !== undefined && anchorCount(anchors) >= 2;
+
+/**
+ * An anchored line's anchors: their number (doubled, the lowest bit:
+ * closed), then each anchor from the one before, its handles from it.
+ */
+const writeAnchors = (
+  out: number[],
+  anchors: number[],
+  closed: boolean,
+  from: Origin
+) => {
+  const a = cleanAnchors(anchors);
+  writeVarint(out, anchorCount(a) * 2 + (closed ? 1 : 0));
+  for (let k = 0; k < a.length; k += ANCHOR) {
+    const [x, y, ix, iy, ox, oy] = a.slice(k, k + ANCHOR);
+    for (const value of [
+      x - from.x,
+      y - from.y,
+      ix - x,
+      iy - y,
+      ox - x,
+      oy - y,
+    ]) {
+      writeVarint(out, value);
+    }
+    from.x = x;
+    from.y = y;
+  }
+};
+
+const readAnchors = (
+  bytes: Uint8Array,
+  cursor: { at: number },
+  from: Origin
+) => {
+  const head = readVarint(bytes, cursor);
+  const anchors: number[] = [];
+  for (let i = 0; i < Math.floor(head / 2); i++) {
+    from.x += readVarint(bytes, cursor);
+    from.y += readVarint(bytes, cursor);
+    const [x, y] = [from.x, from.y];
+    anchors.push(x, y);
+    for (const base of [x, y, x, y])
+      anchors.push(base + readVarint(bytes, cursor));
+  }
+  return { anchors, closed: head % 2 === 1 };
+};
+
 const encodeDrawing = ({ base, baseLine, strokes }: Drawing) => {
   const out: number[] = [];
   const rings = base
@@ -211,27 +270,48 @@ const encodeDrawing = ({ base, baseLine, strokes }: Drawing) => {
     )
     .filter((ring) => ring.length >= 3);
   const embossed = hasEmboss({ base, baseLine, strokes });
-  writeVarint(out, embossed ? EMBOSS_VERSION : VERSION);
+  const lines = strokes.some(anchored);
+  writeVarint(out, lines ? LINE_VERSION : embossed ? EMBOSS_VERSION : VERSION);
   writeVarint(out, Math.round(baseLine));
   writeVarint(out, rings.length);
   const ringFrom = origin();
   for (const ring of rings) writePoints(out, ring, ringFrom);
   writeVarint(out, strokes.length);
-  // Every stroke starts relative to the end of the previous one.
+  // Every stroke starts relative to the end of the previous one, every
+  // anchored line relative to the last anchor before.
   const strokeFrom = origin();
-  for (const { width, points, erase, emboss } of strokes) {
+  const anchorFrom = origin();
+  for (const stroke of strokes) {
+    const { width, points, erase, emboss } = stroke;
+    // Erasers as negative widths – old links only have positive ones. With
+    // embossing, a pen's width is doubled, its lowest bit the ink; with
+    // anchored lines too, the bit above it: anchors instead of points.
+    const rounded = Math.max(1, Math.round(width));
+    const ink = emboss ? 1 : 0;
+    writeVarint(
+      out,
+      erase
+        ? -rounded
+        : lines
+          ? rounded * 4 + (anchored(stroke) ? 2 : 0) + ink
+          : embossed
+            ? rounded * 2 + ink
+            : rounded
+    );
+    if (lines && anchored(stroke)) {
+      writeAnchors(
+        out,
+        stroke.anchors ?? [],
+        Boolean(stroke.closed),
+        anchorFrom
+      );
+      continue;
+    }
     const simplified = simplifyLine(points, strokeTolerance(width)).map(
       ([x, y]): Point => [
         Math.round(x / STROKE_STEP),
         Math.round(y / STROKE_STEP),
       ]
-    );
-    // Erasers as negative widths – old links only have positive ones. With
-    // embossing, a pen's width is doubled, its lowest bit the ink.
-    const rounded = Math.max(1, Math.round(width));
-    writeVarint(
-      out,
-      erase ? -rounded : embossed ? rounded * 2 + (emboss ? 1 : 0) : rounded
     );
     writePoints(out, simplified, strokeFrom);
   }
@@ -261,10 +341,16 @@ const decodeDrawing = (text: string): { drawing: Drawing; rings: Ring[] } => {
       rings,
     };
   }
-  if (version !== 2 && version !== VERSION && version !== EMBOSS_VERSION) {
+  if (
+    version !== 2 &&
+    version !== VERSION &&
+    version !== EMBOSS_VERSION &&
+    version !== LINE_VERSION
+  ) {
     throw new Error("Unbekanntes Format");
   }
-  const inks = version === EMBOSS_VERSION;
+  const inks = version >= EMBOSS_VERSION;
+  const lines = version === LINE_VERSION;
 
   const baseLine = readVarint(bytes, cursor);
   const base: Ring[] = [];
@@ -273,13 +359,22 @@ const decodeDrawing = (text: string): { drawing: Drawing; rings: Ring[] } => {
   const strokes: Stroke[] = [];
   const step = chained ? STROKE_STEP : 1;
   const strokeFrom = origin();
+  const anchorFrom = origin();
   const strokeCount = readVarint(bytes, cursor);
   for (let i = 0; i < strokeCount; i++) {
     const value = readVarint(bytes, cursor);
-    const points = readPoints(bytes, cursor, chained ? strokeFrom : origin());
     const emboss = inks && value > 0 && value % 2 === 1;
+    const flags = lines ? 4 : inks ? 2 : 1;
+    const width = value < 0 ? -value : Math.floor(value / flags);
+    if (lines && value > 0 && value & 2) {
+      // Its points from its anchors, whatever they were when it was shared.
+      const { anchors, closed } = readAnchors(bytes, cursor, anchorFrom);
+      strokes.push(lineStroke({ width, emboss }, anchors, closed));
+      continue;
+    }
+    const points = readPoints(bytes, cursor, chained ? strokeFrom : origin());
     strokes.push({
-      width: value < 0 ? -value : inks ? Math.floor(value / 2) : value,
+      width,
       points: points.map(([x, y]): Point => [x * step, y * step]),
       ...(value < 0 && { erase: true }),
       ...(emboss && { emboss: true }),

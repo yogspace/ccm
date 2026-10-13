@@ -46,6 +46,17 @@ export const useDrawing = () => {
   const history = useHistory<Snapshot>();
   /** A slider move in progress – one undo step for all of it. */
   const widthEdit = useRef<{ before: Snapshot; timer: number } | null>(null);
+  /** The line whose points are edited (use-line.ts) – the slider is its. */
+  const editing = useRef<number | null>(null);
+
+  /** What the slider and the inks change: the selection, or the edited line. */
+  const target = (): Selection | null => {
+    if (store.tool === "move") return live.current.selection;
+    if (store.tool === "points" && editing.current !== null) {
+      return { strokes: [editing.current], rings: [] };
+    }
+    return null;
+  };
 
   const context = () => canvasRef.current?.getContext("2d") ?? null;
 
@@ -122,14 +133,14 @@ export const useDrawing = () => {
   /** Brush size; with a selection in move mode its strokes too. */
   const changeBrush = (value: number) => {
     store.brush = value;
-    const chosen = live.current.selection;
-    if (store.tool !== "move" || !chosen) return;
+    const chosen = target();
+    if (!chosen) return;
     const before = widthEdit.current?.before ?? capture();
     if (!before) return;
     if (widthEdit.current) window.clearTimeout(widthEdit.current.timer);
     drawing.current = setStrokeWidth(drawing.current, chosen, value);
     repaint();
-    reframe(chosen);
+    if (store.tool === "move") reframe(chosen);
     // One slider move = one undo step, then recompute.
     const timer = window.setTimeout(() => {
       widthEdit.current = null;
@@ -142,8 +153,8 @@ export const useDrawing = () => {
   /** The pen's ink; with a selection in move mode, its strokes take it. */
   const changeInk = (ink: Ink) => {
     store.ink = ink;
-    const chosen = live.current.selection;
-    if (store.tool !== "move" || !chosen) return;
+    const chosen = target();
+    if (!chosen) return;
     if (selectionInk(drawing.current, chosen) === ink) return;
     snapshot();
     drawing.current = setStrokeInk(drawing.current, chosen, ink);
@@ -269,6 +280,7 @@ export const useDrawing = () => {
     canvasRef,
     drawing,
     live,
+    editing,
     selection,
     box,
     empty,

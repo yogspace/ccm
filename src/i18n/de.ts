@@ -22,6 +22,18 @@ export const de = {
     shrink: "Zeichenfläche verkleinern",
     tools: "Werkzeuge",
     pen: "Stift",
+    line: "Linie – Punkt für Punkt, gerade oder als Kurve",
+    lineHint:
+      "Klicken setzt Punkte, Ziehen biegt zur Kurve · erster Punkt schließt die Form · ⇧ 45° · Enter beendet",
+    lineHintTouch:
+      "Tippen setzt Punkte, Ziehen biegt zur Kurve · erster Punkt schließt die Form",
+    finish: "Fertig",
+    points: "Punkte bearbeiten",
+    pointsHint:
+      "Punkte und Griffe ziehen · Alt-Klick: rund oder eckig · Klick auf die Linie: neuer Punkt · Entf löscht",
+    pointsHintTouch:
+      "Punkte und Griffe ziehen · auf die Linie tippen: neuer Punkt",
+    removePoint: "Punkt entfernen (Entf)",
     eraser: "Radiergummi",
     move: "Formen verschieben",
     moveHint:

@@ -23,6 +23,17 @@ export const en: typeof de = {
     shrink: "Shrink canvas",
     tools: "Tools",
     pen: "Pen",
+    line: "Line – point by point, straight or curved",
+    lineHint:
+      "Click sets points, dragging bends into a curve · first point closes the shape · ⇧ 45° · Enter ends",
+    lineHintTouch:
+      "Tap sets points, dragging bends into a curve · first point closes the shape",
+    finish: "Done",
+    points: "Edit points",
+    pointsHint:
+      "Drag points and handles · Alt-click: smooth or corner · click the line: new point · Del removes",
+    pointsHintTouch: "Drag points and handles · tap the line: new point",
+    removePoint: "Remove point (Del)",
     eraser: "Eraser",
     move: "Move shapes",
     moveHint:

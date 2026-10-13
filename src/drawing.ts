@@ -1,3 +1,4 @@
+import { lineStroke, mapAnchors, nearestOnPath } from "./bezier";
 import { type Point, type Ring, traceOutline } from "./geometry/outline";
 import {
   type Drawing,
@@ -185,7 +186,11 @@ export const applyTransform = ({
   ];
 };
 
-/** Applies the transform to the selection; stroke widths scale along. */
+/**
+ * Applies the transform to the selection; stroke widths scale along. An
+ * anchored line's anchors move, and its points follow from them: it stays an
+ * anchored line.
+ */
 export const transformDrawing = (
   drawing: Drawing,
   selection: Selection,
@@ -209,17 +214,38 @@ export const transformDrawing = (
         : ring
     ),
     baseLine: wholeBase ? drawing.baseLine * scale : drawing.baseLine,
-    strokes: drawing.strokes.map((stroke, index) =>
-      chosen.has(index)
-        ? {
-            // Keep everything (also “erase”), only position and width change.
-            ...stroke,
-            width: Math.max(1, stroke.width * scale),
-            points: stroke.points.map(apply),
-          }
-        : stroke
-    ),
+    strokes: drawing.strokes.map((stroke, index) => {
+      if (!chosen.has(index)) return stroke;
+      const width = Math.max(1, stroke.width * scale);
+      if (stroke.anchors) {
+        return lineStroke(
+          { width, emboss: stroke.emboss },
+          mapAnchors(stroke.anchors, apply),
+          stroke.closed
+        );
+      }
+      // Keep everything (also “erase”), only position and width change.
+      return { ...stroke, width, points: stroke.points.map(apply) };
+    }),
   };
+};
+
+/**
+ * The anchored line (bezier.ts) at a point (drawing-area pixels) – its
+ * stroke reaching `tolerance` further – the topmost; otherwise `null`.
+ */
+export const anchoredAt = (
+  drawing: Drawing,
+  [x, y]: Point,
+  tolerance: number
+) => {
+  for (let index = drawing.strokes.length - 1; index >= 0; index--) {
+    const { anchors, closed, erase, width } = drawing.strokes[index];
+    if (!anchors || erase) continue;
+    const { d } = nearestOnPath(anchors, Boolean(closed), x, y);
+    if (d <= width / 2 + tolerance) return index;
+  }
+  return null;
 };
 
 const distanceToSegment = (
@@ -303,9 +329,12 @@ export const applyEraser = (drawing: Drawing, eraser: Stroke): Drawing => {
       continue;
     }
     let run: Point[] = [];
+    // Ordinary strokes – an anchored line cut is none any more (its anchors
+    // go), as in vector programs.
+    const { anchors: _anchors, closed: _closed, ...plain } = stroke;
     const flush = () => {
       if (run.length > 0) {
-        strokes.push({ ...stroke, points: simplifyLine(run, 0.5) });
+        strokes.push({ ...plain, points: simplifyLine(run, 0.5) });
       }
       run = [];
     };

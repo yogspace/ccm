@@ -46,8 +46,12 @@ type ErrorKey = keyof (typeof de)["errors"];
 /** Stored via `ref`: valtio does not track it, snapshots hand it out unchanged. */
 type Ref<T extends object> = ReturnType<typeof ref<T>>;
 
-/** Tool: draw, erase or move shapes. */
-export type Tool = "pen" | "eraser" | "move";
+/**
+ * Tool: draw freehand, draw lines point by point (straight or bent), erase
+ * or move shapes – or edit a line's points (`points`, no button of its own:
+ * it comes from a picked line).
+ */
+export type Tool = "pen" | "line" | "eraser" | "move" | "points";
 
 type Cutter = {
   /** The geometry engine in the worker has loaded. */
