@@ -104,6 +104,8 @@ describe.each(cases)(
         expect(inspection.overOpenings).toBeLessThan(0.5);
         // No hairline slits or sharp corners next to inner blades.
         expect(inspection.slits.filter(({ area }) => area > 0.3)).toEqual([]);
+        // Faces never overlap – the view would show plate over pockets.
+        expect(inspection.overlaps).toBe(0);
       } finally {
         cutter.manifold.delete();
       }

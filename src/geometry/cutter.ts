@@ -137,6 +137,12 @@ const INLAY_INSET = 0.026;
 const HAIRLINE = 2;
 /** … and pockets enclosed by it up to this area (mm²); larger ones rounded. */
 const POCKET = 20;
+/**
+ * Offsetting leaves dust along curves and cracks between pieces – slivers
+ * thinner than this (mm). In the plate they make its faces overlap (plate
+ * shown over open pockets) or let it fall apart, so they are cleaned up.
+ */
+const DUST = 0.05;
 
 /** Maps the normalised contours (y down) to mm, centred, y up. */
 const fitToSize = (rings: Ring[], size: number) => {
@@ -352,11 +358,16 @@ export const buildCutter = (
     if (pieces.length > 0) {
       const joined = track(CrossSection.union(pieces));
       /**
-       * What closing by `radius` adds over the cookie up to `reach` from
+       * What closing `of` by `radius` adds over the cookie up to `reach` from
        * `around` – the plate cut out wide enough that its cut edges stay out.
        */
-      const gaps = (radius: number, around: CrossSection, reach: number) => {
-        const near = track(joined.intersect(grow(around, reach + radius)));
+      const gaps = (
+        of: CrossSection,
+        radius: number,
+        around: CrossSection,
+        reach: number
+      ) => {
+        const near = track(of.intersect(grow(around, reach + radius)));
         return track(
           track(
             track(close(near, radius).subtract(near)).intersect(
@@ -366,11 +377,17 @@ export const buildCutter = (
         );
       };
       const linked = track(CrossSection.union(links));
-      const fillets = links.length > 0 ? gaps(FILLET, linked, FILLET) : linked;
+      const fillets =
+        links.length > 0 ? gaps(joined, FILLET, linked, FILLET) : linked;
+      const rounded = track(joined.add(fillets));
       // Only next to inner pieces – narrow cookie along the outside (tips,
       // thin arms) stays open from above. Offsetting curves leaves dust.
-      const innerPieces = track(CrossSection.union([...inner, ...links]));
-      const hairlines = gaps(HAIRLINE / 2, innerPieces, HAIRLINE)
+      // Closed after the fillets: where one fills a narrow strip, it ends
+      // straight across, and its corners are rounded off here too.
+      const innerPieces = track(
+        CrossSection.union([...inner, ...links, fillets])
+      );
+      const hairlines = gaps(rounded, HAIRLINE / 2, innerPieces, HAIRLINE)
         .decompose()
         .map(track)
         .filter(
@@ -378,9 +395,7 @@ export const buildCutter = (
             gap.area() > 0.01 &&
             !track(grow(gap, 0.05).intersect(innerPieces)).isEmpty()
         );
-      const filled = track(
-        track(joined.add(fillets)).add(track(CrossSection.union(hairlines)))
-      );
+      const filled = track(rounded.add(track(CrossSection.union(hairlines))));
       // Cookie along the outside is open to the rim, a pocket is not.
       const roots = track(
         CrossSection.union(
@@ -395,9 +410,13 @@ export const buildCutter = (
         .map((pocket) =>
           pocket.area() < POCKET
             ? pocket
-            : track(pocket.subtract(grow(grow(pocket, -FILLET), FILLET)))
+            : track(
+                pocket.subtract(grow(grow(grow(pocket, -FILLET), FILLET), DUST))
+              )
         );
-      plate = track(filled.add(track(CrossSection.union(plugs))));
+      // Pieces that only share an edge can be joined by a crack of no width
+      // – printed, the plate would fall apart along it. Closed.
+      plate = close(track(filled.add(track(CrossSection.union(plugs)))), DUST);
       parts.push(track(plate.extrude(flangeHeight)));
     }
 

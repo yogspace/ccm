@@ -3,13 +3,15 @@ import { cn } from "../cn";
 
 /**
  * A card on the page: subtle cream, flat, without outlines – in the dark
- * translucent, the background cookies shine through, blurred. Cards rise in
- * one after another.
+ * translucent, the background cookies shine through, blurred. Only there:
+ * on the opaque cream the blur shows nothing, yet Chrome works it out anew
+ * with every frame of the canvases in the card, which can make the page
+ * flicker. Cards rise in one after another.
  */
 export const Card = ({ className, ...props }: ComponentProps<"section">) => (
   <section
     className={cn(
-      "flex animate-rise flex-col gap-5 rounded-3xl bg-card px-7 pt-6 pb-7 text-ink backdrop-blur-[18px] nth-2:[animation-delay:0.06s] nth-3:[animation-delay:0.12s] max-sm:px-4",
+      "flex animate-rise flex-col gap-5 rounded-3xl bg-card px-7 pt-6 pb-7 text-ink dark:backdrop-blur-[18px] nth-2:[animation-delay:0.06s] nth-3:[animation-delay:0.12s] max-sm:px-4",
       className
     )}
     {...props}
