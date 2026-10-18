@@ -135,6 +135,15 @@ export const useMove = (
   const fingers = useRef(new Map<number, Point>());
   const pressed = useRef({ time: 0, point: [0, 0] as Point });
   const clip = useRef<{ drawing: Drawing; times: number } | null>(null);
+  /**
+   * A copy just laid down – pasted, duplicated, dragged off with Alt – is
+   * loose while it stays selected: its own, whatever it touches, so it can
+   * be put in place first; a press in its frame moves it alone. Anything
+   * else selected, it is placed – from then on what touches is one again.
+   */
+  const loose = useRef<Selection | null>(null);
+  const isLoose = (items: Selection) =>
+    !!loose.current && sameSelection(loose.current, items);
 
   useEffect(() => {
     setTouchy(matchMedia("(pointer: coarse)").matches);
@@ -155,6 +164,7 @@ export const useMove = (
 
   /** Selects these, upright – erasers shared with others doubled first. */
   const choose = (items: Selection | null) => {
+    loose.current = null;
     if (!items || isNothing(items)) {
       select(null);
       return;
@@ -199,7 +209,14 @@ export const useMove = (
     else {
       over = thingAt(point, reach);
       if (over || hit?.kind === "move") cursor = "move";
-      if (over && now && holds(now.items, over)) over = null;
+      // In a loose copy's frame, only it is grabbed.
+      if (
+        over &&
+        now &&
+        (holds(now.items, over) || (hit?.kind === "move" && isLoose(now.items)))
+      ) {
+        over = null;
+      }
     }
     event.currentTarget.style.cursor = cursor;
     setHover((was) => (was && over && sameSelection(was, over) ? was : over));
@@ -289,11 +306,12 @@ export const useMove = (
         return;
       }
       // Inside the frame it moves – unless the press is on another shape,
-      // which is selected instead (⇧: added or taken away).
+      // which is selected instead (⇧: added or taken away); a loose copy
+      // moves whatever it lies on.
       if (
         hit?.kind === "move" &&
         !event.shiftKey &&
-        (!thing || holds(now.items, thing))
+        (!thing || holds(now.items, thing) || isLoose(now.items))
       ) {
         gesture.current = { ...base, kind: "move", copy: event.altKey };
         return;
@@ -315,6 +333,7 @@ export const useMove = (
       return;
     }
     // Nothing there: a box to select with – ⇧ adds what it catches.
+    loose.current = null;
     if (!event.shiftKey) select(null);
     gesture.current = {
       kind: "marquee",
@@ -362,6 +381,7 @@ export const useMove = (
         if (copies) {
           g.start = copies.drawing;
           g.items = copies.selection;
+          loose.current = copies.selection;
           g.points = pointsOf(copies.drawing, copies.selection);
           g.guides = null;
         }
@@ -522,11 +542,12 @@ export const useMove = (
     );
   };
 
-  /** Copies laid down – picked – as one step. */
+  /** Copies laid down – selected and loose – as one step. */
   const lay = (copies: Drawing, shift: number) => {
     const added = addCopies(drawing.current, copies, shift, shift, moveWithin);
     if (!added) return;
     put(added.drawing, added.selection);
+    loose.current = added.selection;
   };
 
   return {
@@ -544,7 +565,7 @@ export const useMove = (
     pinching: () => gesture.current?.kind === "pinch",
     /** A drag under way. */
     moving,
-    clear: () => select(null),
+    clear: () => choose(null),
     all: () => choose(everything(drawing.current)),
     nudge,
     duplicate: () => {
@@ -569,13 +590,14 @@ export const useMove = (
       };
       model.removeSelected();
     },
-    /** Whether there is something to paste – then it is pasted. */
+    /** Whether something is copied – to paste. */
+    holding: () => clip.current !== null,
+    /** What was copied, laid down once more – a little further each time. */
     paste: () => {
       const held = clip.current;
-      if (!held) return false;
+      if (!held) return;
       held.times += 1;
       lay(held.drawing, OFFSET * held.times);
-      return true;
     },
   };
 };

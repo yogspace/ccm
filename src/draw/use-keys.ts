@@ -74,7 +74,11 @@ export const useKeys = ({
       } else if (key === "d" && chosen) move.duplicate();
       else if (key === "c" && chosen) move.copy();
       else if (key === "x" && chosen) move.cut();
-      else if (key === "v" && move.paste()) chooseTool("move");
+      else if (key === "v" && move.holding()) {
+        // The tool first – choosing one lets go of what is selected.
+        chooseTool("move");
+        move.paste();
+      }
       else return;
       event.preventDefault();
       return;
