@@ -78,8 +78,7 @@ export const useKeys = ({
         // The tool first – choosing one lets go of what is selected.
         chooseTool("move");
         move.paste();
-      }
-      else return;
+      } else return;
       event.preventDefault();
       return;
     }
