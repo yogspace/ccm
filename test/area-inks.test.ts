@@ -3,7 +3,7 @@ import {
   removeSelection,
   selectionInk,
   setStrokeInk,
-  transformDrawing,
+  transformBy,
 } from "../src/drawing";
 import { defaultParams } from "../src/geometry/cutter";
 import type { Ring } from "../src/geometry/outline";
@@ -46,13 +46,7 @@ describe("an imported area", () => {
 
   it("keeps each contour's ink when moved or partly removed", () => {
     const pink = setStrokeInk(imported, first, "emboss");
-    const moved = transformDrawing(pink, first, {
-      scale: 1,
-      cx: 0,
-      cy: 0,
-      dx: 10,
-      dy: 0,
-    });
+    const moved = transformBy(pink, first, [1, 0, 0, 1, 10, 0]);
     expect(moved.baseEmboss).toEqual([true, true, false]);
     const rest = removeSelection(pink, { strokes: [], rings: [2] });
     expect(rest.baseEmboss).toEqual([true, true]);

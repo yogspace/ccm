@@ -1,4 +1,4 @@
-import { FileUp, Spline, X } from "lucide-react";
+import { FileUp, Spline, X, ZoomOut } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   type DragEvent,
@@ -14,46 +14,58 @@ import { ANCHOR } from "../bezier";
 import { cn } from "../cn";
 import Button from "../components/button";
 import CookieIcon from "../components/cookie-icon";
+import Segmented from "../components/segmented";
 import {
   cookieInIconButton,
   cookieInStageHint,
   stage,
   stageHint,
 } from "../components/styles";
-import { anchoredAt, DRAW_RES as RES } from "../drawing";
+import { DRAW_RES as RES, selectionBox } from "../drawing";
 import type { Point } from "../geometry/outline";
 import { store, type Tool, useMmPerCanvas } from "../store";
 import BrushOptions from "./brush-options";
 import DrawActions from "./draw-actions";
 import DrawGrid from "./draw-grid";
-import { CuttingLine, MarqueeBox, SelectionFrame } from "./draw-marks";
+import {
+  CuttingLine,
+  GuideLines,
+  HoverBox,
+  MarqueeBox,
+  SelectionFrame,
+} from "./draw-marks";
 import DrawTemplates from "./draw-templates";
-import { distance, frameOf, toPoint } from "./gesture-math";
+import { outOfFrame } from "./frame";
+import { pixelsPer, toPoint } from "./gesture-math";
 import LineMarks from "./line-marks";
+import Loupe from "./loupe";
 import ShapeHead from "./shape-head";
 import ToolPicker from "./tool-picker";
 import { useAreaFit } from "./use-area-fit";
 import { useDrawing } from "./use-drawing";
+import { useKeys } from "./use-keys";
 import { useLine } from "./use-line";
 import { useMove } from "./use-move";
-import { usePen } from "./use-pen";
+import { type Locate, usePen } from "./use-pen";
+import { useStagePointer } from "./use-stage-pointer";
+import { useZoom } from "./use-zoom";
+import { toStage, type View } from "./view";
 
-/** Two presses this soon (ms) and near (CSS px) are a double click. */
-const TWICE = { ms: 400, px: 8 };
-/** This close (CSS px) a double click must hit a line. */
-const HIT = 12;
-
-/** A button on the drawing area, at a spot in drawing-area pixels. */
-const onStage = ([x, y]: Point, dx: string, dy: string) => ({
-  left: `clamp(1.2rem, calc(${(x / RES) * 100}% + ${dx}), calc(100% - 1.2rem))`,
-  top: `clamp(1.2rem, calc(${(y / RES) * 100}% + ${dy}), calc(100% - 1.2rem))`,
-});
+/** A button on the drawing area, at a spot in drawing-area pixels – through the view. */
+const onStage = (view: View, [x, y]: Point, dx: string, dy: string) => {
+  const [sx, sy] = toStage(view, x / RES, y / RES);
+  return {
+    left: `clamp(1.2rem, calc(${sx * 100}% + ${dx}), calc(100% - 1.2rem))`,
+    top: `clamp(1.2rem, calc(${sy * 100}% + ${dy}), calc(100% - 1.2rem))`,
+  };
+};
 
 /**
  * Drawing area with tools and templates. Tool, brush size, unit and the final
  * contour come from the store, every change of the drawing goes back there
- * (use-drawing.ts). Drawing (use-pen.ts), moving (use-move.ts), selection
- * and undo stay local here.
+ * (use-drawing.ts). Drawing (use-pen.ts), the line tool (use-line.ts),
+ * moving (use-move.ts), zooming (use-zoom.ts), the pointers (use-stage-pointer.ts),
+ * the keys (use-keys.ts), selection and undo stay local here.
  */
 const DrawCanvas = () => {
   const { t } = useTranslation();
@@ -63,13 +75,41 @@ const DrawCanvas = () => {
   const gridRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const brushCursorRef = useRef<HTMLSpanElement>(null);
+  // The pointer is over the drawing area – its keys are the area's then.
+  const over = useRef(false);
   const drawing = useDrawing();
-  const { canvasRef, selection, box, empty } = drawing;
-  const pen = usePen(drawing);
-  const moving = useMove(drawing);
+  const { canvasRef, selection, frame, empty } = drawing;
+  const zoom = useZoom(stageRef, drawing.setView);
+  const { view } = zoom;
+  const zoomed = view.s > 1.001;
+
+  /** Where on the area a pointer is, and how many area pixels a CSS pixel is. */
+  const locate: Locate = (event) => {
+    const rect = stageRef.current?.getBoundingClientRect() ?? new DOMRect();
+    return {
+      at: toPoint(event, rect, zoom.latest.current),
+      per: pixelsPer(rect, zoom.latest.current),
+    };
+  };
+
+  const pen = usePen(drawing, locate);
+  const move = useMove(drawing, {
+    locate,
+    onEdit: (stroke) => editPoints(stroke),
+  });
   const line = useLine(drawing, {
     tool,
+    locate,
     onLeave: (stroke) => leavePoints(stroke),
+  });
+  const pointer = useStagePointer({
+    tool,
+    stage: stageRef,
+    zoom,
+    zoomed,
+    move,
+    line,
+    pen,
   });
   const [dragging, setDragging] = useState(false);
   const mode =
@@ -88,6 +128,10 @@ const DrawCanvas = () => {
     if (brushCursorRef.current) brushCursorRef.current.style.opacity = "0";
   };
 
+  /**
+   * A circle as big as the brush where it paints – at the pointer, and while
+   * a line is drawn at its tip, which follows on its string (use-pen.ts).
+   */
   const showBrush = (event: PointerEvent<HTMLDivElement>) => {
     const cursor = brushCursorRef.current;
     const area = stageRef.current;
@@ -98,9 +142,14 @@ const DrawCanvas = () => {
       return;
     }
     const rect = area.getBoundingClientRect();
-    const size = (brush * rect.width) / RES;
+    const v = zoom.latest.current;
+    const size = (brush * rect.width * v.s) / RES;
+    const tip = pen.tip();
+    const [x, y] = tip
+      ? toStage(v, tip[0] / RES, tip[1] / RES).map((n) => n * rect.width)
+      : [event.clientX - rect.left, event.clientY - rect.top];
     cursor.style.width = cursor.style.height = `${size}px`;
-    cursor.style.transform = `translate(${event.clientX - rect.left - size / 2}px, ${event.clientY - rect.top - size / 2}px)`;
+    cursor.style.transform = `translate(${x - size / 2}px, ${y - size / 2}px)`;
     cursor.style.opacity = "1";
   };
 
@@ -108,10 +157,10 @@ const DrawCanvas = () => {
   // as far as it got.
   const chooseTool = (next: Tool) => {
     store.tool = next;
-    moving.cancel();
+    move.cancel();
     drawing.select(null);
     hideBrush();
-    if (canvasRef.current) canvasRef.current.style.cursor = "";
+    if (stageRef.current) stageRef.current.style.cursor = "";
   };
 
   /** A line's points are edited – moving's own, with that line. */
@@ -124,24 +173,6 @@ const DrawCanvas = () => {
   const leavePoints = (stroke: number | null) => {
     chooseTool("move");
     if (stroke !== null) drawing.select({ strokes: [stroke], rings: [] });
-  };
-
-  /** The last press with the move tool – one more soon and near it is a double click. */
-  const lastPress = useRef({ time: -Infinity, point: [0, 0] as Point });
-  /** Moving – a double click on an anchored line edits its points. */
-  const grab = (event: PointerEvent<HTMLCanvasElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const point = toPoint(event, rect);
-    const before = lastPress.current;
-    lastPress.current = { time: event.timeStamp, point };
-    const twice =
-      event.timeStamp - before.time < TWICE.ms &&
-      (distance(point, before.point) * rect.width) / RES < TWICE.px;
-    const index = twice
-      ? anchoredAt(drawing.drawing.current, point, (HIT * RES) / rect.width)
-      : null;
-    if (index !== null) editPoints(index);
-    else moving.grab(event);
   };
 
   // The one anchored line in the selection – its points can be edited.
@@ -173,6 +204,22 @@ const DrawCanvas = () => {
     []
   );
 
+  useKeys({
+    tool,
+    stage: stageRef,
+    over,
+    spaceHeld: pointer.spaceHeld,
+    drawing,
+    move,
+    line,
+    zoom,
+    chooseTool,
+    editPoints: () => {
+      if (pickedLine !== null) editPoints(pickedLine);
+    },
+    leavePoints,
+  });
+
   const onDrop = (event: DragEvent) => {
     event.preventDefault();
     setDragging(false);
@@ -180,7 +227,14 @@ const DrawCanvas = () => {
     if (file) drawing.importFile(file);
   };
 
-  const frame = moving.gestureFrame ?? (box ? frameOf(box) : null);
+  // The selection's top right corner – turned with its frame.
+  const corner: Point | null = frame
+    ? outOfFrame(frame, frame.w / 2, -frame.h / 2)
+    : null;
+  const hoverBox =
+    mode === "move" && move.hover
+      ? selectionBox(drawing.drawing.current, move.hover)
+      : null;
 
   return (
     // Container for area and bars: its size decides whether the bars sit
@@ -211,12 +265,19 @@ const DrawCanvas = () => {
       >
         <ShapeHead />
         {/* Always square – otherwise the drawing area distorts everything on
-            it. Anchors the error popup. */}
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: a pure drop zone, importing also works via the button */}
+            it. Anchors the error popup. It takes the pointers – what they do
+            is use-stage-pointer.ts's: the tools, or the view. Nothing
+            scrolls or zooms the page under it. */}
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: drawing with a pointer and a drop zone – importing also works via the button */}
         <div
           className={cn(
             stage,
-            "group/stage aspect-square w-full min-w-0 [grid-area:stage] [anchor-name:--drawing]",
+            "group/stage aspect-square w-full min-w-0 touch-none select-none [grid-area:stage] [anchor-name:--drawing]",
+            mode === "draw"
+              ? "cursor-crosshair [@media(hover:hover)]:cursor-none"
+              : mode === "line"
+                ? "cursor-crosshair"
+                : "cursor-default",
             dragging && "bg-accent-soft transform-[scale(0.985)]"
           )}
           onDragLeave={() => setDragging(false)}
@@ -225,41 +286,39 @@ const DrawCanvas = () => {
             setDragging(true);
           }}
           onDrop={onDrop}
-          onPointerLeave={hideBrush}
-          onPointerMove={showBrush}
+          onPointerCancel={pointer.onUp}
+          onPointerDown={pointer.onDown}
+          onPointerEnter={() => {
+            over.current = true;
+          }}
+          onPointerLeave={() => {
+            over.current = false;
+            pointer.onLeave();
+            hideBrush();
+          }}
+          onPointerMove={(event) => {
+            pointer.onMove(event);
+            showBrush(event);
+          }}
+          onPointerUp={pointer.onUp}
           ref={stageRef}
         >
-          <DrawGrid mmPerCanvas={mmPerCanvas} unit={unit} />
-          {/* With a mouse the brush preview shows where it paints – the arrow
-              would be doubled. */}
+          <DrawGrid mmPerCanvas={mmPerCanvas} unit={unit} view={view} />
+          {/* The drawing, through the view – it takes no pointer itself. */}
           <canvas
-            className={cn(
-              "absolute inset-0 size-full cursor-crosshair touch-none",
-              mode === "draw" && "[@media(hover:hover)]:cursor-none",
-              (mode === "move" || tool === "points") && "cursor-default"
-            )}
-            height={RES}
-            onPointerCancel={
-              { draw: pen.end, move: moving.release, line: line.up }[mode]
-            }
-            onPointerDown={
-              { draw: pen.start, move: grab, line: line.down }[mode]
-            }
-            onPointerLeave={mode === "line" ? line.leave : undefined}
-            onPointerMove={
-              { draw: pen.move, move: moving.drag, line: line.move }[mode]
-            }
-            onPointerUp={
-              { draw: pen.end, move: moving.release, line: line.up }[mode]
-            }
+            className="pointer-events-none absolute inset-0 size-full"
             ref={canvasRef}
-            width={RES}
           />
           {cutter.outline.length > 0 && (
-            <CuttingLine outline={cutter.outline} />
+            <CuttingLine outline={cutter.outline} view={view} />
           )}
           {mode === "line" && (
-            <LineMarks lines={line.lines} marks={line.marks} touch={touch} />
+            <LineMarks
+              lines={line.lines}
+              marks={line.marks}
+              touch={touch}
+              view={view}
+            />
           )}
           {/* With the line tool, a line on how it goes. */}
           {mode === "line" && (
@@ -269,6 +328,21 @@ const DrawCanvas = () => {
                 : t(touch ? "draw.pointsHintTouch" : "draw.pointsHint")}
             </p>
           )}
+          {/* Round or corner – the points still to set, or the picked one:
+              Alt does it with a mouse, a finger has none. */}
+          {mode === "line" && line.kind && (
+            <Segmented
+              className="absolute top-2 left-1/2 z-3 -translate-x-1/2"
+              label={t("draw.kind")}
+              onChange={line.setKind}
+              options={[
+                { value: "smooth", label: t("draw.smooth") },
+                { value: "corner", label: t("draw.corner") },
+              ]}
+              tone="card"
+              value={line.kind}
+            />
+          )}
           {/* X at the picked point: takes it away (like Delete). */}
           {tool === "points" && pickedPoint && (
             <Button
@@ -277,7 +351,7 @@ const DrawCanvas = () => {
               className="absolute z-3 -translate-1/2"
               kind="icon"
               onClick={line.removePoint}
-              style={onStage(pickedPoint, "22px", "-22px")}
+              style={onStage(view, pickedPoint, "22px", "-22px")}
               title={t("draw.removePoint")}
               type="button"
             >
@@ -290,18 +364,26 @@ const DrawCanvas = () => {
               />
             </Button>
           )}
-          {mode === "move" && frame && <SelectionFrame frame={frame} />}
-          {mode === "move" && moving.marqueeBox && (
-            <MarqueeBox box={moving.marqueeBox} />
+          {mode === "move" && hoverBox && (
+            <HoverBox box={hoverBox} view={view} />
+          )}
+          {mode === "move" && move.lines && (
+            <GuideLines lines={move.lines} view={view} />
+          )}
+          {mode === "move" && frame && (
+            <SelectionFrame frame={frame} knob={move.knob} view={view} />
+          )}
+          {mode === "move" && move.marquee && (
+            <MarqueeBox box={move.marquee} view={view} />
           )}
           {/* X at the selection: removes it (like Delete) */}
-          {mode === "move" && box && !moving.gestureFrame && (
+          {mode === "move" && corner && !move.moving && (
             <Button
               aria-label={t("draw.removeSelection")}
               className="absolute z-3 -translate-1/2"
               kind="icon"
               onClick={drawing.removeSelected}
-              style={onStage([box.x1, box.y0], "14px", "-14px")}
+              style={onStage(view, corner, "22px", "-22px")}
               title={t("draw.removeSelection")}
               type="button"
             >
@@ -315,29 +397,47 @@ const DrawCanvas = () => {
             </Button>
           )}
           {/* Below it, with one anchored line picked: edit its points (or a
-              double click on it). */}
-          {mode === "move" &&
-            box &&
-            pickedLine !== null &&
-            !moving.gestureFrame && (
-              <Button
-                aria-label={t("draw.points")}
-                className="absolute z-3 -translate-1/2"
-                kind="icon"
-                onClick={() => editPoints(pickedLine)}
-                style={onStage([box.x1, box.y0], "14px", "30px")}
-                title={t("draw.points")}
-                type="button"
-              >
-                <CookieIcon
-                  className={cookieInIconButton}
-                  icing="#ff6a1f"
-                  icon={Spline}
-                  roll={-8}
-                  size={40}
-                />
-              </Button>
-            )}
+              double click on it, or A). */}
+          {mode === "move" && corner && pickedLine !== null && !move.moving && (
+            <Button
+              aria-keyshortcuts="A"
+              aria-label={t("draw.points")}
+              className="absolute z-3 -translate-1/2"
+              kind="icon"
+              onClick={() => editPoints(pickedLine)}
+              style={onStage(view, corner, "22px", "30px")}
+              title={t("draw.points")}
+              type="button"
+            >
+              <CookieIcon
+                className={cookieInIconButton}
+                icing="#ff6a1f"
+                icon={Spline}
+                roll={-8}
+                size={40}
+              />
+            </Button>
+          )}
+          {/* Zoomed in: back to the whole area (⌘0). */}
+          {zoomed && (
+            <Button
+              aria-keyshortcuts="Meta+0"
+              aria-label={t("draw.zoomReset")}
+              className="absolute top-2 right-2 z-3"
+              kind="icon"
+              onClick={zoom.reset}
+              title={t("draw.zoomReset")}
+              type="button"
+            >
+              <CookieIcon
+                className={cookieInIconButton}
+                icing="#2a44ff"
+                icon={ZoomOut}
+                roll={10}
+                size={40}
+              />
+            </Button>
+          )}
           {/* Brush preview: a circle at the real brush size that follows the
               pointer (showBrush) */}
           <span
@@ -379,6 +479,7 @@ const DrawCanvas = () => {
             </div>
           )}
         </div>
+        {pointer.loupeOn && <Loupe ref={pointer.loupe} source={canvasRef} />}
 
         <ToolPicker onChoose={onChooseTool} tool={tool} />
         <BrushOptions

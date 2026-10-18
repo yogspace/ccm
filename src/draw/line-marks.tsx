@@ -1,7 +1,9 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { ANCHOR, anchorCount, type Guides, noHandle } from "../bezier";
+import { ANCHOR, anchorCount, noHandle } from "../bezier";
 import { DRAW_RES as RES } from "../drawing";
+import type { Guides } from "./guides";
 import type { LineMarking } from "./use-line";
+import type { View } from "./view";
 
 /** A thin line in the accent on a white edge – readable on paper and on ink. */
 const Line = ({ d, dashed }: { d: string; dashed?: boolean }) => (
@@ -21,17 +23,20 @@ const Line = ({ d, dashed }: { d: string; dashed?: boolean }) => (
  * itself, thin; its anchors as small squares (the picked one filled, the
  * first one ringed when a press would close the line); handles as lines
  * with round ends; the next curve to the pointer, dashed; and the guides an
- * anchor has snapped to. On touch everything a little bigger. It never
+ * anchor has snapped to. On touch everything a little bigger. Through the
+ * view, zoomed in or not – the marks themselves stay as large. It never
  * takes a pointer.
  */
 const LineMarks = ({
   marks,
   lines,
   touch,
+  view,
 }: {
   marks: LineMarking | null;
   lines: Guides | null;
   touch: boolean;
+  view: View;
 }) => {
   const box = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState(0);
@@ -43,9 +48,10 @@ const LineMarks = ({
     setSize(element.clientWidth);
     return () => watch.disconnect();
   }, []);
-  const px = (value: number) => (value * size) / RES;
+  const sx = (x: number) => (view.x + (x / RES) * view.s) * size;
+  const sy = (y: number) => (view.y + (y / RES) * view.s) * size;
   const at = (x: number, y: number) =>
-    `${px(x).toFixed(1)} ${px(y).toFixed(1)}`;
+    `${sx(x).toFixed(1)} ${sy(y).toFixed(1)}`;
   const half = touch ? 5.5 : 4;
   const anchors = marks?.anchors ?? [];
   const count = anchorCount(anchors);
@@ -53,8 +59,8 @@ const LineMarks = ({
     marks?.handles === "all" || (marks?.handles === "last" && i === count - 1);
   const preview = marks?.preview;
   const guides = lines && [
-    ...lines.x.map((x) => `M${px(x).toFixed(1)} 0V${size}`),
-    ...lines.y.map((y) => `M0 ${px(y).toFixed(1)}H${size}`),
+    ...lines.x.map((x) => `M${sx(x).toFixed(1)} 0V${size}`),
+    ...lines.y.map((y) => `M0 ${sy(y).toFixed(1)}H${size}`),
   ];
 
   return (
@@ -66,7 +72,7 @@ const LineMarks = ({
       {size > 0 && (
         <svg
           aria-hidden
-          className="size-full overflow-visible"
+          className="size-full"
           fill="none"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -101,8 +107,8 @@ const LineMarks = ({
                     d={`M${at(anchors[k], anchors[k + 1])}L${at(anchors[h], anchors[h + 1])}`}
                   />
                   <circle
-                    cx={px(anchors[h])}
-                    cy={px(anchors[h + 1])}
+                    cx={sx(anchors[h])}
+                    cy={sy(anchors[h + 1])}
                     fill="var(--color-paper)"
                     r={half - 0.5}
                     stroke="var(--color-accent)"
@@ -113,8 +119,8 @@ const LineMarks = ({
             });
           })}
           {Array.from({ length: count }, (_, i) => i).map((i) => {
-            const x = px(anchors[i * ANCHOR]);
-            const y = px(anchors[i * ANCHOR + 1]);
+            const x = sx(anchors[i * ANCHOR]);
+            const y = sy(anchors[i * ANCHOR + 1]);
             return (
               <g key={i}>
                 {marks?.closing && i === 0 && (

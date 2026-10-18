@@ -1,344 +1,583 @@
 import { type PointerEvent, useEffect, useRef, useState } from "react";
 import {
+  addCopies,
+  anchoredAt,
   type Box,
   detachErasers,
+  everything,
+  holds,
+  isNothing,
   mergeSelections,
   objectAt,
-  objectsWithin,
-  DRAW_RES as RES,
+  objectsTouching,
+  pickDrawing,
+  pointsOf,
   type Selection,
+  sameSelection,
   selectionBox,
-  type Transform,
-  transformDrawing,
+  toggleSelection,
+  transformBy,
 } from "../drawing";
 import type { Point } from "../geometry/outline";
 import { store } from "../store";
 import type { Drawing } from "../url-state";
 import {
-  angleOf,
-  boxBetween,
-  center,
-  clampScale,
-  corners,
-  distance,
   type Frame,
-  frameOf,
-  inside,
-  middle,
-  snapAngle,
-  toPoint,
-} from "./gesture-math";
-import type { DrawingModel, Snapshot } from "./use-drawing";
+  frameAfter,
+  grip,
+  type Matrix,
+  sizeCursor,
+  translate,
+} from "./frame";
+import { boxBetween, distance } from "./gesture-math";
+import { moveWithin, pinching, sizing, turning } from "./gestures";
+import { type Guides, guidesFor, linesAt, snapMove, snapPoint } from "./guides";
+import { type DrawingModel, frameFor } from "./use-drawing";
+import type { Locate } from "./use-pen";
 
-/** This close (CSS pixels) you must hit an object or a handle. */
-const HIT = 12;
+/** How near (CSS px) a pointer must come to a shape or a handle – a finger more. */
+const REACH = { mouse: 7, touch: 18 };
+/** How far (CSS px) outside a corner the pointer turns the selection. */
+const TURN = 22;
+/** How far (CSS px) above the frame the knob for turning stands – on touch. */
+export const KNOB = 30;
+/** How near (CSS px) a guide pulls – whatever the zoom. */
+const SNAP = 5;
+/** How far (CSS px) a press may wander and still be a click. */
+const SLOP = { mouse: 3, touch: 6 };
+/**
+ * Two presses this soon (ms) and near (CSS px) are a double click – a
+ * finger's two taps land further apart.
+ */
+const TWICE = { ms: 400, px: { mouse: 8, touch: 24 } };
+/** Arrow keys move this far (pixels) – with ⇧ further. */
+export const NUDGE = { small: 5, big: 50 };
+/** A copy lands this far (pixels) off its original. */
+const OFFSET = 30;
 
-/** A move gesture in progress; the transform always starts from `start`. */
-type Gesture = {
-  /** `scale` at the corners rotates and scales at once. */
-  kind: "drag" | "scale" | "pinch";
-  start: Drawing;
-  selection: Selection;
-  box: Box;
+/** The turning cursor: an arrow round a corner, inked on a white edge. */
+const TURN_CURSOR = (() => {
+  const arc = "M7 15.5A7 7 0 1 0 9 8.5";
+  const head = "M5.5 5.5 9 8.5l-3.5 3";
+  const line = (color: string, width: number) =>
+    `<path d='${arc}${head}' fill='none' stroke='${color}' stroke-width='${width}' stroke-linecap='round' stroke-linejoin='round'/>`;
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'>${line("white", 4.5)}${line("#0d1033", 2)}</svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 12 12, alias`;
+})();
+
+type Press = {
+  pointer: number;
   origin: Point;
-  pinch?: { distance: number; mid: Point; angle: number };
-  before: Snapshot;
+  /** Area pixels per CSS pixel when it began. */
+  per: number;
+  touch: boolean;
+  /** The drawing before – what one step back returns to. */
+  before: Drawing;
+  /** What the change is made to, and what it moves. */
+  start: Drawing;
+  items: Selection;
+  frame: Frame;
+  points: number[];
+  /** The lines it may snap to – found when it first moves. */
+  guides: Guides | null;
+  /** Past the slop – a drag, not a click. */
+  moved: boolean;
   changed: boolean;
 };
 
-const tolerance = (rect: DOMRect) => (HIT * RES) / rect.width;
+type Gesture =
+  | (Press & { kind: "move"; copy: boolean })
+  | (Press & { kind: "size"; handle: Point })
+  | (Press & { kind: "turn" })
+  | (Press & { kind: "pinch"; fingers: [Point, Point] })
+  | {
+      kind: "marquee";
+      pointer: number;
+      origin: Point;
+      per: number;
+      touch: boolean;
+      base: Selection | null;
+      box: Box | null;
+    };
 
 /**
- * The move tool: a tap selects an object (with shift one more), a box
- * dragged over empty space selects what lies inside it. The selection
- * moves when dragged, rotates and scales at its corners, with two fingers
- * or the wheel. Every finished gesture is one undo step.
- * `gestureFrame`: the selection's frame turned along while a gesture is on;
- * `marqueeBox`: the box being dragged.
+ * The move tool (V), the way Figma does it: a click selects a shape (what
+ * touches is one), ⇧-click adds or takes away, a box dragged over empty
+ * space selects all it touches, a click into nothing lets go. Dragging
+ * moves (⇧ straight, Alt a copy); the frame's handles size it (⇧ in
+ * proportion, Alt about its middle) – lines keep their width –, just
+ * outside a corner turns it (⇧ in 15° steps) – on touch a knob above the
+ * frame, or two fingers. What is moved or sized snaps onto the area's
+ * middle and the other shapes' edges and middles (guides.ts) – not with ⌘ /
+ * Ctrl – and never leaves the area. Every gesture is one step back. A
+ * double click on an anchored line edits its points (`onEdit`).
  */
-export const useMove = ({
-  canvasRef,
-  drawing,
-  live,
-  selection,
-  box,
-  capture,
-  remember,
-  commit,
-  repaint,
-  select,
-  reframe,
-}: DrawingModel) => {
+export const useMove = (
+  model: DrawingModel,
+  {
+    locate,
+    onEdit,
+  }: {
+    locate: Locate;
+    onEdit: (stroke: number) => void;
+  }
+) => {
+  const { drawing, live, remember, commit, repaint, select, put } = model;
+  const [hover, setHover] = useState<Selection | null>(null);
+  const [marquee, setMarquee] = useState<Box | null>(null);
+  // The guides what is dragged lies on – shown only while it is.
+  const [lines, setLines] = useState<Guides | null>(null);
+  // Fingers show the knob – no hover to find the turn by.
+  const [touchy, setTouchy] = useState(false);
+  // A drag under way – the buttons on the selection make way.
+  const [moving, setMoving] = useState(false);
   const gesture = useRef<Gesture | null>(null);
-  /** Box selection: start point and – with shift – the selection before it. */
-  const marquee = useRef<{ origin: Point; base: Selection | null } | null>(
-    null
-  );
-  const [marqueeBox, setMarqueeBox] = useState<Box | null>(null);
-  const [gestureFrame, setGestureFrame] = useState<Frame | null>(null);
-  const pointers = useRef(new Map<number, Point>());
-  const wheel = useRef<{ before: Snapshot; timer: number } | null>(null);
+  const fingers = useRef(new Map<number, Point>());
+  const pressed = useRef({ time: 0, point: [0, 0] as Point });
+  const clip = useRef<{ drawing: Drawing; times: number } | null>(null);
 
-  // The wheel scales the selection; React attaches wheel listeners passively,
-  // so it sits directly on the element, keeping the page from scrolling.
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const onWheel = (event: WheelEvent) => {
-      const { selection: chosen, box: frame } = live.current;
-      if (store.tool !== "move" || !chosen || !frame) return;
-      event.preventDefault();
-      const before = wheel.current?.before ?? capture();
-      if (!before) return;
-      if (wheel.current) window.clearTimeout(wheel.current.timer);
-      const [cx, cy] = center(frame);
-      const scale = clampScale(frame, Math.exp(-event.deltaY * 0.0015));
-      drawing.current = transformDrawing(drawing.current, chosen, {
-        scale,
-        cx,
-        cy,
-        dx: 0,
-        dy: 0,
-      });
-      repaint();
-      reframe(chosen);
-      // Once the wheel rests: one undo step, then recompute.
-      const timer = window.setTimeout(() => {
-        wheel.current = null;
-        remember(before);
-        commit();
-        select(chosen);
-      }, 300);
-      wheel.current = { before, timer };
-    };
-    canvas.addEventListener("wheel", onWheel, { passive: false });
-    return () => canvas.removeEventListener("wheel", onWheel);
-  });
+    setTouchy(matchMedia("(pointer: coarse)").matches);
+  }, []);
 
-  /** Another tool: no box being dragged. */
-  const cancel = () => {
-    marquee.current = null;
-    setMarqueeBox(null);
+  /** The selection now, and its frame. */
+  const current = () => {
+    const { selection, frame } = live.current;
+    return selection && frame ? { items: selection, frame } : null;
   };
 
-  const grab = (event: PointerEvent<HTMLCanvasElement>) => {
-    if (event.pointerType === "mouse" && event.button !== 0) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const point = toPoint(event, rect);
-    event.currentTarget.setPointerCapture(event.pointerId);
-    pointers.current.set(event.pointerId, point);
-    const current = gesture.current;
+  /**
+   * What is under a point, whole – with erasers that also take from others
+   * doubled for it (drawing.ts `detachErasers`).
+   */
+  const thingAt = (point: Point, reach: number) =>
+    objectAt(drawing.current, point, reach);
 
-    // A second finger cancels the box.
-    if (marquee.current && pointers.current.size > 1) {
-      cancel();
+  /** Selects these, upright – erasers shared with others doubled first. */
+  const choose = (items: Selection | null) => {
+    if (!items || isNothing(items)) {
+      select(null);
       return;
     }
+    const detached = detachErasers(drawing.current, items);
+    drawing.current = detached.drawing;
+    select(detached.selection);
+  };
 
-    // Second finger: the two-finger gesture scales, rotates and moves.
-    if (current && pointers.current.size === 2) {
-      const [a, b] = [...pointers.current.values()];
+  /** A change shown – the selection carried along in its frame. */
+  const show = (next: Drawing, items: Selection, frame: Frame) => {
+    drawing.current = next;
+    repaint();
+    select(items, frame);
+  };
+
+  /** A gesture done: one step. */
+  const settle = (before: Drawing) => {
+    remember({ drawing: before });
+    commit();
+  };
+
+  const hovering = (
+    event: PointerEvent<HTMLElement>,
+    point: Point,
+    per: number
+  ) => {
+    if (event.pointerType !== "mouse") return;
+    const reach = REACH.mouse * per;
+    const now = current();
+    let cursor = "default";
+    let over: Selection | null = null;
+    const hit =
+      now &&
+      grip(now.frame, point[0], point[1], {
+        reach,
+        turn: TURN * per,
+        knob: touchy ? KNOB * per : 0,
+      });
+    if (hit?.kind === "size" && now) cursor = sizeCursor(now.frame, hit.handle);
+    else if (hit?.kind === "turn") cursor = TURN_CURSOR;
+    else {
+      over = thingAt(point, reach);
+      if (over || hit?.kind === "move") cursor = "move";
+      if (over && now && holds(now.items, over)) over = null;
+    }
+    event.currentTarget.style.cursor = cursor;
+    setHover((was) => (was && over && sameSelection(was, over) ? was : over));
+  };
+
+  const down = (event: PointerEvent<HTMLElement>) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    const { at: point, per } = locate(event);
+    const touch = event.pointerType !== "mouse";
+    setTouchy(touch);
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // A pointer the browser no longer knows – it goes on all the same.
+    }
+    fingers.current.set(event.pointerId, point);
+    const now = current();
+    const going = gesture.current;
+
+    // A second finger: the two turn and size what is selected.
+    if (going && fingers.current.size === 2) {
+      if (going.kind === "marquee") {
+        gesture.current = null;
+        setMarquee(null);
+        setHover(null);
+        return;
+      }
+      if (!now) return;
+      const [a, b] = [...fingers.current.values()];
       gesture.current = {
-        ...current,
+        ...going,
         kind: "pinch",
         start: drawing.current,
-        box: selectionBox(drawing.current, current.selection) ?? current.box,
-        pinch: {
-          distance: Math.max(distance(a, b), 1),
-          mid: middle(a, b),
-          angle: angleOf(a, b),
-        },
+        frame: now.frame,
+        points: pointsOf(drawing.current, going.items),
+        guides: null,
+        fingers: [a, b],
+        moved: true,
       };
       return;
     }
-    if (pointers.current.size > 1) return;
+    if (fingers.current.size > 1) return;
+    setHover(null);
+    const reach = (touch ? REACH.touch : REACH.mouse) * per;
+    // Twice on an anchored line: its points are edited.
+    const before = pressed.current;
+    const twice =
+      event.timeStamp - before.time < TWICE.ms &&
+      distance(point, before.point) / per <
+        (touch ? TWICE.px.touch : TWICE.px.mouse);
+    pressed.current = { time: event.timeStamp, point };
+    const line = twice ? anchoredAt(drawing.current, point, reach) : null;
+    if (line !== null) {
+      fingers.current.delete(event.pointerId);
+      onEdit(line);
+      return;
+    }
+    const press = (items: Selection, frame: Frame): Press => ({
+      pointer: event.pointerId,
+      origin: point,
+      per,
+      touch,
+      before: drawing.current,
+      start: drawing.current,
+      items,
+      frame,
+      points: pointsOf(drawing.current, items),
+      guides: null,
+      moved: false,
+      changed: false,
+    });
 
-    const reach = tolerance(rect);
-    const before = capture();
-    if (!before) return;
-    if (selection && box) {
-      const start = {
-        start: drawing.current,
-        selection,
-        box,
-        origin: point,
-        before,
-        changed: false,
-      };
-      // Corners rotate and scale, inside moves – the selection stays as it is
-      // (even if it touches something).
-      if (corners(box).some((corner) => distance(corner, point) <= reach)) {
-        gesture.current = { kind: "scale", ...start };
+    const thing = thingAt(point, reach);
+    if (now) {
+      const hit = grip(now.frame, point[0], point[1], {
+        reach,
+        turn: touch ? 0 : TURN * per,
+        knob: touchy || touch ? KNOB * per : 0,
+      });
+      const base = press(now.items, now.frame);
+      if (hit?.kind === "size") {
+        gesture.current = { ...base, kind: "size", handle: hit.handle };
         return;
       }
-      if (inside(box, point, 0)) {
-        gesture.current = { kind: "drag", ...start };
+      if (hit?.kind === "turn") {
+        gesture.current = { ...base, kind: "turn" };
+        return;
+      }
+      // Inside the frame it moves – unless the press is on another shape,
+      // which is selected instead (⇧: added or taken away).
+      if (
+        hit?.kind === "move" &&
+        !event.shiftKey &&
+        (!thing || holds(now.items, thing))
+      ) {
+        gesture.current = { ...base, kind: "move", copy: event.altKey };
         return;
       }
     }
-    const found = objectAt(drawing.current, point, reach);
-    if (!found) {
-      // Empty space: drag a box – with shift what it catches is added,
-      // otherwise it replaces the selection.
-      if (!event.shiftKey) select(null);
-      marquee.current = {
-        origin: point,
-        base: event.shiftKey ? selection : null,
-      };
-      setMarqueeBox(boxBetween(point, point));
+    if (thing) {
+      const items =
+        event.shiftKey && now ? toggleSelection(now.items, thing) : thing;
+      choose(items);
+      const chosen = current();
+      // Pressed on what is selected now: dragged, it moves.
+      if (chosen && holds(chosen.items, thing)) {
+        gesture.current = {
+          ...press(chosen.items, chosen.frame),
+          kind: "move",
+          copy: event.altKey,
+        };
+      }
       return;
     }
-    // With shift the object is added to the selection.
-    const wanted =
-      event.shiftKey && selection ? mergeSelections(selection, found) : found;
-    // Erasers that also affect other objects are duplicated for this one.
-    const detached = detachErasers(drawing.current, wanted);
-    drawing.current = detached.drawing;
-    const hit = detached.selection;
-    select(hit);
-    const hitBox = selectionBox(drawing.current, hit);
-    if (hitBox) {
-      gesture.current = {
-        kind: "drag",
-        start: drawing.current,
-        selection: hit,
-        box: hitBox,
-        origin: point,
-        before,
-        changed: false,
-      };
-    }
+    // Nothing there: a box to select with – ⇧ adds what it catches.
+    if (!event.shiftKey) select(null);
+    gesture.current = {
+      kind: "marquee",
+      pointer: event.pointerId,
+      origin: point,
+      per,
+      touch,
+      base: event.shiftKey && now ? now.items : null,
+      box: null,
+    };
   };
 
-  const drag = (event: PointerEvent<HTMLCanvasElement>) => {
-    const canvas = event.currentTarget;
-    const rect = canvas.getBoundingClientRect();
-    const point = toPoint(event, rect);
-    if (pointers.current.has(event.pointerId)) {
-      pointers.current.set(event.pointerId, point);
+  const move = (event: PointerEvent<HTMLElement>) => {
+    const { at: point, per } = locate(event);
+    if (fingers.current.has(event.pointerId)) {
+      fingers.current.set(event.pointerId, point);
     }
-    const current = gesture.current;
-
-    const area = marquee.current;
-    if (area) {
-      setMarqueeBox(boxBetween(area.origin, point));
+    const g = gesture.current;
+    if (!g) {
+      hovering(event, point, per);
       return;
     }
-
-    // Without a gesture only adjust the pointer: handle, corner, object – or a
-    // crosshair where a box can be dragged.
-    if (!current) {
-      const reach = tolerance(rect);
-      const corner = box
-        ? corners(box).findIndex((c) => distance(c, point) <= reach)
-        : -1;
-      canvas.style.cursor =
-        corner >= 0
-          ? corner % 2 === 0
-            ? "nwse-resize"
-            : "nesw-resize"
-          : (box && inside(box, point, 0)) ||
-              objectAt(drawing.current, point, reach)
-            ? "grab"
-            : "crosshair";
+    if (g.kind !== "pinch" && g.pointer !== event.pointerId) return;
+    const slop = (g.touch ? SLOP.touch : SLOP.mouse) * g.per;
+    if (g.kind === "marquee") {
+      if (!g.box && distance(point, g.origin) < slop) return;
+      g.box = boxBetween(g.origin, point);
+      setMarquee(g.box);
+      setHover(objectsTouching(drawing.current, g.box));
       return;
     }
-
-    let transform: Transform;
-    if (current.kind === "pinch" && current.pinch) {
-      const [a, b] = [...pointers.current.values()];
-      if (!a || !b) return;
-      const mid = middle(a, b);
-      transform = {
-        scale: clampScale(current.box, distance(a, b) / current.pinch.distance),
-        angle: angleOf(a, b) - current.pinch.angle,
-        cx: current.pinch.mid[0],
-        cy: current.pinch.mid[1],
-        dx: mid[0] - current.pinch.mid[0],
-        dy: mid[1] - current.pinch.mid[1],
-      };
-    } else if (current.kind === "scale") {
-      const pivot = center(current.box);
-      const from = Math.max(distance(current.origin, pivot), 1);
-      transform = {
-        scale: clampScale(current.box, distance(point, pivot) / from),
-        angle: snapAngle(
-          angleOf(pivot, point) - angleOf(pivot, current.origin),
-          event.shiftKey
-        ),
-        cx: pivot[0],
-        cy: pivot[1],
-        dx: 0,
-        dy: 0,
-      };
+    if (!g.moved) {
+      if (distance(point, g.origin) < slop) return;
+      g.moved = true;
+      setMoving(true);
+      if (g.kind === "move" && g.copy) {
+        // Alt-drag: the copies move, the originals stay.
+        const copies = addCopies(
+          g.start,
+          pickDrawing(g.start, g.items),
+          0,
+          0,
+          moveWithin
+        );
+        if (copies) {
+          g.start = copies.drawing;
+          g.items = copies.selection;
+          g.points = pointsOf(copies.drawing, copies.selection);
+          g.guides = null;
+        }
+      }
+    }
+    let m: Matrix;
+    // Guides pull unless ⌘ / Ctrl is held, as in Figma.
+    const snapping = !(event.metaKey || event.ctrlKey);
+    const reach = SNAP * g.per;
+    let along: Guides | null = null;
+    if (g.kind === "move") {
+      let dx = point[0] - g.origin[0];
+      let dy = point[1] - g.origin[1];
+      const free = { x: true, y: true };
+      if (event.shiftKey) {
+        if (Math.abs(dx) > Math.abs(dy)) {
+          dy = 0;
+          free.y = false;
+        } else {
+          dx = 0;
+          free.x = false;
+        }
+      }
+      const box = selectionBox(g.start, g.items);
+      if (snapping && box) {
+        g.guides ??= guidesFor(g.start, g.items);
+        [dx, dy] = snapMove(box, dx, dy, g.guides, reach, free);
+      }
+      [dx, dy] = moveWithin(g.points, dx, dy);
+      m = translate(dx, dy);
+      if (snapping && box && g.guides) {
+        along = linesAt(
+          {
+            x0: box.x0 + dx,
+            y0: box.y0 + dy,
+            x1: box.x1 + dx,
+            y1: box.y1 + dy,
+          },
+          g.guides
+        );
+      }
+      event.currentTarget.style.cursor = "move";
+    } else if (g.kind === "size") {
+      const [hx, hy] = g.handle;
+      let to = point;
+      // An upright frame's dragged side snaps, too.
+      const upright = Math.abs(Math.sin(g.frame.angle)) < 1e-9;
+      if (snapping && upright) {
+        g.guides ??= guidesFor(g.start, g.items);
+        const x = g.frame.cx + (hx * g.frame.w) / 2 + point[0] - g.origin[0];
+        const y = g.frame.cy + (hy * g.frame.h) / 2 + point[1] - g.origin[1];
+        const snapped = snapPoint(x, y, g.guides, reach, {
+          x: hx !== 0,
+          y: hy !== 0,
+        });
+        to = [point[0] + snapped.x - x, point[1] + snapped.y - y];
+      }
+      m = sizing(g.frame, g.points, g.handle, g.origin, to, {
+        even: event.shiftKey,
+        centered: event.altKey,
+      });
+      if (snapping && upright && g.guides) {
+        const f = frameAfter(g.frame, m);
+        const box = {
+          x0: f.cx - f.w / 2,
+          y0: f.cy - f.h / 2,
+          x1: f.cx + f.w / 2,
+          y1: f.cy + f.h / 2,
+        };
+        const all = linesAt(box, g.guides);
+        // Only the sides being dragged.
+        const side = (v: number, low: number, high: number, h: number) =>
+          (h < 0 && Math.abs(v - low) < 1e-3) ||
+          (h > 0 && Math.abs(v - high) < 1e-3);
+        along = {
+          x: all.x.filter((v) => side(v, box.x0, box.x1, hx)),
+          y: all.y.filter((v) => side(v, box.y0, box.y1, hy)),
+        };
+      }
+    } else if (g.kind === "turn") {
+      m = turning(g.frame, g.points, g.origin, point, event.shiftKey);
     } else {
-      canvas.style.cursor = "grabbing";
-      transform = {
-        scale: 1,
-        cx: 0,
-        cy: 0,
-        dx: point[0] - current.origin[0],
-        dy: point[1] - current.origin[1],
-      };
+      const [a, b] = [...fingers.current.values()];
+      if (!(a && b)) return;
+      m = pinching(g.frame, g.points, g.fingers, [a, b]);
     }
-    drawing.current = transformDrawing(
-      current.start,
-      current.selection,
-      transform
-    );
-    current.changed = true;
-    repaint();
-    setGestureFrame(frameOf(current.box, transform));
+    g.changed = true;
+    setLines(along && (along.x.length || along.y.length) ? along : null);
+    show(transformBy(g.start, g.items, m), g.items, frameAfter(g.frame, m));
   };
 
-  const release = (event: PointerEvent<HTMLCanvasElement>) => {
-    pointers.current.delete(event.pointerId);
-
-    // Releasing the box selects everything entirely inside it.
-    const area = marquee.current;
-    if (area) {
-      cancel();
-      const point = toPoint(event, event.currentTarget.getBoundingClientRect());
-      const within = objectsWithin(
-        drawing.current,
-        boxBetween(area.origin, point)
-      );
-      const wanted =
-        area.base && within
-          ? mergeSelections(area.base, within)
-          : (within ?? area.base);
-      if (!wanted) return;
-      const detached = detachErasers(drawing.current, wanted);
-      drawing.current = detached.drawing;
-      select(detached.selection);
-      return;
-    }
-
-    const current = gesture.current;
-    if (!current) return;
-    // One finger stays down: keep moving from here.
-    if (current.kind === "pinch" && pointers.current.size === 1) {
-      const [rest] = [...pointers.current.values()];
-      gesture.current = {
-        ...current,
-        kind: "drag",
-        start: drawing.current,
-        box: selectionBox(drawing.current, current.selection) ?? current.box,
-        origin: rest,
-      };
-      return;
-    }
-    if (pointers.current.size > 0) return;
+  const up = (event: PointerEvent<HTMLElement>) => {
+    fingers.current.delete(event.pointerId);
+    const g = gesture.current;
+    if (!g) return;
+    if (g.kind === "pinch") {
+      const [rest] = [...fingers.current.entries()];
+      if (rest && fingers.current.size === 1) {
+        // One finger stays on: it moves on from here.
+        const frame = live.current.frame ?? g.frame;
+        gesture.current = {
+          ...g,
+          kind: "move",
+          copy: false,
+          pointer: rest[0],
+          origin: rest[1],
+          start: drawing.current,
+          frame,
+          points: pointsOf(drawing.current, g.items),
+          guides: null,
+          moved: true,
+        };
+        return;
+      }
+      if (fingers.current.size) return;
+    } else if (g.pointer !== event.pointerId) return;
     gesture.current = null;
-    setGestureFrame(null);
-    event.currentTarget.style.cursor = "grab";
-    if (!current.changed) return;
-    remember(current.before);
-    commit();
-    // The selection stays for further corrections; what touches now belongs
-    // together on the next tap.
-    select(current.selection);
+    setLines(null);
+    setMoving(false);
+    if (g.kind === "marquee") {
+      setMarquee(null);
+      setHover(null);
+      if (!g.box) return;
+      const caught = objectsTouching(drawing.current, g.box);
+      choose(
+        g.base && caught ? mergeSelections(g.base, caught) : (caught ?? g.base)
+      );
+      return;
+    }
+    if (g.changed) settle(g.before);
   };
 
-  return { grab, drag, release, cancel, marqueeBox, gestureFrame };
+  /**
+   * Whatever is under way stops – two fingers took over (they zoom): what
+   * it changed so far stays, as one step.
+   */
+  const cancel = () => {
+    const g = gesture.current;
+    gesture.current = null;
+    fingers.current.clear();
+    setMarquee(null);
+    setLines(null);
+    setMoving(false);
+    if (g && g.kind !== "marquee" && g.changed) settle(g.before);
+  };
+
+  /** Moved by (dx, dy) – arrow keys; one step. */
+  const nudge = (dx: number, dy: number) => {
+    const now = current();
+    if (!now) return;
+    const [mx, my] = moveWithin(pointsOf(drawing.current, now.items), dx, dy);
+    if (!(mx || my)) return;
+    const m = translate(mx, my);
+    put(
+      transformBy(drawing.current, now.items, m),
+      now.items,
+      frameAfter(now.frame, m)
+    );
+  };
+
+  /** Copies laid down – picked – as one step. */
+  const lay = (copies: Drawing, shift: number) => {
+    const added = addCopies(drawing.current, copies, shift, shift, moveWithin);
+    if (!added) return;
+    put(added.drawing, added.selection);
+  };
+
+  return {
+    hover: store.tool === "move" ? hover : null,
+    marquee: store.tool === "move" ? marquee : null,
+    lines: store.tool === "move" ? lines : null,
+    /** Fingers: a knob above the frame turns it. */
+    knob: touchy,
+    down,
+    move,
+    up,
+    cancel,
+    leave: () => setHover(null),
+    /** Two fingers turn and size what is selected – they don't zoom. */
+    pinching: () => gesture.current?.kind === "pinch",
+    /** A drag under way. */
+    moving,
+    clear: () => select(null),
+    all: () => choose(everything(drawing.current)),
+    nudge,
+    duplicate: () => {
+      const now = current();
+      if (now) lay(pickDrawing(drawing.current, now.items), OFFSET);
+    },
+    copy: () => {
+      const now = current();
+      if (now) {
+        clip.current = {
+          drawing: pickDrawing(drawing.current, now.items),
+          times: 0,
+        };
+      }
+    },
+    cut: () => {
+      const now = current();
+      if (!now) return;
+      clip.current = {
+        drawing: pickDrawing(drawing.current, now.items),
+        times: 0,
+      };
+      model.removeSelected();
+    },
+    /** Whether there is something to paste – then it is pasted. */
+    paste: () => {
+      const held = clip.current;
+      if (!held) return false;
+      held.times += 1;
+      lay(held.drawing, OFFSET * held.times);
+      return true;
+    },
+  };
 };
+
+export { frameFor };

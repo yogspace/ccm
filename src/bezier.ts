@@ -9,7 +9,9 @@ import type { Stroke } from "./url-state";
  * `anchors`, so it can be edited again: six numbers each, in drawing-area
  * pixels – where the anchor is, then its handle in and its handle out (x, y
  * each); a handle on its anchor is none. `closed`: the last anchor runs on
- * to the first.
+ * to the first. An anchor dragged stays in the area; its handles may reach
+ * beyond it (HANDLE_REACH) – a curve along the edge needs its handle out
+ * there.
  *
  * The points are always worked out from the anchors (`flatten`) – in the
  * editor and again when a link is read – so the two never part. Plain
@@ -32,6 +34,17 @@ type Cubic = [number, number, number, number, number, number, number, number];
 
 /** Into the drawing area, whole pixels – as a link keeps them. */
 const snapPixel = (n: number) => Math.round(Math.min(Math.max(n, 0), SIDE));
+
+/** How far beyond the area a handle may reach – each way (pixels). */
+export const HANDLE_REACH = SIDE;
+
+/** A handle's place: whole pixels, within HANDLE_REACH of the area. */
+const handlePixel = (n: number) =>
+  Math.round(Math.min(Math.max(n, -HANDLE_REACH), SIDE + HANDLE_REACH));
+
+/** Anchors in their places – each in the area, its handles within reach. */
+const placePixels = (a: readonly number[]) =>
+  a.map((v, i) => (i % ANCHOR < 2 ? snapPixel(v) : handlePixel(v)));
 
 export const anchorCount = (a: readonly number[]) =>
   Math.floor(a.length / ANCHOR);
@@ -194,7 +207,10 @@ export const noHandle = (
 /** A move that keeps a value in the drawing area. */
 const within = (v: number, d: number) => Math.min(Math.max(d, -v), SIDE - v);
 
-/** An anchor moved to (x, y) – its handles along, all kept in the area. */
+/**
+ * An anchor moved to (x, y) – kept in the area, right up to its edge – its
+ * handles along, out beyond it if they go there.
+ */
 export const moveAnchor = (
   a: readonly number[],
   i: number,
@@ -202,16 +218,14 @@ export const moveAnchor = (
   y: number
 ) => {
   const k = i * ANCHOR;
-  let dx = x - a[k];
-  let dy = y - a[k + 1];
-  for (const j of [0, 2, 4]) {
-    dx = within(a[k + j], dx);
-    dy = within(a[k + j + 1], dy);
-  }
+  const dx = within(a[k], x - a[k]);
+  const dy = within(a[k + 1], y - a[k + 1]);
   const out = a.slice();
-  for (const j of [0, 2, 4]) {
-    out[k + j] = snapPixel(a[k + j] + dx);
-    out[k + j + 1] = snapPixel(a[k + j + 1] + dy);
+  out[k] = snapPixel(a[k] + dx);
+  out[k + 1] = snapPixel(a[k + 1] + dy);
+  for (const j of [2, 4]) {
+    out[k + j] = handlePixel(a[k + j] + dx);
+    out[k + j + 1] = handlePixel(a[k + j + 1] + dy);
   }
   return out;
 };
@@ -231,11 +245,11 @@ export const moveHandle = (
   const k = i * ANCHOR;
   const [own, other] = side === "in" ? [k + 2, k + 4] : [k + 4, k + 2];
   const out = a.slice();
-  out[own] = snapPixel(x);
-  out[own + 1] = snapPixel(y);
+  out[own] = handlePixel(x);
+  out[own + 1] = handlePixel(y);
   if (isSmooth(a, i) && !free) {
-    out[other] = snapPixel(2 * a[k] - out[own]);
-    out[other + 1] = snapPixel(2 * a[k + 1] - out[own + 1]);
+    out[other] = handlePixel(2 * a[k] - out[own]);
+    out[other + 1] = handlePixel(2 * a[k + 1] - out[own + 1]);
   }
   return out;
 };
@@ -253,11 +267,11 @@ export const pullHandles = (
 ) => {
   const k = i * ANCHOR;
   const out = a.slice();
-  out[k + 4] = snapPixel(x);
-  out[k + 5] = snapPixel(y);
+  out[k + 4] = handlePixel(x);
+  out[k + 5] = handlePixel(y);
   if (!free) {
-    out[k + 2] = snapPixel(2 * a[k] - out[k + 4]);
-    out[k + 3] = snapPixel(2 * a[k + 1] - out[k + 5]);
+    out[k + 2] = handlePixel(2 * a[k] - out[k + 4]);
+    out[k + 3] = handlePixel(2 * a[k + 1] - out[k + 5]);
   }
   return out;
 };
@@ -303,10 +317,28 @@ export const toggleSmooth = (
   }
   const reach =
     (Math.hypot(nx - x, ny - y) + Math.hypot(px - x, py - y)) / 6 || 50;
-  out[k + 4] = snapPixel(x + dx * reach);
-  out[k + 5] = snapPixel(y + dy * reach);
-  out[k + 2] = snapPixel(x - dx * reach);
-  out[k + 3] = snapPixel(y - dy * reach);
+  out[k + 4] = handlePixel(x + dx * reach);
+  out[k + 5] = handlePixel(y + dy * reach);
+  out[k + 2] = handlePixel(x - dx * reach);
+  out[k + 3] = handlePixel(y - dy * reach);
+  return out;
+};
+
+/**
+ * Anchor i made smooth – its handles in one line, mirrored: the one out
+ * kept (or the one in, if it has only that), the other opposite it; one
+ * without handles gets them as `toggleSmooth` gives them.
+ */
+export const smoothen = (a: readonly number[], closed: boolean, i: number) => {
+  if (isSmooth(a, i)) return a.slice();
+  const k = i * ANCHOR;
+  const hasOut = !noHandle(a, i, "out");
+  const hasIn = !noHandle(a, i, "in");
+  if (!(hasOut || hasIn)) return toggleSmooth(a, closed, i);
+  const out = a.slice();
+  const [from, to] = hasOut ? [k + 4, k + 2] : [k + 2, k + 4];
+  out[to] = handlePixel(2 * a[k] - a[from]);
+  out[to + 1] = handlePixel(2 * a[k + 1] - a[from + 1]);
   return out;
 };
 
@@ -377,9 +409,11 @@ export const insertAnchor = (
   const added = [left[6], left[7], left[4], left[5], right[2], right[3]];
   const at = i + 1;
   return {
-    a: [...out.slice(0, at * ANCHOR), ...added, ...out.slice(at * ANCHOR)].map(
-      snapPixel
-    ),
+    a: placePixels([
+      ...out.slice(0, at * ANCHOR),
+      ...added,
+      ...out.slice(at * ANCHOR),
+    ]),
     index: at,
   };
 };
@@ -402,7 +436,10 @@ export type PathGrip =
 /**
  * What a point on an anchored line grabs within `reach`: the nearest anchor
  * or handle (handles only where there are some), else the line itself –
- * which reaches `wide` further, half its stroke.
+ * which reaches `wide` further, half its stroke. An anchor is a third of
+ * the reach ahead – a handle wins only where the press is clearly nearer
+ * it, so a short handle can be grabbed beside its anchor (a finger's reach
+ * covers both).
  */
 export const pathGrip = (
   a: readonly number[],
@@ -413,23 +450,21 @@ export const pathGrip = (
   wide = 0
 ): PathGrip | null => {
   let best: PathGrip | null = null;
-  let near = reach;
+  const lead = reach / 3;
+  let score = Infinity;
   for (let i = 0; i < anchorCount(a); i++) {
     const k = i * ANCHOR;
     const d = Math.hypot(a[k] - x, a[k + 1] - y);
-    if (d <= near) {
-      near = d;
+    if (d <= reach && d - lead < score) {
+      score = d - lead;
       best = { kind: "anchor", i };
     }
-  }
-  if (best) return best;
-  for (let i = 0; i < anchorCount(a); i++) {
     for (const side of ["in", "out"] as const) {
       if (noHandle(a, i, side)) continue;
-      const k = i * ANCHOR + (side === "in" ? 2 : 4);
-      const d = Math.hypot(a[k] - x, a[k + 1] - y);
-      if (d <= near) {
-        near = d;
+      const h = k + (side === "in" ? 2 : 4);
+      const e = Math.hypot(a[h] - x, a[h + 1] - y);
+      if (e <= reach && e < score) {
+        score = e;
         best = { kind: side, i };
       }
     }
@@ -452,69 +487,4 @@ export const mapAnchors = (
     out.push(x, y);
   }
   return cleanAnchors(out);
-};
-
-/** Lines across the drawing area: upright ones at these x, level ones at these y. */
-export type Guides = { x: number[]; y: number[] };
-
-/**
- * The lines an anchor may snap to, set or dragged: the drawing area's
- * middle, and level with or straight above the other anchors – of every
- * anchored line (`lines`) and of `more` (a line not yet in the drawing).
- * `but`: the anchor itself, which is no guide to itself.
- */
-export const anchorGuides = (
-  lines: readonly (readonly number[] | undefined)[],
-  more: readonly number[] = [],
-  but?: { line: number; anchor: number }
-): Guides => {
-  const guides: Guides = { x: [SIDE / 2], y: [SIDE / 2] };
-  const add = (a: readonly number[], skip = -1) => {
-    for (let i = 0; i < anchorCount(a); i++) {
-      if (i === skip) continue;
-      guides.x.push(a[i * ANCHOR]);
-      guides.y.push(a[i * ANCHOR + 1]);
-    }
-  };
-  lines.forEach((a, index) => {
-    if (a) add(a, but?.line === index ? but.anchor : -1);
-  });
-  add(more);
-  return guides;
-};
-
-/** The nearest pull onto a line within `reach` – what `value` needs to move. */
-const pull = (value: number, lines: readonly number[], reach: number) => {
-  let best = 0;
-  let near = reach;
-  for (const line of lines) {
-    const d = line - value;
-    if (Math.abs(d) <= near) {
-      near = Math.abs(d);
-      best = d;
-    }
-  }
-  return best;
-};
-
-/**
- * A point snapped onto the nearest guide within `reach` on each axis – and
- * the guides it then lies on.
- */
-export const snapPoint = (
-  x: number,
-  y: number,
-  guides: Guides,
-  reach: number
-): { x: number; y: number; lines: Guides } => {
-  const sx = x + pull(x, guides.x, reach);
-  const sy = y + pull(y, guides.y, reach);
-  return {
-    x: sx,
-    y: sy,
-    lines: {
-      x: guides.x.filter((line) => Math.abs(line - sx) < 1e-6),
-      y: guides.y.filter((line) => Math.abs(line - sy) < 1e-6),
-    },
-  };
 };

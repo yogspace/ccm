@@ -1,4 +1,4 @@
-import { lineStroke, mapAnchors, nearestOnPath } from "./bezier";
+import { ANCHOR, lineStroke, mapAnchors, nearestOnPath } from "./bezier";
 import { type Point, type Ring, traceOutline } from "./geometry/outline";
 import {
   type Drawing,
@@ -168,75 +168,150 @@ export const selectionBox = (
   return Number.isFinite(box.x0) ? box : null;
 };
 
-/** Rotate (rad) and scale around (cx, cy), then move by (dx, dy) – in pixels. */
-export type Transform = {
-  scale: number;
-  angle?: number;
-  cx: number;
-  cy: number;
-  dx: number;
-  dy: number;
-};
-
-/** The transform as a mapping of a point. */
-export const applyTransform = ({
-  scale,
-  angle = 0,
-  cx,
-  cy,
-  dx,
-  dy,
-}: Transform) => {
-  const cos = Math.cos(angle) * scale;
-  const sin = Math.sin(angle) * scale;
-  return ([x, y]: Point): Point => [
-    cx + (x - cx) * cos - (y - cy) * sin + dx,
-    cy + (x - cx) * sin + (y - cy) * cos + dy,
-  ];
-};
+/**
+ * A change of place, x' = a·x + c·y + e, y' = b·x + d·y + f – as
+ * [a, b, c, d, e, f] (draw/frame.ts builds them).
+ */
+type Mapping = readonly [number, number, number, number, number, number];
 
 /**
- * Applies the transform to the selection; stroke widths scale along. An
- * anchored line's anchors move, and its points follow from them: it stays an
- * anchored line.
+ * The selection moved, turned or sized – lines keep their width, like Figma
+ * without “scale strokes”: an outline made bigger stays as thin as it was
+ * drawn. An anchored line's anchors move, and its points follow from them:
+ * it stays an anchored line.
  */
-export const transformDrawing = (
+export const transformBy = (
   drawing: Drawing,
   selection: Selection,
-  transform: Transform
+  m: Mapping
 ): Drawing => {
-  const { scale } = transform;
-  const apply = applyTransform(transform);
+  const map = ([x, y]: Point): Point => [
+    m[0] * x + m[2] * y + m[4],
+    m[1] * x + m[3] * y + m[5],
+  ];
   const chosen = new Set(selection.strokes);
   const rings = new Set(selection.rings);
-  // The line width of old links applies to the whole area – only scale it when
-  // all of it is selected.
-  const wholeBase =
-    drawing.base.length > 0 && rings.size === drawing.base.length;
   return {
     ...drawing,
     base: drawing.base.map((ring, index) =>
       rings.has(index)
         ? ring.map(([x, y]): Point => {
-            const [px, py] = apply([x * DRAW_RES, y * DRAW_RES]);
+            const [px, py] = map([x * DRAW_RES, y * DRAW_RES]);
             return [px / DRAW_RES, py / DRAW_RES];
           })
         : ring
     ),
-    baseLine: wholeBase ? drawing.baseLine * scale : drawing.baseLine,
     strokes: drawing.strokes.map((stroke, index) => {
       if (!chosen.has(index)) return stroke;
-      const width = Math.max(1, stroke.width * scale);
       if (stroke.anchors) {
         return lineStroke(
-          { width, emboss: stroke.emboss },
-          mapAnchors(stroke.anchors, apply),
+          { width: stroke.width, emboss: stroke.emboss },
+          mapAnchors(stroke.anchors, map),
           stroke.closed
         );
       }
-      // Keep everything (also “erase”), only position and width change.
-      return { ...stroke, width, points: stroke.points.map(apply) };
+      // Keep everything (also “erase”), only the places change.
+      return { ...stroke, points: stroke.points.map(map) };
     }),
+  };
+};
+
+/**
+ * The selection's points, flat pairs (drawing-area pixels) – what must stay
+ * on the area: a line's points, of an anchored line its anchors too (its
+ * handles may reach beyond, bezier.ts), the area's contours.
+ */
+export const pointsOf = (drawing: Drawing, selection: Selection) => {
+  const out: number[] = [];
+  for (const index of selection.strokes) {
+    const stroke = drawing.strokes[index];
+    if (!stroke || stroke.erase) continue;
+    for (const [x, y] of stroke.points) out.push(x, y);
+    const a = stroke.anchors ?? [];
+    for (let k = 0; k + 1 < a.length; k += ANCHOR) out.push(a[k], a[k + 1]);
+  }
+  for (const index of selection.rings) {
+    for (const [x, y] of drawing.base[index] ?? []) {
+      out.push(x * DRAW_RES, y * DRAW_RES);
+    }
+  }
+  return out;
+};
+
+/** Everything in the drawing, selected. */
+export const everything = (drawing: Drawing): Selection => ({
+  strokes: drawing.strokes.map((_, i) => i),
+  rings: drawing.base.map((_, i) => i),
+});
+
+export const isNothing = isEmpty;
+
+export const sameSelection = (a: Selection, b: Selection) =>
+  a.strokes.join() === b.strokes.join() && a.rings.join() === b.rings.join();
+
+/** Whether `a` holds all of `b`. */
+export const holds = (a: Selection, b: Selection) =>
+  b.strokes.every((i) => a.strokes.includes(i)) &&
+  b.rings.every((i) => a.rings.includes(i));
+
+/** `b` taken out of `a` if `a` holds all of it – else put in (⇧-click). */
+export const toggleSelection = (a: Selection, b: Selection): Selection =>
+  holds(a, b)
+    ? {
+        strokes: a.strokes.filter((i) => !b.strokes.includes(i)),
+        rings: a.rings.filter((i) => !b.rings.includes(i)),
+      }
+    : mergeSelections(a, b);
+
+/** The selection's strokes and contours on their own – to copy. */
+export const pickDrawing = (
+  drawing: Drawing,
+  selection: Selection
+): Drawing => {
+  const rings = selection.rings.filter((i) => drawing.base[i]);
+  return withAreaInks(
+    {
+      base: rings.map((i) => drawing.base[i]),
+      baseLine: drawing.baseLine,
+      strokes: selection.strokes.flatMap((i) => drawing.strokes[i] ?? []),
+    },
+    rings.map((i) => drawing.baseEmboss?.[i] === true)
+  );
+};
+
+/**
+ * Copies laid on top of the drawing, moved by (dx, dy) as far as the area
+ * allows, and selected – null for nothing to copy. `within`: the move kept
+ * on the area (draw/gestures.ts `moveWithin`).
+ */
+export const addCopies = (
+  drawing: Drawing,
+  copies: Drawing,
+  dx: number,
+  dy: number,
+  within: (points: readonly number[], dx: number, dy: number) => Point
+): { drawing: Drawing; selection: Selection } | null => {
+  const all = everything(copies);
+  if (isEmpty(all)) return null;
+  const [mx, my] = within(pointsOf(copies, all), dx, dy);
+  const moved = transformBy(copies, all, [1, 0, 0, 1, mx, my]);
+  const baseLine = drawing.base.length > 0 ? drawing.baseLine : moved.baseLine;
+  return {
+    drawing: withAreaInks(
+      {
+        base: [...drawing.base, ...moved.base],
+        baseLine,
+        strokes: [...drawing.strokes, ...moved.strokes],
+      },
+      [
+        ...drawing.base.map((_, i) => drawing.baseEmboss?.[i] === true),
+        ...moved.base.map((_, i) => moved.baseEmboss?.[i] === true),
+      ]
+    ),
+    selection: {
+      strokes: moved.strokes.map((_, i) => drawing.strokes.length + i),
+      rings: moved.base.map((_, i) => drawing.base.length + i),
+    },
   };
 };
 
@@ -626,43 +701,38 @@ const scanObjects = (drawing: Drawing) => {
     return roots;
   };
 
-  /** Ink box per object (grid), computed only when needed. */
-  let rootBoxes: Map<number, Box> | null = null;
-  /** Roots of all objects whose ink lies entirely in the rectangle (drawing-area pixels). */
-  const rootsWithin = (area: Box) => {
-    if (!rootBoxes) {
-      rootBoxes = new Map();
-      for (let cell = 0; cell < labels.length; cell++) {
-        if (!labels[cell]) continue;
-        const root = find(labels[cell]);
-        const x = cell % GROUP_RES;
-        const y = (cell - x) / GROUP_RES;
-        const known = rootBoxes.get(root);
-        if (!known) rootBoxes.set(root, { x0: x, y0: y, x1: x, y1: y });
-        else {
-          known.x0 = Math.min(known.x0, x);
-          known.y0 = Math.min(known.y0, y);
-          known.x1 = Math.max(known.x1, x);
-          known.y1 = Math.max(known.y1, y);
-        }
-      }
-    }
+  /** Roots of every object with ink in the rectangle (drawing-area pixels). */
+  const rootsIn = (area: Box) => {
     const roots = new Set<number>();
-    for (const [root, cells] of rootBoxes) {
-      // Centres of the grid cells in drawing-area pixels
-      if (
-        (cells.x0 + 0.5) / toGrid >= area.x0 &&
-        (cells.y0 + 0.5) / toGrid >= area.y0 &&
-        (cells.x1 + 0.5) / toGrid <= area.x1 &&
-        (cells.y1 + 0.5) / toGrid <= area.y1
-      ) {
-        roots.add(root);
+    const x0 = Math.max(0, Math.floor(area.x0 * toGrid));
+    const y0 = Math.max(0, Math.floor(area.y0 * toGrid));
+    const x1 = Math.min(GROUP_RES - 1, Math.ceil(area.x1 * toGrid));
+    const y1 = Math.min(GROUP_RES - 1, Math.ceil(area.y1 * toGrid));
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
+        const label = labels[y * GROUP_RES + x];
+        if (label) roots.add(find(label));
       }
     }
     return roots;
   };
 
-  return { labelNear, find, collect, rootsOf, rootsWithin, eraserRoots };
+  /** Every object's root. */
+  const allRoots = () => {
+    const roots = new Set<number>();
+    for (let label = 1; label <= count; label++) roots.add(find(label));
+    return roots;
+  };
+
+  return {
+    labelNear,
+    find,
+    collect,
+    rootsOf,
+    rootsIn,
+    allRoots,
+    eraserRoots,
+  };
 };
 
 /** The object under a point (drawing-area pixels), otherwise `null`. */
@@ -682,17 +752,34 @@ export const objectAt = (
   return isEmpty(selection) ? null : selection;
 };
 
-/** All objects lying entirely in the rectangle (drawing-area pixels) – box selection. */
-export const objectsWithin = (
+/**
+ * Every object a dragged box touches (drawing-area pixels), whole – like
+ * Figma, touching is enough – or `null`.
+ */
+export const objectsTouching = (
   drawing: Drawing,
   area: Box
 ): Selection | null => {
   const objects = findObjects(drawing);
   if (!objects) return null;
-  const roots = objects.rootsWithin(area);
+  const roots = objects.rootsIn(area);
   if (roots.size === 0) return null;
   const selection = objects.collect(roots);
   return isEmpty(selection) ? null : selection;
+};
+
+/** The boxes of the objects the selection is no part of – each one's. */
+export const otherBoxes = (drawing: Drawing, selection: Selection): Box[] => {
+  const objects = findObjects(drawing);
+  if (!objects) return [];
+  const mine = objects.rootsOf(selection);
+  const boxes: Box[] = [];
+  for (const root of objects.allRoots()) {
+    if (mine.has(root)) continue;
+    const box = selectionBox(drawing, objects.collect(new Set([root])));
+    if (box) boxes.push(box);
+  }
+  return boxes;
 };
 
 /**

@@ -2,11 +2,14 @@ import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../cn";
 import { numberFormat, type Unit } from "../units";
+import { toStage, type View } from "./view";
 
 type Props = {
   /** How many mm the drawing area's width is in the finished cutter. */
   mmPerCanvas: number | null;
   unit: Unit;
+  /** Zoomed in: finer ticks, and only those in sight. */
+  view: View;
 };
 
 const MM_PER_INCH = 25.4;
@@ -30,9 +33,12 @@ const niceStep = (raw: number) => {
 /** `index` stays the same when zooming – so lines move instead of being recreated. */
 type Tick = { index: number; pos: number; value: number; major: boolean };
 
-/** Ticks from 0 (bottom left corner) to the edge; `pos` from the left or bottom (0…1). */
-const buildTicks = (span: number): Tick[] => {
-  const step = niceStep(span / 8);
+/**
+ * Ticks from 0 (bottom left corner) to the edge; `pos` from the left or
+ * bottom (0…1) – as fine as `seen`, how much of the span is in sight, wants.
+ */
+const buildTicks = (span: number, seen = span): Tick[] => {
+  const step = niceStep(seen / 8);
   const minor = step / 2;
   const count = Math.floor(span / minor + 1e-9);
   return Array.from({ length: count + 1 }, (_, i) => ({
@@ -48,25 +54,35 @@ const buildTicks = (span: number): Tick[] => {
  * x to the right, y upwards, in the cutter's real dimensions – so you can read
  * off where something is.
  */
-const DrawGrid = ({ mmPerCanvas, unit }: Props) => {
+const DrawGrid = ({ mmPerCanvas, unit, view }: Props) => {
   const { i18n } = useTranslation();
   const format = numberFormat(i18n.resolvedLanguage, 2);
+  const span = mmPerCanvas
+    ? unit === "in"
+      ? mmPerCanvas / MM_PER_INCH
+      : mmPerCanvas
+    : null;
 
-  const ticks: Tick[] = mmPerCanvas
-    ? buildTicks(unit === "in" ? mmPerCanvas / MM_PER_INCH : mmPerCanvas)
+  const all: Tick[] = span
+    ? buildTicks(span, span / view.s)
     : Array.from({ length: FALLBACK_DIVISIONS + 1 }, (_, i) => ({
         index: i,
         pos: i / FALLBACK_DIVISIONS,
         value: 0,
         major: true,
       }));
+  // Where each lies on the stage – across and up – through the view; only
+  // those in sight.
+  const ticks = all.map((tick) => ({
+    ...tick,
+    x: toStage(view, tick.pos, 0)[0],
+    y: toStage(view, 0, 1 - tick.pos)[1],
+  }));
+  const inSight = (v: number) => v >= -1e-6 && v <= 1 + 1e-6;
   // The 0 sits once in the corner; nothing too close to the corners.
-  const labels = mmPerCanvas
-    ? ticks.filter(
-        ({ pos, major }) =>
-          major && pos > LABEL_MARGIN && pos < 1 - LABEL_MARGIN
-      )
-    : [];
+  const clear = (v: number) => v > LABEL_MARGIN && v < 1 - LABEL_MARGIN;
+  const labels = span ? ticks.filter(({ major }) => major) : [];
+  const whole = view.s === 1;
 
   return (
     // Clearer while the pointer is on the drawing area (draw-canvas.tsx).
@@ -80,55 +96,82 @@ const DrawGrid = ({ mmPerCanvas, unit }: Props) => {
         preserveAspectRatio="none"
         viewBox="0 0 1 1"
       >
-        {ticks.map(({ index, pos, major }) => (
+        {ticks.map(({ index, x, y, major }) => (
           <g
             className={major ? "stroke-[#e4dac8]" : "stroke-[#f1ebdf]"}
             key={index}
           >
+            {inSight(x) && (
+              <line
+                vectorEffect="non-scaling-stroke"
+                x1={x}
+                x2={x}
+                y1={0}
+                y2={1}
+              />
+            )}
+            {/* In SVG y points down – counted from the bottom. */}
+            {inSight(y) && (
+              <line
+                vectorEffect="non-scaling-stroke"
+                x1={0}
+                x2={1}
+                y1={y}
+                y2={y}
+              />
+            )}
+          </g>
+        ))}
+        {/* Axes: left and bottom edge – twice as thick, half of it is
+            visible. Zoomed in, only where they are in sight. */}
+        <g className="stroke-[#cdbfa7] stroke-3">
+          {inSight(view.x) && (
             <line
               vectorEffect="non-scaling-stroke"
-              x1={pos}
-              x2={pos}
+              x1={view.x}
+              x2={view.x}
               y1={0}
               y2={1}
             />
-            {/* In SVG y points down – counted from the bottom. */}
+          )}
+          {inSight(view.y + view.s) && (
             <line
               vectorEffect="non-scaling-stroke"
               x1={0}
               x2={1}
-              y1={1 - pos}
-              y2={1 - pos}
+              y1={view.y + view.s}
+              y2={view.y + view.s}
             />
-          </g>
-        ))}
-        {/* Axes: left and bottom edge – twice as thick, half of it is visible. */}
-        <g className="stroke-[#cdbfa7] stroke-3">
-          <line vectorEffect="non-scaling-stroke" x1={0} x2={0} y1={0} y2={1} />
-          <line vectorEffect="non-scaling-stroke" x1={0} x2={1} y1={1} y2={1} />
+          )}
         </g>
       </svg>
-      {labels.map(({ index, pos, value }) => (
-        <span
-          className={cn(tick, "bottom-1.5 -translate-x-1/2")}
-          key={`x${index}`}
-          style={{ left: `${pos * 100}%` }}
-        >
-          {format.format(value)}
-        </span>
-      ))}
-      {labels.map(({ index, pos, value }) => (
-        <span
-          className={cn(tick, "left-1.5 -translate-y-1/2")}
-          key={`y${index}`}
-          style={{ top: `${(1 - pos) * 100}%` }}
-        >
-          {format.format(value)}
-        </span>
-      ))}
+      {labels.map(
+        ({ index, x, value }) =>
+          clear(x) && (
+            <span
+              className={cn(tick, "bottom-1.5 -translate-x-1/2")}
+              key={`x${index}`}
+              style={{ left: `${x * 100}%` }}
+            >
+              {format.format(value)}
+            </span>
+          )
+      )}
+      {labels.map(
+        ({ index, y, value }) =>
+          clear(y) && (
+            <span
+              className={cn(tick, "left-1.5 -translate-y-1/2")}
+              key={`y${index}`}
+              style={{ top: `${y * 100}%` }}
+            >
+              {format.format(value)}
+            </span>
+          )
+      )}
       {mmPerCanvas && (
         <>
-          <span className={cn(tick, "bottom-1.5 left-1.5")}>0</span>
+          {whole && <span className={cn(tick, "bottom-1.5 left-1.5")}>0</span>}
           <span className={cn(tick, "top-1.5 left-1.5 font-bold text-muted")}>
             {unit}
           </span>

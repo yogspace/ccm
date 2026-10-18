@@ -1067,6 +1067,10 @@ export interface Translation {
      */
     clear?: string | null;
     /**
+     * DE: Ecke  ·  EN: Corner
+     */
+    corner?: string | null;
+    /**
      * DE: Ausstechen  ·  EN: Cut out
      */
     cut?: string | null;
@@ -1095,6 +1099,10 @@ export interface Translation {
      */
     expand?: string | null;
     /**
+     * DE: Fertig  ·  EN: Done
+     */
+    finish?: string | null;
+    /**
      * DE: Umriss malen oder SVG hierher ziehen  ·  EN: Draw an outline or drop an SVG here
      */
     hint?: string | null;
@@ -1107,17 +1115,45 @@ export interface Translation {
      */
     insert?: string | null;
     /**
+     * DE: Punkt  ·  EN: Point
+     */
+    kind?: string | null;
+    /**
+     * DE: Linie – Punkt für Punkt, gerade oder als Kurve  ·  EN: Line – point by point, straight or curved
+     */
+    line?: string | null;
+    /**
+     * DE: Klicken setzt Punkte, Ziehen biegt zur Kurve · erster Punkt schließt die Form · ⇧ 45° · Enter beendet  ·  EN: Click sets points, dragging bends into a curve · first point closes the shape · ⇧ 45° · Enter ends
+     */
+    lineHint?: string | null;
+    /**
+     * DE: Tippen setzt Punkte, Ziehen biegt zur Kurve · erster Punkt schließt die Form  ·  EN: Tap sets points, dragging bends into a curve · first point closes the shape
+     */
+    lineHintTouch?: string | null;
+    /**
      * DE: Formen verschieben  ·  EN: Move shapes
      */
     move?: string | null;
     /**
-     * DE: Form ziehen · Rahmen aufziehen für mehrere · Ecken drehen & skalieren · Entf löscht  ·  EN: Drag a shape · drag a box to pick several · corners rotate & scale · Del removes
+     * DE: Form ziehen · Rahmen aufziehen für mehrere · an den Griffen skalieren, knapp neben einer Ecke drehen · Alt-Ziehen kopiert · Entf löscht  ·  EN: Drag a shape · drag a box to pick several · handles scale, just outside a corner turns · Alt-drag copies · Del removes
      */
     moveHint?: string | null;
     /**
      * DE: Stift  ·  EN: Pen
      */
     pen?: string | null;
+    /**
+     * DE: Punkte bearbeiten  ·  EN: Edit points
+     */
+    points?: string | null;
+    /**
+     * DE: Punkte und Griffe ziehen · Alt-Klick: rund oder eckig · Klick auf die Linie: neuer Punkt · Entf löscht  ·  EN: Drag points and handles · Alt-click: smooth or corner · click the line: new point · Del removes
+     */
+    pointsHint?: string | null;
+    /**
+     * DE: Punkte und Griffe ziehen · auf die Linie tippen: neuer Punkt  ·  EN: Drag points and handles · tap the line: new point
+     */
+    pointsHintTouch?: string | null;
     /**
      * DE: Vorlagen  ·  EN: Templates
      */
@@ -1127,6 +1163,10 @@ export interface Translation {
      */
     redo?: string | null;
     /**
+     * DE: Punkt entfernen (Entf)  ·  EN: Remove point (Del)
+     */
+    removePoint?: string | null;
+    /**
      * DE: Ausgewählte Form entfernen (Entf)  ·  EN: Remove the selected shape (Del)
      */
     removeSelection?: string | null;
@@ -1134,6 +1174,10 @@ export interface Translation {
      * DE: Zeichenfläche verkleinern  ·  EN: Shrink canvas
      */
     shrink?: string | null;
+    /**
+     * DE: Rund  ·  EN: Round
+     */
+    smooth?: string | null;
     /**
      * DE: Werkzeuge  ·  EN: Tools
      */
@@ -1146,6 +1190,10 @@ export interface Translation {
      * DE: SVG hochladen  ·  EN: Upload SVG
      */
     upload?: string | null;
+    /**
+     * DE: Ganze Fläche zeigen (⌘0)  ·  EN: Show the whole area (⌘0)
+     */
+    zoomReset?: string | null;
   };
   errors_?: {
     /**
@@ -1776,6 +1824,7 @@ export interface TranslationsSelect<T extends boolean = true> {
     | {
         brush?: T;
         clear?: T;
+        corner?: T;
         cut?: T;
         cutHint?: T;
         drop?: T;
@@ -1783,19 +1832,30 @@ export interface TranslationsSelect<T extends boolean = true> {
         embossHint?: T;
         eraser?: T;
         expand?: T;
+        finish?: T;
         hint?: T;
         hintSub?: T;
         insert?: T;
+        kind?: T;
+        line?: T;
+        lineHint?: T;
+        lineHintTouch?: T;
         move?: T;
         moveHint?: T;
         pen?: T;
+        points?: T;
+        pointsHint?: T;
+        pointsHintTouch?: T;
         presets?: T;
         redo?: T;
+        removePoint?: T;
         removeSelection?: T;
         shrink?: T;
+        smooth?: T;
         tools?: T;
         undo?: T;
         upload?: T;
+        zoomReset?: T;
       };
   errors_?:
     | T

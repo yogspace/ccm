@@ -34,10 +34,14 @@ export const de = {
     pointsHintTouch:
       "Punkte und Griffe ziehen · auf die Linie tippen: neuer Punkt",
     removePoint: "Punkt entfernen (Entf)",
+    kind: "Punkt",
+    smooth: "Rund",
+    corner: "Ecke",
+    zoomReset: "Ganze Fläche zeigen (⌘0)",
     eraser: "Radiergummi",
     move: "Formen verschieben",
     moveHint:
-      "Form ziehen · Rahmen aufziehen für mehrere · Ecken drehen & skalieren · Entf löscht",
+      "Form ziehen · Rahmen aufziehen für mehrere · an den Griffen skalieren, knapp neben einer Ecke drehen · Alt-Ziehen kopiert · Entf löscht",
     presets: "Vorlagen",
     removeSelection: "Ausgewählte Form entfernen (Entf)",
     insert: "{{name}} einfügen",

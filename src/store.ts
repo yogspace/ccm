@@ -28,7 +28,7 @@ import {
 } from "./geometry/cutter";
 import type { CutterRequest, CutterResponse } from "./geometry/cutter-worker";
 import type { MeshData } from "./geometry/mesh";
-import { InputError, type Ring, traceOutline } from "./geometry/outline";
+import { InputError, type Ring } from "./geometry/outline";
 import { type Greeting, greetingUrl } from "./greeting";
 import type { de } from "./i18n/de";
 import { shortShapeMissing } from "./short-shape";
@@ -212,11 +212,13 @@ export const setUnit = (unit: Unit) => {
  * With embossing, each ink is traced on its own – the drawing area shows
  * both in one.
  */
-export const drawingChanged = (canvas: HTMLCanvasElement, drawing: Drawing) => {
+export const drawingChanged = (drawing: Drawing) => {
   store.drawing = ref(drawing);
   try {
     const embossed = hasEmboss(drawing);
-    const rings = embossed ? traceLayer(drawing, "cut") : traceOutline(canvas);
+    // Traced from the drawing itself – what the drawing area shows may be
+    // zoomed in.
+    const rings = traceLayer(drawing, "cut");
     store.rings = ref(rings);
     store.emboss = ref(embossed ? traceLayer(drawing, "emboss") : []);
     store.inputError = undefined;

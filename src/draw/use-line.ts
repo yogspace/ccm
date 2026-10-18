@@ -2,28 +2,31 @@ import { type PointerEvent, useEffect, useRef, useState } from "react";
 import {
   ANCHOR,
   anchorCount,
-  anchorGuides,
-  type Guides,
   insertAnchor,
+  isSmooth,
   lineStroke,
   moveAnchor,
   moveHandle,
   pathGrip,
   pullHandles,
   removeAnchor,
+  smoothen,
   snap45,
-  snapPoint,
   toggleSmooth,
 } from "../bezier";
 import { anchoredAt, DRAW_RES as RES } from "../drawing";
 import type { Point } from "../geometry/outline";
 import { store, type Tool } from "../store";
 import type { Drawing, Stroke } from "../url-state";
-import { toPoint } from "./gesture-math";
+import { anchorGuides, type Guides, snapPoint } from "./guides";
 import type { DrawingModel, Snapshot } from "./use-drawing";
+import type { Locate } from "./use-pen";
 
-/** How near (CSS px) a pointer must come to an anchor or a handle – a finger more. */
-const REACH = { mouse: 8, touch: 18 };
+/**
+ * How near (CSS px on screen, however far zoomed in) a pointer must come to
+ * an anchor or a handle – a finger much more: a target 48 px across.
+ */
+const REACH = { mouse: 8, touch: 24 };
 /** How near (CSS px) a guide pulls. */
 const SNAP = 5;
 /** How far (CSS px) a press may wander and still be a click. */
@@ -39,6 +42,11 @@ type Press = {
   /** What one step back returns to – null: the press made its step already. */
   before: Snapshot | null;
   origin: Point;
+  /**
+   * How far what is grabbed lies from where the press began – kept as it is
+   * dragged: a finger a little beside a point doesn't make it jump.
+   */
+  off: Point;
   /** Drawing-area pixels per CSS pixel. */
   scale: number;
   touch: boolean;
@@ -76,6 +84,9 @@ const reshaped = (
   closed?: boolean
 ) => lineStroke(stroke, anchors, closed ?? Boolean(stroke.closed));
 
+/** An anchor made a corner while editing – by its line and place. */
+const freeKey = (stroke: number, i: number) => `${stroke}:${i}`;
+
 /**
  * The line tool and editing its lines' points, the way Figma and
  * Illustrator do it – not the pen, which draws freehand.
@@ -88,15 +99,26 @@ const reshaped = (
  *   step; ⌫ takes the last one away, Enter or Escape – or another tool –
  *   ends the line. Until its second point a line is not in the drawing yet
  *   (`lone`).
+ *   A press on one of its own points picks that one – dragged, it moves.
  * - **Editing** (`points`): anchors and handles are dragged (a smooth
  *   point's handles stay mirrored – not with Alt), Alt-click switches smooth
  *   and corner, a click on the line puts a point there, Delete takes the
  *   picked one away. A press beside the line edits another such line – or
- *   leaves (`onLeave`).
+ *   leaves (`onLeave`); a finger that misses lets go of the picked point
+ *   first.
+ * - **A finger** reaches far (`REACH`: 48 px across, however far zoomed
+ *   in), and grabs the nearest of what lies within it (bezier.ts
+ *   `pathGrip`).
+ * - **Round or corner** without Alt (a finger has none): `setKind` – for
+ *   the anchors still to set while drawing, for the picked one while
+ *   editing. A corner's handles move each on its own; made round, they
+ *   line up again, mirrored.
  *
- * New and dragged anchors snap to the area's middle and level with or above
- * other anchors, unless ⌘ / Ctrl is held. Such a line – an anchored line –
- * is an ordinary stroke with its anchors kept (bezier.ts `lineStroke`).
+ * Handles go on beyond the area where they are dragged (bezier.ts – the
+ * anchors stay on it). New and dragged anchors snap to the area's middle
+ * and level with or above other anchors, unless ⌘ / Ctrl is held. Such a
+ * line – an anchored line – is an ordinary stroke with its anchors kept
+ * (bezier.ts `lineStroke`).
  */
 export const useLine = (
   {
@@ -110,9 +132,11 @@ export const useLine = (
   }: DrawingModel,
   {
     tool,
+    locate,
     onLeave,
   }: {
     tool: Tool;
+    locate: Locate;
     /** Editing is over – back to moving, with this line picked (or nothing). */
     onLeave: (stroke: number | null) => void;
   }
@@ -133,6 +157,10 @@ export const useLine = (
   // The drawing is a ref – a new version of it shows by this.
   const [, setVersion] = useState(0);
   const press = useRef<Press | null>(null);
+  // Round or corner: the anchors still to set, and those made corners while
+  // editing (by their line and place) – their handles move each on its own.
+  const [corner, setCorner] = useState(false);
+  const [free, setFree] = useState<ReadonlySet<string>>(new Set());
 
   const now = drawing.current;
   // The line being drawn is the drawing's last, an anchored line still open –
@@ -152,6 +180,18 @@ export const useLine = (
       : null;
   editingRef.current = editing;
 
+  // The corners are known by their place: once anchors come or go – a point
+  // put in or taken out, a step back – the places shift, and what was a
+  // corner would be another anchor's. Then none is.
+  const places = `${now.strokes.length}:${now.strokes
+    .map((s) => (s.anchors ? anchorCount(s.anchors) : 0))
+    .join(",")}`;
+  const [freeAt, setFreeAt] = useState(places);
+  if (freeAt !== places) {
+    setFreeAt(places);
+    if (free.size) setFree(new Set());
+  }
+
   // Another tool: nothing under way.
   useEffect(() => {
     if (mode !== "line") {
@@ -159,10 +199,8 @@ export const useLine = (
       setDrawn(null);
       setHover(null);
     }
-    if (mode !== "points") {
-      setEdited(null);
-      setAnchor(null);
-    }
+    if (mode !== "points") setEdited(null);
+    setAnchor(null);
     setLines(null);
     press.current = null;
   }, [mode]);
@@ -240,11 +278,13 @@ export const useLine = (
     event: PointerEvent,
     at: Point,
     scale: number,
-    rest: Pick<Press, "kind" | "stroke" | "anchor" | "start" | "before">
+    rest: Pick<Press, "kind" | "stroke" | "anchor" | "start" | "before">,
+    grabbed?: Point
   ) => {
     press.current = {
       ...rest,
       origin: at,
+      off: grabbed ? [grabbed[0] - at[0], grabbed[1] - at[1]] : [0, 0],
       scale,
       touch: event.pointerType !== "mouse",
       moved: false,
@@ -259,6 +299,7 @@ export const useLine = (
     reach: number
   ) => {
     setHover(null);
+    setAnchor(null);
     const current = drawing.current;
     if (drawingAt !== null && onFirst(x0, y0, reach)) {
       // Onto the first point: the line closes – dragged on, it bends in.
@@ -277,6 +318,30 @@ export const useLine = (
         start: next,
         before: null,
       });
+      return;
+    }
+    // Onto one of its points: picked – dragged, it moves (no new point on
+    // top of it).
+    const grabbed =
+      drawingAt !== null &&
+      pathGrip(current.strokes[drawingAt].anchors ?? [], false, x0, y0, reach);
+    if (drawingAt !== null && grabbed && grabbed.kind === "anchor") {
+      const a = current.strokes[drawingAt].anchors ?? [];
+      const k = grabbed.i * ANCHOR;
+      setAnchor(grabbed.i);
+      begin(
+        event,
+        [x0, y0],
+        scale,
+        {
+          kind: "anchor",
+          stroke: drawingAt,
+          anchor: grabbed.i,
+          start: current,
+          before: capture(),
+        },
+        [a[k], a[k + 1]]
+      );
       return;
     }
     const [x, y] = linePoint(event, x0, y0, scale);
@@ -375,30 +440,42 @@ export const useLine = (
         return;
       }
       if (hit) {
+        const k = hit.i * ANCHOR + { anchor: 0, in: 2, out: 4 }[hit.kind];
         setAnchor(hit.i);
-        begin(event, at, scale, {
-          kind: hit.kind,
-          stroke: editing,
-          anchor: hit.i,
-          start: current,
-          before: capture(),
-        });
+        begin(
+          event,
+          at,
+          scale,
+          {
+            kind: hit.kind,
+            stroke: editing,
+            anchor: hit.i,
+            start: current,
+            before: capture(),
+          },
+          [a[k], a[k + 1]]
+        );
         return;
       }
     }
-    // Beside it: another anchored line is edited – or editing is over.
+    // Beside it: another anchored line is edited – or editing is over. A
+    // finger that missed lets go of the picked point first: one more tap
+    // beside it is needed to leave.
     const index = anchoredAt(current, at, reach);
     if (index !== null) edit(index);
+    else if (event.pointerType === "touch" && anchor !== null) setAnchor(null);
     else onLeave(editing);
   };
 
-  const down = (event: PointerEvent<HTMLCanvasElement>) => {
+  const down = (event: PointerEvent<HTMLElement>) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
     if (press.current) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const at = toPoint(event, rect);
-    const scale = RES / rect.width;
-    event.currentTarget.setPointerCapture(event.pointerId);
+    const { at, per: scale } = locate(event);
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // A pointer the browser no longer knows – it goes on all the same.
+    }
     const touch = event.pointerType !== "mouse";
     const reach = (touch ? REACH.touch : REACH.mouse) * scale;
     if (mode === "line") downLine(event, at, scale, reach);
@@ -406,17 +483,32 @@ export const useLine = (
   };
 
   const hovering = (
-    event: PointerEvent<HTMLCanvasElement>,
+    event: PointerEvent<HTMLElement>,
     at: Point,
     scale: number
   ) => {
     if (event.pointerType !== "mouse") return;
     const reach = REACH.mouse * scale;
     if (mode === "line") {
+      event.currentTarget.style.cursor = "crosshair";
       if (onFirst(at[0], at[1], reach)) {
         const anchors = draft();
         setLines(null);
         setHover({ x: anchors[0], y: anchors[1], closing: true });
+      } else if (
+        drawingAt !== null &&
+        pathGrip(
+          drawing.current.strokes[drawingAt].anchors ?? [],
+          false,
+          at[0],
+          at[1],
+          reach
+        )?.kind === "anchor"
+      ) {
+        // On one of its points: a press picks it, no new one.
+        setLines(null);
+        setHover(null);
+        event.currentTarget.style.cursor = "move";
       } else {
         const [x, y] = linePoint(event, at[0], at[1], scale);
         setHover({ x, y, closing: false });
@@ -443,10 +535,8 @@ export const useLine = (
     event.currentTarget.style.cursor = cursor;
   };
 
-  const move = (event: PointerEvent<HTMLCanvasElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const at = toPoint(event, rect);
-    const scale = RES / rect.width;
+  const move = (event: PointerEvent<HTMLElement>) => {
+    const { at, per: scale } = locate(event);
     const p = press.current;
     if (!p) {
       hovering(event, at, scale);
@@ -462,7 +552,8 @@ export const useLine = (
       const [x, y] = event.shiftKey
         ? snap45(lone[0], lone[1], at[0], at[1])
         : at;
-      setLone(pullHandles(lone, 0, inArea(x), inArea(y), event.altKey));
+      // Handles may reach beyond the area (bezier.ts) – followed out there.
+      setLone(pullHandles(lone, 0, x, y, event.altKey || corner));
       return;
     }
     const stroke = p.start.strokes[p.stroke];
@@ -470,8 +561,11 @@ export const useLine = (
     if (!a) return;
     const k = p.anchor * ANCHOR;
     let next: number[];
+    // Where what is grabbed goes – as far beside the pointer as it began.
+    const gx = at[0] + p.off[0];
+    const gy = at[1] + p.off[1];
     if (p.kind === "anchor") {
-      const [x, y] = snapped(at[0], at[1], event, p.scale, () =>
+      const [x, y] = snapped(gx, gy, event, p.scale, () =>
         anchorGuides(
           p.start.strokes.map((s) => s.anchors),
           [],
@@ -480,17 +574,24 @@ export const useLine = (
       );
       next = moveAnchor(a, p.anchor, x, y);
     } else {
-      // A handle: ⇧ in 45° steps about its anchor.
-      const [hx, hy] = event.shiftKey
-        ? snap45(a[k], a[k + 1], at[0], at[1])
-        : at;
-      const x = inArea(hx);
-      const y = inArea(hy);
-      if (p.kind === "new") next = pullHandles(a, p.anchor, x, y, event.altKey);
-      else if (p.kind === "close") {
+      // A handle: ⇧ in 45° steps about its anchor – followed beyond the
+      // area, where it may reach (bezier.ts).
+      const [x, y] = event.shiftKey ? snap45(a[k], a[k + 1], gx, gy) : [gx, gy];
+      if (p.kind === "new") {
+        next = pullHandles(a, p.anchor, x, y, event.altKey || corner);
+      } else if (p.kind === "close") {
         // Only the handle in – the first curve stays as it was drawn.
         next = moveHandle(a, 0, "in", 2 * a[0] - x, 2 * a[1] - y, true);
-      } else next = moveHandle(a, p.anchor, p.kind, x, y, event.altKey);
+      } else {
+        next = moveHandle(
+          a,
+          p.anchor,
+          p.kind,
+          x,
+          y,
+          event.altKey || free.has(freeKey(p.stroke, p.anchor))
+        );
+      }
     }
     p.changed = true;
     show(replaced(p.start, p.stroke, reshaped(stroke, next)));
@@ -502,7 +603,19 @@ export const useLine = (
     setDrawn(null);
     setHover(null);
     setLines(null);
+    setAnchor(null);
     press.current = null;
+  };
+
+  /** What is under way stops – two fingers took over; what it changed stays. */
+  const cancel = () => {
+    const p = press.current;
+    press.current = null;
+    setLines(null);
+    if (p?.changed) {
+      if (p.before) remember(p.before);
+      commit();
+    }
   };
 
   const up = () => {
@@ -563,36 +676,6 @@ export const useLine = (
 
   const active = mode === "line" && anchorCount(draft()) > 0;
 
-  // The keys, while not in a field: drawing, Enter or Escape ends the line,
-  // ⌫ takes its last point; editing, Delete takes the picked point, Escape
-  // or Enter is done.
-  const keys = useRef<(event: KeyboardEvent) => void>(() => {});
-  keys.current = (event) => {
-    const target = event.target as HTMLElement | null;
-    if (target?.closest("input, textarea, [contenteditable]")) return;
-    const removes = event.key === "Delete" || event.key === "Backspace";
-    const ends = event.key === "Enter" || event.key === "Escape";
-    if (mode === "line" && active && ends) {
-      event.preventDefault();
-      finish();
-    } else if (mode === "line" && active && removes) {
-      event.preventDefault();
-      back();
-    } else if (mode === "points" && ends) {
-      event.preventDefault();
-      onLeave(editing);
-    } else if (mode === "points" && anchor !== null && removes) {
-      event.preventDefault();
-      removePoint();
-    }
-  };
-  useEffect(() => {
-    if (!mode) return;
-    const onKey = (event: KeyboardEvent) => keys.current(event);
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [mode]);
-
   const anchors = draft();
   const count = anchorCount(anchors);
   const from = (count - 1) * ANCHOR;
@@ -602,7 +685,7 @@ export const useLine = (
     marks = {
       anchors,
       line: drawingAt !== null ? now.strokes[drawingAt].points : [],
-      picked: null,
+      picked: drawingAt !== null ? anchor : null,
       handles: "last",
       preview: !hover
         ? null
@@ -632,6 +715,43 @@ export const useLine = (
     down,
     move,
     up,
+    cancel,
+    back,
+    /**
+     * Round or corner – the anchors still to set while drawing, the picked
+     * one while editing (null: nothing to say it of).
+     */
+    kind: ((): "smooth" | "corner" | null => {
+      if (mode === "line") return corner ? "corner" : "smooth";
+      if (!(stroke?.anchors && editing !== null && anchor !== null))
+        return null;
+      return isSmooth(stroke.anchors, anchor) &&
+        !free.has(freeKey(editing, anchor))
+        ? "smooth"
+        : "corner";
+    })(),
+    setKind: (kind: "smooth" | "corner") => {
+      if (mode === "line") {
+        setCorner(kind === "corner");
+        return;
+      }
+      if (!(stroke?.anchors && editing !== null && anchor !== null)) return;
+      const key = freeKey(editing, anchor);
+      const others = new Set([...free].filter((one) => one !== key));
+      if (kind === "corner") {
+        setFree(new Set([...others, key]));
+        return;
+      }
+      setFree(others);
+      const closed = Boolean(stroke.closed);
+      put(
+        replaced(
+          drawing.current,
+          editing,
+          reshaped(stroke, smoothen(stroke.anchors, closed, anchor))
+        )
+      );
+    },
     leave: () => {
       setHover(null);
       if (!press.current) setLines(null);

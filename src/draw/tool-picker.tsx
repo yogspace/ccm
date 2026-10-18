@@ -14,15 +14,16 @@ type Props = {
 };
 
 const TOOLS = [
-  ["pen", Pencil, "#ffc31f", -20, "draw.pen"],
-  ["line", PenTool, "#ff6a1f", -14, "draw.line"],
-  ["eraser", Eraser, "#ff5fa8", -24, "draw.eraser"],
-  ["move", Move, "#2a44ff", 0, "draw.move"],
+  ["pen", Pencil, "#ffc31f", -20, "draw.pen", "P"],
+  ["line", PenTool, "#ff6a1f", -14, "draw.line", "L"],
+  ["eraser", Eraser, "#ff5fa8", -24, "draw.eraser", "E"],
+  ["move", Move, "#2a44ff", 0, "draw.move", "V"],
 ] as const;
 
 /**
  * Pen, line, eraser, move – the active one is underlined, the line glides
- * to the new one (editing a line's points belongs to moving). Memoised
+ * to the new one (editing a line's points belongs to moving). Each has its
+ * key (use-keys.ts), told in its title. Memoised
  * because `motion` measures the layout on every render; that should not
  * happen on every slider move.
  */
@@ -39,18 +40,19 @@ const ToolPicker = ({ tool, onChoose }: Props) => {
       className="flex items-center gap-2.5 [grid-area:tools] justify-self-start @max-[34rem]/draw:gap-2 beside:flex-col beside:gap-3 beside:self-start beside:justify-self-center"
       role="group"
     >
-      {TOOLS.map(([value, icon, icing, roll, label]) => {
+      {TOOLS.map(([value, icon, icing, roll, label, key]) => {
         const active =
           tool === value || (value === "move" && tool === "points");
         return (
           <Button
+            aria-keyshortcuts={key}
             aria-label={t(label)}
             aria-pressed={active}
             className="relative"
             key={value}
             kind="icon"
             onClick={() => onChoose(value)}
-            title={t(label)}
+            title={`${t(label)} (${key})`}
             type="button"
           >
             <CookieIcon

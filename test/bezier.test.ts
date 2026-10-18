@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   ANCHOR,
   anchorCount,
-  anchorGuides,
   curvesOf,
   flatten,
   insertAnchor,
@@ -16,10 +15,10 @@ import {
   pullHandles,
   removeAnchor,
   snap45,
-  snapPoint,
   toggleSmooth,
 } from "../src/bezier";
-import { applyEraser, transformDrawing } from "../src/drawing";
+import { anchorGuides, snapPoint } from "../src/draw/guides";
+import { applyEraser, transformBy } from "../src/drawing";
 import { defaultParams } from "../src/geometry/cutter";
 import type { Point } from "../src/geometry/outline";
 import {
@@ -113,11 +112,17 @@ describe("editing an anchored line's points", () => {
     expect(isSmooth(corner(500, 500), 0)).toBe(false);
   });
 
-  it("moves an anchor with its handles – kept in the area", () => {
+  it("moves an anchor with its handles – the anchor kept in the area", () => {
     const a = smooth(500, 500, 600, 500);
     expect(moveAnchor(a, 0, 520, 480)).toEqual(smooth(520, 480, 620, 480));
-    // Its handle reaches the edge first: it stops there.
-    expect(moveAnchor(a, 0, 1000, 500)[4]).toBe(1024);
+    // Its handle may go on beyond the edge …
+    expect(moveAnchor(a, 0, 1000, 500).slice(0, 6)).toEqual(
+      smooth(1000, 500, 1100, 500)
+    );
+    // … the anchor stops at it.
+    expect(moveAnchor(a, 0, 1200, 500).slice(0, 6)).toEqual(
+      smooth(1024, 500, 1124, 500)
+    );
   });
 
   it("mirrors a smooth point's other handle – not with Alt", () => {
@@ -219,10 +224,11 @@ describe("anchored lines in the drawing", () => {
 
   it("move as a whole and stay anchored lines", () => {
     const drawing: Drawing = { base: [], baseLine: 0, strokes: [curve] };
-    const [moved] = transformDrawing(
+    // A quarter turn about the middle (draw/frame.ts `turnAbout`).
+    const [moved] = transformBy(
       drawing,
       { strokes: [0], rings: [] },
-      { scale: 1, angle: Math.PI / 2, cx: 512, cy: 512, dx: 0, dy: 0 }
+      [0, 1, -1, 0, 1024, 0]
     ).strokes;
     expect(moved.anchors?.slice(0, 2)).toEqual([424, 200]);
     expect(moved.emboss).toBe(true);
