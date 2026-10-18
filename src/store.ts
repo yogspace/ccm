@@ -31,7 +31,7 @@ import type { MeshData } from "./geometry/mesh";
 import { InputError, type Ring } from "./geometry/outline";
 import { type Greeting, greetingUrl } from "./greeting";
 import type { de } from "./i18n/de";
-import { shortShapeMissing } from "./short-shape";
+import { resolveShortShape, shortShapeMissing } from "./short-shape";
 import { initialUnit, storeUnit, type Unit } from "./units";
 import {
   type Drawing,
@@ -105,6 +105,11 @@ type State = {
   jarOpen: boolean;
   /** The cookie saved last (its hash) – it pops into the bar. */
   lastSaved: string | null;
+  /**
+   * How often the browser's own came in (`boot`) – 0 while the page is as
+   * the server rendered it.
+   */
+  booted: number;
 };
 
 /** Longest side of a set of contours (normalised 0…1), 0 if there are none. */
@@ -131,24 +136,19 @@ const EMPTY_SHARE = 0.7;
 const sheetFor = (size: number, rings: Ring[]) =>
   size / (extentOf(rings) || EMPTY_SHARE);
 
-/** State from a shared link – read once on load. */
-const shared = readHash(window.location.hash);
-const savedCookies = loadJar();
-
 /**
- * What the drawing area starts with. Old links bring only the contour, new
- * ones the drawing – then the contour comes from tracing it (`trace`).
+ * What every page starts with – on the server and in the browser alike, so
+ * the page the server rendered is the one the browser takes over: nothing
+ * drawn, the default dimensions. What the browser knows besides (the link,
+ * the jar, the unit) comes right after (`boot`).
  */
-export const initial = {
-  drawing: shared.drawing,
-  trace: shared.rings.length === 0,
-};
+const blank = readHash("");
 
 export const store = proxy<State>({
-  name: shared.name,
-  params: { ...shared.params },
-  drawing: ref(shared.drawing),
-  rings: ref(shared.rings),
+  name: blank.name,
+  params: { ...blank.params },
+  drawing: ref(blank.drawing),
+  rings: ref(blank.rings),
   emboss: ref([]),
   cutter: {
     ready: false,
@@ -158,19 +158,19 @@ export const store = proxy<State>({
     imprint: ref([]),
     inlay: ref([]),
   },
-  unit: initialUnit(),
+  unit: "mm",
   tool: "pen",
   brush: 24,
   ink: "cut",
   autoRotate: true,
   expanded: false,
   dialogs: 0,
-  sheet: sheetFor(shared.params.size, shared.rings),
-  jar: ref(savedCookies),
-  jarOpen: savedCookies.length > 0 && !jarClosed(),
+  sheet: sheetFor(blank.params.size, blank.rings),
+  jar: ref([]),
+  jarOpen: false,
   lastSaved: null,
-  // A short link whose model is gone (short-shape.ts): said right away.
-  inputError: shortShapeMissing() ? "gone" : undefined,
+  inputError: undefined,
+  booted: 0,
 });
 
 /**
@@ -178,7 +178,40 @@ export const store = proxy<State>({
  * paints it: that first trace sets the scale from the link's size instead of
  * changing the size.
  */
-let calibrating = initial.trace && !isEmptyDrawing(shared.drawing);
+let calibrating = false;
+
+/**
+ * What the drawing area starts with once booted: the link's drawing. Old
+ * links bring only the contour, new ones the drawing – then the contour
+ * comes from tracing it (`trace`).
+ */
+export const initial = { drawing: blank.drawing, trace: false };
+
+/**
+ * The browser's own, taken over once the page is there (editor.tsx): a
+ * short link made whole, the link's drawing, name and dimensions, the jar
+ * and the unit kept on this device. `booted` counts up – the drawing area
+ * paints what came (use-drawing.ts).
+ */
+export const boot = async () => {
+  await resolveShortShape();
+  const shared = readHash(window.location.hash);
+  const jar = loadJar();
+  initial.drawing = shared.drawing;
+  initial.trace = shared.rings.length === 0;
+  calibrating = initial.trace && !isEmptyDrawing(shared.drawing);
+  store.name = shared.name;
+  store.params = { ...shared.params };
+  store.drawing = ref(shared.drawing);
+  store.rings = ref(shared.rings);
+  store.sheet = sheetFor(shared.params.size, shared.rings);
+  store.unit = initialUnit();
+  store.jar = ref(jar);
+  store.jarOpen = jar.length > 0 && !jarClosed();
+  // A short link whose model is gone (short-shape.ts): said right away.
+  if (shortShapeMissing()) store.inputError = "gone";
+  store.booted += 1;
+};
 
 // ---------- Actions ----------
 
@@ -427,7 +460,9 @@ export const connectStore = () => {
   });
 
   build();
-  writeLink();
+  // The link only once the page has read it (`boot`) – the blank start
+  // must not stand in for it, a short link still being fetched least of all.
+  if (store.booted) writeLink();
   lockScroll();
 
   return () => {

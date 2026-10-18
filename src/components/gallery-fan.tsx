@@ -1,17 +1,21 @@
 import { motion, useReducedMotion } from "motion/react";
-import { memo, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type GalleryCard, useAssets } from "../assets";
 import { cn } from "../cn";
 import { useCardColors } from "../site-context";
 import SharePicture from "./share-picture";
+import { useMedia } from "./use-browser";
 
 const CARDS = 5;
 
-/** `CARDS` cards in random order – a different hand on every load. */
-const deal = (pictures: GalleryCard[]) => {
+/**
+ * `CARDS` cards, the first ones – in random order once `shuffled`: a
+ * different hand on every load.
+ */
+const deal = (pictures: GalleryCard[], shuffled: boolean) => {
   const deck = [...pictures];
-  for (let i = deck.length - 1; i > 0; i--) {
+  for (let i = deck.length - 1; shuffled && i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [deck[i], deck[j]] = [deck[j], deck[i]];
   }
@@ -31,9 +35,12 @@ const GalleryFan = () => {
   const lang = i18n.resolvedLanguage === "de" ? "de" : "en";
   const still = useReducedMotion();
   // Degrees between neighbouring cards – tighter on small screens.
-  const [spread] = useState(() => (window.innerWidth < 640 ? 9 : 12));
+  const spread = useMedia("(width < 640px)") ? 9 : 12;
   const { gallery } = useAssets();
-  const [hand] = useState(() => deal(gallery));
+  // The server deals the first ones, the browser shuffles – long before
+  // the fan is scrolled to.
+  const [hand, setHand] = useState(() => deal(gallery, false));
+  useEffect(() => setHand(deal(gallery, true)), [gallery]);
   // Without a color of its own: the first card color.
   const fallback = useCardColors()[0]?.color ?? "#2a44ff";
   if (gallery.length === 0) return null;

@@ -275,7 +275,12 @@ export const putOnline = async (hash: string): Promise<OnlineResult> => {
  * The model the page was opened with: a changed version of an online cookie
  * opened here can take over its short link (replaceOnline).
  */
-let opened = modelOf(window.location.hash);
+let opened: string | null = null;
+
+/** The page's link is read (store.ts `boot`) – its model noted. */
+export const noteOpened = () => {
+  opened = modelOf(window.location.hash);
+};
 
 /**
  * The online cookie a just saved version was made from – changed – if there

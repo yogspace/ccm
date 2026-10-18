@@ -21,6 +21,7 @@ import {
   stage,
   stageHint,
 } from "../components/styles";
+import { useMedia } from "../components/use-browser";
 import { DRAW_RES as RES, selectionBox } from "../drawing";
 import type { Point } from "../geometry/outline";
 import { store, type Tool, useMmPerCanvas } from "../store";
@@ -119,7 +120,7 @@ const DrawCanvas = () => {
         ? "line"
         : "draw";
   // No hover: a finger – the hints say tap, not click.
-  const touch = window.matchMedia("(hover: none)").matches;
+  const touch = useMedia("(hover: none)");
   useAreaFit({ area: areaRef, grid: gridRef, stage: stageRef });
 
   // ---------- Brush preview ----------

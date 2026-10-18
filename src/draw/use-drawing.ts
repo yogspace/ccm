@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useSnapshot } from "valtio";
 import { trackEvent } from "../analytics";
 import {
   detachErasers,
@@ -297,11 +298,23 @@ export const useDrawing = () => {
       repaint();
     };
     sized();
-    if (initial.trace && !isEmptyDrawing(initial.drawing)) commit();
     const watch = new ResizeObserver(sized);
     watch.observe(canvas);
     return () => watch.disconnect();
   }, []);
+
+  // The link's drawing, once the browser has read it (store.ts `boot`):
+  // painted, and – a drawing, not just an old link's contour – traced.
+  const { booted } = useSnapshot(store);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only when booted
+  useEffect(() => {
+    if (!booted) return;
+    drawing.current = initial.drawing;
+    setEmpty(isEmptyDrawing(initial.drawing));
+    select(null);
+    repaint();
+    if (initial.trace && !isEmptyDrawing(initial.drawing)) commit();
+  }, [booted]);
 
   return {
     canvasRef,

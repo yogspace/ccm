@@ -12,7 +12,7 @@ export const shortShapeMissing = () => missing;
 
 /**
  * Turns a short link into the full one – the model fetched for its `k` –
- * before anything reads the link (editor-root.tsx, card-root.tsx). Without
+ * before anything reads the link (store.ts `boot`, card-root.tsx). Without
  * `k`, or with `s` too, nothing to do.
  */
 export const resolveShortShape = async () => {

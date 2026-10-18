@@ -39,6 +39,7 @@ import {
   shareMore,
   shareVisual,
 } from "./styles";
+import { useMounted } from "./use-browser";
 import { useGrow } from "./use-grow";
 import { useLivePicture } from "./use-live-picture";
 
@@ -85,8 +86,10 @@ const ShareCreation = ({ preview }: Props) => {
   const [textCopied, setTextCopied] = useState(false);
   const title = name.trim() || "Cookie Cutter Maker";
   const pictureName = name.trim() || "Cookie Cutter";
-  // The creation's link – short if it is online (link-field.tsx).
-  const url = useShareLink(creationUrl());
+  // The creation's link – short if it is online (link-field.tsx); the
+  // browser's, its address is not the server's to know.
+  const mounted = useMounted();
+  const url = useShareLink(mounted ? creationUrl() : "");
   useGrow(boxRef, bodyRef);
 
   // The cutter from above in the favorite color, for the picture and the
@@ -158,11 +161,12 @@ const ShareCreation = ({ preview }: Props) => {
   // Whether pictures can be shared at all – asked with a stand-in.
   const canShareImage = useMemo(
     () =>
+      mounted &&
       !!navigator.canShare?.({
         files: [new File([], "cookie.png", { type: "image/png" })],
         text: url,
       }),
-    [url]
+    [mounted, url]
   );
 
   // In front of the fan's lower edge (editor-app.tsx); the box only holds its

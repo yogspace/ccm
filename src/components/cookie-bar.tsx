@@ -77,10 +77,8 @@ const CookieBar = () => {
   const [failed, setFailed] = useState<OnlineResult | null>(null);
   const [, expire] = useState(0);
   // With cookies in it, the bar is there right away; empty, the jar comes
-  // with the first scroll.
-  const [shown, setShown] = useState(
-    () => window.scrollY > 0 || store.jar.length > 0
-  );
+  // with the first scroll (scrolled already: at once).
+  const [shown, setShown] = useState(false);
   /** The cookie whose menu is open (its hash). */
   const [chosen, setChosen] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -96,6 +94,10 @@ const CookieBar = () => {
   useEffect(() => {
     if (shown) return;
     const show = () => setShown(true);
+    if (window.scrollY > 0) {
+      show();
+      return;
+    }
     window.addEventListener("scroll", show, { once: true, passive: true });
     return () => window.removeEventListener("scroll", show);
   }, [shown]);

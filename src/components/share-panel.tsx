@@ -6,6 +6,7 @@ import { pageUrl, store } from "../store";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
 import { cookieInButton } from "./styles";
+import { useMounted } from "./use-browser";
 
 /**
  * Sharing the page itself, right behind the title in the header: the system
@@ -15,7 +16,7 @@ const SharePanel = () => {
   const { t } = useTranslation();
   const { name } = useSnapshot(store);
   const [copied, setCopied] = useState(false);
-  const canShare = typeof navigator.share === "function";
+  const canShare = useMounted() && typeof navigator.share === "function";
 
   useEffect(() => {
     if (!copied) return;

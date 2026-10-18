@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { type CSSProperties, useEffect, useRef } from "react";
+import { type CSSProperties, useEffect, useLayoutEffect, useRef } from "react";
 import type { Object3D } from "three";
 import { cn } from "../cn";
 import { type Bite, createBittenCookie } from "../cookies/bites";
@@ -167,7 +167,14 @@ const CookieIcon = ({
     handle.current?.setSpin(spin);
   }, [spin]);
 
-  const pixels = Math.round(size * Math.min(window.devicePixelRatio, 2));
+  // Sharp on the screen it is on – the server does not know it.
+  useLayoutEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const pixels = Math.round(size * Math.min(window.devicePixelRatio, 2));
+    canvas.width = pixels;
+    canvas.height = pixels;
+  }, [size]);
 
   return (
     <>
@@ -180,10 +187,8 @@ const CookieIcon = ({
           className
         )}
         data-cookie
-        height={pixels}
         ref={canvasRef}
         style={{ "--size": `${size}px` } as CSSProperties}
-        width={pixels}
       />
       {Icon && (
         <span hidden ref={svgRef}>

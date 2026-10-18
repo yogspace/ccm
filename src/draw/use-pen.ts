@@ -25,13 +25,16 @@ const SCROLL_CALM = 300;
 
 /** When the page (or anything in it) last scrolled. */
 let lastScroll = -Infinity;
-window.addEventListener(
-  "scroll",
-  () => {
-    lastScroll = performance.now();
-  },
-  { capture: true, passive: true }
-);
+// Only in the browser – the drawing area is rendered on the server too.
+if (typeof window !== "undefined") {
+  window.addEventListener(
+    "scroll",
+    () => {
+      lastScroll = performance.now();
+    },
+    { capture: true, passive: true }
+  );
+}
 
 /** Where on the area a pointer is, and how many area pixels a CSS pixel is. */
 export type Locate = (event: { clientX: number; clientY: number }) => {

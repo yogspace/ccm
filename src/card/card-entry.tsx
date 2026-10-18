@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { I18nextProvider } from "react-i18next";
 import { trackView } from "../analytics";
 import { type Assets, AssetsContext } from "../assets";
 import { setCookieColors } from "../cookies/dough";
-import { setupI18n } from "../i18n";
+import { createI18n, followLanguage } from "../i18n";
 import { CardColorsContext, SiteLinksContext } from "../site-context";
 import type { CardColor, CookieColors, SiteLinks } from "../site-defaults";
 import type { Texts } from "../translations/defaults";
@@ -29,7 +30,11 @@ export type CardProps = {
 };
 
 const CardEntry = ({ texts, links, colors, cookies, legal }: CardProps) => {
-  setupI18n(texts);
+  // The page's language is its path's (/de/card, /en/card), on <html>.
+  const [i18n] = useState(() =>
+    createI18n(texts, document.documentElement.lang || "en")
+  );
+  useEffect(() => followLanguage(i18n), [i18n]);
   // The cookies' colors from the CMS, before the first one is baked; their
   // sprinkles in the card colors and white.
   setCookieColors({
@@ -41,14 +46,16 @@ const CardEntry = ({ texts, links, colors, cookies, legal }: CardProps) => {
     fontReady.finally(() => setReady(true));
   }, []);
   return ready ? (
-    <SiteLinksContext value={links}>
-      <CardColorsContext value={colors}>
-        {/* No templates or gallery here – just the imprint's text. */}
-        <AssetsContext value={{ presets: [], gallery: [], legal }}>
-          <CardPage />
-        </AssetsContext>
-      </CardColorsContext>
-    </SiteLinksContext>
+    <I18nextProvider i18n={i18n}>
+      <SiteLinksContext value={links}>
+        <CardColorsContext value={colors}>
+          {/* No templates or gallery here – just the imprint's text. */}
+          <AssetsContext value={{ presets: [], gallery: [], legal }}>
+            <CardPage />
+          </AssetsContext>
+        </CardColorsContext>
+      </SiteLinksContext>
+    </I18nextProvider>
   ) : null;
 };
 

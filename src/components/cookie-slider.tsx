@@ -6,6 +6,7 @@ import {
   useState,
 } from "react";
 import { cookieImage } from "../cookies/renderer";
+import { hashText } from "../hash-text";
 
 type Props = {
   min: number;
@@ -28,8 +29,9 @@ const THUMB = 34;
  */
 const CookieSlider = ({ min, max, step, value, onChange, label }: Props) => {
   const [thumb, setThumb] = useState<string>();
-  // Every cookie lies differently – otherwise all sliders look the same.
-  const [turn] = useState(() => Math.round(Math.random() * 360));
+  // Every cookie lies differently – otherwise all sliders look the same;
+  // by its label, the same on the server and in the browser.
+  const turn = hashText(label) % 360;
   const [current, setCurrent] = useState(value);
   const [outside, setOutside] = useState(value);
   // A new value from outside (e.g. reset) takes over the thumb.

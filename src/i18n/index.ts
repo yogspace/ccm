@@ -1,5 +1,4 @@
-import i18n from "i18next";
-import LanguageDetector from "i18next-browser-languagedetector";
+import { createInstance, type i18n as I18n } from "i18next";
 import { initReactI18next } from "react-i18next";
 import type { Texts } from "../translations/defaults";
 import type { de } from "./de";
@@ -25,42 +24,39 @@ const syncPath = (lng: string) => {
   }
 };
 
-const syncLang = (lng: string) => {
-  document.documentElement.lang = lng;
-  document.title = i18n.t("title");
-  syncPath(lng);
+/**
+ * An i18next of the page's own, with the texts the page brought from the
+ * server (both languages – the switch in the masthead changes without a
+ * reload), in the page's language (/de, /en). Synchronous, so the first
+ * render has them – on the server too, where every page has one of its own.
+ */
+export const createI18n = (texts: Texts, lng: string): I18n => {
+  const i18n = createInstance();
+  i18n.use(initReactI18next).init({
+    resources: {
+      de: { translation: texts.de },
+      en: { translation: texts.en },
+    },
+    lng,
+    initAsync: false,
+    supportedLngs: languages,
+    nonExplicitSupportedLngs: true,
+    fallbackLng: "en",
+    interpolation: { escapeValue: false },
+  });
+  return i18n;
 };
 
 /**
- * Starts i18next with the texts the page brought from the server (both
- * languages – the switch in the masthead changes without a reload).
- * Synchronous, so the first render has them; once per page load.
+ * In the browser: the page's language, its title and its path follow the
+ * switch. Returns the cleanup (for useEffect).
  */
-export const setupI18n = (texts: Texts) => {
-  if (i18n.isInitialized) return;
-  i18n
-    .use(LanguageDetector)
-    .use(initReactI18next)
-    .init({
-      resources: {
-        de: { translation: texts.de },
-        en: { translation: texts.en },
-      },
-      initAsync: false,
-      supportedLngs: languages,
-      nonExplicitSupportedLngs: true,
-      fallbackLng: "en",
-      interpolation: { escapeValue: false },
-      // /de and /en set the language (each page has its own texts for
-      // Google); without a language path the stored one or the browser's.
-      detection: {
-        order: ["path", "localStorage", "navigator"],
-        lookupFromPathIndex: 0,
-        caches: ["localStorage"],
-      },
-    });
-  syncLang(i18n.resolvedLanguage ?? "en");
-  i18n.on("languageChanged", syncLang);
+export const followLanguage = (i18n: I18n) => {
+  const sync = (lng: string) => {
+    document.documentElement.lang = lng;
+    document.title = i18n.t("title");
+    syncPath(lng);
+  };
+  i18n.on("languageChanged", sync);
+  return () => i18n.off("languageChanged", sync);
 };
-
-export default i18n;

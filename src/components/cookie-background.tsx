@@ -95,7 +95,9 @@ const place = (count: number): Placed[] => {
  * none lies on it.
  */
 const CookieBackground = () => {
-  const [cookies] = useState(() => place(window.innerWidth < 640 ? 5 : 8));
+  // Placed in the browser – at random, fewer on small screens.
+  const [cookies, setCookies] = useState<Placed[]>([]);
+  useEffect(() => setCookies(place(window.innerWidth < 640 ? 5 : 8)), []);
   const layerRef = useRef<HTMLDivElement>(null);
 
   // As tall as the page above the footer – again whenever the page changes.

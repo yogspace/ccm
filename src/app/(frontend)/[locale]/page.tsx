@@ -42,6 +42,7 @@ const EditorPage = async ({ params }: Props) => {
         cookies={site.cookies}
         legal={legalByLocale(legal, site)}
         links={site.links}
+        locale={lang}
         texts={texts}
       />
       <noscript>{noscriptText(lang)}</noscript>

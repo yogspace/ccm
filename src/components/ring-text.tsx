@@ -1,4 +1,4 @@
-import { memo, useId, useMemo } from "react";
+import { memo, useEffect, useId, useMemo, useState } from "react";
 
 /** Radius of the ring in the 100 × 100 view box; the letters stand on it. */
 export const RING_RADIUS = 45;
@@ -40,7 +40,23 @@ type Props = { text: string; className?: string };
 /** Text running once around a circle, like on a stamp. Decorative only. */
 const RingText = ({ text, className }: Props) => {
   const id = useId();
-  const { content, size, spacing } = useMemo(() => ringLayout(text), [text]);
+  // Measured in the browser, once the font is there – the server leaves the
+  // ring empty.
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    let on = true;
+    document.fonts
+      .load(FONT)
+      .catch(() => undefined)
+      .then(() => on && setReady(true));
+    return () => {
+      on = false;
+    };
+  }, []);
+  const layout = useMemo(
+    () => (ready ? ringLayout(text) : null),
+    [ready, text]
+  );
   const r = RADIUS;
 
   return (
@@ -51,9 +67,11 @@ const RingText = ({ text, className }: Props) => {
         fill="none"
         id={id}
       />
-      <text fontSize={size} letterSpacing={spacing}>
-        <textPath href={`#${id}`}>{content}</textPath>
-      </text>
+      {layout && (
+        <text fontSize={layout.size} letterSpacing={layout.spacing}>
+          <textPath href={`#${id}`}>{layout.content}</textPath>
+        </text>
+      )}
     </svg>
   );
 };
