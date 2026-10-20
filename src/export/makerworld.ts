@@ -17,18 +17,19 @@ import { type CookieShape, createShapeCookie } from "../cookies/shape-cookie";
 import type { MeshData } from "../geometry/mesh";
 import type { Greeting } from "../greeting";
 import { renderMeshTop } from "../render-top";
+import { FEATURES, makerWorldTexts } from "./makerworld-texts";
 import { toThreeMf } from "./three-mf";
 
 /**
  * Everything to put a cutter on MakerWorld, in one zip – for the admin only
- * (export-buttons.tsx), always in English: the 3MF, pictures of the model
- * alone, as on its greeting card's page and of what the site can do, each
- * upright (3:4) and across (4:3), and the text for the upload with the
- * links to the editor and to a greeting card. All in the color the cutter
- * has on screen.
+ * (export-buttons.tsx), always in English: the 3MF, the thumbnail as on its
+ * greeting card's page upright (3:4) and across (4:3), a picture of the
+ * model alone and one of what the site can do, and a page with the
+ * upload's texts (makerworld-texts.ts) and the links to the editor and to a
+ * greeting card. All in the color the cutter has on screen.
  */
 
-/** The test card: the pictures show it, the upload text links to it. */
+/** The test card: the pictures show it, the texts link to it. */
 export const MAKERWORLD_GREETING: Greeting = {
   to: "",
   from: "MXWR",
@@ -36,26 +37,11 @@ export const MAKERWORLD_GREETING: Greeting = {
   color: 0,
 };
 
-const FORMATS = [
-  { label: "3x4", width: 1200, height: 1600 },
-  { label: "4x3", width: 1600, height: 1200 },
-] as const;
+const UPRIGHT = { label: "3x4", width: 1200, height: 1600 } as const;
+const ACROSS = { label: "4x3", width: 1600, height: 1200 } as const;
 const MARGIN = 70;
-/** One word each, true of every cutter. */
-const TAGS = [
-  "cookiecutter",
-  "cookie",
-  "cookies",
-  "cutter",
-  "baking",
-  "bake",
-  "kitchen",
-  "dough",
-  "biscuit",
-  "fondant",
-  "clay",
-  "gift",
-];
+/** Renders of the cutter twice as large, scaled down: no pixel noise. */
+const SUPERSAMPLE = 2;
 /** The cookie's picture, square – drawn smaller where it goes. */
 const COOKIE_PIXELS = 720;
 
@@ -172,7 +158,7 @@ const paintModel = (
   ctx.globalAlpha = 1;
 
   const box = { w: width - 2 * MARGIN, h: height - 2 * MARGIN };
-  const view = renderMeshTop(mesh, color, box.w, box.h);
+  const view = renderMeshTop(mesh, color, box.w, box.h, SUPERSAMPLE);
   if (!view) return canvas;
   const extent = extentOf(view);
   if (extent) {
@@ -271,7 +257,7 @@ const paintCardView = async (
   drawCard(ctx, card, stage.x, stage.y, stage.size);
 
   const box = { w: stage.size * 0.92, h: stage.size * 0.78 };
-  const cutter = renderMeshTop(mesh, color, box.w, box.h);
+  const cutter = renderMeshTop(mesh, color, box.w, box.h, SUPERSAMPLE);
   if (cutter) {
     ctx.save();
     ctx.shadowColor = "rgb(4 8 60 / 0.45)";
@@ -339,16 +325,8 @@ const drawCorners = (
   ctx.restore();
 };
 
-/** What the site can do, for the picture that says so. */
+/** The features picture's slogan and invitation (the features: texts). */
 const SLOGAN = ["Your drawing.", "Your cookie cutter."];
-const FEATURES = [
-  ["Draw it or drop in a picture", "Mouse, finger or pen – or an SVG or PNG."],
-  ["Holes become inner blades", "Linked on their own: one printable piece."],
-  ["Emboss the details", "A second ink presses lines into the dough."],
-  ["See it in 3D", "The cutter live – and the cookie it bakes."],
-  ["Ready to print", "3MF for Bambu Studio or STL, any size."],
-  ["Send it as a greeting card", "Your message running around the cutter."],
-] as const;
 const INVITATION = "Try it free at ccm.mxwr.de";
 
 /** Words in lines no wider than `width`, in the context's font. */
@@ -367,15 +345,12 @@ const wrap = (ctx: CanvasRenderingContext2D, text: string, width: number) => {
 };
 
 /**
- * What Cookie Cutter Maker can do, in the cutter's colors: the slogan, the
- * features one by one, an invitation to try it – across with the cutter
- * beside them.
+ * What Cookie Cutter Maker can do, in the cutter's colors, across: the
+ * slogan, the cutter and an invitation to try it on the left, the features
+ * one by one on the right.
  */
-const paintFeatures = async (
-  { mesh, color }: Kit,
-  width: number,
-  height: number
-) => {
+const paintFeatures = async ({ mesh, color }: Kit) => {
+  const { width, height } = ACROSS;
   const target = canvasOf(width, height);
   if (!target) return null;
   const { canvas, ctx } = target;
@@ -385,26 +360,12 @@ const paintFeatures = async (
     document.fonts.load(`600 1em ${FONT}`),
     document.fonts.load(`500 1em ${FONT}`),
   ]).catch(() => undefined);
-  const across = width > height;
-  const layout = across
-    ? {
-        slogan: { x: 430, y: 250, size: 92, width: 700, step: 104 },
-        cutter: { x: 430, y: 650, w: 760, h: 560 },
-        invitation: { x: 430, y: 980 },
-        list: { x: 860, y: 300, width: 670, title: 40, text: 30, gap: 30 },
-      }
-    : {
-        slogan: {
-          x: width / 2,
-          y: 260,
-          size: 104,
-          width: width - 200,
-          step: 120,
-        },
-        cutter: null,
-        invitation: { x: width / 2, y: 1420 },
-        list: { x: 120, y: 560, width: 960, title: 46, text: 34, gap: 40 },
-      };
+  const layout = {
+    slogan: { x: 430, y: 250, size: 92, width: 700, step: 104 },
+    cutter: { x: 430, y: 650, w: 760, h: 560 },
+    invitation: { x: 430, y: 980 },
+    list: { x: 860, y: 300, width: 670, title: 40, text: 30, gap: 30 },
+  };
 
   ctx.fillStyle = colors.page;
   ctx.fillRect(0, 0, width, height);
@@ -427,18 +388,16 @@ const paintFeatures = async (
     );
   });
 
-  if (layout.cutter) {
-    const { x, y, w, h } = layout.cutter;
-    const view = renderMeshTop(mesh, color, w, h);
-    if (view) {
-      ctx.save();
-      ctx.shadowColor = "rgb(4 8 60 / 0.45)";
-      ctx.shadowBlur = 50;
-      ctx.shadowOffsetY = 28;
-      ctx.drawImage(view, x - w / 2, y - h / 2);
-      ctx.restore();
-      view.width = view.height = 0;
-    }
+  const { x, y: middle, w, h } = layout.cutter;
+  const view = renderMeshTop(mesh, color, w, h, SUPERSAMPLE);
+  if (view) {
+    ctx.save();
+    ctx.shadowColor = "rgb(4 8 60 / 0.45)";
+    ctx.shadowBlur = 50;
+    ctx.shadowOffsetY = 28;
+    ctx.drawImage(view, x - w / 2, middle - h / 2);
+    ctx.restore();
+    view.width = view.height = 0;
   }
 
   // The features, each its sparkle, its name and a line or two about it.
@@ -494,46 +453,10 @@ const png = (canvas: HTMLCanvasElement) =>
     }, "image/png")
   );
 
-/** Title, description, tags and the links, ready to paste into the upload. */
-const uploadText = ({
-  name,
-  dimensions: [width, depth, height],
-  editorUrl,
-  cardUrl,
-}: Pick<Kit, "name" | "editorUrl" | "cardUrl"> & {
-  dimensions: MeshData["dimensions"];
-}) => {
-  const mm = (value: number) => Math.round(value);
-  const title = /cutter/i.test(name) ? name : `${name} Cookie Cutter`;
-  return `TITLE
-${title}
-
-DESCRIPTION
-${name} – a cookie cutter, ${mm(width)} × ${mm(depth)} mm and ${mm(height)} mm tall, made with Cookie Cutter Maker.
-
-Make it yours: open it in the editor, change the drawing or the size and download your own version – free, right in your browser, no account needed.
-${editorUrl}
-
-Or send it as a greeting card: a page of its own with the cutter in 3D, your message around it and the files to print.
-${cardUrl}
-
-Draw your own cookie cutter from any doodle or picture: https://ccm.mxwr.de
-
-PRINTING
-- Ready for the Bambu Lab A1: 0.4 mm nozzle, Bambu PLA Basic, 0.2 mm layers, Textured PEI Plate. Another printer? Just pick it in Bambu Studio.
-- The rim sits on the print bed, no supports needed.
-- For dough, food-safe filament is best. Wash by hand in lukewarm water, not in the dishwasher: PLA warps from about 55 °C.
-
-TAGS
-${TAGS.join(", ")}
-
-LINKS
-Editor: ${editorUrl}
-Card: ${cardUrl}
-`;
-};
-
-/** The zip with the 3MF, six pictures and the upload text. */
+/**
+ * The zip with the 3MF, the thumbnail upright and across, one picture each
+ * of the model and of the features, and the page with the upload's texts.
+ */
 export const makerWorldZip = async (kit: Kit) => {
   const {
     mesh,
@@ -553,24 +476,29 @@ export const makerWorldZip = async (kit: Kit) => {
     ],
   };
   const cookies = bakeFan(shape, color);
-  for (const { label, width, height } of FORMATS) {
-    const pictures = [
-      ["model", paintModel(mesh, color, width, height)],
-      ["card", await paintCardView(kit, cookies, width, height)],
-      ["features", await paintFeatures(kit, width, height)],
-    ] as const;
-    for (const [kind, canvas] of pictures) {
-      if (!canvas) continue;
-      const bytes = await png(canvas);
-      // Freed right away: large canvases add up.
-      canvas.width = canvas.height = 0;
-      if (bytes)
-        files[`${fileName}-${kind}-${label}.png`] = [bytes, { level: 0 }];
-    }
+  // One after another, each freed right away: large canvases add up.
+  const pictures: [string, () => Promise<HTMLCanvasElement | null>][] = [
+    [
+      `thumbnail-${UPRIGHT.label}`,
+      () => paintCardView(kit, cookies, UPRIGHT.width, UPRIGHT.height),
+    ],
+    [
+      `thumbnail-${ACROSS.label}`,
+      () => paintCardView(kit, cookies, ACROSS.width, ACROSS.height),
+    ],
+    ["model", async () => paintModel(mesh, color, ACROSS.width, ACROSS.height)],
+    ["features", () => paintFeatures(kit)],
+  ];
+  for (const [kind, paint] of pictures) {
+    const canvas = await paint();
+    if (!canvas) continue;
+    const bytes = await png(canvas);
+    canvas.width = canvas.height = 0;
+    if (bytes) files[`${fileName}-${kind}.png`] = [bytes, { level: 0 }];
   }
   for (const cookie of cookies) if (cookie) cookie.width = cookie.height = 0;
-  files[`${fileName}-makerworld.txt`] = strToU8(
-    uploadText({ name, dimensions: mesh.dimensions, editorUrl, cardUrl })
+  files[`${fileName}-makerworld.html`] = strToU8(
+    makerWorldTexts({ name, dimensions: mesh.dimensions, editorUrl, cardUrl })
   );
   return new Blob([zipSync(files)], { type: "application/zip" });
 };

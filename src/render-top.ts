@@ -1,20 +1,30 @@
 import * as THREE from "three";
 import type { MeshData } from "./geometry/mesh";
 
+/** Largest side (px) a supersampled render may take. */
+const MAX_RENDER = 4096;
+
 /**
  * Renders the cutter as in the preview (cutting edge up) from slightly above –
- * with its own short-lived renderer.
+ * with its own short-lived renderer. `supersample` renders that many times
+ * larger and scales down: flat-shaded walls of many tiny triangles flicker
+ * into pixel noise otherwise, which antialiasing only smooths at the edges.
  */
 export const renderTopView = (
   geometry: THREE.BufferGeometry,
   color: THREE.Color,
   width: number,
-  height: number
+  height: number,
+  supersample = 1
 ) => {
   geometry.computeBoundingBox();
   const bounds = geometry.boundingBox;
   if (!bounds) return null;
   const size = bounds.getSize(new THREE.Vector3());
+  const scale = Math.max(
+    1,
+    Math.min(supersample, MAX_RENDER / Math.max(width, height))
+  );
 
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
@@ -22,7 +32,11 @@ export const renderTopView = (
     preserveDrawingBuffer: true,
   });
   renderer.setPixelRatio(1);
-  renderer.setSize(width, height, false);
+  renderer.setSize(
+    Math.round(width * scale),
+    Math.round(height * scale),
+    false
+  );
 
   const scene = new THREE.Scene();
   scene.add(new THREE.HemisphereLight(0xffffff, 0x8888aa, 1.5));
@@ -52,7 +66,11 @@ export const renderTopView = (
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
-  canvas.getContext("2d")?.drawImage(renderer.domElement, 0, 0);
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(renderer.domElement, 0, 0, width, height);
+  }
   material.dispose();
   renderer.dispose();
   renderer.forceContextLoss();
@@ -64,7 +82,8 @@ export const renderMeshTop = (
   mesh: MeshData,
   color: string,
   width: number,
-  height: number
+  height: number,
+  supersample = 1
 ) => {
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute(
@@ -72,7 +91,13 @@ export const renderMeshTop = (
     new THREE.BufferAttribute(mesh.positions, 3)
   );
   geometry.setIndex(new THREE.BufferAttribute(mesh.indices, 1));
-  const canvas = renderTopView(geometry, new THREE.Color(color), width, height);
+  const canvas = renderTopView(
+    geometry,
+    new THREE.Color(color),
+    width,
+    height,
+    supersample
+  );
   geometry.dispose();
   return canvas;
 };

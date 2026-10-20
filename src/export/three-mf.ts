@@ -94,7 +94,8 @@ const bounds = (positions: Float32Array) => {
 /** A PNG of the cutter for the plate's thumbnails – none without WebGL. */
 const thumbnail = async (mesh: MeshData, color: string, size: number) => {
   try {
-    const canvas = renderMeshTop(mesh, color, size, size);
+    // Twice as large, scaled down: flat-shaded walls without pixel noise.
+    const canvas = renderMeshTop(mesh, color, size, size, 2);
     const blob =
       canvas &&
       (await new Promise<Blob | null>((resolve) =>
