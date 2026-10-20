@@ -441,47 +441,59 @@ export const registerCookie = (
 const imageCache = new Map<string, Promise<string>>();
 
 /**
+ * A cookie drawn once, standing still, into a square canvas of its own –
+ * `tilt` as on the page (-0.2: almost from above, so it looks round).
+ */
+export const cookieSnapshot = (
+  object: THREE.Object3D,
+  pixels: number,
+  tilt = -0.2
+) => {
+  if (!renderer) setup();
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = pixels;
+  draw(
+    {
+      canvas,
+      ctx: canvas.getContext("2d") as CanvasRenderingContext2D,
+      object,
+      tilt,
+      roll: 0,
+      side: null,
+      middle: 0,
+      idle: false,
+      follow: false,
+      turnX: spring(),
+      turnY: spring(),
+      flip: spring(),
+      squash: spring(),
+      appear: spring(1),
+      appearAt: 0,
+      spin: false,
+      spinSpeed: 0,
+      spun: 0,
+      floated: 0,
+      phase: 0,
+      visible: true,
+      drawn: false,
+      drawnAt: -Infinity,
+    },
+    0
+  );
+  return canvas;
+};
+
+/**
  * A cookie rendered once as an image (data URL) – for places where live 3D
- * would be too much, e.g. the slider thumbs. Almost from above, so it looks round.
+ * would be too much, e.g. the slider thumbs.
  */
 export const cookieImage = (kind: CookieKind, pixels: number) => {
   const key = `${kind}:${pixels}`;
   let pending = imageCache.get(key);
   if (!pending) {
-    pending = createCookie(kind).then((object) => {
-      if (!renderer) setup();
-      const canvas = document.createElement("canvas");
-      canvas.width = canvas.height = pixels;
-      draw(
-        {
-          canvas,
-          ctx: canvas.getContext("2d") as CanvasRenderingContext2D,
-          object,
-          tilt: -0.2,
-          roll: 0,
-          side: null,
-          middle: 0,
-          idle: false,
-          follow: false,
-          turnX: spring(),
-          turnY: spring(),
-          flip: spring(),
-          squash: spring(),
-          appear: spring(1),
-          appearAt: 0,
-          spin: false,
-          spinSpeed: 0,
-          spun: 0,
-          floated: 0,
-          phase: 0,
-          visible: true,
-          drawn: false,
-          drawnAt: -Infinity,
-        },
-        0
-      );
-      return canvas.toDataURL("image/webp", 0.92);
-    });
+    pending = createCookie(kind).then((object) =>
+      cookieSnapshot(object, pixels).toDataURL("image/webp", 0.92)
+    );
     imageCache.set(key, pending);
   }
   return pending;

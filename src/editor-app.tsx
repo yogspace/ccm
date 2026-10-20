@@ -146,7 +146,7 @@ const App = () => {
 
           <div className="flex flex-col gap-4">
             <PrintHints />
-            <ExportButtons />
+            <ExportButtons preview={preview} />
           </div>
         </Card>
       </main>

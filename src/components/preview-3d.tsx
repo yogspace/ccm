@@ -19,6 +19,8 @@ export type PreviewHandle = {
     height: number,
     color?: string
   ) => HTMLCanvasElement | null;
+  /** The filament color on screen (`#rrggbb`), or `null` before the view. */
+  filament: () => string | null;
 };
 
 type Props = {
@@ -82,6 +84,10 @@ const Preview3d = ({ ref }: Props) => {
           width,
           height
         );
+      },
+      filament: () => {
+        const view = viewRef.current;
+        return view ? `#${view.material.color.getHexString()}` : null;
       },
     }),
     []

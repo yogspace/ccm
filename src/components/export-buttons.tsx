@@ -1,5 +1,5 @@
-import { Download } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Download, Megaphone } from "lucide-react";
+import { type RefObject, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { trackEvent } from "../analytics";
@@ -7,19 +7,33 @@ import { launchCookie, launchSpot } from "../cookie-flight";
 import { cookieSeed } from "../cookie-jar";
 import { download } from "../export/download";
 import { fileBase } from "../export/file-name";
+import {
+  MAKERWORLD_GREETING,
+  makerWorldZip,
+  nearestColor,
+} from "../export/makerworld";
 import { toStl } from "../export/stl";
 import { toThreeMf } from "../export/three-mf";
-import { saveCookie, store } from "../store";
+import { useCardColors } from "../site-context";
+import { creationUrl, greetingLink, saveCookie, store } from "../store";
 import { hasEmboss } from "../url-state";
+import { useAdmin } from "../use-admin";
 import Button from "./button";
 import CookieIcon from "./cookie-icon";
+import type { PreviewHandle } from "./preview-3d";
 import { cookieInButton } from "./styles";
+
+type Props = {
+  /** The 3D view – its filament color is the MakerWorld pictures' color. */
+  preview: RefObject<PreviewHandle | null>;
+};
 
 /**
  * Keeping the creation as a cookie, and downloads as STL and 3MF. Every
- * download keeps it as a cookie, too.
+ * download keeps it as a cookie, too. Logged in to the CMS, a third download:
+ * all it takes to put the cutter on MakerWorld (export/makerworld.ts).
  */
-const ExportButtons = () => {
+const ExportButtons = ({ preview }: Props) => {
   const { t } = useTranslation();
   const { cutter, name, params } = useSnapshot(store);
   const { mesh, outline, icing, imprint, inlay } = cutter;
@@ -27,6 +41,8 @@ const ExportButtons = () => {
   const fileName = fileBase(name, size);
   const title = name.trim() || "Cookie Cutter";
   const [saved, setSaved] = useState(false);
+  const admin = useAdmin();
+  const cardColors = useCardColors();
   // The button shows the cookie this creation bakes.
   const shape = useMemo(
     () =>
@@ -55,10 +71,54 @@ const ExportButtons = () => {
     keep(button);
   };
 
+  /**
+   * In the color the cutter has on screen; the card's link can only name
+   * one of the CMS's card colors – the closest. Not counted in the
+   * statistics: it is the admin's own.
+   */
+  const saveForMakerWorld = async (button: HTMLElement) => {
+    if (!mesh) return;
+    const color =
+      preview.current?.filament() ?? cardColors[0]?.color ?? "#2a44ff";
+    const cardColor = nearestColor(
+      cardColors.map((entry) => entry.color),
+      color
+    );
+    const zip = await makerWorldZip({
+      mesh,
+      name: title,
+      fileName,
+      color,
+      cookie: shape,
+      sizeLabel: `${Math.round(size)} mm`,
+      editorUrl: creationUrl(),
+      cardUrl: greetingLink({ ...MAKERWORLD_GREETING, color: cardColor }, "en"),
+    });
+    download(zip, `${fileName}-makerworld.zip`);
+    keep(button);
+  };
+
   return (
     <>
       {/* Right-aligned, wrapping instead of sticking out of the card */}
       <div className="flex flex-wrap items-center justify-end gap-4 self-stretch">
+        {admin && (
+          <Button
+            disabled={!mesh}
+            onClick={(event) => saveForMakerWorld(event.currentTarget)}
+            title={t("export.makerWorldHint")}
+            type="button"
+          >
+            <CookieIcon
+              className={cookieInButton}
+              icing="#ff6a1f"
+              icon={Megaphone}
+              roll={-8}
+              size={58}
+            />
+            {t("export.makerWorld")}
+          </Button>
+        )}
         <Button
           disabled={!mesh}
           onClick={(event) => {

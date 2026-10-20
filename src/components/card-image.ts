@@ -1,3 +1,4 @@
+import { resolveColors } from "../glaze";
 import { RING_RADIUS, ringLayout } from "./ring-text";
 
 /** Where it was made – at the share picture's foot. */
@@ -22,10 +23,27 @@ export const SHARE_PICTURE_COLORS = {
   muted: "--on-glaze-muted",
 } as const;
 
+/** Any color's shades as plain colors, to paint with – read from glaze.css. */
+export const glazeShades = <K extends string>(
+  color: string,
+  properties: Record<K, string>
+) => {
+  const probe = document.createElement("span");
+  probe.className = "glaze";
+  probe.style.setProperty("--glaze", color);
+  probe.hidden = true;
+  document.body.append(probe);
+  try {
+    return resolveColors(probe, properties);
+  } finally {
+    probe.remove();
+  }
+};
+
 /** The greeting card as a picture – portrait 4:5, as Instagram likes it. */
 const WIDTH = 1080;
 const HEIGHT = 1350;
-const FONT = '"Pally", system-ui, sans-serif';
+export const FONT = '"Pally", system-ui, sans-serif';
 
 /**
  * The card's favorite color and its shades, as the page shows them
@@ -56,7 +74,7 @@ export type CardPicture = {
   site: string;
 };
 
-const glow = (
+export const glow = (
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
@@ -67,11 +85,11 @@ const glow = (
   gradient.addColorStop(0, color);
   gradient.addColorStop(1, "rgb(255 255 255 / 0)");
   ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 };
 
 /** Shrinks the font until the text fits `width`; returns the size. */
-const fitFont = (
+export const fitFont = (
   ctx: CanvasRenderingContext2D,
   text: string,
   weight: number,
@@ -144,7 +162,7 @@ export const paintSharePicture = async (
 };
 
 /** The message around the card – the same layout as the card page's ring. */
-const drawRing = (
+export const drawRing = (
   ctx: CanvasRenderingContext2D,
   text: string,
   color: string,
@@ -173,7 +191,7 @@ const drawRing = (
 };
 
 /** The paper card, tilted a little: the cutter on it, name and size below. */
-const drawCard = (
+export const drawCard = (
   ctx: CanvasRenderingContext2D,
   { colors, cutter, name, size }: CardPicture,
   cx: number,
@@ -227,6 +245,30 @@ const drawCard = (
   ctx.restore();
 };
 
+/** Who it is for: big, chunky, a little tilted – centered on x. */
+export const drawHeading = (
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  color: string,
+  x: number,
+  y: number,
+  size: number,
+  width: number
+) => {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate((-2 * Math.PI) / 180);
+  const fitted = fitFont(ctx, text, 700, size, width);
+  ctx.textAlign = "center";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = fitted * 0.05;
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.strokeText(text, 0, 0);
+  ctx.fillText(text, 0, 0);
+  ctx.restore();
+};
+
 /**
  * Paints the greeting card as a picture to share – Instagram and the like
  * take pictures, not links: who it is for, the card with the cutter and the
@@ -249,19 +291,15 @@ export const paintCardPicture = async (card: CardPicture) => {
   glow(ctx, WIDTH / 2, 660, 560, "rgb(255 255 255 / 0.2)");
   glow(ctx, WIDTH / 2, HEIGHT + 200, 820, "rgb(255 71 208 / 0.32)");
 
-  // Who it is for: big, chunky, a little tilted.
-  ctx.save();
-  ctx.translate(WIDTH / 2, 170);
-  ctx.rotate((-2 * Math.PI) / 180);
-  const headingSize = fitFont(ctx, card.heading, 700, 100, WIDTH - 140);
-  ctx.textAlign = "center";
-  ctx.lineJoin = "round";
-  ctx.lineWidth = headingSize * 0.05;
-  ctx.strokeStyle = colors.onPage;
-  ctx.fillStyle = colors.onPage;
-  ctx.strokeText(card.heading, 0, 0);
-  ctx.fillText(card.heading, 0, 0);
-  ctx.restore();
+  drawHeading(
+    ctx,
+    card.heading,
+    colors.onPage,
+    WIDTH / 2,
+    170,
+    100,
+    WIDTH - 140
+  );
 
   const stage = 860;
   const cy = 680;

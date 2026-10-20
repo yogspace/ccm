@@ -6,12 +6,12 @@ import { useEffect, useState } from "react";
 import "../glaze.css";
 import { loadCutter } from "../card/load-cutter";
 import {
+  glazeShades,
   paintSharePicture,
   SHARE_CARD,
   SHARE_PICTURE_COLORS,
 } from "../components/card-image";
 import type { MeshData } from "../geometry/mesh";
-import { resolveColors } from "../glaze";
 import { renderMeshTop } from "../render-top";
 import { isEmptyDrawing, readHash } from "../url-state";
 import { SiteColorSwatches, useSiteColors } from "./site-colors";
@@ -27,20 +27,6 @@ type Status =
 
 /** The default name on a card, as on the share picture. */
 const FALLBACK_NAME = "Cookie Cutter";
-
-/** The color's shades as plain colors – read from glaze.css. */
-const shadesOf = (color: string) => {
-  const probe = document.createElement("span");
-  probe.className = "glaze";
-  probe.style.setProperty("--glaze", color);
-  probe.hidden = true;
-  document.body.append(probe);
-  try {
-    return resolveColors(probe, SHARE_PICTURE_COLORS);
-  } finally {
-    probe.remove();
-  }
-};
 
 const slug = (text: string) =>
   text
@@ -88,7 +74,11 @@ export const GalleryBuilder = () => {
   useEffect(() => {
     if (!view) return;
     let current = true;
-    paintSharePicture(view, name.trim() || FALLBACK_NAME, shadesOf(chosen))
+    paintSharePicture(
+      view,
+      name.trim() || FALLBACK_NAME,
+      glazeShades(chosen, SHARE_PICTURE_COLORS)
+    )
       .then((blob) => {
         if (current && blob) setPreview(URL.createObjectURL(blob));
       })

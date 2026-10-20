@@ -83,6 +83,9 @@ export const en: typeof de = {
     namePlaceholder: "Name your creation, e.g. Heart",
     threeMf: "Download 3MF",
     stl: "STL",
+    makerWorld: "MakerWorld",
+    makerWorldHint:
+      "Only for you as admin: the 3MF, pictures and the upload text for MakerWorld in one zip",
     signature:
       "Every cutter carries a small “MXWR” on its flange – so you can tell where it comes from.",
   },

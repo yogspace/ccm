@@ -83,6 +83,9 @@ export const de = {
     namePlaceholder: "Name deiner Kreation, z. B. Herz",
     threeMf: "3MF herunterladen",
     stl: "STL",
+    makerWorld: "MakerWorld",
+    makerWorldHint:
+      "Nur für dich als Admin: 3MF, Bilder und Upload-Text für MakerWorld als ZIP",
     signature:
       "Jeder Ausstecher trägt klein „MXWR“ auf der Falz – so erkennt man, wo er herkommt.",
   },
