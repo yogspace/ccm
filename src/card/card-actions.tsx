@@ -59,10 +59,13 @@ const CardActions = ({
 
   if (failed && !hasShape) return null;
 
-  const save = (format: "3mf" | "stl") => {
+  const save = async (format: "3mf" | "stl") => {
     if (!mesh) return;
     const file = `${fileBase(name, shared.params.size)}.${format}`;
-    download(format === "3mf" ? toThreeMf(mesh, name) : toStl(mesh), file);
+    download(
+      format === "3mf" ? await toThreeMf(mesh, name, glaze) : toStl(mesh),
+      file
+    );
     trackEvent(format === "3mf" ? "card-download-3mf" : "card-download-stl");
   };
 

@@ -105,9 +105,11 @@ const ExportButtons = () => {
         <Button
           disabled={!mesh}
           kind="primary"
-          onClick={(event) =>
-            mesh && save(event.currentTarget, toThreeMf(mesh, title), "3mf")
-          }
+          onClick={async (event) => {
+            // The event's target is gone once the file has been built.
+            const button = event.currentTarget;
+            if (mesh) save(button, await toThreeMf(mesh, title), "3mf");
+          }}
           type="button"
         >
           <CookieIcon
