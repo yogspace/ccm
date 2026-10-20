@@ -22,9 +22,10 @@ import { toThreeMf } from "./three-mf";
 /**
  * Everything to put a cutter on MakerWorld, in one zip – for the admin only
  * (export-buttons.tsx), always in English: the 3MF, pictures of the model
- * alone and as on its greeting card's page, each upright (3:4) and across
- * (4:3), and the text for the upload with the links to the editor and to a
- * greeting card. All in the color the cutter has on screen.
+ * alone, as on its greeting card's page and of what the site can do, each
+ * upright (3:4) and across (4:3), and the text for the upload with the
+ * links to the editor and to a greeting card. All in the color the cutter
+ * has on screen.
  */
 
 /** The test card: the pictures show it, the upload text links to it. */
@@ -40,6 +41,21 @@ const FORMATS = [
   { label: "4x3", width: 1600, height: 1200 },
 ] as const;
 const MARGIN = 70;
+/** One word each, true of every cutter. */
+const TAGS = [
+  "cookiecutter",
+  "cookie",
+  "cookies",
+  "cutter",
+  "baking",
+  "bake",
+  "kitchen",
+  "dough",
+  "biscuit",
+  "fondant",
+  "clay",
+  "gift",
+];
 /** The cookie's picture, square – drawn smaller where it goes. */
 const COOKIE_PIXELS = 720;
 
@@ -51,7 +67,7 @@ type Kit = {
   fileName: string;
   /** The cutter's color on screen: the pictures, the 3MF's filament. */
   color: string;
-  /** The cookie it bakes, or `null` – iced in `color`. */
+  /** The cookie it bakes, or `null` – three of them make a fan. */
   cookie: CookieShape | null;
   /** Its size on the card (“80 mm”). */
   sizeLabel: string;
@@ -85,9 +101,8 @@ const canvasOf = (width: number, height: number) => {
   return ctx ? { canvas, ctx } : null;
 };
 
-/** The cookie, baked once and photographed a little from the front. */
-const bake = (shape: CookieShape | null) => {
-  if (!shape) return null;
+/** A cookie, baked once and photographed a little from the front. */
+const bake = (shape: CookieShape) => {
   try {
     const object = createShapeCookie(shape);
     try {
@@ -99,6 +114,19 @@ const bake = (shape: CookieShape | null) => {
     return null;
   }
 };
+
+/**
+ * Three of its cookies for a fan, left to right: of chocolate dough, iced in
+ * the cutter's color (the middle one, in front) and iced as its seed picks.
+ */
+const bakeFan = (shape: CookieShape | null, color: string) =>
+  shape
+    ? [
+        { ...shape, seed: shape.seed + 1, chocolate: true },
+        { ...shape, glaze: color },
+        { ...shape, seed: shape.seed + 2 },
+      ].map(bake)
+    : [];
 
 /** Where a transparent picture is not empty: its left, right and bottom. */
 const extentOf = (picture: HTMLCanvasElement) => {
@@ -171,32 +199,36 @@ const paintModel = (
   return canvas;
 };
 
-/** Where things go: upright the cookie below the card, across beside it. */
+/**
+ * Where things go – one after another: the name, the cookie, who it is
+ * from. Upright the ring between name and cookie, across the ring on the
+ * left and the three in a column beside it.
+ */
 const layoutOf = (width: number, height: number) =>
   width > height
     ? {
-        heading: { x: width / 2, y: 150, size: 110 },
-        stage: { x: 560, y: 680, size: 860 },
-        cookie: { x: 1170, y: 650, size: 640, turn: 8 },
-        from: { x: 1170, y: 1030 },
-        site: { x: 1170, y: 1100 },
+        heading: { x: 1280, y: 400, size: 130, width: 520 },
+        stage: { x: 520, y: 620, size: 860 },
+        cookie: { x: 1280, y: 620, size: 240 },
+        from: { x: 1280, y: 850, width: 520 },
       }
     : {
-        heading: { x: width / 2, y: 190, size: 120 },
-        stage: { x: width / 2, y: 770, size: 960 },
-        cookie: { x: 850, y: 1090, size: 600, turn: 10 },
-        from: { x: width / 2, y: 1455 },
-        site: { x: width / 2, y: height - 56 },
+        heading: { x: width / 2, y: 285, size: 120, width: width - 200 },
+        stage: { x: width / 2, y: 790, size: 860 },
+        cookie: { x: width / 2, y: 1335, size: 200 },
+        from: { x: width / 2, y: 1490, width: 900 },
       };
 
 /**
- * The cutter as on its greeting card's page: its name big on top, the card
- * with the cutter in the ring of the test card's message, the cookie it
- * bakes beside it, who the card is from and the site.
+ * The cutter as on its greeting card's page, the cutter up front: its name
+ * big, the card in the ring of the test card's message and the cutter
+ * itself, larger than the card, standing out of it; a fan of the cookies it
+ * bakes and who the card is from. The site in the corners: its name top
+ * left, its address bottom right.
  */
 const paintCardView = async (
   { mesh, name, color, sizeLabel }: Kit,
-  cookie: HTMLCanvasElement | null,
+  cookies: (HTMLCanvasElement | null)[],
   width: number,
   height: number
 ) => {
@@ -222,13 +254,12 @@ const paintCardView = async (
     layout.heading.x,
     layout.heading.y,
     layout.heading.size,
-    width - 200
+    layout.heading.width
   );
 
-  const cutter = renderMeshTop(mesh, color, 900, 788);
   const card: CardPicture = {
     colors,
-    cutter,
+    cutter: null,
     heading: name,
     from: "",
     ring: MAKERWORLD_GREETING.message,
@@ -238,33 +269,221 @@ const paintCardView = async (
   };
   drawRing(ctx, card.ring, colors.onPage, stage.x, stage.y, stage.size);
   drawCard(ctx, card, stage.x, stage.y, stage.size);
-  if (cutter) cutter.width = cutter.height = 0;
 
-  if (cookie) {
-    const { x, y, size, turn } = layout.cookie;
+  const box = { w: stage.size * 0.92, h: stage.size * 0.78 };
+  const cutter = renderMeshTop(mesh, color, box.w, box.h);
+  if (cutter) {
     ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate((turn * Math.PI) / 180);
     ctx.shadowColor = "rgb(4 8 60 / 0.45)";
-    ctx.shadowBlur = 60;
-    ctx.shadowOffsetY = 30;
+    ctx.shadowBlur = 50;
+    ctx.shadowOffsetY = 28;
+    ctx.drawImage(
+      cutter,
+      stage.x - box.w / 2,
+      stage.y - stage.size * 0.05 - box.h / 2
+    );
+    ctx.restore();
+    cutter.width = cutter.height = 0;
+  }
+
+  // Fanned out about a point below them, the middle one last – on top.
+  const { x, y, size } = layout.cookie;
+  const pivot = size * 1.6;
+  for (const index of [0, 2, 1]) {
+    const cookie = cookies[index];
+    if (!cookie) continue;
+    ctx.save();
+    ctx.translate(x, y + pivot);
+    ctx.rotate(((index - 1) * 22 * Math.PI) / 180);
+    ctx.translate(0, -pivot);
+    ctx.shadowColor = "rgb(4 8 60 / 0.35)";
+    ctx.shadowBlur = 36;
+    ctx.shadowOffsetY = 16;
     ctx.drawImage(cookie, -size / 2, -size / 2, size, size);
     ctx.restore();
   }
 
-  ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
-  ctx.save();
-  ctx.translate(layout.from.x, layout.from.y);
-  ctx.rotate((-1 * Math.PI) / 180);
+  ctx.fillStyle = colors.onPageMuted;
+  ctx.textAlign = "center";
   const from = `from ${MAKERWORLD_GREETING.from}`;
-  fitFont(ctx, from, 600, 60, 600);
-  ctx.fillStyle = colors.onPageMuted;
-  ctx.fillText(from, 0, 0);
+  fitFont(ctx, from, 600, 64, layout.from.width);
+  ctx.fillText(from, layout.from.x, layout.from.y);
+
+  drawCorners(ctx, colors.onPageMuted);
+  return canvas;
+};
+
+/**
+ * The site's name top left, large; its address bottom right – unless the
+ * picture says it elsewhere.
+ */
+const drawCorners = (
+  ctx: CanvasRenderingContext2D,
+  color: string,
+  withAddress = true
+) => {
+  const { width, height } = ctx.canvas;
+  const [brand, address] = SITE_LINE.split(" · ");
+  ctx.save();
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = color;
+  ctx.font = `700 56px ${FONT}`;
+  ctx.textAlign = "left";
+  ctx.fillText(brand, MARGIN, MARGIN + 42);
+  if (withAddress) {
+    ctx.font = `600 38px ${FONT}`;
+    ctx.textAlign = "right";
+    ctx.fillText(address, width - MARGIN, height - MARGIN + 10);
+  }
   ctx.restore();
-  ctx.font = `600 34px ${FONT}`;
-  ctx.fillStyle = colors.onPageMuted;
-  ctx.fillText(SITE_LINE, layout.site.x, layout.site.y);
+};
+
+/** What the site can do, for the picture that says so. */
+const SLOGAN = ["Your drawing.", "Your cookie cutter."];
+const FEATURES = [
+  ["Draw it or drop in a picture", "Mouse, finger or pen – or an SVG or PNG."],
+  ["Holes become inner blades", "Linked on their own: one printable piece."],
+  ["Emboss the details", "A second ink presses lines into the dough."],
+  ["See it in 3D", "The cutter live – and the cookie it bakes."],
+  ["Ready to print", "3MF for Bambu Studio or STL, any size."],
+  ["Send it as a greeting card", "Your message running around the cutter."],
+] as const;
+const INVITATION = "Try it free at ccm.mxwr.de";
+
+/** Words in lines no wider than `width`, in the context's font. */
+const wrap = (ctx: CanvasRenderingContext2D, text: string, width: number) => {
+  const lines: string[] = [];
+  let line = "";
+  for (const word of text.split(" ")) {
+    const longer = line ? `${line} ${word}` : word;
+    if (line && ctx.measureText(longer).width > width) {
+      lines.push(line);
+      line = word;
+    } else line = longer;
+  }
+  if (line) lines.push(line);
+  return lines;
+};
+
+/**
+ * What Cookie Cutter Maker can do, in the cutter's colors: the slogan, the
+ * features one by one, an invitation to try it – across with the cutter
+ * beside them.
+ */
+const paintFeatures = async (
+  { mesh, color }: Kit,
+  width: number,
+  height: number
+) => {
+  const target = canvasOf(width, height);
+  if (!target) return null;
+  const { canvas, ctx } = target;
+  const colors = glazeShades(color, CARD_PICTURE_COLORS);
+  await Promise.all([
+    document.fonts.load(`700 1em ${FONT}`),
+    document.fonts.load(`600 1em ${FONT}`),
+    document.fonts.load(`500 1em ${FONT}`),
+  ]).catch(() => undefined);
+  const across = width > height;
+  const layout = across
+    ? {
+        slogan: { x: 430, y: 250, size: 92, width: 700, step: 104 },
+        cutter: { x: 430, y: 650, w: 760, h: 560 },
+        invitation: { x: 430, y: 980 },
+        list: { x: 860, y: 300, width: 670, title: 40, text: 30, gap: 30 },
+      }
+    : {
+        slogan: {
+          x: width / 2,
+          y: 260,
+          size: 104,
+          width: width - 200,
+          step: 120,
+        },
+        cutter: null,
+        invitation: { x: width / 2, y: 1420 },
+        list: { x: 120, y: 560, width: 960, title: 46, text: 34, gap: 40 },
+      };
+
+  ctx.fillStyle = colors.page;
+  ctx.fillRect(0, 0, width, height);
+  glow(ctx, width / 2, height / 2, width * 0.6, "rgb(255 255 255 / 0.18)");
+  glow(ctx, width / 2, height + 240, width * 0.7, "rgb(255 71 208 / 0.32)");
+
+  // The slogan in one size – the longer line decides.
+  const { slogan } = layout;
+  const longest = SLOGAN.reduce((a, b) => (a.length >= b.length ? a : b));
+  const sloganSize = fitFont(ctx, longest, 700, slogan.size, slogan.width);
+  SLOGAN.forEach((line, index) => {
+    drawHeading(
+      ctx,
+      line,
+      colors.onPage,
+      slogan.x,
+      slogan.y + index * slogan.step * (sloganSize / slogan.size),
+      sloganSize,
+      slogan.width
+    );
+  });
+
+  if (layout.cutter) {
+    const { x, y, w, h } = layout.cutter;
+    const view = renderMeshTop(mesh, color, w, h);
+    if (view) {
+      ctx.save();
+      ctx.shadowColor = "rgb(4 8 60 / 0.45)";
+      ctx.shadowBlur = 50;
+      ctx.shadowOffsetY = 28;
+      ctx.drawImage(view, x - w / 2, y - h / 2);
+      ctx.restore();
+      view.width = view.height = 0;
+    }
+  }
+
+  // The features, each its sparkle, its name and a line or two about it.
+  const { list } = layout;
+  const indent = list.title * 1.4;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  let y = list.y;
+  for (const [title, text] of FEATURES) {
+    ctx.fillStyle = colors.onPage;
+    ctx.font = `700 ${list.title}px ${FONT}`;
+    ctx.fillText("✦", list.x, y);
+    ctx.fillText(title, list.x + indent, y, list.width - indent);
+    ctx.fillStyle = colors.onPageMuted;
+    ctx.font = `500 ${list.text}px ${FONT}`;
+    for (const line of wrap(ctx, text, list.width - indent)) {
+      y += list.text * 1.3;
+      ctx.fillText(line, list.x + indent, y);
+    }
+    y += list.title + list.gap;
+  }
+
+  // The invitation on a pill of the card's paper.
+  ctx.font = `700 46px ${FONT}`;
+  const pill = { w: ctx.measureText(INVITATION).width + 110, h: 104 };
+  const { invitation } = layout;
+  ctx.save();
+  ctx.translate(invitation.x, invitation.y);
+  ctx.rotate((-2 * Math.PI) / 180);
+  ctx.shadowColor = "rgb(4 8 60 / 0.35)";
+  ctx.shadowBlur = 40;
+  ctx.shadowOffsetY = 18;
+  ctx.fillStyle = colors.sheet;
+  ctx.beginPath();
+  ctx.roundRect(-pill.w / 2, -pill.h / 2, pill.w, pill.h, pill.h / 2);
+  ctx.fill();
+  ctx.shadowColor = "transparent";
+  ctx.fillStyle = colors.ink;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(INVITATION, 0, 4);
+  ctx.restore();
+
+  // The invitation names the address already.
+  drawCorners(ctx, colors.onPageMuted, false);
   return canvas;
 };
 
@@ -306,7 +525,7 @@ PRINTING
 - For dough, food-safe filament is best. Wash by hand in lukewarm water, not in the dishwasher: PLA warps from about 55 °C.
 
 TAGS
-cookie cutter, cookies, baking, christmas, halloween, kitchen, gift, custom
+${TAGS.join(", ")}
 
 LINKS
 Editor: ${editorUrl}
@@ -314,7 +533,7 @@ Card: ${cardUrl}
 `;
 };
 
-/** The zip with the 3MF, four pictures and the upload text. */
+/** The zip with the 3MF, six pictures and the upload text. */
 export const makerWorldZip = async (kit: Kit) => {
   const {
     mesh,
@@ -333,11 +552,12 @@ export const makerWorldZip = async (kit: Kit) => {
       { level: 0 },
     ],
   };
-  const cookie = bake(shape ? { ...shape, glaze: color } : null);
+  const cookies = bakeFan(shape, color);
   for (const { label, width, height } of FORMATS) {
     const pictures = [
       ["model", paintModel(mesh, color, width, height)],
-      ["card", await paintCardView(kit, cookie, width, height)],
+      ["card", await paintCardView(kit, cookies, width, height)],
+      ["features", await paintFeatures(kit, width, height)],
     ] as const;
     for (const [kind, canvas] of pictures) {
       if (!canvas) continue;
@@ -348,7 +568,7 @@ export const makerWorldZip = async (kit: Kit) => {
         files[`${fileName}-${kind}-${label}.png`] = [bytes, { level: 0 }];
     }
   }
-  if (cookie) cookie.width = cookie.height = 0;
+  for (const cookie of cookies) if (cookie) cookie.width = cookie.height = 0;
   files[`${fileName}-makerworld.txt`] = strToU8(
     uploadText({ name, dimensions: mesh.dimensions, editorUrl, cardUrl })
   );
