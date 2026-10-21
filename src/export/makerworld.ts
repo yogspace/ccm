@@ -18,13 +18,15 @@ import type { MeshData } from "../geometry/mesh";
 import type { Greeting } from "../greeting";
 import { renderMeshTop } from "../render-top";
 import { FEATURES, makerWorldTexts } from "./makerworld-texts";
+import { renderPrintLook } from "./print-look";
 import { toThreeMf } from "./three-mf";
 
 /**
  * Everything to put a cutter on MakerWorld, in one zip – for the admin only
  * (export-buttons.tsx), always in English: the 3MF, the thumbnail as on its
  * greeting card's page upright (3:4) and across (4:3), a picture of the
- * model alone and one of what the site can do, and a page with the
+ * model alone, a render of the print on a table (print-look.ts) and one of
+ * what the site can do, and a page with the
  * upload's texts (makerworld-texts.ts) and the links to the editor and to a
  * greeting card. All in the color the cutter has on screen.
  */
@@ -39,6 +41,8 @@ export const MAKERWORLD_GREETING: Greeting = {
 
 const UPRIGHT = { label: "3x4", width: 1200, height: 1600 } as const;
 const ACROSS = { label: "4x3", width: 1600, height: 1200 } as const;
+/** The print render twice as large: a 0.2 mm layer needs pixels to show. */
+const PRINT = { width: 3200, height: 2400 } as const;
 const MARGIN = 70;
 /** Renders of the cutter twice as large, scaled down: no pixel noise. */
 const SUPERSAMPLE = 2;
@@ -446,16 +450,28 @@ const paintFeatures = async ({ mesh, color }: Kit) => {
   return canvas;
 };
 
-const png = (canvas: HTMLCanvasElement) =>
+type Picture = {
+  name: string;
+  paint: () => Promise<HTMLCanvasElement | null>;
+  /** JPEG for the photo-like print: a fraction of the PNG's size. */
+  jpeg?: boolean;
+};
+
+const encode = (canvas: HTMLCanvasElement, jpeg = false) =>
   new Promise<Uint8Array | null>((resolve) =>
-    canvas.toBlob(async (blob) => {
-      resolve(blob ? new Uint8Array(await blob.arrayBuffer()) : null);
-    }, "image/png")
+    canvas.toBlob(
+      async (blob) => {
+        resolve(blob ? new Uint8Array(await blob.arrayBuffer()) : null);
+      },
+      jpeg ? "image/jpeg" : "image/png",
+      0.92
+    )
   );
 
 /**
  * The zip with the 3MF, the thumbnail upright and across, one picture each
- * of the model and of the features, and the page with the upload's texts.
+ * of the model, the print (large, as JPEG) and the features, and the page
+ * with the upload's texts.
  */
 export const makerWorldZip = async (kit: Kit) => {
   const {
@@ -477,24 +493,34 @@ export const makerWorldZip = async (kit: Kit) => {
   };
   const cookies = bakeFan(shape, color);
   // One after another, each freed right away: large canvases add up.
-  const pictures: [string, () => Promise<HTMLCanvasElement | null>][] = [
-    [
-      `thumbnail-${UPRIGHT.label}`,
-      () => paintCardView(kit, cookies, UPRIGHT.width, UPRIGHT.height),
-    ],
-    [
-      `thumbnail-${ACROSS.label}`,
-      () => paintCardView(kit, cookies, ACROSS.width, ACROSS.height),
-    ],
-    ["model", async () => paintModel(mesh, color, ACROSS.width, ACROSS.height)],
-    ["features", () => paintFeatures(kit)],
+  const pictures: Picture[] = [
+    {
+      name: `thumbnail-${UPRIGHT.label}`,
+      paint: () => paintCardView(kit, cookies, UPRIGHT.width, UPRIGHT.height),
+    },
+    {
+      name: `thumbnail-${ACROSS.label}`,
+      paint: () => paintCardView(kit, cookies, ACROSS.width, ACROSS.height),
+    },
+    {
+      name: "model",
+      paint: async () => paintModel(mesh, color, ACROSS.width, ACROSS.height),
+    },
+    {
+      name: "print",
+      paint: async () =>
+        renderPrintLook(mesh, color, PRINT.width, PRINT.height, SUPERSAMPLE),
+      jpeg: true,
+    },
+    { name: "features", paint: () => paintFeatures(kit) },
   ];
-  for (const [kind, paint] of pictures) {
+  for (const { name: kind, paint, jpeg } of pictures) {
     const canvas = await paint();
     if (!canvas) continue;
-    const bytes = await png(canvas);
+    const bytes = await encode(canvas, jpeg);
     canvas.width = canvas.height = 0;
-    if (bytes) files[`${fileName}-${kind}.png`] = [bytes, { level: 0 }];
+    const file = `${fileName}-${kind}.${jpeg ? "jpg" : "png"}`;
+    if (bytes) files[file] = [bytes, { level: 0 }];
   }
   for (const cookie of cookies) if (cookie) cookie.width = cookie.height = 0;
   files[`${fileName}-makerworld.html`] = strToU8(
