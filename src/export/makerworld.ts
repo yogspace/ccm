@@ -17,6 +17,7 @@ import { type CookieShape, createShapeCookie } from "../cookies/shape-cookie";
 import type { MeshData } from "../geometry/mesh";
 import type { Greeting } from "../greeting";
 import { renderMeshTop } from "../render-top";
+import { blenderFiles } from "./blender-photo";
 import { FEATURES, makerWorldTexts } from "./makerworld-texts";
 import { renderPrintLook } from "./print-look";
 import { toThreeMf } from "./three-mf";
@@ -26,9 +27,10 @@ import { toThreeMf } from "./three-mf";
  * (export-buttons.tsx), always in English: the 3MF, the thumbnail as on its
  * greeting card's page upright (3:4) and across (4:3), a picture of the
  * model alone, a render of the print on a table (print-look.ts) and one of
- * what the site can do, and a page with the
- * upload's texts (makerworld-texts.ts) and the links to the editor and to a
- * greeting card. All in the color the cutter has on screen.
+ * what the site can do, a page with the upload's texts (makerworld-texts.ts)
+ * and the links to the editor and to a greeting card – and the files to
+ * render a photo-like picture with Blender (blender-photo.ts). All in the
+ * color the cutter has on screen.
  */
 
 /** The test card: the pictures show it, the texts link to it. */
@@ -470,8 +472,8 @@ const encode = (canvas: HTMLCanvasElement, jpeg = false) =>
 
 /**
  * The zip with the 3MF, the thumbnail upright and across, one picture each
- * of the model, the print (large, as JPEG) and the features, and the page
- * with the upload's texts.
+ * of the model, the print (large, as JPEG) and the features, the page with
+ * the upload's texts and the Blender files.
  */
 export const makerWorldZip = async (kit: Kit) => {
   const {
@@ -526,5 +528,6 @@ export const makerWorldZip = async (kit: Kit) => {
   files[`${fileName}-makerworld.html`] = strToU8(
     makerWorldTexts({ name, dimensions: mesh.dimensions, editorUrl, cardUrl })
   );
+  Object.assign(files, await blenderFiles(mesh, fileName, color));
   return new Blob([zipSync(files)], { type: "application/zip" });
 };

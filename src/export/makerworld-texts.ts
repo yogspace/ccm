@@ -1,4 +1,5 @@
 import type { MeshData } from "../geometry/mesh";
+import { nameTags } from "./name-tags";
 
 /**
  * The texts for a cutter's MakerWorld upload, as a page to open next to the
@@ -80,12 +81,34 @@ const STYLE = `
   .row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin: 6px 0; }
   .row .k { flex: none; width: 92px; color: var(--muted); font-size: 14px; padding-top: 2px; }
   .row .v { flex: 1; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .group { margin: 12px 0 6px; font-size: 13px; color: var(--muted); }
+  .group:first-of-type { margin-top: 0; }
+  .tag { background: var(--line); color: var(--ink); }
+  .tag.done { color: var(--accent-ink); }
+  .badge { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px;
+           background: var(--ok); color: #fff; font-size: 11px; vertical-align: 1px; }
 `;
 
 // The description as rich text (HTML and plain), everything else as plain
 // text; where the clipboard API is missing (some browsers on file://), the
-// selection is copied instead – it keeps the formatting.
+// selection is copied instead – it keeps the formatting. What was copied
+// stays marked until the page is reloaded.
 const SCRIPT = `
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (e) {
+      const area = document.createElement("textarea");
+      area.value = text;
+      document.body.append(area);
+      area.select();
+      const ok = document.execCommand("copy");
+      area.remove();
+      return ok;
+    }
+  }
   async function copy(el, rich) {
     const text = el.innerText.trim();
     try {
@@ -109,13 +132,32 @@ const SCRIPT = `
       return ok;
     }
   }
+  function markCopied(button) {
+    button.classList.add("done");
+    if (button.dataset.text) {
+      button.textContent = "✓ " + button.dataset.text;
+      return;
+    }
+    button.textContent = "Copy again";
+    const label = button.closest(".row")?.querySelector(".k")
+      ?? button.closest("section")?.querySelector(".label");
+    if (label && !label.querySelector(".badge")) {
+      label.insertAdjacentHTML("beforeend", '<span class="badge">Copied</span>');
+    }
+  }
   document.addEventListener("click", async (event) => {
-    const button = event.target.closest("button[data-copy]");
+    const button = event.target.closest("button[data-copy], button[data-text]");
     if (!button) return;
-    const ok = await copy(document.getElementById(button.dataset.copy), button.hasAttribute("data-rich"));
-    button.textContent = ok ? "Copied ✓" : "Select & copy manually";
-    button.classList.toggle("done", ok);
-    setTimeout(() => { button.textContent = "Copy"; button.classList.remove("done"); }, 1800);
+    const ok = button.dataset.text
+      ? await copyText(button.dataset.text)
+      : await copy(document.getElementById(button.dataset.copy), button.hasAttribute("data-rich"));
+    if (ok) {
+      markCopied(button);
+      return;
+    }
+    const before = button.textContent;
+    button.textContent = "Select & copy manually";
+    setTimeout(() => { button.textContent = before; }, 1800);
   });
 `;
 
@@ -124,6 +166,10 @@ const field = (id: string, label: string, content: string, rich = false) => `
   <div class="head"><span class="label">${label}</span><button data-copy="${id}"${rich ? " data-rich" : ""}>Copy</button></div>
   <div id="${id}" class="${rich ? "rich" : "plain"}">${content}</div>
 </section>`;
+
+/** Tags as buttons, each copied on its own. */
+const chips = (tags: string[]) =>
+  `<div class="tags">${tags.map((tag) => `<button class="tag" data-text="${html(tag)}">${html(tag)}</button>`).join("")}</div>`;
 
 const row = (id: string, label: string, text: string) =>
   `<div class="row"><span class="k">${label}</span><span class="v" id="${id}">${html(text)}</span><button data-copy="${id}">Copy</button></div>`;
@@ -137,8 +183,9 @@ export const makerWorldTexts = ({
 }: Texts) => {
   const mm = (value: number) => Math.round(value);
   const size = `${mm(width)} × ${mm(depth)} mm, ${mm(height)} mm tall`;
-  const title = /cutter/i.test(name) ? name : `${name} Cookie Cutter`;
-  const summary = `${title}, ${mm(width)} × ${mm(depth)} mm – ready to print. Make it yours in the free editor or send it as a greeting card.`;
+  // Always “Cookie Cutter - Skull”; a name that says cutter already stays.
+  const title = /cutter/i.test(name) ? name : `Cookie Cutter - ${name}`;
+  const fromName = nameTags(name);
   const postTitle = `🍪 ${title} – draw your own`;
   const post = `I drew this ${name} cookie cutter in my browser and printed it the same evening. 🍪
 
@@ -185,11 +232,14 @@ ${FEATURES.map(([feature, about]) => `      <li><b>${feature}</b> – ${about}</
 <main>
 <header>
   <h1>${html(title)} – MakerWorld texts</h1>
-  <p>Click <b>Copy</b> and paste into the matching field. The description keeps its formatting (headings, bold, lists, links).</p>
+  <p>Click <b>Copy</b> – or a tag – and paste into the matching field. The description keeps its formatting (headings, bold, lists, links). What you copied stays marked until you reload.</p>
 </header>
 ${field("title", "Title", html(title))}
-${field("summary", "Summary", html(summary))}
-${field("tags", "Tags", html(TAGS.join(", ")))}
+<section>
+  <div class="head"><span class="label">Tags – one at a time</span></div>
+  ${fromName.length > 0 ? `<p class="group">From the name</p>\n  ${chips(fromName)}\n  <p class="group">General</p>` : ""}
+  ${chips(TAGS.filter((tag) => !fromName.includes(tag)))}
+</section>
 ${field("description", "Description", description, true)}
 ${field("post-title", "Community post – title", html(postTitle))}
 ${field("post-text", `Community post – text (${[...post].length} / ${POST_LIMIT} characters)`, html(post))}
