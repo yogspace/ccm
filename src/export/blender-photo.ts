@@ -33,6 +33,7 @@ import bpy
 from mathutils import Matrix, Vector
 
 LAYER = 0.2  # mm - a printed layer, as the 3MF prints it
+LINE = 0.42  # mm - a line of the top layer, side by side
 MM = 0.001  # Blender works in meters
 WIDTH, HEIGHT = 3200, 2400
 
@@ -76,6 +77,26 @@ def maths(tree, operation, *values):
     return node.outputs[0]
 
 
+def beads(tree, coordinate, width):
+    """Round beads side by side, width apart: 0 in the grooves, 1 on top."""
+    across = maths(
+        tree,
+        "MULTIPLY_ADD",
+        maths(tree, "FRACT", maths(tree, "DIVIDE", coordinate, width)),
+        2.0,
+        -1.0,
+    )
+    return maths(
+        tree, "SQRT", maths(tree, "SUBTRACT", 1.0, maths(tree, "POWER", across, 2.0))
+    )
+
+
+def waves(tree, coordinate, width):
+    """Gentle waves, width apart: 0 in the grooves, 1 on top."""
+    phase = maths(tree, "MULTIPLY", coordinate, 2 * math.pi / width)
+    return maths(tree, "MULTIPLY_ADD", maths(tree, "COSINE", phase), 0.5, 0.5)
+
+
 def import_cutter(path):
     """The cutter in millimeters as exported: centered, rim on the slab."""
     try:
@@ -117,9 +138,10 @@ def import_cutter(path):
 
 def pla(hex_color):
     """
-    PLA as it prints: every layer a round bead (its height across the layer
-    a half circle), the grooves between darker and duller, the plastic a
-    little translucent. Top faces stay flat - the beads only rise on walls.
+    PLA as it prints: on the walls every layer a round bead (its height
+    across the layer a half circle), on top faces the top layer's lines,
+    diagonal as the slicer lays them and pressed nearly flat; the grooves
+    between darker and duller, the plastic a little translucent.
     """
     material = bpy.data.materials.new("PLA")
     material.use_nodes = True
@@ -129,22 +151,43 @@ def pla(hex_color):
     coords = tree.nodes.new("ShaderNodeTexCoord")
     xyz = tree.nodes.new("ShaderNodeSeparateXYZ")
     tree.links.new(coords.outputs["Object"], xyz.inputs[0])
-    layer = maths(tree, "DIVIDE", xyz.outputs["Z"], LAYER)
-    across = maths(tree, "MULTIPLY_ADD", maths(tree, "FRACT", layer), 2.0, -1.0)
+    walls = beads(tree, xyz.outputs["Z"], LAYER)
+    diagonal = maths(
+        tree, "MULTIPLY", maths(tree, "ADD", xyz.outputs["X"], xyz.outputs["Y"]), 0.7071
+    )
+    # The nozzle presses the top lines flat: no round beads, only gentle
+    # waves that show where the light glances off them.
+    lines = maths(tree, "MULTIPLY_ADD", waves(tree, diagonal, LINE), 0.4, 0.6)
+
+    # Which faces look up: the lines there, the layers everywhere else.
+    geometry = tree.nodes.new("ShaderNodeNewGeometry")
+    normal = tree.nodes.new("ShaderNodeSeparateXYZ")
+    tree.links.new(geometry.outputs["Normal"], normal.inputs[0])
+    top = tree.nodes.new("ShaderNodeMapRange")
+    top.interpolation_type = "SMOOTHSTEP"
+    top.inputs["From Min"].default_value = 0.8
+    top.inputs["From Max"].default_value = 0.95
+    tree.links.new(normal.outputs["Z"], top.inputs["Value"])
     bead = maths(
-        tree, "SQRT", maths(tree, "SUBTRACT", 1.0, maths(tree, "POWER", across, 2.0))
+        tree,
+        "MULTIPLY_ADD",
+        maths(tree, "SUBTRACT", lines, walls),
+        top.outputs["Result"],
+        walls,
     )
 
     bump = tree.nodes.new("ShaderNodeBump")
     bump.inputs["Strength"].default_value = 1.0
-    bump.inputs["Distance"].default_value = 0.03
+    # In meters: the grooves 0.04 mm deep - a print looks smooth, its
+    # layers show only where the light glances off them.
+    bump.inputs["Distance"].default_value = 0.00004
     tree.links.new(bead, bump.inputs["Height"])
     tree.links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
 
     tint = tree.nodes.new("ShaderNodeVectorMath")
     tint.operation = "SCALE"
     tint.inputs[0].default_value = linear(hex_color)
-    tree.links.new(maths(tree, "MULTIPLY_ADD", bead, 0.22, 0.78), tint.inputs["Scale"])
+    tree.links.new(maths(tree, "MULTIPLY_ADD", bead, 0.08, 0.92), tint.inputs["Scale"])
     tree.links.new(tint.outputs[0], bsdf.inputs["Base Color"])
     tree.links.new(maths(tree, "MULTIPLY_ADD", bead, -0.3, 0.7), bsdf.inputs["Roughness"])
 
