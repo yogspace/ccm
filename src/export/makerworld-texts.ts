@@ -43,6 +43,8 @@ type Texts = {
   dimensions: MeshData["dimensions"];
   editorUrl: string;
   cardUrl: string;
+  /** The Terminal line that renders the photo with Blender. */
+  photoCommand: string;
 };
 
 const html = (text: string) =>
@@ -81,6 +83,7 @@ const STYLE = `
   .row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin: 6px 0; }
   .row .k { flex: none; width: 92px; color: var(--muted); font-size: 14px; padding-top: 2px; }
   .row .v { flex: 1; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .note { margin: 0 0 8px; color: var(--muted); font-size: 14px; }
   .tags { display: flex; flex-wrap: wrap; gap: 8px; }
   .group { margin: 12px 0 6px; font-size: 13px; color: var(--muted); }
   .group:first-of-type { margin-top: 0; }
@@ -180,6 +183,7 @@ export const makerWorldTexts = ({
   dimensions: [width, depth, height],
   editorUrl,
   cardUrl,
+  photoCommand,
 }: Texts) => {
   const mm = (value: number) => Math.round(value);
   const size = `${mm(width)} × ${mm(depth)} mm, ${mm(height)} mm tall`;
@@ -252,6 +256,11 @@ ${field("post-text", `Community post – text (${[...post].length} / ${POST_LIMI
   <div class="head"><span class="label">Links</span></div>
   ${row("link-editor", "Editor", editorUrl)}
   ${row("link-card", "Card", cardUrl)}
+</section>
+<section>
+  <div class="head"><span class="label">Photo with Blender</span></div>
+  <p class="note">Renders a photo-like picture of the print in the background and opens it – a minute or two. Paste it into Terminal: macOS won't run a downloaded script on a double-click.</p>
+  ${row("photo-command", "Terminal", photoCommand)}
 </section>
 </main>
 <script>${SCRIPT}</script>

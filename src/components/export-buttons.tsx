@@ -9,6 +9,7 @@ import { download } from "../export/download";
 import { fileBase } from "../export/file-name";
 import {
   MAKERWORLD_GREETING,
+  makerWorldFolder,
   makerWorldZip,
   nearestColor,
 } from "../export/makerworld";
@@ -94,7 +95,7 @@ const ExportButtons = ({ preview }: Props) => {
       editorUrl: creationUrl(),
       cardUrl: greetingLink({ ...MAKERWORLD_GREETING, color: cardColor }, "en"),
     });
-    download(zip, `${fileName}-makerworld.zip`);
+    download(zip, `${makerWorldFolder(fileName)}.zip`);
     keep(button);
   };
 

@@ -17,7 +17,7 @@ import { type CookieShape, createShapeCookie } from "../cookies/shape-cookie";
 import type { MeshData } from "../geometry/mesh";
 import type { Greeting } from "../greeting";
 import { renderMeshTop } from "../render-top";
-import { blenderFiles } from "./blender-photo";
+import { blenderFiles, photoCommand } from "./blender-photo";
 import { FEATURES, makerWorldTexts } from "./makerworld-texts";
 import { renderPrintLook } from "./print-look";
 import { toThreeMf } from "./three-mf";
@@ -470,6 +470,9 @@ const encode = (canvas: HTMLCanvasElement, jpeg = false) =>
     )
   );
 
+/** The zip's name without .zip – and the folder it unpacks to. */
+export const makerWorldFolder = (fileName: string) => `${fileName}-makerworld`;
+
 /**
  * The zip with the 3MF, the thumbnail upright and across, one picture each
  * of the model, the print (large, as JPEG) and the features, the page with
@@ -526,7 +529,13 @@ export const makerWorldZip = async (kit: Kit) => {
   }
   for (const cookie of cookies) if (cookie) cookie.width = cookie.height = 0;
   files[`${fileName}-makerworld.html`] = strToU8(
-    makerWorldTexts({ name, dimensions: mesh.dimensions, editorUrl, cardUrl })
+    makerWorldTexts({
+      name,
+      dimensions: mesh.dimensions,
+      editorUrl,
+      cardUrl,
+      photoCommand: photoCommand(makerWorldFolder(fileName)),
+    })
   );
   Object.assign(files, await blenderFiles(mesh, fileName, color));
   return new Blob([zipSync(files)], { type: "application/zip" });

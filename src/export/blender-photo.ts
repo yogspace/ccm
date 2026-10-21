@@ -5,12 +5,14 @@ import { toStl } from "./stl";
 /**
  * A photo-like picture of the cutter, rendered by Blender (Cycles) on the
  * admin's own computer: the MakerWorld zip carries the cutter as STL, this
- * Python script that builds the scene and renders, and a launcher to
- * double-click on a Mac. Blender runs in the background, without a window.
+ * Python script that builds the scene and renders, and a launcher to run
+ * in Terminal. Blender runs in the background, without a window.
  */
 
 /** The script's file name in the zip. */
 const BLENDER_SCRIPT = "render-photo.py";
+/** The launcher's: .command, so it runs on a double-click once allowed. */
+const LAUNCHER = "render-photo.command";
 
 // Plain Python – no backslashes and no dollar-brace, so it fits a template.
 const PYTHON = `"""
@@ -351,8 +353,8 @@ main()
 `;
 
 /**
- * A launcher to double-click on a Mac: runs Blender in the background with
- * this cutter's file, name and color, and leaves the photo next to it.
+ * The launcher: runs Blender in the background with this cutter's file,
+ * name and color, and opens the photo it leaves next to them.
  */
 const launcher = ({
   stl,
@@ -363,10 +365,10 @@ const launcher = ({
   photo: string;
   color: string;
 }) => `#!/bin/sh
-# Renders a photo-like picture of the cutter with Blender, in the background:
-# double-click, wait a minute or two, the JPEG lands in this folder. If macOS
-# won't open it (downloaded files are quarantined), run it in Terminal:
-#   sh render-photo.command
+# Renders a photo-like picture of the cutter with Blender, in the background,
+# and opens it - a minute or two. macOS won't run a downloaded script on a
+# double-click; in Terminal it runs from anywhere:
+#   sh <this folder>/${LAUNCHER}
 cd "$(dirname "$0")" || exit 1
 BLENDER="/Applications/Blender.app/Contents/MacOS/Blender"
 [ -x "$BLENDER" ] || BLENDER="$(command -v blender)"
@@ -396,9 +398,16 @@ export const blenderFiles = async (
   return {
     [stl]: new Uint8Array(await toStl(mesh).arrayBuffer()),
     [BLENDER_SCRIPT]: strToU8(PYTHON),
-    "render-photo.command": [
+    [LAUNCHER]: [
       strToU8(launcher({ stl, photo, color })),
       { os: 3, attrs: EXECUTABLE },
     ],
   };
 };
+
+/**
+ * The Terminal line that renders the photo – the zip unpacked where it was
+ * downloaded, in a folder of its name (`folder`).
+ */
+export const photoCommand = (folder: string) =>
+  `sh ~/Downloads/${folder}/${LAUNCHER}`;
