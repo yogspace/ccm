@@ -352,22 +352,21 @@ def main():
 main()
 `;
 
+/** A photo to render: what is in it, as one mesh, and its files' name. */
+export type Photo = { mesh: MeshData; fileName: string };
+
+const stlOf = (fileName: string) => `${fileName}.stl`;
+const jpegOf = (fileName: string) => `${fileName}-photo.jpg`;
+
 /**
- * The launcher: runs Blender in the background with this cutter's file,
- * name and color, and opens the photo it leaves next to them.
+ * The launcher: runs Blender in the background with each photo's file and
+ * the color, one after another, and opens each photo it leaves next to
+ * them as soon as it is there.
  */
-const launcher = ({
-  stl,
-  photo,
-  color,
-}: {
-  stl: string;
-  photo: string;
-  color: string;
-}) => `#!/bin/sh
-# Renders a photo-like picture of the cutter with Blender, in the background,
-# and opens it - a minute or two. macOS won't run a downloaded script on a
-# double-click; in Terminal it runs from anywhere:
+const launcher = (photos: Photo[], color: string) => `#!/bin/sh
+# Renders photo-like pictures of the cutters with Blender, in the
+# background, and opens each - a minute or two apiece. macOS won't run a
+# downloaded script on a double-click; in Terminal it runs from anywhere:
 #   sh <this folder>/${LAUNCHER}
 cd "$(dirname "$0")" || exit 1
 BLENDER="/Applications/Blender.app/Contents/MacOS/Blender"
@@ -376,9 +375,14 @@ if [ -z "$BLENDER" ]; then
   echo "Blender not found - get it from blender.org."
   exit 1
 fi
-echo "Rendering ${photo} - this takes a minute or two ..."
-"$BLENDER" -b --factory-startup -P ${BLENDER_SCRIPT} -- "${stl}" "${photo}" "${color}" || exit 1
-open "${photo}"
+render() {
+  echo "Rendering $2 - this takes a minute or two ..."
+  "$BLENDER" -b --factory-startup -P ${BLENDER_SCRIPT} -- "$1" "$2" "${color}" || exit 1
+  open "$2"
+}
+${photos
+  .map(({ fileName }) => `render "${stlOf(fileName)}" "${jpegOf(fileName)}"`)
+  .join("\n")}
 `;
 
 /**
@@ -387,22 +391,25 @@ open "${photo}"
  */
 const EXECUTABLE = 0o100755 * 0x10000;
 
-/** The zip's files for the photo: the cutter as STL, script, launcher. */
+/**
+ * The zip's files for the photos, in the order they are rendered – a set's
+ * all together, then each cutter on its own: each as STL, the script, the
+ * launcher.
+ */
 export const blenderFiles = async (
-  mesh: MeshData,
-  fileName: string,
+  photos: Photo[],
   color: string
 ): Promise<Zippable> => {
-  const stl = `${fileName}.stl`;
-  const photo = `${fileName}-photo.jpg`;
-  return {
-    [stl]: new Uint8Array(await toStl(mesh).arrayBuffer()),
-    [BLENDER_SCRIPT]: strToU8(PYTHON),
-    [LAUNCHER]: [
-      strToU8(launcher({ stl, photo, color })),
-      { os: 3, attrs: EXECUTABLE },
-    ],
-  };
+  const files: Zippable = {};
+  for (const { mesh, fileName } of photos) {
+    files[stlOf(fileName)] = new Uint8Array(await toStl(mesh).arrayBuffer());
+  }
+  files[BLENDER_SCRIPT] = strToU8(PYTHON);
+  files[LAUNCHER] = [
+    strToU8(launcher(photos, color)),
+    { os: 3, attrs: EXECUTABLE },
+  ];
+  return files;
 };
 
 /**

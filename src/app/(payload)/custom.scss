@@ -609,3 +609,13 @@ html[data-theme="dark"] .ccm-viz {
   --viz-up-text: #0ca30c;
   --viz-down-text: #e66767;
 }
+
+// MakerWorld: a kit's download (fields/makerworld-kit.tsx) – the button,
+// then what it is doing or what came of it.
+.makerworld-kit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  color: var(--theme-elevation-650);
+}

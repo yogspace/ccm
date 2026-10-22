@@ -9,7 +9,6 @@ import { download } from "../export/download";
 import { fileBase } from "../export/file-name";
 import {
   MAKERWORLD_GREETING,
-  makerWorldFolder,
   makerWorldZip,
   nearestColor,
 } from "../export/makerworld";
@@ -87,21 +86,25 @@ const ExportButtons = ({ preview }: Props) => {
       cardColors.map((entry) => entry.color),
       color
     );
-    const zip = await makerWorldZip({
-      mesh,
+    const { zip, folder } = await makerWorldZip({
       name: title,
-      fileName,
       color,
-      cookie: shape,
-      sizeLabel: `${Math.round(size)} mm`,
-      editorUrl: creationUrl(SITE),
-      cardUrl: greetingLink(
-        { ...MAKERWORLD_GREETING, color: cardColor },
-        "en",
-        SITE
-      ),
+      cutters: [
+        {
+          mesh,
+          name: title,
+          size,
+          cookie: shape,
+          editorUrl: creationUrl(SITE),
+          cardUrl: greetingLink(
+            { ...MAKERWORLD_GREETING, color: cardColor },
+            "en",
+            SITE
+          ),
+        },
+      ],
     });
-    download(zip, `${makerWorldFolder(fileName)}.zip`);
+    download(zip, `${folder}.zip`);
     keep(button);
   };
 

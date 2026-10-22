@@ -57,12 +57,14 @@ export interface Config {
   };
   fallbackLocale: ('false' | 'none' | 'null') | false | null | ('de' | 'en') | ('de' | 'en')[];
   globals: {
+    makerworld: Makerworld;
     site: Site;
     legal: Legal;
     translations: Translation;
     analytics: Analytics;
   };
   globalsSelect: {
+    makerworld: MakerworldSelect<false> | MakerworldSelect<true>;
     site: SiteSelect<false> | SiteSelect<true>;
     legal: LegalSelect<false> | LegalSelect<true>;
     translations: TranslationsSelect<false> | TranslationsSelect<true>;
@@ -591,6 +593,37 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * Kits for MakerWorld: one cutter, or several as a set – one 3MF with all of them on the plate, the pictures with all of them together, the texts with each one's links. “Download kit” builds the zip right here, from what is in the form; save to keep a kit.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "makerworld".
+ */
+export interface Makerworld {
+  id: string;
+  kits?:
+    | {
+        /**
+         * A set's name, e.g. “Halloween” – for one cutter, empty: the cutter's own.
+         */
+        name?: string | null;
+        /**
+         * The 3MF's filament and the pictures' color.
+         */
+        color: string;
+        /**
+         * The creations' links – from “Share creation” or the address bar. In this order on the plate and in the texts.
+         */
+        cutters: {
+          link: string;
+          id?: string | null;
+        }[];
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
 }
 /**
  * Links in the footer, on the greeting card and in the legal text, the address in the legal text, the greeting cards' favorite colors, and the cookies' colors.
@@ -1671,6 +1704,28 @@ export interface Analytics {
   analyticsExcludeToken?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "makerworld_select".
+ */
+export interface MakerworldSelect<T extends boolean = true> {
+  kits?:
+    | T
+    | {
+        name?: T;
+        color?: T;
+        cutters?:
+          | T
+          | {
+              link?: T;
+              id?: T;
+            };
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

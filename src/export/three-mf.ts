@@ -2,6 +2,7 @@ import { strToU8, zipSync } from "fflate";
 import { FILAMENTS } from "../filaments";
 import type { MeshData } from "../geometry/mesh";
 import { renderMeshTop } from "../render-top";
+import { boxOf, mergeMeshes, PLATE, type Place } from "./plate";
 
 /**
  * The 3MF is written the way Bambu Studio saves a project – MakerWorld takes
@@ -11,16 +12,22 @@ import { renderMeshTop } from "../render-top";
  * Basic on the Textured PEI Plate. This is the version they came from.
  */
 const BAMBU_VERSION = "02.08.02.61";
-/** The A1's plate is 256 mm square: the cutter goes in its middle. */
-const PLATE_CENTER = 128;
+/** A single cutter goes in the middle of the plate. */
+const PLATE_CENTER = PLATE / 2;
+/** Bambu Studio lays further plates out in a grid, a fifth of one apart. */
+const PLATE_STRIDE = PLATE * 1.2;
 
-// Bambu Studio writes these same fixed UUIDs into every project.
+const hex = (value: number, digits: number) =>
+  value.toString(16).padStart(digits, "0");
+
+// Bambu Studio numbers its UUIDs by object (`k`, from 1) – the same in every
+// project; the build's is fixed.
 const UUID = {
-  object: "00000001-61cb-4c03-9d28-80fed5dfa1dc",
-  component: "00010000-b206-40ff-9872-83e8017abed1",
-  mesh: "00010000-81cb-4c03-9d28-80fed5dfa1dc",
+  object: (k: number) => `${hex(k, 8)}-61cb-4c03-9d28-80fed5dfa1dc`,
+  component: (k: number) => `${hex(k, 4)}0000-b206-40ff-9872-83e8017abed1`,
+  mesh: (k: number) => `${hex(k, 4)}0000-81cb-4c03-9d28-80fed5dfa1dc`,
+  item: (k: number) => `${hex(2 * k, 8)}-b1ec-4553-aec9-835e5b724bb4`,
   build: "2c7c17d8-22b5-4d84-8835-1976022ea369",
-  item: "00000002-b1ec-4553-aec9-835e5b724bb4",
 };
 
 const XML = `<?xml version="1.0" encoding="UTF-8"?>`;
@@ -36,6 +43,7 @@ const CONTENT_TYPES = `${XML}
  <Default Extension="gcode" ContentType="text/x.gcode"/>
 </Types>`;
 
+// The first plate's pictures stand for the project.
 const rels = (thumbnails: boolean) => `${XML}
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
  <Relationship Target="/3D/3dmodel.model" Id="rel-1" Type="${MODEL_REL}"/>${
@@ -48,9 +56,13 @@ const rels = (thumbnails: boolean) => `${XML}
  }
 </Relationships>`;
 
-const MODEL_RELS = `${XML}
+const modelRels = (count: number) => `${XML}
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
- <Relationship Target="/3D/Objects/object_1.model" Id="rel-1" Type="${MODEL_REL}"/>
+${Array.from(
+  { length: count },
+  (_, i) =>
+    ` <Relationship Target="/3D/Objects/object_${i + 1}.model" Id="rel-${i + 1}" Type="${MODEL_REL}"/>`
+).join("\n")}
 </Relationships>`;
 
 const SLICE_INFO = `${XML}
@@ -61,14 +73,27 @@ const SLICE_INFO = `${XML}
   </header>
 </config>`;
 
-const CUT_INFORMATION = `<?xml version="1.0" encoding="utf-8"?>
+const cutInformation = (
+  count: number
+) => `<?xml version="1.0" encoding="utf-8"?>
 <objects>
- <object id="1">
+${Array.from(
+  { length: count },
+  (_, i) => ` <object id="${i + 1}">
   <cut_id id="0" check_sum="1" connectors_cnt="0"/>
- </object>
+ </object>`
+).join("\n")}
 </objects>`;
 
-const FILAMENT_SEQUENCE = `{"plate_1":{"nozzle_sequence":[],"optimal_assignment":[],"sequence":[]}}`;
+const filamentSequence = (plates: number) =>
+  JSON.stringify(
+    Object.fromEntries(
+      Array.from({ length: plates }, (_, p) => [
+        `plate_${p + 1}`,
+        { nozzle_sequence: [], optimal_assignment: [], sequence: [] },
+      ])
+    )
+  );
 
 const round = (value: number) => Math.round(value * 1e4) / 1e4;
 
@@ -79,19 +104,7 @@ const xmlText = (text: string) =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
-const bounds = (positions: Float32Array) => {
-  const min = [Infinity, Infinity, Infinity];
-  const max = [-Infinity, -Infinity, -Infinity];
-  for (let i = 0; i < positions.length; i += 3) {
-    for (let axis = 0; axis < 3; axis++) {
-      min[axis] = Math.min(min[axis], positions[i + axis]);
-      max[axis] = Math.max(max[axis], positions[i + axis]);
-    }
-  }
-  return { min, max };
-};
-
-/** A PNG of the cutter for the plate's thumbnails – none without WebGL. */
+/** A PNG of the cutters on a plate for its thumbnails – none without WebGL. */
 const thumbnail = async (mesh: MeshData, color: string, size: number) => {
   try {
     // Twice as large, scaled down: flat-shaded walls without pixel noise.
@@ -107,45 +120,104 @@ const thumbnail = async (mesh: MeshData, color: string, size: number) => {
   }
 };
 
+/** A cutter of a project: its mesh, its name and where it goes (plate.ts). */
+export type PlateItem = Place & { mesh: MeshData; name: string };
+
 /**
  * The cutter as a Bambu Studio project: the mesh sits around its own center
  * (as Bambu Studio keeps it), the build places it in the middle of the plate
  * and on it. `color` is the filament's and the thumbnails'.
  */
-export const toThreeMf = async (
+export const toThreeMf = (
   mesh: MeshData,
   title: string,
   color: string = FILAMENTS[0]
+) =>
+  toThreeMfProject(
+    [{ mesh, name: title, plate: 0, x: PLATE_CENTER, y: PLATE_CENTER }],
+    title,
+    color
+  );
+
+/**
+ * Several cutters as one Bambu Studio project – a set: each its own object,
+ * where `arrange` (plate.ts) put it, the plates after the first beside it
+ * as Bambu Studio lays them out. All in one filament, `color`.
+ */
+export const toThreeMfProject = async (
+  items: PlateItem[],
+  title: string,
+  color: string = FILAMENTS[0]
 ) => {
-  const { positions, indices } = mesh;
   const name = xmlText(title);
   const date = new Date().toISOString().slice(0, 10);
-  const { min, max } = bounds(positions);
-  const [cx, cy, cz] = min.map((low, axis) => round((low + max[axis]) / 2));
-  const faces = indices.length / 3;
+  const plateCount = Math.max(...items.map(({ plate }) => plate)) + 1;
+  const columns = Math.ceil(Math.sqrt(plateCount));
 
-  const object = [
-    XML,
-    MODEL,
-    ` <metadata name="BambuStudio:3mfVersion">1</metadata>`,
-    ` <resources><object id="1" p:UUID="${UUID.mesh}" type="model"><mesh><vertices>`,
-  ];
-  for (let i = 0; i < positions.length; i += 3) {
+  const files: Record<string, Uint8Array> = {};
+  const components: string[] = [];
+  const buildItems: string[] = [];
+  const objectSettings: string[] = [];
+  for (const [i, item] of items.entries()) {
+    const k = i + 1;
+    const { positions, indices } = item.mesh;
+    const label = xmlText(item.name);
+    const { min, max } = boxOf(item.mesh);
+    const [cx, cy, cz] = min.map((low, axis) => round((low + max[axis]) / 2));
+    const faces = indices.length / 3;
+
+    const object = [
+      XML,
+      MODEL,
+      ` <metadata name="BambuStudio:3mfVersion">1</metadata>`,
+      ` <resources><object id="${2 * k - 1}" p:UUID="${UUID.mesh(k)}" type="model"><mesh><vertices>`,
+    ];
+    for (let v = 0; v < positions.length; v += 3) {
+      object.push(
+        `<vertex x="${round(positions[v] - cx)}" y="${round(positions[v + 1] - cy)}" z="${round(positions[v + 2] - cz)}"/>`
+      );
+    }
+    object.push("</vertices><triangles>");
+    for (let t = 0; t < indices.length; t += 3) {
+      object.push(
+        `<triangle v1="${indices[t]}" v2="${indices[t + 1]}" v3="${indices[t + 2]}"/>`
+      );
+    }
     object.push(
-      `<vertex x="${round(positions[i] - cx)}" y="${round(positions[i + 1] - cy)}" z="${round(positions[i + 2] - cz)}"/>`
+      "</triangles></mesh></object></resources>",
+      " <build/>",
+      "</model>"
     );
-  }
-  object.push("</vertices><triangles>");
-  for (let i = 0; i < indices.length; i += 3) {
-    object.push(
-      `<triangle v1="${indices[i]}" v2="${indices[i + 1]}" v3="${indices[i + 2]}"/>`
+    files[`3D/Objects/object_${k}.model`] = strToU8(object.join("\n"));
+
+    const originX = (item.plate % columns) * PLATE_STRIDE;
+    const originY = -Math.floor(item.plate / columns) * PLATE_STRIDE;
+    components.push(`  <object id="${2 * k}" p:UUID="${UUID.object(k)}" type="model">
+   <components>
+    <component p:path="/3D/Objects/object_${k}.model" objectid="${2 * k - 1}" p:UUID="${UUID.component(k)}" transform="1 0 0 0 1 0 0 0 1 ${cx} ${cy} ${cz}"/>
+   </components>
+  </object>`);
+    buildItems.push(
+      `  <item objectid="${2 * k}" p:UUID="${UUID.item(k)}" transform="1 0 0 0 1 0 0 0 1 ${round(originX + item.x - cx)} ${round(originY + item.y - cy)} ${round(-min[2])}" printable="1"/>`
     );
+    objectSettings.push(`  <object id="${2 * k}">
+    <metadata key="name" value="${label}"/>
+    <metadata key="extruder" value="1"/>
+    <metadata face_count="${faces}"/>
+    <part id="${2 * k - 1}" subtype="normal_part">
+      <metadata key="name" value="${label}"/>
+      <metadata key="matrix" value="1 0 0 ${cx} 0 1 0 ${cy} 0 0 1 ${cz} 0 0 0 1"/>
+      <metadata key="source_file" value="${label}.3mf"/>
+      <metadata key="source_object_id" value="0"/>
+      <metadata key="source_volume_id" value="0"/>
+      <metadata key="source_offset_x" value="${cx}"/>
+      <metadata key="source_offset_y" value="${cy}"/>
+      <metadata key="source_offset_z" value="${cz}"/>
+      <metadata key="extruder" value="1"/>
+      <mesh_stat face_count="${faces}" edges_fixed="0" degenerate_facets="0" facets_removed="0" facets_reversed="0" backwards_edges="0"/>
+    </part>
+  </object>`);
   }
-  object.push(
-    "</triangles></mesh></object></resources>",
-    " <build/>",
-    "</model>"
-  );
 
   const metadata = {
     Copyright: "",
@@ -170,70 +242,67 @@ ${Object.entries(metadata)
   .map(([key, value]) => ` <metadata name="${key}">${value}</metadata>`)
   .join("\n")}
  <resources>
-  <object id="2" p:UUID="${UUID.object}" type="model">
-   <components>
-    <component p:path="/3D/Objects/object_1.model" objectid="1" p:UUID="${UUID.component}" transform="1 0 0 0 1 0 0 0 1 ${cx} ${cy} ${cz}"/>
-   </components>
-  </object>
+${components.join("\n")}
  </resources>
  <build p:UUID="${UUID.build}">
-  <item objectid="2" p:UUID="${UUID.item}" transform="1 0 0 0 1 0 0 0 1 ${round(PLATE_CENTER - cx)} ${round(PLATE_CENTER - cy)} ${round(-min[2])}" printable="1"/>
+${buildItems.join("\n")}
  </build>
 </model>`;
 
-  const [{ default: settings }, plate, small] = await Promise.all([
+  // Each plate's pictures: its cutters as they lie on it.
+  const plates = Array.from({ length: plateCount }, (_, p) =>
+    items.filter(({ plate }) => plate === p)
+  );
+  const [{ default: settings }, ...pictures] = await Promise.all([
     import("./bambu-a1.json"),
-    thumbnail(mesh, color, 512),
-    thumbnail(mesh, color, 128),
+    ...plates.flatMap((on) => {
+      const mesh = mergeMeshes(
+        on.map(({ mesh }) => mesh),
+        on
+      );
+      return [thumbnail(mesh, color, 512), thumbnail(mesh, color, 128)];
+    }),
   ]);
-  const images: Record<string, Uint8Array> =
-    plate && small
-      ? {
-          "Metadata/plate_1.png": plate,
-          "Metadata/plate_1_small.png": small,
-          "Metadata/plate_no_light_1.png": plate,
-        }
-      : {};
-  const thumbnails = Object.keys(images).length > 0;
+  const thumbnails = pictures.every(Boolean);
+  if (thumbnails) {
+    for (const p of plates.keys()) {
+      const [plate, small] = [pictures[2 * p], pictures[2 * p + 1]];
+      if (!(plate && small)) continue;
+      files[`Metadata/plate_${p + 1}.png`] = plate;
+      files[`Metadata/plate_${p + 1}_small.png`] = small;
+      files[`Metadata/plate_no_light_${p + 1}.png`] = plate;
+    }
+  }
   const filament = color.toUpperCase();
 
-  const modelSettings = `${XML}
-<config>
-  <object id="2">
-    <metadata key="name" value="${name}"/>
-    <metadata key="extruder" value="1"/>
-    <metadata face_count="${faces}"/>
-    <part id="1" subtype="normal_part">
-      <metadata key="name" value="${name}"/>
-      <metadata key="matrix" value="1 0 0 ${cx} 0 1 0 ${cy} 0 0 1 ${cz} 0 0 0 1"/>
-      <metadata key="source_file" value="${name}.3mf"/>
-      <metadata key="source_object_id" value="0"/>
-      <metadata key="source_volume_id" value="0"/>
-      <metadata key="source_offset_x" value="${cx}"/>
-      <metadata key="source_offset_y" value="${cy}"/>
-      <metadata key="source_offset_z" value="${cz}"/>
-      <metadata key="extruder" value="1"/>
-      <mesh_stat face_count="${faces}" edges_fixed="0" degenerate_facets="0" facets_removed="0" facets_reversed="0" backwards_edges="0"/>
-    </part>
-  </object>
-  <plate>
-    <metadata key="plater_id" value="1"/>
+  const plateSettings = plates.map(
+    (on, p) => `  <plate>
+    <metadata key="plater_id" value="${p + 1}"/>
     <metadata key="plater_name" value=""/>
     <metadata key="locked" value="false"/>
     <metadata key="filament_map_mode" value="Auto For Flush"/>
     <metadata key="gcode_file" value=""/>${
       thumbnails
         ? `
-    <metadata key="thumbnail_file" value="Metadata/plate_1.png"/>
-    <metadata key="thumbnail_no_light_file" value="Metadata/plate_no_light_1.png"/>`
+    <metadata key="thumbnail_file" value="Metadata/plate_${p + 1}.png"/>
+    <metadata key="thumbnail_no_light_file" value="Metadata/plate_no_light_${p + 1}.png"/>`
         : ""
     }
-    <model_instance>
-      <metadata key="object_id" value="2"/>
+${on
+  .map(
+    (item) => `    <model_instance>
+      <metadata key="object_id" value="${2 * (items.indexOf(item) + 1)}"/>
       <metadata key="instance_id" value="0"/>
-      <metadata key="identify_id" value="1"/>
-    </model_instance>
-  </plate>
+      <metadata key="identify_id" value="${items.indexOf(item) + 1}"/>
+    </model_instance>`
+  )
+  .join("\n")}
+  </plate>`
+  );
+  const modelSettings = `${XML}
+<config>
+${objectSettings.join("\n")}
+${plateSettings.join("\n")}
   <assemble>
   </assemble>
 </config>`;
@@ -250,15 +319,14 @@ ${Object.entries(metadata)
 
   const zip = zipSync({
     "[Content_Types].xml": strToU8(CONTENT_TYPES),
-    ...images,
+    ...files,
     "3D/3dmodel.model": strToU8(model),
-    "3D/_rels/3dmodel.model.rels": strToU8(MODEL_RELS),
-    "3D/Objects/object_1.model": strToU8(object.join("\n")),
+    "3D/_rels/3dmodel.model.rels": strToU8(modelRels(items.length)),
     "Metadata/project_settings.config": strToU8(projectSettings),
     "Metadata/model_settings.config": strToU8(modelSettings),
-    "Metadata/cut_information.xml": strToU8(CUT_INFORMATION),
+    "Metadata/cut_information.xml": strToU8(cutInformation(items.length)),
     "Metadata/slice_info.config": strToU8(SLICE_INFO),
-    "Metadata/filament_sequence.json": strToU8(FILAMENT_SEQUENCE),
+    "Metadata/filament_sequence.json": strToU8(filamentSequence(plateCount)),
     "_rels/.rels": strToU8(rels(thumbnails)),
   });
   return new Blob([zip], { type: "model/3mf" });

@@ -18,19 +18,25 @@ import type { MeshData } from "../geometry/mesh";
 import type { Greeting } from "../greeting";
 import { renderMeshTop } from "../render-top";
 import { blenderFiles, photoCommand } from "./blender-photo";
+import { fileBase, nameBase } from "./file-name";
 import { FEATURES, makerWorldTexts } from "./makerworld-texts";
+import { arrange, mergeMeshes, PLATE } from "./plate";
 import { renderPrintLook } from "./print-look";
-import { toThreeMf } from "./three-mf";
+import { toThreeMf, toThreeMfProject } from "./three-mf";
 
 /**
  * Everything to put a cutter on MakerWorld, in one zip – for the admin only
- * (export-buttons.tsx), always in English: the 3MF, the thumbnail as on its
- * greeting card's page upright (3:4) and across (4:3), a picture of the
- * model alone, a render of the print on a table (print-look.ts) and one of
- * what the site can do, a page with the upload's texts (makerworld-texts.ts)
- * and the links to the editor and to a greeting card – and the files to
- * render a photo-like picture with Blender (blender-photo.ts). All in the
- * color the cutter has on screen.
+ * (export-buttons.tsx, the MakerWorld global), always in English: the 3MF,
+ * the thumbnail as on its greeting card's page upright (3:4) and across
+ * (4:3), a picture of the model alone, a render of the print on a table
+ * (print-look.ts) and one of what the site can do, a page with the upload's
+ * texts (makerworld-texts.ts) and the links to the editor and to a greeting
+ * card – and the files to render a photo-like picture with Blender
+ * (blender-photo.ts). All in one color.
+ *
+ * Several cutters make a set: one 3MF with all of them on the plate (more
+ * plates if they don't fit, plate.ts), the pictures of all of them together
+ * as they lie on it, the texts with each one's links.
  */
 
 /** The test card: the pictures show it, the texts link to it. */
@@ -50,21 +56,37 @@ const MARGIN = 70;
 const SUPERSAMPLE = 2;
 /** The cookie's picture, square – drawn smaller where it goes. */
 const COOKIE_PIXELS = 720;
+/** A set's fan: one cookie of each cutter, at most this many. */
+const FAN = 5;
 
-type Kit = {
+/** A cutter of a kit – the only one, or one of a set. */
+export type KitCutter = {
   mesh: MeshData;
-  /** The cutter's name, as on its card. */
+  /** Its name, as on its card. */
   name: string;
-  /** Base of the file names (`heart-80mm`). */
-  fileName: string;
-  /** The cutter's color on screen: the pictures, the 3MF's filament. */
-  color: string;
-  /** The cookie it bakes, or `null` – three of them make a fan. */
+  /** Its size (mm) – for the file names. */
+  size: number;
+  /** The cookie it bakes, or `null`. */
   cookie: CookieShape | null;
-  /** Its size on the card (“80 mm”). */
-  sizeLabel: string;
   editorUrl: string;
   cardUrl: string;
+};
+
+type Kit = {
+  /** The cutter's name, as on its card – or the set's (“Halloween”). */
+  name: string;
+  /** The color on screen: the pictures, the 3MF's filament. */
+  color: string;
+  cutters: KitCutter[];
+};
+
+/** What the pictures show: the cutters, as one mesh. */
+type Look = {
+  mesh: MeshData;
+  name: string;
+  color: string;
+  /** Its size on the card (“80 mm”) – a set's count (“3 cutters”). */
+  sizeLabel: string;
 };
 
 /** The one of `colors` (hex) closest to `target` – for the card's link. */
@@ -108,17 +130,31 @@ const bake = (shape: CookieShape) => {
 };
 
 /**
- * Three of its cookies for a fan, left to right: of chocolate dough, iced in
- * the cutter's color (the middle one, in front) and iced as its seed picks.
+ * The cookies for a fan, left to right. One cutter: three of its cookies –
+ * of chocolate dough, iced in the cutter's color (the middle one, in front)
+ * and iced as its seed picks. A set: one of each cutter's (at most `FAN`),
+ * the one in front iced in the set's color, the others as their seeds pick,
+ * every other of chocolate dough.
  */
-const bakeFan = (shape: CookieShape | null, color: string) =>
-  shape
-    ? [
-        { ...shape, seed: shape.seed + 1, chocolate: true },
-        { ...shape, glaze: color },
-        { ...shape, seed: shape.seed + 2 },
-      ].map(bake)
-    : [];
+const bakeFan = (shapes: CookieShape[], color: string) => {
+  if (shapes.length === 1) {
+    const [shape] = shapes;
+    return [
+      { ...shape, seed: shape.seed + 1, chocolate: true },
+      { ...shape, glaze: color },
+      { ...shape, seed: shape.seed + 2 },
+    ].map(bake);
+  }
+  const fan = shapes.slice(0, FAN);
+  const front = Math.floor(fan.length / 2);
+  return fan.map((shape, i) =>
+    bake(
+      i === front
+        ? { ...shape, glaze: color }
+        : { ...shape, chocolate: !(i % 2) }
+    )
+  );
+};
 
 /** Where a transparent picture is not empty: its left, right and bottom. */
 const extentOf = (picture: HTMLCanvasElement) => {
@@ -216,10 +252,10 @@ const layoutOf = (width: number, height: number) =>
  * big, the card in the ring of the test card's message and the cutter
  * itself, larger than the card, standing out of it; a fan of the cookies it
  * bakes and who the card is from. The site in the corners: its name top
- * left, its address bottom right.
+ * left, its address bottom right. A set: all its cutters on the card.
  */
 const paintCardView = async (
-  { mesh, name, color, sizeLabel }: Kit,
+  { mesh, name, color, sizeLabel }: Look,
   cookies: (HTMLCanvasElement | null)[],
   width: number,
   height: number
@@ -278,15 +314,21 @@ const paintCardView = async (
     cutter.width = cutter.height = 0;
   }
 
-  // Fanned out about a point below them, the middle one last – on top.
+  // Fanned out about a point below them, from the outside in – the middle
+  // one last, on top. More than three closer together.
   const { x, y, size } = layout.cookie;
   const pivot = size * 1.6;
-  for (const index of [0, 2, 1]) {
+  const middle = (cookies.length - 1) / 2;
+  const spread = cookies.length > 3 ? 16 : 22;
+  const order = cookies
+    .map((_, index) => index)
+    .sort((a, b) => Math.abs(b - middle) - Math.abs(a - middle));
+  for (const index of order) {
     const cookie = cookies[index];
     if (!cookie) continue;
     ctx.save();
     ctx.translate(x, y + pivot);
-    ctx.rotate(((index - 1) * 22 * Math.PI) / 180);
+    ctx.rotate(((index - middle) * spread * Math.PI) / 180);
     ctx.translate(0, -pivot);
     ctx.shadowColor = "rgb(4 8 60 / 0.35)";
     ctx.shadowBlur = 36;
@@ -355,7 +397,7 @@ const wrap = (ctx: CanvasRenderingContext2D, text: string, width: number) => {
  * slogan, the cutter and an invitation to try it on the left, the features
  * one by one on the right.
  */
-const paintFeatures = async ({ mesh, color }: Kit) => {
+const paintFeatures = async ({ mesh, color }: Look) => {
   const { width, height } = ACROSS;
   const target = canvasOf(width, height);
   if (!target) return null;
@@ -471,24 +513,49 @@ const encode = (canvas: HTMLCanvasElement, jpeg = false) =>
   );
 
 /** The zip's name without .zip – and the folder it unpacks to. */
-export const makerWorldFolder = (fileName: string) => `${fileName}-makerworld`;
+const makerWorldFolder = (fileName: string) => `${fileName}-makerworld`;
 
 /**
  * The zip with the 3MF, the thumbnail upright and across, one picture each
  * of the model, the print (large, as JPEG) and the features, the page with
- * the upload's texts and the Blender files.
+ * the upload's texts and the Blender files – and the folder it unpacks to.
  */
-export const makerWorldZip = async (kit: Kit) => {
-  const {
+export const makerWorldZip = async ({ name, color, cutters }: Kit) => {
+  const [first] = cutters;
+  const set = cutters.length > 1;
+  const fileName = set ? `${nameBase(name)}-set` : fileBase(name, first.size);
+  const folder = makerWorldFolder(fileName);
+  // On the plates in the 3MF; the pictures show them as they lie on the
+  // first – on several plates, all of them together, in rows.
+  const sizes = cutters.map(({ mesh }): [number, number] => [
+    mesh.dimensions[0],
+    mesh.dimensions[1],
+  ]);
+  const places = arrange(sizes);
+  const plates = Math.max(...places.map(({ plate }) => plate)) + 1;
+  const shown = plates > 1 ? arrange(sizes, PLATE * 1.5, Infinity) : places;
+  const mesh = set
+    ? mergeMeshes(
+        cutters.map(({ mesh }) => mesh),
+        shown
+      )
+    : first.mesh;
+  const look: Look = {
     mesh,
     name,
-    fileName,
     color,
-    cookie: shape,
-    editorUrl,
-    cardUrl,
-  } = kit;
-  const threeMf = await toThreeMf(mesh, name, color);
+    sizeLabel: set
+      ? `${cutters.length} cutters`
+      : `${Math.round(first.size)} mm`,
+  };
+
+  const threeMf = set
+    ? await toThreeMfProject(
+        cutters.map(({ mesh, name }, i) => ({ mesh, name, ...places[i] })),
+        name,
+        color
+      )
+    : await toThreeMf(mesh, name, color);
   // The 3MF and the pictures are compressed already: stored as they are.
   const files: Zippable = {
     [`${fileName}.3mf`]: [
@@ -496,16 +563,19 @@ export const makerWorldZip = async (kit: Kit) => {
       { level: 0 },
     ],
   };
-  const cookies = bakeFan(shape, color);
+  const cookies = bakeFan(
+    cutters.flatMap(({ cookie }) => (cookie ? [cookie] : [])),
+    color
+  );
   // One after another, each freed right away: large canvases add up.
   const pictures: Picture[] = [
     {
       name: `thumbnail-${UPRIGHT.label}`,
-      paint: () => paintCardView(kit, cookies, UPRIGHT.width, UPRIGHT.height),
+      paint: () => paintCardView(look, cookies, UPRIGHT.width, UPRIGHT.height),
     },
     {
       name: `thumbnail-${ACROSS.label}`,
-      paint: () => paintCardView(kit, cookies, ACROSS.width, ACROSS.height),
+      paint: () => paintCardView(look, cookies, ACROSS.width, ACROSS.height),
     },
     {
       name: "model",
@@ -517,7 +587,7 @@ export const makerWorldZip = async (kit: Kit) => {
         renderPrintLook(mesh, color, PRINT.width, PRINT.height, SUPERSAMPLE),
       jpeg: true,
     },
-    { name: "features", paint: () => paintFeatures(kit) },
+    { name: "features", paint: () => paintFeatures(look) },
   ];
   for (const { name: kind, paint, jpeg } of pictures) {
     const canvas = await paint();
@@ -528,15 +598,32 @@ export const makerWorldZip = async (kit: Kit) => {
     if (bytes) files[file] = [bytes, { level: 0 }];
   }
   for (const cookie of cookies) if (cookie) cookie.width = cookie.height = 0;
-  files[`${fileName}-makerworld.html`] = strToU8(
+  files[`${nameBase(name)}-summary.html`] = strToU8(
     makerWorldTexts({
       name,
-      dimensions: mesh.dimensions,
-      editorUrl,
-      cardUrl,
-      photoCommand: photoCommand(makerWorldFolder(fileName)),
+      cutters: cutters.map(({ name, mesh, editorUrl, cardUrl }) => ({
+        name,
+        dimensions: mesh.dimensions,
+        editorUrl,
+        cardUrl,
+      })),
+      plates,
+      photoCommand: photoCommand(folder),
     })
   );
-  Object.assign(files, await blenderFiles(mesh, fileName, color));
-  return new Blob([zipSync(files)], { type: "application/zip" });
+  // A set's photo with all of them, then each one's on its own.
+  const photos = [
+    { mesh, fileName },
+    ...(set
+      ? cutters.map((cutter) => ({
+          mesh: cutter.mesh,
+          fileName: fileBase(cutter.name, cutter.size),
+        }))
+      : []),
+  ];
+  Object.assign(files, await blenderFiles(photos, color));
+  return {
+    zip: new Blob([zipSync(files)], { type: "application/zip" }),
+    folder,
+  };
 };

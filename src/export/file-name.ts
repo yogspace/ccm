@@ -11,6 +11,9 @@ const slugify = (text: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
+/** The name alone as a file name, without extension: `herz-fuer-oma`. */
+export const nameBase = (name: string) => slugify(name) || "cookie-cutter";
+
 /** File name without extension: `herz-fuer-oma-80mm`. */
 export const fileBase = (name: string, size: number) =>
-  `${slugify(name) || "cookie-cutter"}-${Math.round(size)}mm`;
+  `${nameBase(name)}-${Math.round(size)}mm`;

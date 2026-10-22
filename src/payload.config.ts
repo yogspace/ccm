@@ -16,6 +16,7 @@ import { Templates } from "./collections/templates";
 import { Users } from "./collections/users";
 import { Analytics } from "./globals/analytics";
 import { Legal } from "./globals/legal";
+import { MakerWorld } from "./globals/makerworld";
 import { Site } from "./globals/site";
 import { Translations } from "./globals/translations";
 import { SEEDS_PATH } from "./seeds/definitions";
@@ -82,7 +83,7 @@ export default buildConfig({
     PageViews,
     Actions,
   ],
-  globals: [Site, Legal, Translations, Analytics],
+  globals: [MakerWorld, Site, Legal, Translations, Analytics],
   endpoints: [seedEndpoint],
   // The legal text brings its own editor (globals/legal.ts); this is the
   // default for any other rich text.

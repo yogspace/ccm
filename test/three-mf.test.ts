@@ -1,6 +1,6 @@
 import { strFromU8, unzipSync } from "fflate";
 import { describe, expect, it } from "vitest";
-import { toThreeMf } from "../src/export/three-mf";
+import { toThreeMf, toThreeMfProject } from "../src/export/three-mf";
 import type { MeshData } from "../src/geometry/mesh";
 
 // A 40 × 30 × 12 mm box, off the origin as a cutter may come.
@@ -112,5 +112,58 @@ describe("3MF", () => {
     expect(Math.min(...along(1)) + Math.max(...along(1))).toBeCloseTo(256);
     expect(Math.min(...along(2))).toBeCloseTo(0);
     expect(Math.max(...along(2))).toBeCloseTo(12);
+  });
+
+  it("makes a set: an object each, on the plates as Bambu Studio lays them out", async () => {
+    const files = await unpack(
+      await toThreeMfProject(
+        [
+          { mesh: box(), name: "Ghost", plate: 0, x: 60, y: 128 },
+          { mesh: box(), name: "Witch Hat", plate: 0, x: 190, y: 128 },
+          { mesh: box(), name: "Pumpkin", plate: 1, x: 128, y: 128 },
+        ],
+        "Halloween"
+      )
+    );
+    for (const k of [1, 2, 3]) {
+      expect(
+        files[`3D/Objects/object_${k}.model`],
+        `object ${k}`
+      ).toBeDefined();
+    }
+    const model = strFromU8(files["3D/3dmodel.model"]);
+    expect(model).toContain('<metadata name="Title">Halloween</metadata>');
+    // Bambu Studio's numbering: objects 2, 4, 6, their meshes 1, 3, 5.
+    expect([...model.matchAll(/<object id="(\d+)"/g)].map((m) => m[1])).toEqual(
+      ["2", "4", "6"]
+    );
+    expect(
+      [...model.matchAll(/objectid="(\d+)" p:UUID="[^"]+-b206/g)].map(
+        (m) => m[1]
+      )
+    ).toEqual(["1", "3", "5"]);
+    // The second plate lies beside the first, 1.2 plates on.
+    const items = [...model.matchAll(/<item [^>]*transform="([^"]+)"/g)].map(
+      (m) => m[1].split(" ").slice(9).map(Number)
+    );
+    // The box's middle is at (30, -5): the item moves it to its place.
+    expect(items[0][0] + 30).toBeCloseTo(60);
+    expect(items[2][0] + 30).toBeCloseTo(256 * 1.2 + 128);
+    expect(items[2][1] - 5).toBeCloseTo(128);
+
+    const settings = strFromU8(files["Metadata/model_settings.config"]);
+    const plates = settings
+      .split("<plate>")
+      .slice(1)
+      .map((plate) =>
+        [...plate.matchAll(/"object_id" value="(\d+)"/g)].map((m) => m[1])
+      );
+    expect(plates).toEqual([["2", "4"], ["6"]]);
+    expect(settings).toContain('<metadata key="name" value="Witch Hat"/>');
+    expect(
+      Object.keys(
+        JSON.parse(strFromU8(files["Metadata/filament_sequence.json"]))
+      )
+    ).toEqual(["plate_1", "plate_2"]);
   });
 });

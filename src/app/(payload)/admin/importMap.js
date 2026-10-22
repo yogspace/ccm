@@ -5,6 +5,10 @@ import { AccountFinder as AccountFinder_25ee25c1b43dae615a503f07ca23b573 } from 
 import { ShortLinkOpen as ShortLinkOpen_e5cc19105f404cc3e2afed9494c39329 } from '@/fields/short-link-open'
 import { GalleryColorField as GalleryColorField_b82447014a4072087d806e281ca6fa7b } from '@/fields/gallery-color-field'
 import { GalleryBuilder as GalleryBuilder_c8865404e7f66dba38e8e939d5b9efe8 } from '@/fields/gallery-builder'
+import { FilamentField as FilamentField_c84eff2b668d5c6e0bbc019db3738826 } from '@/fields/makerworld-kit'
+import { CutterRowLabel as CutterRowLabel_c84eff2b668d5c6e0bbc019db3738826 } from '@/fields/makerworld-kit'
+import { KitDownload as KitDownload_c84eff2b668d5c6e0bbc019db3738826 } from '@/fields/makerworld-kit'
+import { KitRowLabel as KitRowLabel_c84eff2b668d5c6e0bbc019db3738826 } from '@/fields/makerworld-kit'
 import { CardColorField as CardColorField_c89e32564ea960d4602226693ff26cf7 } from '@/fields/card-color-field'
 import { CardColorRowLabel as CardColorRowLabel_c89e32564ea960d4602226693ff26cf7 } from '@/fields/card-color-field'
 import { ColorField as ColorField_c89e32564ea960d4602226693ff26cf7 } from '@/fields/card-color-field'
@@ -47,6 +51,10 @@ export const importMap = {
   "@/fields/short-link-open#ShortLinkOpen": ShortLinkOpen_e5cc19105f404cc3e2afed9494c39329,
   "@/fields/gallery-color-field#GalleryColorField": GalleryColorField_b82447014a4072087d806e281ca6fa7b,
   "@/fields/gallery-builder#GalleryBuilder": GalleryBuilder_c8865404e7f66dba38e8e939d5b9efe8,
+  "@/fields/makerworld-kit#FilamentField": FilamentField_c84eff2b668d5c6e0bbc019db3738826,
+  "@/fields/makerworld-kit#CutterRowLabel": CutterRowLabel_c84eff2b668d5c6e0bbc019db3738826,
+  "@/fields/makerworld-kit#KitDownload": KitDownload_c84eff2b668d5c6e0bbc019db3738826,
+  "@/fields/makerworld-kit#KitRowLabel": KitRowLabel_c84eff2b668d5c6e0bbc019db3738826,
   "@/fields/card-color-field#CardColorField": CardColorField_c89e32564ea960d4602226693ff26cf7,
   "@/fields/card-color-field#CardColorRowLabel": CardColorRowLabel_c89e32564ea960d4602226693ff26cf7,
   "@/fields/card-color-field#ColorField": ColorField_c89e32564ea960d4602226693ff26cf7,
