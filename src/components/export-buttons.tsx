@@ -7,13 +7,10 @@ import { launchCookie, launchSpot } from "../cookie-flight";
 import { cookieSeed } from "../cookie-jar";
 import { download } from "../export/download";
 import { fileBase } from "../export/file-name";
-import {
-  MAKERWORLD_GREETING,
-  makerWorldZip,
-  nearestColor,
-} from "../export/makerworld";
+import { makerWorldZip, nearestColor } from "../export/makerworld";
 import { toStl } from "../export/stl";
 import { toThreeMf } from "../export/three-mf";
+import { MAKERWORLD_GREETING } from "../greeting";
 import { SITE } from "../seo";
 import { useCardColors } from "../site-context";
 import { creationUrl, greetingLink, saveCookie, store } from "../store";

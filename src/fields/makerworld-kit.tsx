@@ -18,12 +18,11 @@ import { setCookieColors } from "../cookies/dough";
 import { download } from "../export/download";
 import {
   type KitCutter,
-  MAKERWORLD_GREETING,
   makerWorldZip,
   nearestColor,
 } from "../export/makerworld";
 import { FILAMENTS } from "../filaments";
-import { GREETING_KEYS, greetingUrl } from "../greeting";
+import { GREETING_KEYS, greetingUrl, MAKERWORLD_GREETING } from "../greeting";
 import { currentForm } from "../link-keys";
 import { SITE } from "../seo";
 import type { CookieColors } from "../site-defaults";
@@ -114,12 +113,18 @@ export const KitDownload: UIFieldClientComponent = ({ path }) => {
     return JSON.stringify({
       name: state[`${row}.name`]?.value ?? "",
       color: state[`${row}.color`]?.value ?? FILAMENTS[1],
+      message: state[`${row}.message`]?.value ?? "",
       links,
     });
   });
   const kit = useMemo(
     () =>
-      JSON.parse(fields) as { name: string; color: string; links: string[] },
+      JSON.parse(fields) as {
+        name: string;
+        color: string;
+        message: string;
+        links: string[];
+      },
     [fields]
   );
   const [status, setStatus] = useState<Status>({ state: "idle" });
@@ -141,8 +146,10 @@ export const KitDownload: UIFieldClientComponent = ({ path }) => {
           sprinkles: [...cardColors, "#ffffff"],
         });
       }
+      // The kit's own text on the test card – or the usual one.
       const greeting = {
         ...MAKERWORLD_GREETING,
+        message: kit.message.trim() || MAKERWORLD_GREETING.message,
         color: nearestColor(cardColors, kit.color),
       };
 
@@ -182,6 +189,7 @@ export const KitDownload: UIFieldClientComponent = ({ path }) => {
           kit.name.trim() ||
           (cutters.length === 1 ? cutters[0].name : "Cookie Cutters"),
         color: kit.color,
+        message: greeting.message,
         cutters,
       });
       download(zip, `${folder}.zip`);

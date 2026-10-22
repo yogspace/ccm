@@ -15,7 +15,7 @@ import { disposeCookie } from "../cookies/dough";
 import { cookieSnapshot } from "../cookies/renderer";
 import { type CookieShape, createShapeCookie } from "../cookies/shape-cookie";
 import type { MeshData } from "../geometry/mesh";
-import type { Greeting } from "../greeting";
+import { MAKERWORLD_GREETING } from "../greeting";
 import { renderMeshTop } from "../render-top";
 import { blenderFiles, photoCommand } from "./blender-photo";
 import { fileBase, nameBase } from "./file-name";
@@ -38,14 +38,6 @@ import { toThreeMf, toThreeMfProject } from "./three-mf";
  * plates if they don't fit, plate.ts), the pictures of all of them together
  * as they lie on it, the texts with each one's links.
  */
-
-/** The test card: the pictures show it, the texts link to it. */
-export const MAKERWORLD_GREETING: Greeting = {
-  to: "",
-  from: "MXWR",
-  message: "Hello MakerWorld!",
-  color: 0,
-};
 
 const UPRIGHT = { label: "3x4", width: 1200, height: 1600 } as const;
 const ACROSS = { label: "4x3", width: 1600, height: 1200 } as const;
@@ -77,6 +69,8 @@ type Kit = {
   name: string;
   /** The color on screen: the pictures, the 3MF's filament. */
   color: string;
+  /** The test card's message, around the card – its own by default. */
+  message?: string;
   cutters: KitCutter[];
 };
 
@@ -87,6 +81,7 @@ type Look = {
   color: string;
   /** Its size on the card (“80 mm”) – a set's count (“3 cutters”). */
   sizeLabel: string;
+  message: string;
 };
 
 /** The one of `colors` (hex) closest to `target` – for the card's link. */
@@ -255,7 +250,7 @@ const layoutOf = (width: number, height: number) =>
  * left, its address bottom right. A set: all its cutters on the card.
  */
 const paintCardView = async (
-  { mesh, name, color, sizeLabel }: Look,
+  { mesh, name, color, sizeLabel, message }: Look,
   cookies: (HTMLCanvasElement | null)[],
   width: number,
   height: number
@@ -290,7 +285,7 @@ const paintCardView = async (
     cutter: null,
     heading: name,
     from: "",
-    ring: MAKERWORLD_GREETING.message,
+    ring: message,
     name,
     size: sizeLabel,
     site: "",
@@ -520,7 +515,12 @@ const makerWorldFolder = (fileName: string) => `${fileName}-makerworld`;
  * of the model, the print (large, as JPEG) and the features, the page with
  * the upload's texts and the Blender files – and the folder it unpacks to.
  */
-export const makerWorldZip = async ({ name, color, cutters }: Kit) => {
+export const makerWorldZip = async ({
+  name,
+  color,
+  message = MAKERWORLD_GREETING.message,
+  cutters,
+}: Kit) => {
   const [first] = cutters;
   const set = cutters.length > 1;
   const fileName = set ? `${nameBase(name)}-set` : fileBase(name, first.size);
@@ -547,6 +547,7 @@ export const makerWorldZip = async ({ name, color, cutters }: Kit) => {
     sizeLabel: set
       ? `${cutters.length} cutters`
       : `${Math.round(first.size)} mm`,
+    message,
   };
 
   const threeMf = set

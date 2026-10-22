@@ -1,6 +1,7 @@
 import type { GlobalConfig } from "payload";
 import { authenticated } from "../access/authenticated";
 import { FILAMENTS } from "../filaments";
+import { GREETING_LIMITS, MAKERWORLD_GREETING } from "../greeting";
 
 /** A color as #rrggbb. */
 const hexColor = (value: unknown) =>
@@ -68,6 +69,18 @@ export const MakerWorld: GlobalConfig = {
             components: { Field: "@/fields/makerworld-kit#FilamentField" },
           },
           validate: hexColor,
+        },
+        {
+          name: "message",
+          type: "text",
+          label: "Greeting card text",
+          required: true,
+          defaultValue: MAKERWORLD_GREETING.message,
+          maxLength: GREETING_LIMITS.message,
+          admin: {
+            description:
+              "The test card's message: around the card in the pictures, and in each cutter's card link.",
+          },
         },
         {
           name: "cutters",

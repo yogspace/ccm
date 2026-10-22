@@ -16,6 +16,17 @@ export type Greeting = {
   color: number;
 };
 
+/**
+ * The MakerWorld kits' test card (export/makerworld.ts): their pictures
+ * show it, their texts link to it. The message can be set per kit.
+ */
+export const MAKERWORLD_GREETING: Greeting = {
+  to: "",
+  from: "MXWR",
+  message: "Hello MakerWorld!",
+  color: 0,
+};
+
 /** Longest names and message (characters) – the message has to fit the ring. */
 export const GREETING_LIMITS = { name: 32, message: 140 } as const;
 

@@ -613,6 +613,10 @@ export interface Makerworld {
          */
         color: string;
         /**
+         * The test card's message: around the card in the pictures, and in each cutter's card link.
+         */
+        message: string;
+        /**
          * The creations' links – from “Share creation” or the address bar. In this order on the plate and in the texts.
          */
         cutters: {
@@ -1715,6 +1719,7 @@ export interface MakerworldSelect<T extends boolean = true> {
     | {
         name?: T;
         color?: T;
+        message?: T;
         cutters?:
           | T
           | {
