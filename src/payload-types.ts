@@ -167,7 +167,7 @@ export interface Account {
   createdAt: string;
 }
 /**
- * The models behind short links (…&k=<code> in a link) – made when a visitor puts a cookie online, gone when it is taken back or with the account. Only the model: names and messages stay in the links.
+ * The models behind short links (…&k=<code> in a link) – made when a visitor puts a cookie online, gone when it is taken back or with the account. Only the model: names and messages stay in the links. Those without an account come from MakerWorld kits: named after kit and cutter, with a picture of the cutter, kept until deleted here.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "short-links".
@@ -176,9 +176,48 @@ export interface ShortLink {
   id: string;
   code: string;
   shape: string;
-  account: string | Account;
+  /**
+   * None: made for a MakerWorld kit.
+   */
+  account?: (string | null) | Account;
+  name?: string | null;
+  preview?: (string | null) | Media;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * All pictures, each with what it shows.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: string;
+  /**
+   * What the picture shows – read out instead.
+   */
+  alt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+  sizes?: {
+    card?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
 }
 /**
  * SVG templates next to the drawing area, in this order (drag & drop). Name them in both languages (locale at the top).
@@ -232,40 +271,6 @@ export interface Gallery {
   link?: string | null;
   updatedAt: string;
   createdAt: string;
-}
-/**
- * All pictures, each with what it shows.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
- */
-export interface Media {
-  id: string;
-  /**
-   * What the picture shows – read out instead.
-   */
-  alt?: string | null;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-  sizes?: {
-    card?: {
-      url?: string | null;
-      width?: number | null;
-      height?: number | null;
-      mimeType?: string | null;
-      filesize?: number | null;
-      filename?: string | null;
-    };
-  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -463,6 +468,8 @@ export interface ShortLinksSelect<T extends boolean = true> {
   code?: T;
   shape?: T;
   account?: T;
+  name?: T;
+  preview?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -595,7 +602,7 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   createdAt?: T;
 }
 /**
- * Kits for MakerWorld: one cutter, or several as a set – one 3MF with all of them on the plate, the pictures with all of them together, the texts with each one's links. “Download kit” builds the zip right here, from what is in the form; save to keep a kit.
+ * Kits for MakerWorld: one cutter, or several as a set – one 3MF with all of them on the plate, the pictures with all of them together, the texts with each one's links. “Download kit” builds the zip right here, from what is in the form; save to keep a kit. Each cutter gets a short link (under Short links, with its picture and the kit's name) – the texts use those.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "makerworld".

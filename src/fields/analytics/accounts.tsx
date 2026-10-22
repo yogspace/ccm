@@ -46,9 +46,11 @@ const load = async (): Promise<Totals | null> => {
     fetch(`/api/accounts?depth=0&limit=0&pagination=false&${select}`, {
       credentials: "include",
     }),
-    fetch("/api/short-links?depth=0&limit=1&select[code]=true", {
-      credentials: "include",
-    }),
+    // Visitors' only – not the MakerWorld kits' (no account).
+    fetch(
+      "/api/short-links?depth=0&limit=1&select[code]=true&where[account][exists]=true",
+      { credentials: "include" }
+    ),
   ]);
   if (!(accounts.ok && links.ok)) return null;
   return {

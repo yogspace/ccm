@@ -1,12 +1,17 @@
 import { randomInt, scrypt } from "node:crypto";
-import { PASSPHRASE_NUMBER, PASSPHRASE_WORDS } from "./rules";
+import {
+  CODE_CHARS,
+  CODE_LENGTH,
+  PASSPHRASE_NUMBER,
+  PASSPHRASE_WORDS,
+} from "./rules";
 import { WORDS } from "./words";
 
 /**
  * Passphrases – made here – and their keys, what the database keeps of them
- * and finds an account by: scrypt, peppered with the server's secret. Apart
- * from server.ts, so the accounts collection (its admin tools) can use them
- * without loading the Payload config it belongs to.
+ * and finds an account by: scrypt, peppered with the server's secret; and
+ * short links' codes. Apart from server.ts, so the collections (their admin
+ * tools) can use them without loading the Payload config they belong to.
  */
 
 export const secret = () => {
@@ -59,3 +64,10 @@ export const newPassphrase = (lang: string) => {
     )
     .join("-");
 };
+
+/** A short link's code – random, letters and digits. */
+export const newCode = () =>
+  Array.from(
+    { length: CODE_LENGTH },
+    () => CODE_CHARS[randomInt(CODE_CHARS.length)]
+  ).join("");

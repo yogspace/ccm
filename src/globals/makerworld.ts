@@ -30,7 +30,8 @@ const creationLink = (value: unknown) => {
  * them on the plate, the pictures with all of them together, the texts with
  * each one's links, Blender photos of all together and of each. Built and
  * zipped right here in the admin (fields/makerworld-kit.tsx) – nothing of
- * it reaches the site.
+ * it reaches the site but each cutter's short link, the kits' own (Short
+ * links: named, with a picture, kept for good), which the texts link to.
  */
 export const MakerWorld: GlobalConfig = {
   slug: "makerworld",
@@ -39,7 +40,7 @@ export const MakerWorld: GlobalConfig = {
   admin: {
     group: "Content",
     description:
-      "Kits for MakerWorld: one cutter, or several as a set – one 3MF with all of them on the plate, the pictures with all of them together, the texts with each one's links. “Download kit” builds the zip right here, from what is in the form; save to keep a kit.",
+      "Kits for MakerWorld: one cutter, or several as a set – one 3MF with all of them on the plate, the pictures with all of them together, the texts with each one's links. “Download kit” builds the zip right here, from what is in the form; save to keep a kit. Each cutter gets a short link (under Short links, with its picture and the kit's name) – the texts use those.",
   },
   fields: [
     {

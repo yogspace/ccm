@@ -12,19 +12,24 @@ import {
 } from "@payloadcms/ui";
 import type { TextFieldClientComponent, UIFieldClientComponent } from "payload";
 import { useMemo, useState } from "react";
+import { modelOf } from "../account/rules";
 import { loadCutter } from "../card/load-cutter";
 import { cookieSeed } from "../cookie-jar";
 import { setCookieColors } from "../cookies/dough";
 import { download } from "../export/download";
+import { nameBase } from "../export/file-name";
 import {
   type KitCutter,
   makerWorldZip,
   nearestColor,
+  shortLinkPreview,
 } from "../export/makerworld";
 import { FILAMENTS } from "../filaments";
+import type { MeshData } from "../geometry/mesh";
 import { GREETING_KEYS, greetingUrl, MAKERWORLD_GREETING } from "../greeting";
 import { currentForm } from "../link-keys";
 import { SITE } from "../seo";
+import { shortened } from "../short-shape";
 import type { CookieColors } from "../site-defaults";
 import { readHash } from "../url-state";
 import { SiteColorSwatches } from "./site-colors";
@@ -81,17 +86,80 @@ const creationHash = async (link: string) => {
   return currentForm(`#${query}`);
 };
 
+/** A request to the REST API; its first error as the message. */
+const send = async <T,>(url: string, init: RequestInit) => {
+  const response = await fetch(url, { ...init, credentials: "include" });
+  const body = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(
+      body?.errors?.[0]?.message ?? body?.error ?? response.statusText
+    );
+  }
+  return body as T;
+};
+
+/**
+ * A cutter's short link – the kits' own for its model (collections/
+ * short-links.ts), made the first time, named after the kit and the cutter
+ * (“Halloween – Pumpkin”), with a picture of the cutter to tell it by in the
+ * admin – and its code.
+ */
+const kitShortLink = async (
+  api: string,
+  hash: string,
+  {
+    name,
+    kitName,
+    mesh,
+    color,
+  }: { name: string; kitName: string; mesh: MeshData; color: string }
+) => {
+  const label = kitName && kitName !== name ? `${kitName} – ${name}` : name;
+  const link = await send<{ id: string; code: string; preview: boolean }>(
+    `${api}/short-links/kit`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shape: modelOf(hash), name: label }),
+    }
+  );
+  if (link.preview) return link.code;
+  const picture = await shortLinkPreview(mesh, color);
+  if (!picture) return link.code;
+  const form = new FormData();
+  form.append(
+    "file",
+    new File([picture], `${nameBase(name)}-${link.code}.png`, {
+      type: "image/png",
+    })
+  );
+  form.append("_payload", JSON.stringify({ alt: `${name} cookie cutter` }));
+  const { doc } = await send<{ doc: { id: string } }>(`${api}/media`, {
+    method: "POST",
+    body: form,
+  });
+  await send(`${api}/short-links/${link.id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ preview: doc.id }),
+  });
+  return link.code;
+};
+
 type Status =
   | { state: "idle" }
   | { state: "working"; note: string }
-  | { state: "done"; file: string }
+  | { state: "done"; file: string; local: string | null }
   | { state: "failed"; error: string };
 
 /**
  * A kit's “Download kit”: its cutters built from their links right here –
  * the site's own code, in this browser – then the zip as the editor's
  * MakerWorld button makes it (export/makerworld.ts), from what is in the
- * form, saved or not. The cookies in the site's colors (Site global).
+ * form, saved or not. The cookies in the site's colors (Site global). Each
+ * cutter's links are short links – the kits' own, kept for good – in this
+ * database: on the site, unless the admin runs elsewhere (a local copy),
+ * then there – they would lead nowhere on the site.
  */
 export const KitDownload: UIFieldClientComponent = ({ path }) => {
   const {
@@ -152,6 +220,8 @@ export const KitDownload: UIFieldClientComponent = ({ path }) => {
         message: kit.message.trim() || MAKERWORLD_GREETING.message,
         color: nearestColor(cardColors, kit.color),
       };
+      // The short links' site: this database's.
+      const { origin } = window.location;
 
       const cutters: KitCutter[] = [];
       for (const [i, link] of links.entries()) {
@@ -164,9 +234,20 @@ export const KitDownload: UIFieldClientComponent = ({ path }) => {
         const built = await loadCutter(shared);
         if (!built) throw new Error(`No cutter came out of link ${i + 1}.`);
         const { mesh, outline, icing, imprint, inlay } = built;
+        const name = shared.name.trim() || FALLBACK_NAME;
+        setStatus({
+          state: "working",
+          note: `Short link for cutter ${i + 1} of ${links.length}…`,
+        });
+        const code = await kitShortLink(api, hash, {
+          name,
+          kitName: kit.name.trim(),
+          mesh,
+          color: kit.color,
+        });
         cutters.push({
           mesh,
-          name: shared.name.trim() || FALLBACK_NAME,
+          name,
           size: shared.params.size,
           cookie: {
             dough: outline,
@@ -175,8 +256,8 @@ export const KitDownload: UIFieldClientComponent = ({ path }) => {
             inlay,
             seed: cookieSeed(outline),
           },
-          editorUrl: `${SITE}/${hash}`,
-          cardUrl: greetingUrl(hash, greeting, "en", SITE),
+          editorUrl: shortened(`${origin}/${hash}`, code),
+          cardUrl: shortened(greetingUrl(hash, greeting, "en", origin), code),
         });
       }
 
@@ -193,7 +274,11 @@ export const KitDownload: UIFieldClientComponent = ({ path }) => {
         cutters,
       });
       download(zip, `${folder}.zip`);
-      setStatus({ state: "done", file: `${folder}.zip` });
+      setStatus({
+        state: "done",
+        file: `${folder}.zip`,
+        local: origin === SITE ? null : window.location.host,
+      });
     } catch (error) {
       setStatus({
         state: "failed",
@@ -223,6 +308,12 @@ export const KitDownload: UIFieldClientComponent = ({ path }) => {
       {status.state === "done" && (
         <Pill pillStyle="success" size="small">
           {status.file} is in your downloads.
+        </Pill>
+      )}
+      {status.state === "done" && status.local && (
+        <Pill pillStyle="warning" size="small">
+          Its short links work on {status.local} only – for MakerWorld, download
+          the kit in the site's admin.
         </Pill>
       )}
       {status.state === "failed" && (

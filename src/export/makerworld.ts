@@ -507,6 +507,24 @@ const encode = (canvas: HTMLCanvasElement, jpeg = false) =>
     )
   );
 
+/** A short link's preview: twice Media's card size (collections/media.ts). */
+const PREVIEW = { width: 1200, height: 978 } as const;
+
+/**
+ * The picture of a kit's cutter for its short link in the admin
+ * (fields/makerworld-kit.tsx): the model alone, as in the zip.
+ */
+export const shortLinkPreview = (mesh: MeshData, color: string) => {
+  const canvas = paintModel(mesh, color, PREVIEW.width, PREVIEW.height);
+  if (!canvas) return Promise.resolve(null);
+  return new Promise<Blob | null>((resolve) =>
+    canvas.toBlob((blob) => {
+      canvas.width = canvas.height = 0;
+      resolve(blob);
+    }, "image/png")
+  );
+};
+
 /** The zip's name without .zip – and the folder it unpacks to. */
 const makerWorldFolder = (fileName: string) => `${fileName}-makerworld`;
 

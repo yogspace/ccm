@@ -1,14 +1,18 @@
-import { createHmac, randomInt, timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import configPromise from "@payload-config";
 import { type NextRequest, NextResponse } from "next/server";
 import { getPayload, type Payload } from "payload";
 import { currentForm } from "../link-keys";
 import type { Account } from "../payload-types";
-import { keyOf, newPassphrase, normalizePassphrase, secret } from "./keys";
+import {
+  keyOf,
+  newCode,
+  newPassphrase,
+  normalizePassphrase,
+  secret,
+} from "./keys";
 import {
   type AccountData,
-  CODE_CHARS,
-  CODE_LENGTH,
   DAY_MS,
   EMPTY_DAYS,
   goneAt,
@@ -16,7 +20,7 @@ import {
   SESSION_DAYS,
 } from "./rules";
 
-export { keyOf, newPassphrase, normalizePassphrase };
+export { keyOf, newCode, newPassphrase, normalizePassphrase };
 
 /**
  * Accounts on the server: no name, no email – a passphrase of three plain
@@ -28,13 +32,6 @@ export { keyOf, newPassphrase, normalizePassphrase };
  */
 
 export const getAccountsPayload = () => getPayload({ config: configPromise });
-
-/** A short link's code – random, letters and digits. */
-export const newCode = () =>
-  Array.from(
-    { length: CODE_LENGTH },
-    () => CODE_CHARS[randomInt(CODE_CHARS.length)]
-  ).join("");
 
 // ─── The login cookie ───────────────────────────────────────────────────────
 
