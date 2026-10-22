@@ -671,7 +671,7 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   createdAt?: T;
 }
 /**
- * Kits for MakerWorld: one cutter, or several as a set – one 3MF with all of them on the plate, the pictures with all of them together, the texts with each one's links. “Download kit” builds the zip right here, from what is in the form; save to keep a kit. Each cutter gets a short link once saved or downloaded – one per drawing, the editor's link and a card's alike (under Short links, with the kit's name; the picture comes with the download) – the texts use those.
+ * Kits for MakerWorld: one cutter, or several as a set – one 3MF with all of them on the plate, the pictures with all of them together, the texts with each one's links. “Download kit” builds the zip right here, from what is in the form; save to keep a kit. Each cutter gets a short link once saved or downloaded – one per drawing, the editor's link and a card's alike (under Short links, with the kit's name and a picture, drawn in this browser right after saving – keep the page open until it is done) – the texts use those.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "makerworld".

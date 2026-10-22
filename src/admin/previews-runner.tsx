@@ -32,8 +32,7 @@ export const PreviewsRunner = () => {
   const run = async (all: boolean) => {
     setState({ status: "running", all, done: 0, of: 0 });
     try {
-      const links = await creationsOf(api);
-      const todo = all ? links : links.filter(({ preview }) => !preview);
+      const todo = await creationsOf(api, all ? {} : { missing: true });
       const failed: string[] = [];
       for (const [i, link] of todo.entries()) {
         setState({ status: "running", all, done: i, of: todo.length });

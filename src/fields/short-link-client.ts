@@ -42,10 +42,18 @@ export type ShortLinkCreation = {
   preview: boolean;
 };
 
-/** Short links with their creations: all, or those of `ids` or `codes`. */
+/**
+ * Short links with their creations: all, or those of `ids` or `codes` –
+ * only the admin's own (`own`), only those without a picture (`missing`).
+ */
 export const creationsOf = async (
   api: string,
-  which: { ids?: string[]; codes?: string[] } = {}
+  which: {
+    ids?: string[];
+    codes?: string[];
+    own?: boolean;
+    missing?: boolean;
+  } = {}
 ) =>
   (
     await send<{ links: ShortLinkCreation[] }>(`${api}/short-links/creations`, {

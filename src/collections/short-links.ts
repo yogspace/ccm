@@ -1,4 +1,4 @@
-import type { CollectionConfig, Payload } from "payload";
+import type { CollectionConfig, Payload, Where } from "payload";
 import { authenticated } from "../access/authenticated";
 import { newCode } from "../account/keys";
 import { isCode, isSavedCookie, isShape, modelOf } from "../account/rules";
@@ -309,10 +309,12 @@ export const ShortLinks: CollectionConfig = {
       },
     },
     {
-      // Every short link – or those of `ids` or `codes` – with its creation,
-      // whole, and the color to draw it in: for the Seeds page's pictures
-      // (admin/previews-runner.tsx), a code typed above the list and the
-      // short links picked in a kit (fields/makerworld-kit.tsx).
+      // Every short link – or those of `ids` or `codes`, only the admin's
+      // own (`own`), only those without a picture (`missing`) – with its
+      // creation, whole, and the color to draw it in: for the Seeds page's
+      // pictures (admin/previews-runner.tsx), a kit's saved
+      // (fields/kit-previews.tsx), a code typed above the list and the short
+      // links picked in a kit (fields/makerworld-kit.tsx).
       path: "/creations",
       method: "post",
       handler: async (req) => {
@@ -324,13 +326,14 @@ export const ShortLinks: CollectionConfig = {
         const ids: string[] | null = Array.isArray(body?.ids)
           ? body.ids.filter((id: unknown) => typeof id === "string")
           : null;
+        const where: Where[] = [];
+        if (ids) where.push({ id: { in: ids } });
+        else if (codes) where.push({ code: { in: codes } });
+        if (body?.own === true) where.push({ account: { exists: false } });
+        if (body?.missing === true) where.push({ preview: { exists: false } });
         const { docs } = await req.payload.find({
           collection: "short-links",
-          where: ids
-            ? { id: { in: ids } }
-            : codes
-              ? { code: { in: codes } }
-              : undefined,
+          where: { and: where },
           pagination: false,
           depth: 0,
           overrideAccess: true,

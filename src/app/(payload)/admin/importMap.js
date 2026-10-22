@@ -10,6 +10,7 @@ import { FilamentField as FilamentField_c84eff2b668d5c6e0bbc019db3738826 } from 
 import { CutterRowLabel as CutterRowLabel_c84eff2b668d5c6e0bbc019db3738826 } from '@/fields/makerworld-kit'
 import { KitDownload as KitDownload_c84eff2b668d5c6e0bbc019db3738826 } from '@/fields/makerworld-kit'
 import { KitRowLabel as KitRowLabel_c84eff2b668d5c6e0bbc019db3738826 } from '@/fields/makerworld-kit'
+import { KitPreviews as KitPreviews_0b13c044a941fafbeaedbe81c334dacb } from '@/fields/kit-previews'
 import { CardColorField as CardColorField_c89e32564ea960d4602226693ff26cf7 } from '@/fields/card-color-field'
 import { CardColorRowLabel as CardColorRowLabel_c89e32564ea960d4602226693ff26cf7 } from '@/fields/card-color-field'
 import { ColorField as ColorField_c89e32564ea960d4602226693ff26cf7 } from '@/fields/card-color-field'
@@ -57,6 +58,7 @@ export const importMap = {
   "@/fields/makerworld-kit#CutterRowLabel": CutterRowLabel_c84eff2b668d5c6e0bbc019db3738826,
   "@/fields/makerworld-kit#KitDownload": KitDownload_c84eff2b668d5c6e0bbc019db3738826,
   "@/fields/makerworld-kit#KitRowLabel": KitRowLabel_c84eff2b668d5c6e0bbc019db3738826,
+  "@/fields/kit-previews#KitPreviews": KitPreviews_0b13c044a941fafbeaedbe81c334dacb,
   "@/fields/card-color-field#CardColorField": CardColorField_c89e32564ea960d4602226693ff26cf7,
   "@/fields/card-color-field#CardColorRowLabel": CardColorRowLabel_c89e32564ea960d4602226693ff26cf7,
   "@/fields/card-color-field#ColorField": ColorField_c89e32564ea960d4602226693ff26cf7,

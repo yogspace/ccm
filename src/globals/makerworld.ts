@@ -49,8 +49,14 @@ export const MakerWorld: GlobalConfig = {
   access: { read: authenticated, update: authenticated },
   admin: {
     group: "Content",
+    // Beside Save: the short links' pictures, drawn once saved.
+    components: {
+      elements: {
+        beforeDocumentControls: ["@/fields/kit-previews#KitPreviews"],
+      },
+    },
     description:
-      "Kits for MakerWorld: one cutter, or several as a set – one 3MF with all of them on the plate, the pictures with all of them together, the texts with each one's links. “Download kit” builds the zip right here, from what is in the form; save to keep a kit. Each cutter gets a short link once saved or downloaded – one per drawing, the editor's link and a card's alike (under Short links, with the kit's name; the picture comes with the download) – the texts use those.",
+      "Kits for MakerWorld: one cutter, or several as a set – one 3MF with all of them on the plate, the pictures with all of them together, the texts with each one's links. “Download kit” builds the zip right here, from what is in the form; save to keep a kit. Each cutter gets a short link once saved or downloaded – one per drawing, the editor's link and a card's alike (under Short links, with the kit's name and a picture, drawn in this browser right after saving – keep the page open until it is done) – the texts use those.",
   },
   fields: [
     {
@@ -138,8 +144,8 @@ export const MakerWorld: GlobalConfig = {
       async ({ doc, req }) => {
         // Saved: every cutter has its short link – the admin's own for its
         // model, named after kit and cutter where it has no name yet (the
-        // kit downloaded renames it). Its picture follows with the kit's
-        // download, or on the Seeds page (only the browser draws).
+        // kit downloaded renames it). Its picture follows from the browser,
+        // right after (fields/kit-previews.tsx) – the server has no 3D.
         for (const kit of (doc as Makerworld).kits ?? []) {
           for (const cutter of kit.cutters ?? []) {
             try {
