@@ -332,9 +332,8 @@ export const buildCutter = (
     // inner flanges are closed, pockets enclosed by the plate rounded off or,
     // if small, closed – they print badly and catch crumbs. Embossing cuts
     // nothing: it is held plainly, by straight links to the strokes – no
-    // flange, its pockets open but for hairlines. Their corners are rounded
-    // off where they meet it all the same: a link ends square and only just
-    // in, so at a tip or slanting in it would leave a slit beside its end.
+    // flange, its pockets open but for hairlines – where a link meets it, it
+    // flares into it, its corners rounded off like any link's.
     const cookieAndWalls = grow(shape, wall);
     const walls = track(cookieAndWalls.subtract(shape));
     const outer: CrossSection[] = [];
@@ -358,6 +357,17 @@ export const buildCutter = (
         }
       }
     }
+    // What the embossing encloses – letters' counters, a ring's inside.
+    const reliefPockets = relief
+      ? track(
+          track(
+            new CrossSection(
+              relief.toPolygons().filter((ring) => signedArea(ring) > 0),
+              "Positive"
+            )
+          ).subtract(relief)
+        )
+      : null;
     for (const { from, to, length, kind, start, end } of connections) {
       if (kind !== "flat" || length <= 0) continue;
       const dir: Point = [
@@ -377,23 +387,25 @@ export const buildCutter = (
         ).intersect(cookieAndWalls)
       );
       if (link.isEmpty()) continue;
-      if (!(relief && (start.relief || end.relief))) {
+      if (!(relief && reliefPockets && (start.relief || end.relief))) {
         links.push(link);
         continue;
       }
       // Where it meets embossing, its square end would stick out beside a
       // tip or a stroke's round end, or leave a slit where it slants in: it
       // flares into it instead – the hull of its end and the embossing
-      // around there.
+      // around there, a hair inside its edges (faces lying on each other
+      // overlap), never into its pockets.
       const flare = (at: Point) => {
         const disk = (radius: number) =>
           track(track(CrossSection.circle(radius, SEGMENTS)).translate(at));
-        return track(
+        const hull = track(
           CrossSection.hull([
             track(link.intersect(disk(bridgeWidth))),
-            track(relief.intersect(disk(bridgeWidth * FLARE))),
+            grow(track(relief.intersect(disk(bridgeWidth * FLARE))), -DUST),
           ])
         );
+        return track(hull.subtract(reliefPockets));
       };
       const ends = [
         link,
@@ -427,18 +439,34 @@ export const buildCutter = (
           ).intersect(cookieAndWalls)
         );
       };
-      // The embossing's own links round off onto it too.
-      const linked = track(CrossSection.union([...links, ...plain]));
+      const linked = track(CrossSection.union(links));
       const fillets =
-        links.length + plain.length > 0
-          ? gaps(
-              relief ? track(joined.add(relief)) : joined,
-              FILLET,
-              linked,
-              FILLET
+        links.length > 0 ? gaps(joined, FILLET, linked, FILLET) : linked;
+      // The embossing's links round off onto it as well – without the dust
+      // along its edges, then a hair into it (faces lying on each other
+      // overlap), never into its pockets.
+      const onEmbossing =
+        relief && reliefPockets && plain.length > 0
+          ? track(
+              track(
+                grow(
+                  grow(
+                    gaps(
+                      track(joined.add(relief)),
+                      FILLET,
+                      track(CrossSection.union(plain)),
+                      FILLET
+                    ),
+                    -DUST
+                  ),
+                  2 * DUST
+                ).subtract(reliefPockets)
+              ).intersect(cookieAndWalls)
             )
-          : linked;
-      const rounded = track(joined.add(fillets));
+          : null;
+      const rounded = track(
+        joined.add(onEmbossing ? track(fillets.add(onEmbossing)) : fillets)
+      );
       // Only next to inner pieces – narrow cookie along the outside (tips,
       // thin arms) stays open from above. Offsetting curves leaves dust.
       // Closed after the fillets: where one fills a narrow strip, it ends
