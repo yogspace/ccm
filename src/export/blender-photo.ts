@@ -1,11 +1,9 @@
 import { strToU8, type Zippable } from "fflate";
-import type { MeshData } from "../geometry/mesh";
-import { toStl } from "./stl";
 
 /**
- * A photo-like picture of the cutter, rendered by Blender (Cycles) on the
- * admin's own computer: the MakerWorld zip carries the cutter as STL, this
- * Python script that builds the scene and renders, and a launcher to run
+ * Photo-like pictures of the cutters, rendered by Blender (Cycles) on the
+ * admin's own computer: next to the MakerWorld zip's 3MF, this Python
+ * script that reads it, builds the scene and renders, and a launcher to run
  * in Terminal. Blender runs in the background, without a window.
  */
 
@@ -16,19 +14,23 @@ const LAUNCHER = "render-photo.command";
 
 // Plain Python – no backslashes and no dollar-brace, so it fits a template.
 const PYTHON = `"""
-Renders a photo-like picture of a cookie cutter with Blender's Cycles: the
+Renders a photo-like picture of cookie cutters with Blender's Cycles: the
 print standing on a light stone slab in soft window light, its layers as
 real relief, the PLA a little translucent. Runs in the background:
 
-    blender -b --factory-startup -P render-photo.py -- cutter.stl photo.jpg "#ff6a1f"
+    blender -b --factory-startup -P render-photo.py -- cutters.3mf photo.jpg "#ff6a1f"
 
-An optional fourth argument sets the samples (default 256): more is
-cleaner and slower.
+The 3MF as the kit has it (Bambu Studio's way): all its cutters as they lie
+on the plate - or, with a fourth argument, only that one (from 1). An
+optional fifth argument sets the samples (default 256): more is cleaner and
+slower.
 """
 
 import math
 import os
 import sys
+import xml.etree.ElementTree as ET
+import zipfile
 
 import bmesh
 import bpy
@@ -38,16 +40,59 @@ LAYER = 0.2  # mm - a printed layer, as the 3MF prints it
 LINE = 0.42  # mm - a line of the top layer, side by side
 MM = 0.001  # Blender works in meters
 WIDTH, HEIGHT = 3200, 2400
+CORE = "{http://schemas.microsoft.com/3dmanufacturing/core/2015/02}"
+PRODUCTION = "{http://schemas.microsoft.com/3dmanufacturing/production/2015/06}"
 
 
 def arguments():
     args = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
     if len(args) < 3:
         sys.exit(
-            "usage: blender -b -P render-photo.py -- <cutter.stl> <photo.jpg> <#rrggbb> [samples]"
+            "usage: blender -b -P render-photo.py -- <cutters.3mf> <photo.jpg> <#rrggbb> [cutter|all] [samples]"
         )
-    samples = int(args[3]) if len(args) > 3 else 256
-    return os.path.abspath(args[0]), os.path.abspath(args[1]), args[2], samples
+    which = int(args[3]) if len(args) > 3 and args[3].isdigit() else 0
+    samples = int(args[4]) if len(args) > 4 else 256
+    return os.path.abspath(args[0]), os.path.abspath(args[1]), args[2], which, samples
+
+
+def transform(text):
+    """A 3MF transform (twelve numbers, for row vectors) as a matrix."""
+    m = [float(value) for value in text.split()] if text else [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]
+    return Matrix(
+        (
+            (m[0], m[3], m[6], m[9]),
+            (m[1], m[4], m[7], m[10]),
+            (m[2], m[5], m[8], m[11]),
+            (0, 0, 0, 1),
+        )
+    )
+
+
+def read_3mf(path, which):
+    """
+    The build's items, each its object's mesh where the item puts it: all of
+    them, or only the which-th (from 1). Vertices and triangles.
+    """
+    vertices, triangles = [], []
+    with zipfile.ZipFile(path) as archive:
+        model = ET.fromstring(archive.read("3D/3dmodel.model"))
+        objects = {node.get("id"): node for node in model.iter(CORE + "object")}
+        items = list(model.iter(CORE + "item"))
+        for item in [items[which - 1]] if which else items:
+            place = transform(item.get("transform"))
+            for component in objects[item.get("objectid")].iter(CORE + "component"):
+                part = archive.read(component.get(PRODUCTION + "path").lstrip("/"))
+                matrix = place @ transform(component.get("transform"))
+                for mesh in ET.fromstring(part).iter(CORE + "mesh"):
+                    start = len(vertices)
+                    for v in mesh.iter(CORE + "vertex"):
+                        point = Vector((float(v.get("x")), float(v.get("y")), float(v.get("z"))))
+                        vertices.append(tuple(matrix @ point))
+                    for t in mesh.iter(CORE + "triangle"):
+                        triangles.append(
+                            (start + int(t.get("v1")), start + int(t.get("v2")), start + int(t.get("v3")))
+                        )
+    return vertices, triangles
 
 
 def linear(hex_color):
@@ -99,14 +144,15 @@ def waves(tree, coordinate, width):
     return maths(tree, "MULTIPLY_ADD", maths(tree, "COSINE", phase), 0.5, 0.5)
 
 
-def import_cutter(path):
-    """The cutter in millimeters as exported: centered, rim on the slab."""
-    try:
-        bpy.ops.wm.stl_import(filepath=path)
-    except (AttributeError, RuntimeError):
-        bpy.ops.import_mesh.stl(filepath=path)
-    cutter = bpy.context.selected_objects[0]
-    mesh = cutter.data
+def import_cutter(path, which):
+    """The cutters in millimeters as exported: centered, rims on the slab."""
+    vertices, triangles = read_3mf(path, which)
+    mesh = bpy.data.meshes.new("Cutter")
+    mesh.from_pydata(vertices, [], triangles)
+    mesh.update()
+    cutter = bpy.data.objects.new("Cutter", mesh)
+    bpy.context.scene.collection.objects.link(cutter)
+    cutter.select_set(True)
 
     # One vertex where triangles meet, so smooth shading can blend them.
     shape = bmesh.new()
@@ -268,11 +314,11 @@ def use_gpu(scene):
 
 
 def main():
-    stl_path, out_path, hex_color, samples = arguments()
+    model_path, out_path, hex_color, which, samples = arguments()
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
 
-    cutter, size = import_cutter(stl_path)
+    cutter, size = import_cutter(model_path, which)
     cutter.data.materials.append(pla(hex_color))
 
     bpy.ops.mesh.primitive_plane_add(size=4, location=(0, 0, 0))
@@ -352,18 +398,18 @@ def main():
 main()
 `;
 
-/** A photo to render: what is in it, as one mesh, and its files' name. */
-export type Photo = { mesh: MeshData; fileName: string };
-
-const stlOf = (fileName: string) => `${fileName}.stl`;
-const jpegOf = (fileName: string) => `${fileName}-photo.jpg`;
+/**
+ * A photo to render: its file's name, and which of the 3MF's cutters it
+ * shows – one (from 1) or, without, all of them as they lie on the plate.
+ */
+export type Photo = { fileName: string; cutter?: number };
 
 /**
- * The launcher: runs Blender in the background with each photo's file and
- * the color, one after another, and opens each photo it leaves next to
- * them as soon as it is there.
+ * The launcher: runs Blender in the background with the 3MF, each photo's
+ * cutter and the color, one after another, and opens each photo it leaves
+ * next to them as soon as it is there.
  */
-const launcher = (photos: Photo[], color: string) => `#!/bin/sh
+const launcher = (model: string, photos: Photo[], color: string) => `#!/bin/sh
 # Renders photo-like pictures of the cutters with Blender, in the
 # background, and opens each - a minute or two apiece. macOS won't run a
 # downloaded script on a double-click; in Terminal it runs from anywhere:
@@ -376,12 +422,15 @@ if [ -z "$BLENDER" ]; then
   exit 1
 fi
 render() {
-  echo "Rendering $2 - this takes a minute or two ..."
-  "$BLENDER" -b --factory-startup -P ${BLENDER_SCRIPT} -- "$1" "$2" "${color}" || exit 1
-  open "$2"
+  echo "Rendering $1 - this takes a minute or two ..."
+  "$BLENDER" -b --factory-startup -P ${BLENDER_SCRIPT} -- "${model}" "$1" "${color}" "$2" || exit 1
+  open "$1"
 }
 ${photos
-  .map(({ fileName }) => `render "${stlOf(fileName)}" "${jpegOf(fileName)}"`)
+  .map(
+    ({ fileName, cutter }) =>
+      `render "${fileName}-photo.jpg" ${cutter ?? "all"}`
+  )
   .join("\n")}
 `;
 
@@ -392,25 +441,21 @@ ${photos
 const EXECUTABLE = 0o100755 * 0x10000;
 
 /**
- * The zip's files for the photos, in the order they are rendered – a set's
- * all together, then each cutter on its own: each as STL, the script, the
- * launcher.
+ * The zip's files for the photos – the script and the launcher; they read
+ * the kit's 3MF (`model`). In the order they are rendered: a set's all
+ * together, then each cutter on its own.
  */
-export const blenderFiles = async (
+export const blenderFiles = (
+  model: string,
   photos: Photo[],
   color: string
-): Promise<Zippable> => {
-  const files: Zippable = {};
-  for (const { mesh, fileName } of photos) {
-    files[stlOf(fileName)] = new Uint8Array(await toStl(mesh).arrayBuffer());
-  }
-  files[BLENDER_SCRIPT] = strToU8(PYTHON);
-  files[LAUNCHER] = [
-    strToU8(launcher(photos, color)),
+): Zippable => ({
+  [BLENDER_SCRIPT]: strToU8(PYTHON),
+  [LAUNCHER]: [
+    strToU8(launcher(model, photos, color)),
     { os: 3, attrs: EXECUTABLE },
-  ];
-  return files;
-};
+  ],
+});
 
 /**
  * The Terminal line that renders the photo – the zip unpacked where it was

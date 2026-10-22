@@ -613,15 +613,15 @@ export const makerWorldZip = async ({ name, color, cutters }: Kit) => {
   );
   // A set's photo with all of them, then each one's on its own.
   const photos = [
-    { mesh, fileName },
+    { fileName },
     ...(set
-      ? cutters.map((cutter) => ({
-          mesh: cutter.mesh,
+      ? cutters.map((cutter, i) => ({
           fileName: fileBase(cutter.name, cutter.size),
+          cutter: i + 1,
         }))
       : []),
   ];
-  Object.assign(files, await blenderFiles(photos, color));
+  Object.assign(files, blenderFiles(`${fileName}.3mf`, photos, color));
   return {
     zip: new Blob([zipSync(files)], { type: "application/zip" }),
     folder,
