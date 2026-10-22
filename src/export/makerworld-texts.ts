@@ -190,7 +190,6 @@ export const makerWorldTexts = ({
   // Always “Cookie Cutter - Skull”; a name that says cutter already stays.
   const title = /cutter/i.test(name) ? name : `Cookie Cutter - ${name}`;
   const fromName = nameTags(name);
-  const postTitle = `🍪 ${title} – draw your own`;
   const post = `I drew this ${name} cookie cutter in my browser and printed it the same evening. 🍪
 
 Want a different one? Cookie Cutter Maker turns any doodle or picture into a print-ready cutter – free, no account. Holes become inner blades, details can be embossed, and you can send it as a greeting card.
@@ -245,12 +244,11 @@ ${field("title", "Title", html(title))}
   ${chips(TAGS.filter((tag) => !fromName.includes(tag)))}
 </section>
 ${field("description", "Description", description, true)}
-${field("post-title", "Community post – title", html(postTitle))}
-${field("post-text", `Community post – text (${[...post].length} / ${POST_LIMIT} characters)`, html(post))}
+${field("post-text", `Community post (${[...post].length} / ${POST_LIMIT} characters)`, html(post))}
 <section>
   <div class="head"><span class="label">Print profile</span></div>
   ${row("profile-name", "Name", `${title} – PLA, 0.20 mm`)}
-  ${row("profile-text", "Description", `${size}. The rim sits on the bed, no supports needed. Want it bigger, smaller or different? Open it in the editor: ${editorUrl}`)}
+  ${row("profile-text", "Description", `${size}. The rim sits on the bed, no supports needed. Want it bigger, smaller or different? Open it in the editor (link in the description).`)}
 </section>
 <section>
   <div class="head"><span class="label">Links</span></div>
