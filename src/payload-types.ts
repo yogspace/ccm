@@ -1231,6 +1231,14 @@ export interface Translation {
      */
     clearName?: string | null;
     /**
+     * DE: MakerWorld  ·  EN: MakerWorld
+     */
+    makerWorld?: string | null;
+    /**
+     * DE: Nur für dich als Admin: 3MF, Bilder und Upload-Text für MakerWorld als ZIP  ·  EN: Only for you as admin: the 3MF, pictures and the upload text for MakerWorld in one zip
+     */
+    makerWorldHint?: string | null;
+    /**
      * DE: Name deiner Kreation  ·  EN: Name of your creation
      */
     name?: string | null;
@@ -1872,6 +1880,8 @@ export interface TranslationsSelect<T extends boolean = true> {
     | T
     | {
         clearName?: T;
+        makerWorld?: T;
+        makerWorldHint?: T;
         name?: T;
         namePlaceholder?: T;
         signature?: T;

@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import CookieIcon from "../components/cookie-icon";
+import { cookiePieces } from "../cookies/pieces";
 import type { CookieHandle } from "../cookies/renderer";
 import type { CookieShape } from "../cookies/shape-cookie";
 import { useCardColors } from "../site-context";
@@ -14,9 +15,9 @@ import {
   angleOf,
   busy,
   type Cookie,
+  dropAfter,
   type Knock,
   letGo,
-  PER_SIDE,
   pull,
   SCALES,
   STEP,
@@ -42,7 +43,9 @@ import { type Crumbs, createCrumbs } from "./crumbs";
  * buttons and the walls and falls again. Their bottoms are heavier: mostly they
  * land icing up. Where one knocks hard against something, it crumbles a
  * little (crumbs.ts). Once everything lies still the simulation sleeps.
- * Each is baked on its own: icing and sprinkles differ.
+ * Each is baked on its own: icing and sprinkles differ. A creation that
+ * bakes into several cookies drops in as its pieces, each falling on its
+ * own (cookies/pieces.ts).
  *
  * The physics is seen from the side (cookie-physics.ts), the page measured
  * for it on resize (cookie-scene.ts). The 3D cookie is turned to match,
@@ -56,6 +59,10 @@ import { type Crumbs, createCrumbs } from "./crumbs";
 const ROLLS = [12, -40, 75, 160, -110, 30];
 /** How far the camera looks down at the cookies (the renderer's tilt). */
 const SIDE_TILT = -1.2;
+/** At most this many cookies in the rain – each piece counts as one. */
+const MOST = 12;
+/** Pieces smaller than this share of the largest stay out – crumbs. */
+const LEAST = 0.3;
 
 const CardCookies = ({ shape }: { shape: CookieShape }) => {
   const layerRef = useRef<HTMLDivElement>(null);
@@ -69,20 +76,44 @@ const CardCookies = ({ shape }: { shape: CookieShape }) => {
   const wake = useRef<() => void>(() => undefined);
   const [scene, setScene] = useState<Scene | null>(null);
   const [held, setHeld] = useState<number | null>(null);
-  const count = scene ? PER_SIDE * 2 : 0;
   // Each baked on its own – its own sprinkles, its icing in one of the
-  // favorite colors (CMS), picked at random; plain and chocolate mixed.
+  // favorite colors (CMS), picked at random; plain and chocolate mixed. In
+  // several pieces, each piece is a cookie of its own, as large next to the
+  // others as it was cut – the largest as large as a whole one – and of a
+  // batch with them: fewer batches, about as much dough as six cookies.
   const colors = useCardColors();
-  const shapes = useMemo(
-    () =>
-      SCALES.map((_, i) => ({
-        ...shape,
-        seed: shape.seed + i * 7919,
-        glaze: colors[Math.floor(Math.random() * colors.length)]?.color,
-        chocolate: Math.random() < 0.4,
-      })),
-    [shape, colors]
-  );
+  const bodies = useMemo(() => {
+    const pieces = cookiePieces(shape)
+      .filter(({ scale }) => scale >= LEAST)
+      .slice(0, MOST);
+    const dough = pieces.reduce((sum, { scale }) => sum + scale ** 2, 0);
+    const batches = Math.max(
+      1,
+      Math.min(
+        SCALES.length,
+        Math.round(SCALES.length / dough),
+        Math.floor(MOST / pieces.length)
+      )
+    );
+    return Array.from({ length: batches }, (_, batch) => {
+      const glaze = colors[Math.floor(Math.random() * colors.length)]?.color;
+      const chocolate = Math.random() < 0.4;
+      return pieces.map((piece) => ({
+        shape: {
+          ...piece.shape,
+          seed: piece.shape.seed + batch * 7919,
+          glaze,
+          chocolate,
+        },
+        size: Math.round(sizeOf(batch) * piece.scale),
+        // Left and right by turns, a batch's pieces together.
+        side: batch % 2,
+      }));
+    }).flat();
+  }, [shape, colors]);
+  const count = scene ? bodies.length : 0;
+  /** What the cookies falling now were spawned for. */
+  const spawnedFor = useRef(bodies);
 
   // The crumbs live as long as the page.
   useEffect(() => {
@@ -149,10 +180,11 @@ const CardCookies = ({ shape }: { shape: CookieShape }) => {
     }
     laidIn.current = scene;
 
-    // Above the screen, left and right by turns, each at its own slant.
-    if (cookies.current.length !== count) {
-      cookies.current = Array.from({ length: count }, (_, i) =>
-        spawn(i, columns, now)
+    // Above the screen on their sides, each at its own slant.
+    if (cookies.current.length !== count || spawnedFor.current !== bodies) {
+      spawnedFor.current = bodies;
+      cookies.current = bodies.map(({ size, side }, i) =>
+        spawn({ size, side, after: dropAfter(i, count) }, columns, now)
       );
     }
 
@@ -240,7 +272,7 @@ const CardCookies = ({ shape }: { shape: CookieShape }) => {
       cancelAnimationFrame(frame);
       running = false;
     };
-  }, [scene, count]);
+  }, [scene, count, bodies]);
 
   // Grab, swing, throw.
   const grab =
@@ -297,7 +329,7 @@ const CardCookies = ({ shape }: { shape: CookieShape }) => {
         className="pointer-events-none absolute inset-0 -z-1"
         ref={crumbBoxRef}
       />
-      {Array.from({ length: count }, (_, i) => (
+      {bodies.slice(0, count).map((body, i) => (
         // Positioned by the physics (transform), so they start at the corner.
         <div
           className="pointer-events-auto absolute top-0 left-0 -z-1 cursor-grab touch-none select-none will-change-transform data-held:z-5 data-held:cursor-grabbing"
@@ -318,10 +350,10 @@ const CardCookies = ({ shape }: { shape: CookieShape }) => {
               const cookie = cookies.current[i];
               if (handle && cookie) handle.setSide(angleOf(cookie));
             }}
-            roll={ROLLS[i]}
-            shape={shapes[i]}
+            roll={ROLLS[i % ROLLS.length]}
+            shape={body.shape}
             side
-            size={sizeOf(i)}
+            size={body.size}
             tilt={SIDE_TILT}
           />
         </div>

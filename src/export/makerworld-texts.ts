@@ -1,4 +1,5 @@
 import type { MeshData } from "../geometry/mesh";
+import { SITE } from "../seo";
 import { nameTags } from "./name-tags";
 
 /**
@@ -34,7 +35,6 @@ const TAGS = [
   "gift",
 ];
 
-const SITE = "https://ccm.mxwr.de";
 /** MakerWorld's limit for a community post. */
 const POST_LIMIT = 500;
 

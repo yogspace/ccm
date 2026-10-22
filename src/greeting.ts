@@ -39,12 +39,13 @@ const OLD_KEYS: Partial<Record<keyof Greeting, string>> = {
  * Link to the card for a creation's hash (`#n=…&s=…`) – in the sender's
  * language, which the message is written in too: `/de/card#…`. The words
  * first, readable in the link; the creation after them, its shape – long
- * and unreadable – last.
+ * and unreadable – last. On this site, unless `origin` names another.
  */
 export const greetingUrl = (
   creationHash: string,
   greeting: Greeting,
-  lang: string
+  lang: string,
+  origin = window.location.origin
 ) => {
   const query = new URLSearchParams();
   for (const field of ["to", "from", "message"] as const) {
@@ -57,7 +58,7 @@ export const greetingUrl = (
   creation.delete("s");
   for (const [key, value] of creation) query.append(key, value);
   if (shape) query.set("s", shape);
-  return `${window.location.origin}/${lang}/card#${query}`;
+  return `${origin}/${lang}/card#${query}`;
 };
 
 export const readGreeting = (hash: string): Greeting => {

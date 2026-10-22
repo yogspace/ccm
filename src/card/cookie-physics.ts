@@ -101,13 +101,29 @@ const measures = (size: number) => {
 };
 
 /**
- * The `i`th cookie, above the screen – left and right by turns, each at its
- * own slant – dropping in from `now` on, one after another.
+ * A cookie to drop in: its canvas (px), the side it falls on (0: left, 1:
+ * right) and when (ms after the first).
  */
-export const spawn = (i: number, columns: Column[], now: number): Cookie => {
-  const size = sizeOf(i);
+export type Drop = { size: number; side: number; after: number };
+
+/**
+ * When the `i`th of `count` cookies drops in (ms after the first): six one
+ * after another in about two seconds – more of them closer together.
+ */
+export const dropAfter = (i: number, count: number) =>
+  i * 380 * Math.min(1, (PER_SIDE * 2) / count);
+
+/**
+ * A cookie above the screen on its side, at its own slant – dropping in from
+ * `now` on, when its turn comes.
+ */
+export const spawn = (
+  { size, side, after }: Drop,
+  columns: Column[],
+  now: number
+): Cookie => {
   const shape = measures(size);
-  const [from, to] = columns[i % 2];
+  const [from, to] = columns[side];
   const margin = size * 0.45;
   const x =
     to - from > margin * 2
@@ -126,7 +142,7 @@ export const spawn = (i: number, columns: Column[], now: number): Cookie => {
     a: end(-1),
     b: end(1),
     size,
-    dropAt: now + 500 + i * 380 + Math.random() * 160,
+    dropAt: now + 500 + after + Math.random() * 160,
     held: false,
     touched: false,
     grip: 0.5,

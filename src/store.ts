@@ -321,12 +321,19 @@ const currentHash = () =>
 /** At the top the page is shared: without a language path, recipients land in their own language. */
 export const pageUrl = () => `${window.location.origin}/`;
 
-/** Below, the creation: a link with the drawing, also without a language path. */
-export const creationUrl = () => `${window.location.origin}/${currentHash()}`;
+/**
+ * Below, the creation: a link with the drawing, also without a language path
+ * – on this site, unless `origin` names another (the live one, for MakerWorld).
+ */
+export const creationUrl = (origin = window.location.origin) =>
+  `${origin}/${currentHash()}`;
 
 /** The creation as a greeting card (its own page), in this language. */
-export const greetingLink = (greeting: Greeting, lang: string) =>
-  greetingUrl(currentHash(), greeting, lang);
+export const greetingLink = (
+  greeting: Greeting,
+  lang: string,
+  origin?: string
+) => greetingUrl(currentHash(), greeting, lang, origin);
 
 /**
  * Keeps the creation on screen as a cookie in the bar (the newest first; the

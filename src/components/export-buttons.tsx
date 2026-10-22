@@ -15,6 +15,7 @@ import {
 } from "../export/makerworld";
 import { toStl } from "../export/stl";
 import { toThreeMf } from "../export/three-mf";
+import { SITE } from "../seo";
 import { useCardColors } from "../site-context";
 import { creationUrl, greetingLink, saveCookie, store } from "../store";
 import { hasEmboss } from "../url-state";
@@ -74,8 +75,9 @@ const ExportButtons = ({ preview }: Props) => {
 
   /**
    * In the color the cutter has on screen; the card's link can only name
-   * one of the CMS's card colors – the closest. Not counted in the
-   * statistics: it is the admin's own.
+   * one of the CMS's card colors – the closest. The links lead to the live
+   * site, wherever the kit is made. Not counted in the statistics: it is
+   * the admin's own.
    */
   const saveForMakerWorld = async (button: HTMLElement) => {
     if (!mesh) return;
@@ -92,8 +94,12 @@ const ExportButtons = ({ preview }: Props) => {
       color,
       cookie: shape,
       sizeLabel: `${Math.round(size)} mm`,
-      editorUrl: creationUrl(),
-      cardUrl: greetingLink({ ...MAKERWORLD_GREETING, color: cardColor }, "en"),
+      editorUrl: creationUrl(SITE),
+      cardUrl: greetingLink(
+        { ...MAKERWORLD_GREETING, color: cardColor },
+        "en",
+        SITE
+      ),
     });
     download(zip, `${makerWorldFolder(fileName)}.zip`);
     keep(button);
