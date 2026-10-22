@@ -23,6 +23,7 @@ export interface Config {
     users: User;
     accounts: Account;
     'short-links': ShortLink;
+    'short-link-previews': ShortLinkPreview;
     templates: Template;
     gallery: Gallery;
     media: Media;
@@ -42,6 +43,7 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     accounts: AccountsSelect<false> | AccountsSelect<true>;
     'short-links': ShortLinksSelect<false> | ShortLinksSelect<true>;
+    'short-link-previews': ShortLinkPreviewsSelect<false> | ShortLinkPreviewsSelect<true>;
     templates: TemplatesSelect<false> | TemplatesSelect<true>;
     gallery: GallerySelect<false> | GallerySelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
@@ -167,7 +169,7 @@ export interface Account {
   createdAt: string;
 }
 /**
- * The models behind short links (…&k=<code> in a link) – made when a visitor puts a cookie online, gone when it is taken back or with the account. Only the model: names and messages stay in the links. Those without an account come from MakerWorld kits: named after kit and cutter, with a picture of the cutter, kept until deleted here.
+ * The models behind short links (…&k=<code> in a link) – made when a visitor puts a cookie online, gone when it is taken back or with the account. Only the model: names and messages stay in the links. Those without an account are made here – by MakerWorld kits or from a link above – and kept until deleted. Tick some to make a MakerWorld kit of them; Seeds renders the pictures.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "short-links".
@@ -177,26 +179,22 @@ export interface ShortLink {
   code: string;
   shape: string;
   /**
-   * None: made for a MakerWorld kit.
+   * None: made here – for a MakerWorld kit or from a link.
    */
   account?: (string | null) | Account;
   name?: string | null;
-  preview?: (string | null) | Media;
+  link?: string | null;
+  color?: string | null;
+  preview?: (string | null) | ShortLinkPreview;
   updatedAt: string;
   createdAt: string;
 }
 /**
- * All pictures, each with what it shows.
- *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
+ * via the `definition` "short-link-previews".
  */
-export interface Media {
+export interface ShortLinkPreview {
   id: string;
-  /**
-   * What the picture shows – read out instead.
-   */
-  alt?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -209,7 +207,7 @@ export interface Media {
   focalX?: number | null;
   focalY?: number | null;
   sizes?: {
-    card?: {
+    thumbnail?: {
       url?: string | null;
       width?: number | null;
       height?: number | null;
@@ -271,6 +269,40 @@ export interface Gallery {
   link?: string | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * All pictures, each with what it shows.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: string;
+  /**
+   * What the picture shows – read out instead.
+   */
+  alt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+  sizes?: {
+    card?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -356,6 +388,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'short-links';
         value: string | ShortLink;
+      } | null)
+    | ({
+        relationTo: 'short-link-previews';
+        value: string | ShortLinkPreview;
       } | null)
     | ({
         relationTo: 'templates';
@@ -469,9 +505,42 @@ export interface ShortLinksSelect<T extends boolean = true> {
   shape?: T;
   account?: T;
   name?: T;
+  link?: T;
+  color?: T;
   preview?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "short-link-previews_select".
+ */
+export interface ShortLinkPreviewsSelect<T extends boolean = true> {
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+  sizes?:
+    | T
+    | {
+        thumbnail?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

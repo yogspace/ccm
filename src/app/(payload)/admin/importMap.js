@@ -3,6 +3,7 @@ import { AccountEndField as AccountEndField_c0aabdee28504ea6fbd03e1b99707b33 } f
 import { PassphraseField as PassphraseField_15ef3acca1e1eb9413efd8009fb9a01b } from '@/fields/passphrase-field'
 import { AccountFinder as AccountFinder_25ee25c1b43dae615a503f07ca23b573 } from '@/fields/account-finder'
 import { ShortLinkOpen as ShortLinkOpen_e5cc19105f404cc3e2afed9494c39329 } from '@/fields/short-link-open'
+import { ShortLinksTools as ShortLinksTools_77cc48dd1337e04781289094220cc88e } from '@/fields/short-links-tools'
 import { GalleryColorField as GalleryColorField_b82447014a4072087d806e281ca6fa7b } from '@/fields/gallery-color-field'
 import { GalleryBuilder as GalleryBuilder_c8865404e7f66dba38e8e939d5b9efe8 } from '@/fields/gallery-builder'
 import { FilamentField as FilamentField_c84eff2b668d5c6e0bbc019db3738826 } from '@/fields/makerworld-kit'
@@ -49,6 +50,7 @@ export const importMap = {
   "@/fields/passphrase-field#PassphraseField": PassphraseField_15ef3acca1e1eb9413efd8009fb9a01b,
   "@/fields/account-finder#AccountFinder": AccountFinder_25ee25c1b43dae615a503f07ca23b573,
   "@/fields/short-link-open#ShortLinkOpen": ShortLinkOpen_e5cc19105f404cc3e2afed9494c39329,
+  "@/fields/short-links-tools#ShortLinksTools": ShortLinksTools_77cc48dd1337e04781289094220cc88e,
   "@/fields/gallery-color-field#GalleryColorField": GalleryColorField_b82447014a4072087d806e281ca6fa7b,
   "@/fields/gallery-builder#GalleryBuilder": GalleryBuilder_c8865404e7f66dba38e8e939d5b9efe8,
   "@/fields/makerworld-kit#FilamentField": FilamentField_c84eff2b668d5c6e0bbc019db3738826,

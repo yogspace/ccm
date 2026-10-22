@@ -12,30 +12,21 @@ import {
 } from "@payloadcms/ui";
 import type { TextFieldClientComponent, UIFieldClientComponent } from "payload";
 import { useMemo, useState } from "react";
-import { modelOf } from "../account/rules";
-import { loadCutter } from "../card/load-cutter";
 import { cookieSeed } from "../cookie-jar";
 import { setCookieColors } from "../cookies/dough";
 import { download } from "../export/download";
-import { nameBase } from "../export/file-name";
 import {
   type KitCutter,
   makerWorldZip,
   nearestColor,
-  shortLinkPreview,
 } from "../export/makerworld";
 import { FILAMENTS } from "../filaments";
-import type { MeshData } from "../geometry/mesh";
-import { GREETING_KEYS, greetingUrl, MAKERWORLD_GREETING } from "../greeting";
-import { currentForm } from "../link-keys";
+import { greetingUrl, MAKERWORLD_GREETING } from "../greeting";
 import { SITE } from "../seo";
 import { shortened } from "../short-shape";
 import type { CookieColors } from "../site-defaults";
-import { readHash } from "../url-state";
+import { adminShortLink, buildFromLink } from "./short-link-client";
 import { SiteColorSwatches } from "./site-colors";
-
-/** The default name, as on the site. */
-const FALLBACK_NAME = "Cookie Cutter";
 
 /** The 3D views' filaments, by name (filaments.ts). */
 const FILAMENT_NAMES = [
@@ -60,90 +51,6 @@ const nameOf = (link: string | undefined) => {
   } catch {
     return "";
   }
-};
-
-/**
- * A link's creation as the editor writes it: a short link made whole, a
- * card's greeting left out – what the kit's editor link opens.
- */
-const creationHash = async (link: string) => {
-  const query = new URLSearchParams(
-    new URL(link.trim()).hash.replace(/^#/, "")
-  );
-  const code = query.get("k");
-  if (code && !query.has("s")) {
-    const response = await fetch(`/next/shape/${encodeURIComponent(code)}`);
-    const { shape } = response.ok ? await response.json() : {};
-    if (typeof shape !== "string") {
-      throw new Error(`The short link's drawing is gone (${code}).`);
-    }
-    query.delete("k");
-    query.set("s", shape);
-  }
-  for (const key of [...Object.values(GREETING_KEYS), "to", "from"]) {
-    query.delete(key);
-  }
-  return currentForm(`#${query}`);
-};
-
-/** A request to the REST API; its first error as the message. */
-const send = async <T,>(url: string, init: RequestInit) => {
-  const response = await fetch(url, { ...init, credentials: "include" });
-  const body = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw new Error(
-      body?.errors?.[0]?.message ?? body?.error ?? response.statusText
-    );
-  }
-  return body as T;
-};
-
-/**
- * A cutter's short link – the kits' own for its model (collections/
- * short-links.ts), made the first time, named after the kit and the cutter
- * (“Halloween – Pumpkin”), with a picture of the cutter to tell it by in the
- * admin – and its code.
- */
-const kitShortLink = async (
-  api: string,
-  hash: string,
-  {
-    name,
-    kitName,
-    mesh,
-    color,
-  }: { name: string; kitName: string; mesh: MeshData; color: string }
-) => {
-  const label = kitName && kitName !== name ? `${kitName} – ${name}` : name;
-  const link = await send<{ id: string; code: string; preview: boolean }>(
-    `${api}/short-links/kit`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ shape: modelOf(hash), name: label }),
-    }
-  );
-  if (link.preview) return link.code;
-  const picture = await shortLinkPreview(mesh, color);
-  if (!picture) return link.code;
-  const form = new FormData();
-  form.append(
-    "file",
-    new File([picture], `${nameBase(name)}-${link.code}.png`, {
-      type: "image/png",
-    })
-  );
-  form.append("_payload", JSON.stringify({ alt: `${name} cookie cutter` }));
-  const { doc } = await send<{ doc: { id: string } }>(`${api}/media`, {
-    method: "POST",
-    body: form,
-  });
-  await send(`${api}/short-links/${link.id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ preview: doc.id }),
-  });
-  return link.code;
 };
 
 type Status =
@@ -229,19 +136,21 @@ export const KitDownload: UIFieldClientComponent = ({ path }) => {
           state: "working",
           note: `Building cutter ${i + 1} of ${links.length}…`,
         });
-        const hash = await creationHash(link);
-        const shared = readHash(hash);
-        const built = await loadCutter(shared);
-        if (!built) throw new Error(`No cutter came out of link ${i + 1}.`);
+        const { hash, shared, built, name } = await buildFromLink(link).catch(
+          (error: Error) => {
+            throw new Error(`Link ${i + 1}: ${error.message}`);
+          }
+        );
         const { mesh, outline, icing, imprint, inlay } = built;
-        const name = shared.name.trim() || FALLBACK_NAME;
         setStatus({
           state: "working",
           note: `Short link for cutter ${i + 1} of ${links.length}…`,
         });
-        const code = await kitShortLink(api, hash, {
+        // Named after kit and cutter: “Halloween – Pumpkin”.
+        const kitName = kit.name.trim();
+        const code = await adminShortLink(api, hash, {
           name,
-          kitName: kit.name.trim(),
+          label: kitName && kitName !== name ? `${kitName} – ${name}` : name,
           mesh,
           color: kit.color,
         });

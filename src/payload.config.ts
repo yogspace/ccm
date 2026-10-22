@@ -11,6 +11,7 @@ import { Actions } from "./collections/actions";
 import { Gallery } from "./collections/gallery";
 import { Media } from "./collections/media";
 import { PageViews } from "./collections/page-views";
+import { ShortLinkPreviews } from "./collections/short-link-previews";
 import { ShortLinks } from "./collections/short-links";
 import { Templates } from "./collections/templates";
 import { Users } from "./collections/users";
@@ -77,6 +78,7 @@ export default buildConfig({
     Users,
     Accounts,
     ShortLinks,
+    ShortLinkPreviews,
     Templates,
     Gallery,
     Media,
