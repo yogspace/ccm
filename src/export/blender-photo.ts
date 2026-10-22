@@ -7,7 +7,9 @@ import { strToU8, type Zippable } from "fflate";
  * in Terminal. Blender runs in the background, without a window.
  */
 
-/** The script's file name in the zip. */
+/** The folder in the zip the two of them keep to, out of the way. */
+const FOLDER = "blender";
+/** The script's file name in it. */
 const BLENDER_SCRIPT = "render-photo.py";
 /** The launcher's: .command, so it runs on a double-click once allowed. */
 const LAUNCHER = "render-photo.command";
@@ -413,8 +415,9 @@ const launcher = (model: string, photos: Photo[], color: string) => `#!/bin/sh
 # Renders photo-like pictures of the cutters with Blender, in the
 # background, and opens each - a minute or two apiece. macOS won't run a
 # downloaded script on a double-click; in Terminal it runs from anywhere:
-#   sh <this folder>/${LAUNCHER}
-cd "$(dirname "$0")" || exit 1
+#   sh <the kit's folder>/${FOLDER}/${LAUNCHER}
+# The photos land in the kit's folder, beside its pictures.
+cd "$(dirname "$0")/.." || exit 1
 BLENDER="/Applications/Blender.app/Contents/MacOS/Blender"
 [ -x "$BLENDER" ] || BLENDER="$(command -v blender)"
 if [ -z "$BLENDER" ]; then
@@ -423,7 +426,7 @@ if [ -z "$BLENDER" ]; then
 fi
 render() {
   echo "Rendering $1 - this takes a minute or two ..."
-  "$BLENDER" -b --factory-startup -P ${BLENDER_SCRIPT} -- "${model}" "$1" "${color}" "$2" || exit 1
+  "$BLENDER" -b --factory-startup -P ${FOLDER}/${BLENDER_SCRIPT} -- "${model}" "$1" "${color}" "$2" || exit 1
   open "$1"
 }
 ${photos
@@ -441,8 +444,8 @@ ${photos
 const EXECUTABLE = 0o100755 * 0x10000;
 
 /**
- * The zip's files for the photos – the script and the launcher; they read
- * the kit's 3MF (`model`). In the order they are rendered: a set's all
+ * The zip's files for the photos – the script and the launcher, in a
+ * folder of their own; they read the kit's 3MF (`model`). In the order they are rendered: a set's all
  * together, then each cutter on its own.
  */
 export const blenderFiles = (
@@ -450,8 +453,8 @@ export const blenderFiles = (
   photos: Photo[],
   color: string
 ): Zippable => ({
-  [BLENDER_SCRIPT]: strToU8(PYTHON),
-  [LAUNCHER]: [
+  [`${FOLDER}/${BLENDER_SCRIPT}`]: strToU8(PYTHON),
+  [`${FOLDER}/${LAUNCHER}`]: [
     strToU8(launcher(model, photos, color)),
     { os: 3, attrs: EXECUTABLE },
   ],
@@ -462,4 +465,4 @@ export const blenderFiles = (
  * downloaded, in a folder of its name (`folder`).
  */
 export const photoCommand = (folder: string) =>
-  `sh ~/Downloads/${folder}/${LAUNCHER}`;
+  `sh ~/Downloads/${folder}/${FOLDER}/${LAUNCHER}`;
