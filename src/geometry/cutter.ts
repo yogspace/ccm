@@ -130,8 +130,11 @@ const MIN_RELIEF = 0.5;
 export const FOOT = 1;
 /** How far (mm) a link reaches into embossing – not through a thin stroke. */
 const TUCK = 0.3;
-/** Radius (mm) of a link's corners where it meets embossing. */
-const LINK_CORNER = 1;
+/**
+ * Where a link meets embossing it flares into it: over the embossing this
+ * many times its width around (geometry/cutter.ts `flare`).
+ */
+const FLARE = 1.5;
 /**
  * On the baked cookie, the imprint keeps this far (mm) inside the cookie's
  * edge, and the icing this far from the imprint.
@@ -374,14 +377,32 @@ export const buildCutter = (
         ).intersect(cookieAndWalls)
       );
       if (link.isEmpty()) continue;
-      if (!(start.relief || end.relief)) {
+      if (!(relief && (start.relief || end.relief))) {
         links.push(link);
         continue;
       }
       // Where it meets embossing, its square end would stick out beside a
-      // tip or a stroke's round end – its corners rounded off.
-      const corner = Math.min(LINK_CORNER, bridgeWidth / 3);
-      plain.push(grow(grow(link, -corner), corner));
+      // tip or a stroke's round end, or leave a slit where it slants in: it
+      // flares into it instead – the hull of its end and the embossing
+      // around there.
+      const flare = (at: Point) => {
+        const disk = (radius: number) =>
+          track(track(CrossSection.circle(radius, SEGMENTS)).translate(at));
+        return track(
+          CrossSection.hull([
+            track(link.intersect(disk(bridgeWidth))),
+            track(relief.intersect(disk(bridgeWidth * FLARE))),
+          ])
+        );
+      };
+      const ends = [
+        link,
+        ...(start.relief ? [flare(from)] : []),
+        ...(end.relief ? [flare(to)] : []),
+      ];
+      plain.push(
+        track(track(CrossSection.union(ends)).intersect(cookieAndWalls))
+      );
     }
     const pieces = [...outer, ...inner, ...links, ...plain];
     let plate: CrossSection | null = null;
