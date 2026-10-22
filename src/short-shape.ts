@@ -46,6 +46,15 @@ export const shortened = (url: string, code: string) => {
   return `${parsed.origin}${parsed.pathname}#${query}`;
 };
 
+/**
+ * A kit's short link's name in the admin: the kit's and the cutter's
+ * (“Halloween – Pumpkin”), the cutter's alone without a kit name.
+ */
+export const kitLinkName = (kitName: string, name: string) => {
+  const kit = kitName.trim();
+  return kit && kit !== name ? `${kit} – ${name}` : name;
+};
+
 /** The model a link carries (`s`) – what a short link keeps. */
 export const shapeOf = (url: string) => {
   try {

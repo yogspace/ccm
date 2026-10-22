@@ -4,18 +4,10 @@ import { Button, Pill, useConfig } from "@payloadcms/ui";
 import { useState } from "react";
 import {
   buildFromLink,
+  creationsOf,
   PREVIEW_COLOR,
   savePreview,
-  send,
 } from "../fields/short-link-client";
-
-type ShortLinkToDraw = {
-  id: string;
-  code: string;
-  creation: string;
-  color: string | null;
-  preview: boolean;
-};
 
 type State =
   | { status: "idle" }
@@ -40,10 +32,7 @@ export const PreviewsRunner = () => {
   const run = async (all: boolean) => {
     setState({ status: "running", all, done: 0, of: 0 });
     try {
-      const { links } = await send<{ links: ShortLinkToDraw[] }>(
-        `${api}/short-links/previews`,
-        { method: "POST" }
-      );
+      const links = await creationsOf(api);
       const todo = all ? links : links.filter(({ preview }) => !preview);
       const failed: string[] = [];
       for (const [i, link] of todo.entries()) {

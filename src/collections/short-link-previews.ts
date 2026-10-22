@@ -25,7 +25,8 @@ export const ShortLinkPreviews: CollectionConfig = {
   },
   upload: {
     staticDir: path.join(MEDIA_DIR, "short-link-previews"),
-    mimeTypes: ["image/png"],
+    // The picture a PNG, its thumbnail WebP – both have to be allowed.
+    mimeTypes: ["image/png", "image/webp"],
     adminThumbnail: "thumbnail",
     imageSizes: [
       {

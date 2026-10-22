@@ -3,7 +3,7 @@ import { authenticated } from "../access/authenticated";
 import { newCode } from "../account/keys";
 import { isCode, isSavedCookie, isShape, modelOf } from "../account/rules";
 import { FILAMENTS } from "../filaments";
-import { MAKERWORLD_GREETING } from "../greeting";
+import { GREETING_KEYS, MAKERWORLD_GREETING } from "../greeting";
 import { currentForm } from "../link-keys";
 import type { ShortLink } from "../payload-types";
 import { SITE } from "../seo";
@@ -50,7 +50,7 @@ const creationOf = async (payload: Payload, link: ShortLink) => {
 };
 
 /** The same, its model in it (`s`) – nothing to fetch to build it. */
-const wholeCreationOf = async (payload: Payload, link: ShortLink) => {
+export const wholeCreationOf = async (payload: Payload, link: ShortLink) => {
   const url = new URL(await creationOf(payload, link));
   const query = new URLSearchParams(url.hash.replace(/^#/, ""));
   if (!query.has("s")) {
@@ -58,6 +58,112 @@ const wholeCreationOf = async (payload: Payload, link: ShortLink) => {
     query.set("s", link.shape);
   }
   return `${url.origin}${url.pathname}#${query}`;
+};
+
+/**
+ * A link's or hash's creation as the editor writes it, its model in it:
+ * a short link's code made whole, a card's greeting left out – so the
+ * editor's link and a card's of one drawing are the same creation. Null
+ * without a model.
+ */
+export const creationHashOf = async (payload: Payload, linkOrHash: string) => {
+  const query = new URLSearchParams(linkOrHash.trim().replace(/^[^#]*#?/, ""));
+  for (const key of [...Object.values(GREETING_KEYS), "to", "from"]) {
+    query.delete(key);
+  }
+  const code = query.get("k");
+  query.delete("k");
+  if (!query.has("s") && isCode(code)) {
+    const { docs } = await payload.find({
+      collection: "short-links",
+      where: { code: { equals: code } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    });
+    if (docs[0]) query.set("s", docs[0].shape);
+  }
+  const hash = currentForm(`#${query}`);
+  return isShape(modelOf(hash)) ? hash : null;
+};
+
+/**
+ * The admin's own short link for a creation (`hash`, as creationHashOf
+ * writes it) – one per model, never a visitor's: found or made, then
+ * named, linked and colored as given last – or, `fillOnly`, only where it
+ * has nothing yet (a kit saved: several kits may share a drawing, the one
+ * downloaded decides). Null if no code could be found.
+ */
+export const adminShortLinkFor = async (
+  payload: Payload,
+  {
+    hash,
+    name: given,
+    color: givenColor,
+    fillOnly = false,
+  }: {
+    hash: string;
+    name?: string | null;
+    color?: string | null;
+    fillOnly?: boolean;
+  }
+) => {
+  const shape = modelOf(hash);
+  if (!isShape(shape)) return null;
+  const name = given?.trim().slice(0, 200) || null;
+  const color =
+    givenColor && /^#[0-9a-f]{6}$/i.test(givenColor) ? givenColor : null;
+  const { docs } = await payload.find({
+    collection: "short-links",
+    where: {
+      and: [{ shape: { equals: shape } }, { account: { exists: false } }],
+    },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  });
+  let link: ShortLink | undefined = docs[0];
+  if (link) {
+    const data = fillOnly
+      ? {
+          name: link.name || name,
+          link: link.link || shortHash(hash, link.code),
+          color: link.color || color,
+        }
+      : {
+          name: name ?? link.name,
+          link: shortHash(hash, link.code),
+          color: color ?? link.color,
+        };
+    if (
+      data.name !== link.name ||
+      data.link !== link.link ||
+      data.color !== link.color
+    ) {
+      link = await payload.update({
+        collection: "short-links",
+        id: link.id,
+        data,
+        depth: 0,
+        overrideAccess: true,
+      });
+    }
+  }
+  // A code taken already (next to impossible): another one.
+  for (let attempt = 0; !link && attempt < 3; attempt++) {
+    const code = newCode();
+    try {
+      link = await payload.create({
+        collection: "short-links",
+        data: { code, shape, name, link: shortHash(hash, code), color },
+        depth: 0,
+        overrideAccess: true,
+      });
+    } catch {
+      // The unique index said no – try again.
+    }
+  }
+  return link ?? null;
 };
 
 const unauthorized = () =>
@@ -182,68 +288,16 @@ export const ShortLinks: CollectionConfig = {
         const body = await req.json?.().catch(() => null);
         const hash =
           typeof body?.hash === "string" && body.hash.length <= 17000
-            ? currentForm(body.hash)
-            : "";
-        const shape = modelOf(hash);
-        if (!isShape(shape)) {
+            ? await creationHashOf(req.payload, body.hash)
+            : null;
+        if (!hash) {
           return Response.json({ error: "Invalid shape" }, { status: 400 });
         }
-        const name =
-          typeof body?.name === "string" ? body.name.trim().slice(0, 200) : "";
-        const color =
-          typeof body?.color === "string" && /^#[0-9a-f]{6}$/i.test(body.color)
-            ? body.color
-            : null;
-        const { docs } = await req.payload.find({
-          collection: "short-links",
-          where: {
-            and: [{ shape: { equals: shape } }, { account: { exists: false } }],
-          },
-          limit: 1,
-          depth: 0,
-          overrideAccess: true,
+        const link = await adminShortLinkFor(req.payload, {
+          hash,
+          name: typeof body?.name === "string" ? body.name : "",
+          color: typeof body?.color === "string" ? body.color : null,
         });
-        let link = docs[0];
-        if (link) {
-          const data = {
-            name: name || link.name,
-            link: shortHash(hash, link.code),
-            color: color ?? link.color,
-          };
-          if (
-            data.name !== link.name ||
-            data.link !== link.link ||
-            data.color !== link.color
-          ) {
-            link = await req.payload.update({
-              collection: "short-links",
-              id: link.id,
-              data,
-              depth: 0,
-              overrideAccess: true,
-            });
-          }
-        }
-        // A code taken already (next to impossible): another one.
-        for (let attempt = 0; !link && attempt < 3; attempt++) {
-          const code = newCode();
-          try {
-            link = await req.payload.create({
-              collection: "short-links",
-              data: {
-                code,
-                shape,
-                name: name || null,
-                link: shortHash(hash, code),
-                color,
-              },
-              depth: 0,
-              overrideAccess: true,
-            });
-          } catch {
-            // The unique index said no – try again.
-          }
-        }
         if (!link) {
           return Response.json({ error: "No code found" }, { status: 500 });
         }
@@ -255,10 +309,11 @@ export const ShortLinks: CollectionConfig = {
       },
     },
     {
-      // Every short link – or those of `codes` – with its creation, whole,
-      // and the color to draw it in: for the Seeds page's pictures
-      // (admin/previews-runner.tsx) and a code typed above the list.
-      path: "/previews",
+      // Every short link – or those of `ids` or `codes` – with its creation,
+      // whole, and the color to draw it in: for the Seeds page's pictures
+      // (admin/previews-runner.tsx), a code typed above the list and the
+      // short links picked in a kit (fields/makerworld-kit.tsx).
+      path: "/creations",
       method: "post",
       handler: async (req) => {
         if (!req.user) return unauthorized();
@@ -266,9 +321,16 @@ export const ShortLinks: CollectionConfig = {
         const codes: string[] | null = Array.isArray(body?.codes)
           ? body.codes.filter(isCode)
           : null;
+        const ids: string[] | null = Array.isArray(body?.ids)
+          ? body.ids.filter((id: unknown) => typeof id === "string")
+          : null;
         const { docs } = await req.payload.find({
           collection: "short-links",
-          where: codes ? { code: { in: codes } } : undefined,
+          where: ids
+            ? { id: { in: ids } }
+            : codes
+              ? { code: { in: codes } }
+              : undefined,
           pagination: false,
           depth: 0,
           overrideAccess: true,
@@ -289,8 +351,9 @@ export const ShortLinks: CollectionConfig = {
     },
     {
       // “Make a MakerWorld kit” above the list (fields/short-links-tools.tsx):
-      // the ticked short links, in the list's order, as a new kit – first
-      // among the kits, in the usual color and with the usual card text.
+      // the ticked short links, in the list's order, as a new kit's cutters
+      // – first among the kits, in the usual color and with the usual card
+      // text.
       path: "/set",
       method: "post",
       handler: async (req) => {
@@ -309,11 +372,9 @@ export const ShortLinks: CollectionConfig = {
           depth: 0,
           overrideAccess: true,
         });
-        const cutters = [];
-        for (const id of ids) {
-          const link = docs.find((doc) => doc.id === id);
-          if (link) cutters.push({ link: await creationOf(req.payload, link) });
-        }
+        const cutters = ids
+          .filter((id) => docs.some((doc) => doc.id === id))
+          .map((id) => ({ shortLink: id }));
         if (cutters.length === 0) {
           return Response.json({ error: "Not found" }, { status: 404 });
         }

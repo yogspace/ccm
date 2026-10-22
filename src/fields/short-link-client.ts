@@ -33,6 +33,34 @@ export const send = async <T>(url: string, init: RequestInit) => {
   return body as T;
 };
 
+/** A short link with its creation, whole (collections/short-links.ts). */
+export type ShortLinkCreation = {
+  id: string;
+  code: string;
+  creation: string;
+  color: string | null;
+  preview: boolean;
+};
+
+/** Short links with their creations: all, or those of `ids` or `codes`. */
+export const creationsOf = async (
+  api: string,
+  which: { ids?: string[]; codes?: string[] } = {}
+) =>
+  (
+    await send<{ links: ShortLinkCreation[] }>(`${api}/short-links/creations`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(which),
+    })
+  ).links;
+
+/** The name a creation's hash or link carries – empty if none. */
+export const nameIn = (link: string | null | undefined) => {
+  const hash = link?.trim().replace(/^[^#]*#?/, "") ?? "";
+  return new URLSearchParams(hash).get("n")?.trim() ?? "";
+};
+
 /**
  * A link's creation as the editor writes it: a short link made whole, a
  * card's greeting left out – what a kit's editor link opens.

@@ -11,7 +11,7 @@ import {
   useRowLabel,
 } from "@payloadcms/ui";
 import type { TextFieldClientComponent, UIFieldClientComponent } from "payload";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cookieSeed } from "../cookie-jar";
 import { setCookieColors } from "../cookies/dough";
 import { download } from "../export/download";
@@ -23,9 +23,14 @@ import {
 import { FILAMENTS } from "../filaments";
 import { greetingUrl, MAKERWORLD_GREETING } from "../greeting";
 import { SITE } from "../seo";
-import { shortened } from "../short-shape";
+import { kitLinkName, shortened } from "../short-shape";
 import type { CookieColors } from "../site-defaults";
-import { adminShortLink, buildFromLink } from "./short-link-client";
+import {
+  adminShortLink,
+  buildFromLink,
+  creationsOf,
+  nameIn,
+} from "./short-link-client";
 import { SiteColorSwatches } from "./site-colors";
 
 /** The 3D views' filaments, by name (filaments.ts). */
@@ -43,14 +48,66 @@ const FILAMENT_COLORS = FILAMENTS.map((color, i) => ({
   name: FILAMENT_NAMES[i] ?? color,
 }));
 
-/** The name a creation's link carries – empty if none. */
-const nameOf = (link: string | undefined) => {
-  try {
-    const hash = new URL(link?.trim() ?? "").hash.replace(/^#/, "");
-    return new URLSearchParams(hash).get("n")?.trim() ?? "";
-  } catch {
-    return "";
-  }
+/** A kit's cutter: a short link picked (its id), or a link given. */
+type CutterRow = { shortLink?: unknown; link?: string | null };
+
+/** A relationship's id – populated or not. */
+const idOf = (value: unknown) =>
+  value && typeof value === "object" && "id" in value
+    ? String(value.id)
+    : typeof value === "string"
+      ? value
+      : "";
+
+/** The cutters' names of short links, by id – fetched for the labels. */
+const useShortLinkNames = (ids: string[]) => {
+  const {
+    config: {
+      routes: { api },
+    },
+  } = useConfig();
+  const key = [...new Set(ids)].join(",");
+  const [names, setNames] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (!key) return;
+    let live = true;
+    const select = ["code", "name", "link"]
+      .map((field) => `select[${field}]=true`)
+      .join("&");
+    fetch(
+      `${api}/short-links?depth=0&pagination=false&where[id][in]=${key}&${select}`,
+      { credentials: "include" }
+    )
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body) => {
+        if (!(live && body)) return;
+        const docs = body.docs as {
+          id: string;
+          code: string;
+          name?: string | null;
+          link?: string | null;
+        }[];
+        setNames(
+          Object.fromEntries(
+            docs.map(({ id, code, name, link }) => [
+              id,
+              nameIn(link) || name || code,
+            ])
+          )
+        );
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [api, key]);
+  return names;
+};
+
+/** A cutter's name: its short link's, or the one its link carries. */
+const cutterName = (row: CutterRow, names: Record<string, string>) => {
+  const id = idOf(row.shortLink);
+  return id ? (names[id] ?? "") : nameIn(row.link);
 };
 
 type Status =
@@ -60,13 +117,13 @@ type Status =
   | { state: "failed"; error: string };
 
 /**
- * A kit's “Download kit”: its cutters built from their links right here –
- * the site's own code, in this browser – then the zip as the editor's
- * MakerWorld button makes it (export/makerworld.ts), from what is in the
- * form, saved or not. The cookies in the site's colors (Site global). Each
- * cutter's links are short links – the kits' own, kept for good – in this
- * database: on the site, unless the admin runs elsewhere (a local copy),
- * then there – they would lead nowhere on the site.
+ * A kit's “Download kit”: its cutters built from their short links or links
+ * right here – the site's own code, in this browser – then the zip as the
+ * editor's MakerWorld button makes it (export/makerworld.ts), from what is
+ * in the form, saved or not. The cookies in the site's colors (Site
+ * global). Each cutter's links are short links – the kits' own, kept for
+ * good – in this database: on the site, unless the admin runs elsewhere (a
+ * local copy), then there – they would lead nowhere on the site.
  */
 export const KitDownload: UIFieldClientComponent = ({ path }) => {
   const {
@@ -77,19 +134,27 @@ export const KitDownload: UIFieldClientComponent = ({ path }) => {
   const row = path.slice(0, path.lastIndexOf("."));
   // Its fields as one string: the button only renders again when they change.
   const fields = useFormFields(([state]) => {
-    const links = Object.entries(state)
-      .map(([key, field]) => ({
-        at: key.match(/^(.*)\.cutters\.(\d+)\.link$/),
-        value: field?.value,
-      }))
-      .filter(({ at }) => at?.[1] === row)
-      .sort((a, b) => Number(a.at?.[2]) - Number(b.at?.[2]))
-      .map(({ value }) => (typeof value === "string" ? value : ""));
+    const rows = new Map<number, { shortLink: string; link: string }>();
+    for (const [key, field] of Object.entries(state)) {
+      const at = key.match(/^(.*)\.cutters\.(\d+)\.(shortLink|link)$/);
+      if (at?.[1] !== row) continue;
+      const index = Number(at[2]);
+      const cutter = rows.get(index) ?? { shortLink: "", link: "" };
+      cutter[at[3] as "shortLink" | "link"] =
+        at[3] === "shortLink"
+          ? idOf(field?.value)
+          : typeof field?.value === "string"
+            ? field.value
+            : "";
+      rows.set(index, cutter);
+    }
     return JSON.stringify({
       name: state[`${row}.name`]?.value ?? "",
       color: state[`${row}.color`]?.value ?? FILAMENTS[1],
       message: state[`${row}.message`]?.value ?? "",
-      links,
+      cutters: [...rows.entries()]
+        .sort(([a], [b]) => a - b)
+        .map(([, cutter]) => cutter),
     });
   });
   const kit = useMemo(
@@ -98,16 +163,32 @@ export const KitDownload: UIFieldClientComponent = ({ path }) => {
         name: string;
         color: string;
         message: string;
-        links: string[];
+        cutters: { shortLink: string; link: string }[];
       },
     [fields]
   );
   const [status, setStatus] = useState<Status>({ state: "idle" });
-  const links = kit.links.filter((link) => link.trim());
+  // A picked short link wins over a link left in the hidden field.
+  const rows = kit.cutters.filter(
+    ({ shortLink, link }) => shortLink || link.trim()
+  );
+
+  /** Each cutter's link – a short link's creation, whole, fetched. */
+  const linksOf = async () => {
+    const ids = rows.flatMap(({ shortLink }) => (shortLink ? [shortLink] : []));
+    const creations = ids.length > 0 ? await creationsOf(api, { ids }) : [];
+    return rows.map(({ shortLink, link }, i) => {
+      if (!shortLink) return link;
+      const found = creations.find(({ id }) => id === shortLink);
+      if (!found) throw new Error(`Cutter ${i + 1}: its short link is gone.`);
+      return found.creation;
+    });
+  };
 
   const build = async () => {
     try {
       setStatus({ state: "working", note: "Fetching the site's colors…" });
+      const links = await linksOf();
       const site = (await fetch(`${api}/globals/site?depth=0`, {
         credentials: "include",
       }).then((response) => response.json())) as {
@@ -146,11 +227,9 @@ export const KitDownload: UIFieldClientComponent = ({ path }) => {
           state: "working",
           note: `Short link for cutter ${i + 1} of ${links.length}…`,
         });
-        // Named after kit and cutter: “Halloween – Pumpkin”.
-        const kitName = kit.name.trim();
         const code = await adminShortLink(api, hash, {
           name,
-          label: kitName && kitName !== name ? `${kitName} – ${name}` : name,
+          label: kitLinkName(kit.name, name),
           mesh,
           color: kit.color,
         });
@@ -201,7 +280,7 @@ export const KitDownload: UIFieldClientComponent = ({ path }) => {
     <div className="field-type makerworld-kit">
       <Button
         buttonStyle="primary"
-        disabled={working || links.length === 0}
+        disabled={working || rows.length === 0}
         margin={false}
         onClick={build}
         size="medium"
@@ -209,8 +288,8 @@ export const KitDownload: UIFieldClientComponent = ({ path }) => {
       >
         {working
           ? "Working…"
-          : links.length > 1
-            ? `Download set kit (${links.length} cutters)`
+          : rows.length > 1
+            ? `Download set kit (${rows.length} cutters)`
             : "Download kit"}
       </Button>
       {status.state === "working" && <span>{status.note}</span>}
@@ -254,10 +333,15 @@ export const FilamentField: TextFieldClientComponent = ({ field, path }) => {
 export const KitRowLabel = () => {
   const { data, rowNumber = 0 } = useRowLabel<{
     name?: string;
-    cutters?: { link?: string }[];
+    cutters?: CutterRow[];
   }>();
   const cutters = data?.cutters ?? [];
-  const names = cutters.map(({ link }) => nameOf(link)).filter(Boolean);
+  const shortNames = useShortLinkNames(
+    cutters.map(({ shortLink }) => idOf(shortLink)).filter(Boolean)
+  );
+  const names = cutters
+    .map((cutter) => cutterName(cutter, shortNames))
+    .filter(Boolean);
   const title =
     data?.name?.trim() || names.join(", ") || `Kit ${rowNumber + 1}`;
   return (
@@ -268,8 +352,14 @@ export const KitRowLabel = () => {
   );
 };
 
-/** A cutter, closed: the name its link carries. */
+/** A cutter, closed: its short link's name, or the one its link carries. */
 export const CutterRowLabel = () => {
-  const { data, rowNumber = 0 } = useRowLabel<{ link?: string }>();
-  return <span>{nameOf(data?.link) || `Cutter ${rowNumber + 1}`}</span>;
+  const { data, rowNumber = 0 } = useRowLabel<CutterRow>();
+  const id = idOf(data?.shortLink);
+  const shortNames = useShortLinkNames(id ? [id] : []);
+  return (
+    <span>
+      {(data && cutterName(data, shortNames)) || `Cutter ${rowNumber + 1}`}
+    </span>
+  );
 };

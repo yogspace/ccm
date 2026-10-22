@@ -1,7 +1,14 @@
 import type { GlobalConfig } from "payload";
 import { authenticated } from "../access/authenticated";
+import {
+  adminShortLinkFor,
+  creationHashOf,
+  wholeCreationOf,
+} from "../collections/short-links";
 import { FILAMENTS } from "../filaments";
 import { GREETING_LIMITS, MAKERWORLD_GREETING } from "../greeting";
+import type { Makerworld } from "../payload-types";
+import { kitLinkName } from "../short-shape";
 
 /** A color as #rrggbb. */
 const hexColor = (value: unknown) =>
@@ -11,7 +18,9 @@ const hexColor = (value: unknown) =>
 
 /** A creation's link – with its drawing, or a short link's code. */
 const creationLink = (value: unknown) => {
-  if (typeof value !== "string" || !value.trim()) return "A creation's link";
+  if (typeof value !== "string" || !value.trim()) {
+    return "A short link or a creation's link";
+  }
   try {
     const query = new URLSearchParams(
       new URL(value.trim()).hash.replace(/^#/, "")
@@ -32,6 +41,7 @@ const creationLink = (value: unknown) => {
  * zipped right here in the admin (fields/makerworld-kit.tsx) – nothing of
  * it reaches the site but each cutter's short link, the kits' own (Short
  * links: named, with a picture, kept for good), which the texts link to.
+ * A cutter is picked from the short links, or given as a link.
  */
 export const MakerWorld: GlobalConfig = {
   slug: "makerworld",
@@ -40,7 +50,7 @@ export const MakerWorld: GlobalConfig = {
   admin: {
     group: "Content",
     description:
-      "Kits for MakerWorld: one cutter, or several as a set – one 3MF with all of them on the plate, the pictures with all of them together, the texts with each one's links. “Download kit” builds the zip right here, from what is in the form; save to keep a kit. Each cutter gets a short link (under Short links, with its picture and the kit's name) – the texts use those.",
+      "Kits for MakerWorld: one cutter, or several as a set – one 3MF with all of them on the plate, the pictures with all of them together, the texts with each one's links. “Download kit” builds the zip right here, from what is in the form; save to keep a kit. Each cutter gets a short link once saved or downloaded – one per drawing, the editor's link and a card's alike (under Short links, with the kit's name; the picture comes with the download) – the texts use those.",
   },
   fields: [
     {
@@ -91,14 +101,24 @@ export const MakerWorld: GlobalConfig = {
           required: true,
           admin: {
             description:
-              "The creations' links – from “Share creation” or the address bar. In this order on the plate and in the texts.",
+              "A short link each – or a creation's link, from “Share creation” or the address bar. In this order on the plate and in the texts.",
             components: { RowLabel: "@/fields/makerworld-kit#CutterRowLabel" },
           },
           fields: [
             {
+              // The creation behind it, whole (collections/short-links.ts).
+              name: "shortLink",
+              type: "relationship",
+              relationTo: "short-links",
+              label: "Short link",
+              admin: { appearance: "drawer", allowCreate: false },
+            },
+            {
+              // Without a short link only – then required.
               name: "link",
               type: "text",
-              required: true,
+              label: "…or a link",
+              admin: { condition: (_, sibling) => !sibling?.shortLink },
               validate: creationLink,
             },
           ],
@@ -113,4 +133,48 @@ export const MakerWorld: GlobalConfig = {
       ],
     },
   ],
+  hooks: {
+    afterChange: [
+      async ({ doc, req }) => {
+        // Saved: every cutter has its short link – the admin's own for its
+        // model, named after kit and cutter where it has no name yet (the
+        // kit downloaded renames it). Its picture follows with the kit's
+        // download, or on the Seeds page (only the browser draws).
+        for (const kit of (doc as Makerworld).kits ?? []) {
+          for (const cutter of kit.cutters ?? []) {
+            try {
+              const picked =
+                cutter.shortLink && typeof cutter.shortLink === "object"
+                  ? cutter.shortLink
+                  : cutter.shortLink
+                    ? await req.payload.findByID({
+                        collection: "short-links",
+                        id: cutter.shortLink,
+                        depth: 0,
+                        overrideAccess: true,
+                      })
+                    : null;
+              const source = picked
+                ? await wholeCreationOf(req.payload, picked)
+                : cutter.link;
+              const hash =
+                source && (await creationHashOf(req.payload, source));
+              if (!hash) continue;
+              const name =
+                new URLSearchParams(hash.slice(1)).get("n")?.trim() ||
+                "Cookie Cutter";
+              await adminShortLinkFor(req.payload, {
+                hash,
+                name: kitLinkName(kit.name ?? "", name),
+                color: kit.color,
+                fillOnly: true,
+              });
+            } catch {
+              // A link that leads nowhere: the download says so.
+            }
+          }
+        }
+      },
+    ],
+  },
 };

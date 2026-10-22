@@ -9,6 +9,7 @@ import { shortened } from "../short-shape";
 import {
   adminShortLink,
   buildFromLink,
+  creationsOf,
   PREVIEW_COLOR,
   send,
 } from "./short-link-client";
@@ -42,15 +43,8 @@ export const ShortLinksTools = () => {
   const linkOf = async (text: string) => {
     const code = text.replace(/^#?k=/, "");
     if (isCode(code)) {
-      const { links } = await send<{ links: { creation: string }[] }>(
-        `${api}/short-links/previews`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ codes: [code] }),
-        }
-      );
-      return links[0]?.creation ?? `${SITE}/#k=${code}`;
+      const [link] = await creationsOf(api, { codes: [code] });
+      return link?.creation ?? `${SITE}/#k=${code}`;
     }
     if (/^https?:\/\//.test(text)) return text;
     return `${SITE}/#${text.replace(/^#/, "")}`;

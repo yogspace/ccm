@@ -671,7 +671,7 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   createdAt?: T;
 }
 /**
- * Kits for MakerWorld: one cutter, or several as a set – one 3MF with all of them on the plate, the pictures with all of them together, the texts with each one's links. “Download kit” builds the zip right here, from what is in the form; save to keep a kit. Each cutter gets a short link (under Short links, with its picture and the kit's name) – the texts use those.
+ * Kits for MakerWorld: one cutter, or several as a set – one 3MF with all of them on the plate, the pictures with all of them together, the texts with each one's links. “Download kit” builds the zip right here, from what is in the form; save to keep a kit. Each cutter gets a short link once saved or downloaded – one per drawing, the editor's link and a card's alike (under Short links, with the kit's name; the picture comes with the download) – the texts use those.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "makerworld".
@@ -693,10 +693,11 @@ export interface Makerworld {
          */
         message: string;
         /**
-         * The creations' links – from “Share creation” or the address bar. In this order on the plate and in the texts.
+         * A short link each – or a creation's link, from “Share creation” or the address bar. In this order on the plate and in the texts.
          */
         cutters: {
-          link: string;
+          shortLink?: (string | null) | ShortLink;
+          link?: string | null;
           id?: string | null;
         }[];
         id?: string | null;
@@ -1799,6 +1800,7 @@ export interface MakerworldSelect<T extends boolean = true> {
         cutters?:
           | T
           | {
+              shortLink?: T;
               link?: T;
               id?: T;
             };
