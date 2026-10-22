@@ -130,6 +130,8 @@ const MIN_RELIEF = 0.5;
 export const FOOT = 1;
 /** How far (mm) a link reaches into embossing – not through a thin stroke. */
 const TUCK = 0.3;
+/** Radius (mm) of a link's corners where it meets embossing. */
+const LINK_CORNER = 1;
 /**
  * On the baked cookie, the imprint keeps this far (mm) inside the cookie's
  * edge, and the icing this far from the imprint.
@@ -327,7 +329,9 @@ export const buildCutter = (
     // inner flanges are closed, pockets enclosed by the plate rounded off or,
     // if small, closed – they print badly and catch crumbs. Embossing cuts
     // nothing: it is held plainly, by straight links to the strokes – no
-    // flange, nothing rounded, its pockets open but for hairlines.
+    // flange, its pockets open but for hairlines. Their corners are rounded
+    // off where they meet it all the same: a link ends square and only just
+    // in, so at a tip or slanting in it would leave a slit beside its end.
     const cookieAndWalls = grow(shape, wall);
     const walls = track(cookieAndWalls.subtract(shape));
     const outer: CrossSection[] = [];
@@ -370,7 +374,14 @@ export const buildCutter = (
         ).intersect(cookieAndWalls)
       );
       if (link.isEmpty()) continue;
-      (start.relief || end.relief ? plain : links).push(link);
+      if (!(start.relief || end.relief)) {
+        links.push(link);
+        continue;
+      }
+      // Where it meets embossing, its square end would stick out beside a
+      // tip or a stroke's round end – its corners rounded off.
+      const corner = Math.min(LINK_CORNER, bridgeWidth / 3);
+      plain.push(grow(grow(link, -corner), corner));
     }
     const pieces = [...outer, ...inner, ...links, ...plain];
     let plate: CrossSection | null = null;
@@ -395,9 +406,17 @@ export const buildCutter = (
           ).intersect(cookieAndWalls)
         );
       };
-      const linked = track(CrossSection.union(links));
+      // The embossing's own links round off onto it too.
+      const linked = track(CrossSection.union([...links, ...plain]));
       const fillets =
-        links.length > 0 ? gaps(joined, FILLET, linked, FILLET) : linked;
+        links.length + plain.length > 0
+          ? gaps(
+              relief ? track(joined.add(relief)) : joined,
+              FILLET,
+              linked,
+              FILLET
+            )
+          : linked;
       const rounded = track(joined.add(fillets));
       // Only next to inner pieces – narrow cookie along the outside (tips,
       // thin arms) stays open from above. Offsetting curves leaves dust.
