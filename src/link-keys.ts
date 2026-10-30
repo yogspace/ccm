@@ -23,6 +23,17 @@ export const PARAM_KEYS: Record<keyof CutterParams, string> = {
 
 export const paramKeys = Object.keys(PARAM_KEYS) as (keyof CutterParams)[];
 
+/**
+ * A link's query as written: ending in a letter or digit. Rich text
+ * (Markdown, chats) cuts a `_`, `-`, `.` or `*` – or a space's `+` – off a
+ * link's end, so the last one is percent-encoded, read the same. Older links
+ * ending in one still work.
+ */
+export const linkQuery = (query: URLSearchParams) =>
+  String(query).replace(/[*\-._+]$/, (char) =>
+    char === "+" ? "%20" : `%${char.charCodeAt(0).toString(16).toUpperCase()}`
+  );
+
 /** A dimension's value in a link – under its letter, or its old name. */
 export const paramOf = (query: URLSearchParams, key: keyof CutterParams) =>
   query.get(PARAM_KEYS[key]) ?? query.get(key);
@@ -53,5 +64,5 @@ export const currentForm = (hash: string) => {
   // The drawing last, as in every link.
   const shape = query.get("s");
   if (shape) out.set("s", shape);
-  return out.size > 0 ? `#${out}` : "";
+  return out.size > 0 ? `#${linkQuery(out)}` : "";
 };

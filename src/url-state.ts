@@ -2,7 +2,7 @@ import { deflateSync, inflateSync } from "fflate";
 import { ANCHOR, anchorCount, cleanAnchors, lineStroke } from "./bezier";
 import { type CutterParams, defaultParams } from "./geometry/cutter";
 import type { Point, Ring } from "./geometry/outline";
-import { PARAM_KEYS, paramKeys, paramOf } from "./link-keys";
+import { linkQuery, PARAM_KEYS, paramKeys, paramOf } from "./link-keys";
 
 /**
  * The complete state lives in the URL hash, so links can be shared. The hash
@@ -423,7 +423,7 @@ export const writeHash = ({
     }
   }
   if (!isEmptyDrawing(drawing)) query.set("s", encodeDrawing(drawing));
-  return query.size > 0 ? `#${query}` : "";
+  return query.size > 0 ? `#${linkQuery(query)}` : "";
 };
 
 export const readHash = (hash: string): SharedState => {

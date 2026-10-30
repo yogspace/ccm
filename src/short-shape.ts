@@ -1,3 +1,5 @@
+import { linkQuery } from "./link-keys";
+
 /**
  * Short links: a link's model (`s`, long) can stand on the server under a
  * code (`k`, account/rules.ts) – the rest of the link stays as it is. Opened,
@@ -30,7 +32,7 @@ export const resolveShortShape = async () => {
     window.history.replaceState(
       window.history.state,
       "",
-      `${pathname}${search}#${query}`
+      `${pathname}${search}#${linkQuery(query)}`
     );
   } catch {
     missing = true;
@@ -43,7 +45,7 @@ export const shortened = (url: string, code: string) => {
   const query = new URLSearchParams(parsed.hash.replace(/^#/, ""));
   query.delete("s");
   query.set("k", code);
-  return `${parsed.origin}${parsed.pathname}#${query}`;
+  return `${parsed.origin}${parsed.pathname}#${linkQuery(query)}`;
 };
 
 /**

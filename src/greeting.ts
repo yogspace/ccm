@@ -1,5 +1,7 @@
+import { linkQuery } from "./link-keys";
+
 /**
- * A creation sent as a greeting card: its own page (/de/card) with the cutter in
+ * A creation sent as a greeting card:its own page (/de/card) with the cutter in
  * the middle, the message running around it and the files to download. Like
  * every link, everything lives in the hash – the creation as usual, plus who
  * it is for, who it is from and the message. Nothing is stored.
@@ -69,7 +71,7 @@ export const greetingUrl = (
   creation.delete("s");
   for (const [key, value] of creation) query.append(key, value);
   if (shape) query.set("s", shape);
-  return `${origin}/${lang}/card#${query}`;
+  return `${origin}/${lang}/card#${linkQuery(query)}`;
 };
 
 export const readGreeting = (hash: string): Greeting => {

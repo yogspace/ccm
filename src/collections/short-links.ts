@@ -4,7 +4,7 @@ import { newCode } from "../account/keys";
 import { isCode, isSavedCookie, isShape, modelOf } from "../account/rules";
 import { FILAMENTS } from "../filaments";
 import { GREETING_KEYS, MAKERWORLD_GREETING } from "../greeting";
-import { currentForm } from "../link-keys";
+import { currentForm, linkQuery } from "../link-keys";
 import type { ShortLink } from "../payload-types";
 import { SITE } from "../seo";
 
@@ -13,7 +13,7 @@ const shortHash = (hash: string, code: string) => {
   const query = new URLSearchParams(hash.replace(/^#/, ""));
   query.delete("s");
   query.set("k", code);
-  return `#${query}`;
+  return `#${linkQuery(query)}`;
 };
 
 /** A relationship's or upload's id – populated or not. */
@@ -57,7 +57,7 @@ export const wholeCreationOf = async (payload: Payload, link: ShortLink) => {
     query.delete("k");
     query.set("s", link.shape);
   }
-  return `${url.origin}${url.pathname}#${query}`;
+  return `${url.origin}${url.pathname}#${linkQuery(query)}`;
 };
 
 /**
