@@ -47,3 +47,6 @@ media/
 # GeoIP database for the analytics' countries – fetched by
 # scripts/geoip-download.sh, never committed
 geoip/
+
+# Local previews (scripts/preview-stats-digest.ts) – they hold real analytics
+preview/
