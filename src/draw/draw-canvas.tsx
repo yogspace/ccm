@@ -334,12 +334,15 @@ const DrawCanvas = () => {
               view={view}
             />
           )}
-          {/* With the line tool, a line on how it goes. */}
-          {mode === "line" && (
+          {/* How the tool goes, in one place for all: the line tool always,
+              the move tool while nothing is picked. */}
+          {(mode === "line" || (mode === "move" && !selection)) && (
             <p className="pointer-events-none absolute bottom-2 left-1/2 z-2 w-max max-w-[calc(100%-1rem)] -translate-x-1/2 rounded-full bg-paper/90 px-3 py-1 text-center text-small text-muted">
-              {tool === "line"
-                ? t(touch ? "draw.lineHintTouch" : "draw.lineHint")
-                : t(touch ? "draw.pointsHintTouch" : "draw.pointsHint")}
+              {mode === "move"
+                ? t("draw.moveHint")
+                : tool === "line"
+                  ? t(touch ? "draw.lineHintTouch" : "draw.lineHint")
+                  : t(touch ? "draw.pointsHintTouch" : "draw.pointsHint")}
             </p>
           )}
           {/* Round or corner – the points still to set, or the picked one:

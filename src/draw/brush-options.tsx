@@ -6,7 +6,10 @@ import Segmented from "../components/segmented";
 import { EMBOSS_INK, type Ink } from "../drawing";
 
 type Props = {
-  /** The slider – drawing, or something selected to change; else a hint. */
+  /**
+   * Drawing, or something selected to change. Else (moving, nothing picked)
+   * the room stays, empty – the move tool's hint is on the area.
+   */
   shown: boolean;
   brush: number;
   /** The brush's width on the drawing area right now, in CSS px. */
@@ -32,7 +35,8 @@ const MAX_DOT = 64;
  * eraser has the dot alone). Below, the slider. The dot grows in a box of
  * its own, out of the flow: dragging the slider moves nothing – nor the
  * measured height the area is sized by (use-area-fit.ts). While moving with
- * nothing selected, a hint instead – in the same room, so nothing jumps.
+ * nothing selected it keeps its room, empty, so nothing jumps – the move
+ * tool's hint stands on the area like the line tool's (draw-canvas.tsx).
  */
 const BrushOptions = ({
   shown,
@@ -96,14 +100,6 @@ const BrushOptions = ({
           />
         </div>
       </div>
-      {!shown && (
-        <span
-          className="col-start-1 row-start-1 min-w-0 truncate text-small text-muted"
-          title={t("draw.moveHint")}
-        >
-          {t("draw.moveHint")}
-        </span>
-      )}
     </div>
   );
 };
