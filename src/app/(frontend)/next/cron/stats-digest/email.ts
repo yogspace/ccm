@@ -376,7 +376,7 @@ const MATRIX_ROWS = 12;
  */
 const matrixHtml = (visits: Visit[], by: "visitors" | "devices") => {
   if (!visits.length) {
-    return `<div style="color:${C.muted};font-size:12px;">Keine Aufrufe im Zeitraum.</div>`;
+    return `<div style="color:${C.muted};font-size:12px;">${by === "visitors" ? "Keine Besucher im Zeitraum." : "Keine Aufrufe im Zeitraum."}</div>`;
   }
   const { columns, rows, cell, columnTotal, max } = buildVisitMatrix(visits, {
     rowAxis: "page",
