@@ -282,7 +282,7 @@ export const ShortLinks: CollectionConfig = {
       admin: { readOnly: true },
     },
     {
-      // Without a picture: draw it now, on the server (/:id/preview).
+      // Draw its picture now, on the server (/:id/preview) – or again.
       name: "createPreview",
       type: "ui",
       admin: {
@@ -294,8 +294,9 @@ export const ShortLinks: CollectionConfig = {
   ],
   endpoints: [
     {
-      // “Create preview” (fields/short-link-preview-button.tsx): the
-      // picture drawn on the server now – waits until it is there.
+      // “Create preview” / “Render preview again”
+      // (fields/short-link-preview-button.tsx): the picture drawn on the
+      // server now – `force` replaces one it has. Waits until it is there.
       path: "/:id/preview",
       method: "post",
       handler: async (req) => {
@@ -304,9 +305,12 @@ export const ShortLinks: CollectionConfig = {
         if (typeof id !== "string") {
           return Response.json({ error: "Invalid id" }, { status: 400 });
         }
+        const body = await req.json?.().catch(() => null);
         const { createPreview } = await import("../export/server-preview");
         try {
-          const created = await createPreview(req.payload, id);
+          const created = await createPreview(req.payload, id, {
+            force: body?.force === true,
+          });
           return Response.json({ created });
         } catch (error) {
           return Response.json(

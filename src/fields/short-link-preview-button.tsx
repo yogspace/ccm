@@ -9,9 +9,10 @@ import {
 import { useState } from "react";
 
 /**
- * A short link without a picture: “Create preview” draws it on the server
- * (collections/short-links.ts `/:id/preview`, export/server-preview.ts) and
- * reloads the document to show it. Hidden once it has one.
+ * A short link's picture, drawn on the server (collections/short-links.ts
+ * `/:id/preview`, export/server-preview.ts): “Create preview” without one,
+ * “Render preview again” to replace it – the old one goes. Reloads the
+ * document to show it.
  */
 export const ShortLinkPreviewButton = () => {
   const { id } = useDocumentInfo();
@@ -23,7 +24,8 @@ export const ShortLinkPreviewButton = () => {
   } = useConfig();
   const [state, setState] = useState<"idle" | "busy" | string>("idle");
 
-  if (!id || preview) return null;
+  if (!id) return null;
+  const again = Boolean(preview);
 
   const create = async () => {
     setState("busy");
@@ -31,6 +33,8 @@ export const ShortLinkPreviewButton = () => {
       const response = await fetch(`${api}/short-links/${id}/preview`, {
         method: "POST",
         credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ force: again }),
       });
       const body = await response.json().catch(() => null);
       if (!response.ok) throw new Error(body?.error ?? response.statusText);
@@ -50,7 +54,11 @@ export const ShortLinkPreviewButton = () => {
         onClick={create}
         size="small"
       >
-        {state === "busy" ? "Drawing preview…" : "Create preview"}
+        {state === "busy"
+          ? "Drawing preview…"
+          : again
+            ? "Render preview again"
+            : "Create preview"}
       </Button>
       {state !== "idle" && state !== "busy" && (
         <p style={{ color: "var(--theme-error-500)", marginTop: 8 }}>{state}</p>
