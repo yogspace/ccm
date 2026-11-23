@@ -2,7 +2,6 @@
 
 import { useSyncExternalStore } from "react";
 import { LOCALE, RETENTION_DAYS } from "../../stats/config";
-import { deviceName } from "../../stats/visit-matrix";
 
 export type ViewRow = {
   id?: string | number;

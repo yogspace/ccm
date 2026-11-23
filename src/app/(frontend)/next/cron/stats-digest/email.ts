@@ -99,7 +99,6 @@ const berlin = (t: number) => {
   };
 };
 
-
 // ─── Columns ─────────────────────────────────────────────────────────────────
 
 export type ReportBucket = {

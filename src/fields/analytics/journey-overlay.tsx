@@ -1,6 +1,11 @@
 "use client";
 
-import { type PropsWithChildren, type ReactNode, useEffect, useRef } from "react";
+import {
+  type PropsWithChildren,
+  type ReactNode,
+  useEffect,
+  useRef,
+} from "react";
 import { LOCALE, TRACKING } from "../../stats/config";
 import type { Journey } from "../../stats/journeys";
 import { duration, INK, LINE, MUTED, TEXT } from "./parts";

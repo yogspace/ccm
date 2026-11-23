@@ -36,7 +36,6 @@ import { ParagraphFeatureClient as ParagraphFeatureClient_e70f5e05f09f93e00b997e
 import { AnalyticsOverview as AnalyticsOverview_a0624fd016c2f8942a26ade7dd283502 } from '@/fields/analytics/overview'
 import { AnalyticsVisitors as AnalyticsVisitors_34f7beb10cb81b9a70cea51140b0b6c1 } from '@/fields/analytics/visitors'
 import { AnalyticsLocations as AnalyticsLocations_01c0334ece4db00ba883b6b11090857f } from '@/fields/analytics/locations'
-import { AnalyticsJourneys as AnalyticsJourneys_922b551dd2e392304ccc1601b907199e } from '@/fields/analytics/journeys'
 import { AnalyticsActions as AnalyticsActions_ad6a542d4ec8235306b47d90f6274019 } from '@/fields/analytics/actions'
 import { AnalyticsAccounts as AnalyticsAccounts_a9cfcfba7d9df05c10e0d423af555cea } from '@/fields/analytics/accounts'
 import { AnalyticsRange as AnalyticsRange_73ce8286c5cae4d48ec5095a15f5a7ae } from '@/fields/analytics/range'
@@ -88,7 +87,6 @@ export const importMap = {
   "@/fields/analytics/overview#AnalyticsOverview": AnalyticsOverview_a0624fd016c2f8942a26ade7dd283502,
   "@/fields/analytics/visitors#AnalyticsVisitors": AnalyticsVisitors_34f7beb10cb81b9a70cea51140b0b6c1,
   "@/fields/analytics/locations#AnalyticsLocations": AnalyticsLocations_01c0334ece4db00ba883b6b11090857f,
-  "@/fields/analytics/journeys#AnalyticsJourneys": AnalyticsJourneys_922b551dd2e392304ccc1601b907199e,
   "@/fields/analytics/actions#AnalyticsActions": AnalyticsActions_ad6a542d4ec8235306b47d90f6274019,
   "@/fields/analytics/accounts#AnalyticsAccounts": AnalyticsAccounts_a9cfcfba7d9df05c10e0d423af555cea,
   "@/fields/analytics/range#AnalyticsRange": AnalyticsRange_73ce8286c5cae4d48ec5095a15f5a7ae,
