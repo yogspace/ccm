@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { LOCALE, RETENTION_DAYS } from "../../stats/config";
 import { deviceName } from "../../stats/visit-matrix";
 
 export type ViewRow = {
@@ -11,6 +12,17 @@ export type ViewRow = {
   device?: string | null;
   os?: string | null;
   browser?: string | null;
+  // The options in stats/config.ts – absent while switched off.
+  country?: string | null;
+  region?: string | null;
+  city?: string | null;
+  language?: string | null;
+  campaign?: string | null;
+  view?: string | null;
+  visit?: string | null;
+  step?: number | null;
+  seconds?: number | null;
+  endedAt?: string | null;
 };
 
 export type ActionRow = {
@@ -24,13 +36,12 @@ export type ActionRow = {
 export type AnalyticsData = {
   views: ViewRow[];
   actions: ActionRow[];
+  /** When the mail report went out last – the “Since last report” range. */
   lastDigestAt: string | null;
-  /** How often the mail report goes out (sidebar → Email report). */
-  reportInterval: string | null;
 };
 
-// Rows are pruned after 90 days, which also bounds what is loaded here.
-export const DAYS = 90;
+// Rows are pruned after RETENTION_DAYS, which also bounds what is loaded.
+export const DAYS = RETENTION_DAYS;
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
@@ -91,17 +102,13 @@ export const reloadAnalytics = (): Promise<void> => {
         fetch("/api/globals/analytics", { credentials: "include" }),
       ]);
       const settings = settingsResponse.ok
-        ? ((await settingsResponse.json()) as {
-            lastDigestAt?: string | null;
-            reportInterval?: string | null;
-          })
+        ? ((await settingsResponse.json()) as { lastDigestAt?: string | null })
         : {};
       update({
         data: {
           views,
           actions,
           lastDigestAt: settings.lastDigestAt ?? null,
-          reportInterval: settings.reportInterval ?? null,
         },
         failed: false,
       });
@@ -139,16 +146,17 @@ export const useAnalytics = (): State =>
 /**
  * “Today” from midnight, not the last 24 hours: the question is mostly “what
  * happened today”, and at 9 am half of last evening would belong to it.
- * “Since last report” is what the next mail report will contain.
+ * “Since last report” is what the next mail report will contain, “all”
+ * everything kept (RETENTION_DAYS).
  */
-export type Range = "today" | "yesterday" | "7d" | "30d" | "report" | "90d";
+export type Range = "today" | "yesterday" | "7d" | "30d" | "report" | "all";
 const RANGE_VALUES: Range[] = [
   "today",
   "yesterday",
   "7d",
   "30d",
   "report",
-  "90d",
+  "all",
 ];
 const RANGE_KEY = "ccm-analytics-range";
 
@@ -181,7 +189,7 @@ export const rangeOptions = (lastDigestAt: string | null) =>
     { value: "7d", label: "7 days" },
     { value: "30d", label: "30 days" },
     ...(lastDigestAt ? [{ value: "report", label: "Since last report" }] : []),
-    { value: "90d", label: "90 days" },
+    { value: "all", label: `${DAYS} days` },
   ] as { value: Range; label: string }[];
 
 // Midnight `days` calendar days ago – by the date, not 24-hour steps: at the
@@ -276,7 +284,7 @@ export const rangeWindow = (
           from: since,
           to: now,
           open: true,
-          label: `Since the last report (${new Date(since).toLocaleDateString("de-DE")})`,
+          label: `Since the last report (${new Date(since).toLocaleDateString(LOCALE)})`,
           grain: now - since <= 3 * DAY_MS ? "hour" : "day",
           previous: {
             from: since - (now - since),
@@ -287,13 +295,13 @@ export const rangeWindow = (
       }
       break;
   }
-  // 90 days – everything stored. There is no period before: the report cron
-  // prunes older rows.
+  // Everything stored. There is no period before: the prune cron deletes
+  // older rows.
   return {
     from: now - DAYS * DAY_MS,
     to: now,
     open: true,
-    label: "Last 90 days",
+    label: `Last ${DAYS} days`,
     grain: "day",
     previous: null,
   };
@@ -303,7 +311,7 @@ export const rangeWindow = (
 
 const two = (n: number) => String(n).padStart(2, "0");
 const weekdayDay = (d: Date) =>
-  d.toLocaleDateString("de-DE", {
+  d.toLocaleDateString(LOCALE, {
     weekday: "short",
     day: "2-digit",
     month: "2-digit",
@@ -358,7 +366,7 @@ export const timeSlots = (w: Window): Slot[] => {
         from,
         to: cursor.getTime(),
         label: d
-          .toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })
+          .toLocaleDateString(LOCALE, { day: "2-digit", month: "2-digit" })
           .replace(/\.$/, ""),
         title: weekdayDay(d),
         tick: true,
@@ -471,3 +479,15 @@ export const resetDevice = (device: string) => {
     }
   });
 };
+
+/**
+ * Deletes all page views of ONE visit (`TRACKING.visits`) – a visitor in
+ * the Visitors grid, e.g. one's own visit before “Own devices”.
+ */
+export const resetVisit = (visit: string) =>
+  run(() =>
+    fetch(`/api/page-views?where[visit][equals]=${encodeURIComponent(visit)}`, {
+      method: "DELETE",
+      credentials: "include",
+    })
+  );

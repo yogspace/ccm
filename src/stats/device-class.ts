@@ -108,7 +108,13 @@ const KNOWN_SOURCES: Record<string, string> = {
   "pinterest.de": "Pinterest",
   "makerworld.com": "MakerWorld",
   "mxwr.de": "mxwr.de",
+  "linkedin.com": "LinkedIn",
+  "lnkd.in": "LinkedIn",
+  "youtube.com": "YouTube",
   "github.com": "GitHub",
+  "news.ycombinator.com": "Hacker News",
+  "chatgpt.com": "ChatGPT",
+  "perplexity.ai": "Perplexity",
 };
 
 /** Where a visit came from, as a coarse group – never the full address. */
@@ -122,4 +128,11 @@ export const sourceOf = (referrer: string | undefined, ownHost: string) => {
   }
   if (host === ownHost) return "internal";
   return KNOWN_SOURCES[host] ?? host;
+};
+
+/** The browser's first language, without the region: “de-AT,de;q=0.9” → “de”. */
+export const languageOf = (header: string | null): string | null => {
+  const tag = header?.split(",")[0]?.split(";")[0]?.trim().toLowerCase();
+  const language = tag?.split("-")[0];
+  return language && /^[a-z]{2,3}$/.test(language) ? language : null;
 };

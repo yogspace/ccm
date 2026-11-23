@@ -1,8 +1,12 @@
 import type { BasePayload } from "payload";
-import { ACTION_NAMES, actionLabel } from "@/stats/actions";
+import { ACTION_NAMES, actionLabel, HIGHLIGHTS } from "@/stats/actions";
+import { LOCALE, SITE_NAME, TIME_ZONE, TRACKING } from "@/stats/config";
+import { atlasKey, countryName, languageName } from "@/stats/country-codes";
+import { type JourneyRow, journeysOf } from "@/stats/journeys";
 import { pathLabel } from "@/stats/page-names";
 import { tally } from "@/stats/tally";
 import { deviceName, type Visit } from "@/stats/visit-matrix";
+import { countryFlag } from "@/stats/visit-name";
 import {
   CHART_ID,
   PHONE_H,
@@ -11,20 +15,22 @@ import {
   sparkPng,
   viewsChartPng,
 } from "./chart-image";
-import { compare, deviceParts, renderReportHtml, reportBuckets } from "./email";
+import {
+  compare,
+  deviceClassName,
+  deviceParts,
+  type RecentVisitor,
+  renderReportHtml,
+  reportBuckets,
+  type Tile,
+} from "./email";
+import { FLOW_PHONE_W, FLOW_W, flowPng, MAP_W, mapPng } from "./journey-images";
 
 /**
  * The report for a period – subject, text and HTML, without sending it. Apart
  * from the route handler (Next only allows handler exports there), so the
- * mail can also be looked at locally.
+ * mail can also be looked at locally (scripts/preview-stats-digest.ts).
  */
-
-const DOWNLOADS = new Set([
-  "download-3mf",
-  "download-stl",
-  "card-download-3mf",
-  "card-download-stl",
-]);
 
 const textList = (
   entries: [string, number][],
@@ -41,14 +47,11 @@ const textList = (
     .join("\n");
 };
 
-type ViewRow = {
-  path?: string | null;
-  referrer?: string | null;
-  device?: string | null;
-  os?: string | null;
-  browser?: string | null;
-  createdAt?: string | null;
-};
+/** A page view as stored – the fields the options add absent while off. */
+type ViewRow = JourneyRow;
+
+/** Latest visitors listed in the mail – the rest is in the admin. */
+const RECENT_VISITORS = 10;
 
 export const buildDigest = async (
   payload: BasePayload,
@@ -62,7 +65,7 @@ export const buildDigest = async (
   text: string;
   html: string;
   total: number;
-  /** The chart as a picture in the mail (sendMail's `inline`). */
+  /** The pictures in the mail (sendMail's `inline`). */
   inline: { filename: string; contentId: string; content: Buffer }[];
 }> => {
   const since = new Date(sinceMs).toISOString();
@@ -95,13 +98,14 @@ export const buildDigest = async (
         pagination: false,
         overrideAccess: true,
       }),
-      // Only when they were – for the period before in the chart.
+      // When they were – for the period before in the chart; with `visits`
+      // whole rows, for the visitors before.
       payload.find({
         collection: "page-views",
         where: before,
         depth: 0,
         pagination: false,
-        select: { createdAt: true },
+        ...(TRACKING.visits ? {} : { select: { createdAt: true } }),
         overrideAccess: true,
       }),
       payload.find({
@@ -112,7 +116,11 @@ export const buildDigest = async (
         overrideAccess: true,
       }),
     ]);
-  const rows = views as ViewRow[];
+  const rows = views as unknown as ViewRow[];
+  const rowsBefore = viewsBefore.docs as unknown as {
+    createdAt?: string | null;
+    visit?: string | null;
+  }[];
 
   const total = rows.length;
   const byPage = tally(rows.map((r) => r.path)).map(
@@ -134,12 +142,6 @@ export const buildDigest = async (
     count: counts.get(name) ?? 0,
     before: countsBefore.get(name) ?? 0,
   }));
-  const sum = (map: Map<string, number>, pick: (name: string) => boolean) =>
-    [...map].reduce((n, [name, count]) => n + (pick(name) ? count : 0), 0);
-  const downloads = sum(counts, (name) => DOWNLOADS.has(name));
-  const downloadsBefore = sum(countsBefore, (name) => DOWNLOADS.has(name));
-  const cards = counts.get("card-created") ?? 0;
-  const cardsBefore = countsBefore.get("card-created") ?? 0;
 
   const timesOf = (list: { createdAt?: string | null }[]) =>
     list.flatMap((row) =>
@@ -148,23 +150,132 @@ export const buildDigest = async (
   // The same hours or days of the period before, laid over this one.
   const span = now - sinceMs;
   const beforeChart = reportBuckets(
-    timesOf(viewsBefore.docs).map((t) => t + span),
+    timesOf(rowsBefore).map((t) => t + span),
     sinceMs,
     now
   );
   const sparkOf = (list: { createdAt?: string | null }[]) =>
     reportBuckets(timesOf(list), sinceMs, now).buckets.map((b) => b.count);
-  const downloadRows = actions.filter((row) => DOWNLOADS.has(row.name));
-  const cardRows = actions.filter((row) => row.name === "card-created");
 
-  const visits: Visit[] = rows.map((row) => ({
-    page: row.path || "—",
-    device: deviceName(row),
-    at: row.createdAt ? new Date(row.createdAt).getTime() : 0,
-  }));
+  // The tiles after the page views: downloads and cards (stats/actions.ts),
+  // as in the admin's Overview.
+  const highlights = HIGHLIGHTS.map(({ label, names }) => {
+    const counted = new Set<string>(names);
+    const sum = (map: Map<string, number>) =>
+      [...map].reduce((n, [name, c]) => n + (counted.has(name) ? c : 0), 0);
+    return {
+      label: label.de,
+      count: sum(counts),
+      before: sum(countsBefore),
+      rows: actions.filter((row) => counted.has(row.name)),
+    };
+  });
 
-  const tz = { timeZone: "Europe/Berlin" } as const;
-  const periodLabel = `${new Date(sinceMs).toLocaleDateString("de-DE", tz)} – ${new Date(now).toLocaleDateString("de-DE", tz)}`;
+  // ── Visitors (`TRACKING.visits`) ──────────────────────────────────────────
+  // The views of one visit linked by its random id, each visit under a
+  // made-up name – as in the admin. Views without an id (from before the
+  // option was on) stay in the counts, but have no visitor to stand under.
+  const tracked = TRACKING.visits ? rows.filter((row) => row.visit) : [];
+  const journeys = journeysOf(tracked, pathLabel);
+  const visitorCount = journeys.length;
+  const singlePage = journeys.filter((j) => j.pages.length === 1).length;
+  // Compared only once the period before had any – before the option was
+  // on there were none, and “vorher 0” would say nothing.
+  const visitorsBefore = TRACKING.visits
+    ? new Set(rowsBefore.map((row) => row.visit).filter(Boolean)).size
+    : 0;
+  const visitorsDelta =
+    visitorsBefore > 0 ? compare(visitorCount, visitorsBefore) : null;
+  const entryPages = tally(journeys.map((j) => j.pages[0]));
+
+  // A visitor as a heatmap column: the made-up name on top, device class
+  // and country below – the same names as the list and the admin.
+  const columnOf = new Map(
+    journeys.map((j) => [
+      j.key,
+      [
+        j.name,
+        j.deviceClass ? deviceClassName(j.deviceClass) : null,
+        j.country ? `${countryFlag(j.country)} ${j.country}`.trim() : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    ])
+  );
+  const at = (row: ViewRow) =>
+    row.createdAt ? new Date(row.createdAt).getTime() : 0;
+  const visits: Visit[] = TRACKING.visits
+    ? tracked.map((row) => ({
+        page: row.path || "—",
+        device: columnOf.get(row.visit as string) ?? "—",
+        at: at(row),
+      }))
+    : rows.map((row) => ({
+        page: row.path || "—",
+        device: deviceName(row),
+        at: at(row),
+      }));
+
+  // The latest visitors with their path – who came, from where, which way.
+  const known = (value: string | null) =>
+    value && value !== "unknown" ? value : null;
+  const recentVisitors: RecentVisitor[] = journeys
+    .slice(0, RECENT_VISITORS)
+    .map((j) => ({
+      when: new Date(j.start)
+        .toLocaleString(LOCALE, {
+          timeZone: TIME_ZONE,
+          weekday: "short",
+          day: "2-digit",
+          month: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+        // Without commas – in a narrow column they broke right there.
+        .replace(/,/g, ""),
+      name: j.name,
+      place: j.country
+        ? `${countryFlag(j.country)} ${countryName(j.country, LOCALE)}`.trim()
+        : "",
+      device: [
+        j.deviceClass ? deviceClassName(j.deviceClass) : null,
+        // “unknown”: a client without a readable user agent – says nothing.
+        known(j.os),
+        known(j.browser),
+        !j.source || j.source === "—" || j.source === "internal"
+          ? null
+          : j.source === "direct"
+            ? "direkt"
+            : `von ${j.source}`,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      path:
+        j.pages.slice(0, 6).join(" → ") + (j.pages.length > 6 ? " → …" : ""),
+    }));
+
+  // ── Where they are (`TRACKING.origin`) ────────────────────────────────────
+  // Only the country – the country database knows no region or city.
+  const located = TRACKING.origin ? rows.filter((row) => row.country) : [];
+  const byCountry = tally(located.map((row) => row.country));
+  const countryShades = new Map<string, number>();
+  for (const [code, count] of byCountry) {
+    const key = atlasKey(code);
+    if (key) countryShades.set(key, count);
+  }
+  // Names in German (LOCALE): “Deutschland”.
+  const countries: [string, number][] = byCountry.map(([code, count]) => [
+    `${countryFlag(code)} ${countryName(code, LOCALE)}`.trim(),
+    count,
+  ]);
+  const languages: [string, number][] = TRACKING.origin
+    ? tally(rows.map((row) => row.language).filter(Boolean)).map(
+        ([code, count]) => [languageName(code, LOCALE), count]
+      )
+    : [];
+
+  const tz = { timeZone: TIME_ZONE } as const;
+  const periodLabel = `${new Date(sinceMs).toLocaleDateString(LOCALE, tz)} – ${new Date(now).toLocaleDateString(LOCALE, tz)}`;
   const chart = {
     ...reportBuckets(timesOf(rows), sinceMs, now),
     before: beforeChart.buckets.map((b) => b.count),
@@ -173,16 +284,30 @@ export const buildDigest = async (
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL ?? "https://ccm.mxwr.de";
   const adminUrl = `${serverUrl}/admin/globals/analytics`;
   const title = `${interval.label}report`;
-  const viewsDelta = compare(total, viewsBefore.docs.length);
-  const downloadsDelta = compare(downloads, downloadsBefore);
-  const cardsDelta = compare(cards, cardsBefore);
+  const viewsDelta = compare(total, rowsBefore.length);
+  const decimal = (n: number) =>
+    n.toLocaleString(LOCALE, { maximumFractionDigits: 1 });
+  const perVisitor = visitorCount ? tracked.length / visitorCount : 0;
+  const leftAfterOne = visitorCount
+    ? `${Math.round((singlePage / visitorCount) * 100)} % nach einer Seite weg`
+    : "";
 
   const text = [
-    `Cookie Cutter Maker · ${title} — ${periodLabel}`,
+    `${SITE_NAME} · ${title} — ${periodLabel}`,
     "",
+    ...(TRACKING.visits
+      ? [
+          `Besucher: ${visitorCount}${visitorsDelta ? ` (${visitorsDelta.text})` : ""}`,
+        ]
+      : []),
     `Seitenaufrufe: ${total}${viewsDelta ? ` (${viewsDelta.text})` : ""}`,
-    `Downloads: ${downloads}${downloadsDelta ? ` (${downloadsDelta.text})` : ""}`,
-    `Karten erstellt: ${cards}${cardsDelta ? ` (${cardsDelta.text})` : ""}`,
+    ...highlights.map((h) => {
+      const delta = compare(h.count, h.before);
+      return `${h.label}: ${h.count}${delta ? ` (${delta.text})` : ""}`;
+    }),
+    ...(TRACKING.visits && visitorCount
+      ? [`Seiten pro Besucher: ${decimal(perVisitor)} (${leftAfterOne})`]
+      : []),
     "",
     "Seiten:",
     textList(byPage, total),
@@ -192,6 +317,39 @@ export const buildDigest = async (
     "",
     "Quellen (ohne interne Navigation):",
     textList(bySource, sourceRows.length),
+    ...(countries.length
+      ? ["", "Länder:", textList(countries, located.length)]
+      : []),
+    ...(languages.length
+      ? [
+          "",
+          "Sprachen (die erste des Browsers):",
+          textList(
+            languages,
+            languages.reduce((sum, [, n]) => sum + n, 0)
+          ),
+        ]
+      : []),
+    ...(recentVisitors.length
+      ? [
+          "",
+          "Letzte Besucher (Namen erfunden):",
+          recentVisitors
+            .map(
+              (v) =>
+                `  ${v.when}  ${v.name}${v.place ? ` · ${v.place}` : ""}${v.device ? ` · ${v.device}` : ""}\n    ${v.path}`
+            )
+            .join("\n"),
+          ...(visitorCount > recentVisitors.length
+            ? [
+                `  + ${visitorCount - recentVisitors.length} weitere – alle im Admin unter Analytics → Visitors`,
+              ]
+            : []),
+        ]
+      : []),
+    ...(entryPages.length
+      ? ["", "Einstiegsseiten:", textList(entryPages, journeys.length)]
+      : []),
     "",
     "Aktionen:",
     actionList.length
@@ -208,24 +366,36 @@ export const buildDigest = async (
 
   const [topPage] = byPage;
   const [topSource] = bySource;
-  // The chart as a picture – without one (or if it fails) the mail draws
-  // columns instead.
   const beforeShown = chart.before.some((n) => n > 0)
     ? chart.before
     : undefined;
-  // Every picture on its own: one failing leaves the others.
+  // Every picture on its own: one failing leaves the others – the mail then
+  // draws columns instead, or leaves the picture out.
   const picture = <T>(make: () => Promise<T>) =>
     make().catch((error) => {
       console.error("[stats-digest] picture failed:", error);
       return null;
     });
+  const none = async () => null;
   const byClass = tally(rows.map((row) => row.device));
-  const sparks = {
-    views: chart.buckets.map((b) => b.count),
-    downloads: sparkOf(downloadRows),
-    cards: sparkOf(cardRows),
-  };
-  const [png, phonePng, ring, viewsSpark, downloadsSpark, cardsSpark] =
+  const viewsSparkValues = chart.buckets.map((b) => b.count);
+  // A visitor's course: the first page of each visit.
+  const visitorsSparkValues = sparkOf(tracked.filter((row) => row.step === 1));
+  const [visitorsSpark, map, flow, phoneFlow] = await Promise.all([
+    picture(TRACKING.visits ? () => sparkPng(visitorsSparkValues) : none),
+    picture(TRACKING.origin ? () => mapPng(countryShades) : none),
+    picture(
+      TRACKING.visits
+        ? () => flowPng(journeys, { width: FLOW_W, steps: 4, perStep: 5 })
+        : none
+    ),
+    picture(
+      TRACKING.visits
+        ? () => flowPng(journeys, { width: FLOW_PHONE_W, steps: 3, perStep: 4 })
+        : none
+    ),
+  ]);
+  const [png, phonePng, ring, viewsSpark, ...highlightSparks] =
     await Promise.all([
       picture(() => viewsChartPng(chart.buckets, beforeShown)),
       picture(() =>
@@ -235,65 +405,96 @@ export const buildDigest = async (
         })
       ),
       picture(() => ringPng(deviceParts(byClass), total, "Aufrufe")),
-      picture(() => sparkPng(sparks.views)),
-      picture(() => sparkPng(sparks.downloads)),
-      picture(() => sparkPng(sparks.cards)),
+      picture(() => sparkPng(viewsSparkValues)),
+      ...highlights.map((h) => picture(() => sparkPng(sparkOf(h.rows)))),
     ]);
-  // Each an embedded file of its own, referred to as `cid:<contentId>`.
-  const files = [
+  // Each an embedded file of its own, referred to as `cid:<contentId>` –
+  // never inline `data:` (Gmail clips mails above 102 KB).
+  const files: [string, string, Buffer | null][] = [
     ["seitenaufrufe.png", CHART_ID, png],
     ["seitenaufrufe-handy.png", `${CHART_ID}-phone`, phonePng],
     ["geraete.png", "devices-ring", ring],
     ["verlauf-aufrufe.png", "spark-views", viewsSpark],
-    ["verlauf-downloads.png", "spark-downloads", downloadsSpark],
-    ["verlauf-karten.png", "spark-cards", cardsSpark],
-  ] as const;
+    ["verlauf-besucher.png", "spark-visitors", visitorsSpark],
+    ["laender.png", "countries-map", map],
+    ["wege.png", "paths-flow", flow?.png ?? null],
+    ["wege-handy.png", "paths-flow-phone", phoneFlow?.png ?? null],
+    ...highlights.map((_, i): [string, string, Buffer | null] => [
+      `verlauf-${i}.png`,
+      `spark-${i}`,
+      highlightSparks[i],
+    ]),
+  ];
   const inline = files.flatMap(([filename, contentId, content]) =>
     content ? [{ filename, contentId, content }] : []
   );
+
+  // Row 1: how many – with their course. Row 2: what and how. As in the
+  // admin's Overview, each group in full rows of three.
+  const headline: Tile[] = [
+    ...(TRACKING.visits
+      ? [
+          {
+            label: "Besucher",
+            value: visitorCount,
+            delta: visitorsDelta,
+            spark: visitorsSparkValues,
+            sparkImage: visitorsSpark ? "cid:spark-visitors" : undefined,
+          },
+        ]
+      : []),
+    {
+      label: "Seitenaufrufe",
+      value: total,
+      delta: viewsDelta,
+      spark: viewsSparkValues,
+      sparkImage: viewsSpark ? "cid:spark-views" : undefined,
+    },
+    ...highlights.map(
+      (h, i): Tile => ({
+        label: h.label,
+        value: h.count,
+        delta: compare(h.count, h.before),
+        spark: sparkOf(h.rows),
+        sparkImage: highlightSparks[i] ? `cid:spark-${i}` : undefined,
+      })
+    ),
+  ];
+  const facts: Tile[] = [
+    {
+      label: "Meistbesuchte Seite",
+      value: topPage?.[1] ?? 0,
+      detail: topPage
+        ? `${topPage[0]} · ${Math.round((topPage[1] / total) * 100)} %`
+        : "—",
+      share: topPage ? topPage[1] / total : 0,
+    },
+    {
+      label: "Top-Quelle",
+      value: topSource?.[1] ?? 0,
+      detail: topSource
+        ? `${topSource[0]} · ${Math.round((topSource[1] / sourceRows.length) * 100)} %`
+        : "—",
+      share: topSource ? topSource[1] / sourceRows.length : 0,
+    },
+    ...(TRACKING.visits
+      ? [
+          {
+            label: "Seiten pro Besucher",
+            value: 0,
+            display: visitorCount ? decimal(perVisitor) : "—",
+            detail: leftAfterOne || "—",
+            ...(visitorCount ? { share: 1 - singlePage / visitorCount } : {}),
+          },
+        ]
+      : []),
+  ];
+
   const html = renderReportHtml({
     title,
     period: periodLabel,
     adminUrl,
-    tiles: [
-      {
-        label: "Seitenaufrufe",
-        value: total,
-        delta: viewsDelta,
-        spark: sparks.views,
-        sparkImage: viewsSpark ? "cid:spark-views" : undefined,
-      },
-      {
-        label: "Downloads",
-        value: downloads,
-        delta: downloadsDelta,
-        spark: sparks.downloads,
-        sparkImage: downloadsSpark ? "cid:spark-downloads" : undefined,
-      },
-      {
-        label: "Karten erstellt",
-        value: cards,
-        delta: cardsDelta,
-        spark: sparks.cards,
-        sparkImage: cardsSpark ? "cid:spark-cards" : undefined,
-      },
-      {
-        label: "Meistbesuchte Seite",
-        value: topPage?.[1] ?? 0,
-        detail: topPage
-          ? `${topPage[0]} · ${Math.round((topPage[1] / total) * 100)} %`
-          : "—",
-        share: topPage ? topPage[1] / total : 0,
-      },
-      {
-        label: "Top-Quelle",
-        value: topSource?.[1] ?? 0,
-        detail: topSource
-          ? `${topSource[0]} · ${Math.round((topSource[1] / sourceRows.length) * 100)} %`
-          : "—",
-        share: topSource ? topSource[1] / sourceRows.length : 0,
-      },
-    ],
+    tiles: [headline, facts],
     chart: {
       ...chart,
       image: png ? `cid:${CHART_ID}` : undefined,
@@ -302,12 +503,38 @@ export const buildDigest = async (
     devices: byClass,
     devicesImage: ring ? "cid:devices-ring" : undefined,
     visits,
+    heatmap: TRACKING.visits ? "visitors" : "devices",
+    unlinked: TRACKING.visits ? total - tracked.length : 0,
     sources: bySource,
     actions: actionList,
+    recentVisitors,
+    moreVisitors: Math.max(0, visitorCount - recentVisitors.length),
+    origin: located.length
+      ? {
+          countries,
+          languages,
+          image: map ? "cid:countries-map" : undefined,
+          imageWidth: MAP_W,
+          missing: total - located.length,
+        }
+      : null,
+    flow: flow
+      ? {
+          image: "cid:paths-flow",
+          width: FLOW_W,
+          phoneImage: phoneFlow ? "cid:paths-flow-phone" : undefined,
+          phoneWidth: FLOW_PHONE_W,
+        }
+      : null,
+    // The paths' first column says where visits began – only without it.
+    entryPages: flow ? [] : entryPages,
   });
 
+  const [downloads] = highlights;
   return {
-    subject: `Cookie Cutter Maker · ${interval.label}-Statistik: ${total} Aufrufe, ${downloads} Downloads`,
+    subject: TRACKING.visits
+      ? `${SITE_NAME} · ${interval.label}-Statistik: ${visitorCount} Besucher · ${total} Aufrufe`
+      : `${SITE_NAME} · ${interval.label}-Statistik: ${total} Aufrufe, ${downloads.count} Downloads`,
     text,
     html,
     total,

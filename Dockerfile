@@ -36,6 +36,11 @@ RUN addgroup -S -g 1001 nodejs && adduser -S -u 1001 -G nodejs nextjs \
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+# Countries for the analytics: free DB-IP database (CC BY 4.0), fetched
+# fresh on every build. If the download fails, countries stay empty.
+COPY scripts/geoip-download.sh /tmp/geoip-download.sh
+RUN sh /tmp/geoip-download.sh /app/geoip/dbip-country-lite.mmdb && rm /tmp/geoip-download.sh
+ENV GEOIP_DB=/app/geoip/dbip-country-lite.mmdb
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000

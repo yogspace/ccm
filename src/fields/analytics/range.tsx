@@ -1,10 +1,11 @@
 "use client";
 
+import { LOCALE } from "../../stats/config";
 import { rangeOptions, rangeWindow, setRange, useAnalytics } from "./data";
 import { INK, LINE, MUTED } from "./parts";
 
 const stamp = (t: number) =>
-  new Date(t).toLocaleString("de-DE", {
+  new Date(t).toLocaleString(LOCALE, {
     day: "2-digit",
     month: "2-digit",
     hour: "2-digit",
@@ -62,7 +63,10 @@ export const AnalyticsRange = () => {
             >
               {option.label}
               {on && (
-                <span aria-hidden style={{ fontSize: 14, fontWeight: 700 }}>
+                <span
+                  aria-hidden="true"
+                  style={{ fontSize: 14, fontWeight: 700 }}
+                >
                   ✓
                 </span>
               )}

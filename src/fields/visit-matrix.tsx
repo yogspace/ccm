@@ -3,7 +3,8 @@
 import { Trash2 } from "lucide-react";
 import type { CSSProperties } from "react";
 import { useState } from "react";
-import { pathName } from "../stats/page-names";
+import { LOCALE } from "../stats/config";
+import { pathLabel, pathName } from "../stats/page-names";
 import {
   buildVisitMatrix,
   OTHER,
@@ -36,31 +37,111 @@ const footCell: CSSProperties = {
 };
 
 const stamp = (at: number) =>
-  new Date(at).toLocaleString("de-DE", {
+  new Date(at).toLocaleString(LOCALE, {
     day: "2-digit",
     month: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
   });
 
+/** A cell's height – the largest circle fits with a little air. */
+const CELL = 40;
+const MIN_D = 8;
+const MAX_D = 34;
+
 /**
- * Pages × devices as ONE grid: a ROW reads “which devices were on this page”,
- * a COLUMN “which pages did this device open”. The switch turns the axes.
+ * A cell as a circle: its AREA grows with the count (the diameter with the
+ * square root – twice the number looks twice as big, not four times), its
+ * tone follows the ramp. The number stands inside where the circle has room
+ * for it; smaller ones tell it in the readout below the grid.
+ */
+const Bubble = ({
+  count,
+  max,
+  shade,
+  hovered,
+}: {
+  count: number;
+  max: number;
+  shade?: CSSProperties;
+  hovered: boolean;
+}) => {
+  if (!count) {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          background: "var(--theme-elevation-100)",
+          borderRadius: 999,
+          display: "inline-block",
+          height: 4,
+          width: 4,
+        }}
+      />
+    );
+  }
+  const d = Math.round(MIN_D + Math.sqrt(count / max) * (MAX_D - MIN_D));
+  return (
+    <span
+      aria-label={String(count)}
+      role="img"
+      style={{
+        ...shade,
+        alignItems: "center",
+        borderRadius: 999,
+        boxShadow: hovered ? "0 0 0 2px var(--theme-text)" : undefined,
+        display: "inline-flex",
+        fontSize: d >= 22 ? 11 : 0,
+        fontVariantNumeric: "tabular-nums",
+        fontWeight: 600,
+        height: d,
+        justifyContent: "center",
+        transition: "box-shadow 0.1s",
+        verticalAlign: "middle",
+        width: d,
+      }}
+    >
+      {d >= 22 ? count : null}
+    </span>
+  );
+};
+
+/**
+ * Pages × devices (or visitors, or places) as ONE grid – a heatmap of
+ * circles, each as large and as dark as its count. A ROW reads “who was on
+ * this page”, a COLUMN “which pages did this one open”. With `swappable` a
+ * switch turns the axes.
  *
  * A click on a column header chooses that column: rows order by it, rows
  * without a view there disappear, and under each name stands this one cell's
  * state (“5 of 36 · last 13.09. 21:44”). The calculation lives in
- * stats/visit-matrix – the mail report shows the same grid.
+ * stats/visit-matrix.
+ *
+ * The columns are device profiles by default; `columnNoun` names them
+ * otherwise – Visitors puts visitors there, Locations places (`device` then
+ * holds the visitor or the place).
  */
 export const VisitMatrix = ({
   visits,
   onResetDevice,
   busy = false,
+  columnNoun = { one: "device", many: "devices" },
+  maxColumns,
+  otherInMax,
+  swappable = true,
 }: {
   visits: Visit[];
-  /** Deletes all views of a device profile; without it there is no button. */
+  /** Deletes all views of a column (device profile, visitor); without it there is no button. */
   onResetDevice?: (device: string) => void;
   busy?: boolean;
+  /** What the columns are, singular and plural. */
+  columnNoun?: { one: string; many: string };
+  /** Named columns before the rest becomes “Other” (default 6). */
+  maxColumns?: number;
+  /** See buildVisitMatrix – off where the columns are many small ones. */
+  otherInMax?: boolean;
+  /** Whether the axes can be turned (“By page” / “By …”). */
+  swappable?: boolean;
 }) => {
   const [rowAxis, setRowAxis] = useState<VisitAxis>("page");
   const [expanded, setExpanded] = useState(false);
@@ -72,7 +153,7 @@ export const VisitMatrix = ({
   const colAxis: VisitAxis = rowAxis === "page" ? "device" : "page";
   const { columns, rows, cell, columnTotal, max, activeCol } = buildVisitMatrix(
     visits,
-    { rowAxis, sortCol }
+    { rowAxis, sortCol, maxColumns, otherInMax }
   );
   const shown = expanded ? rows : rows.slice(0, MAX_ROWS);
 
@@ -87,11 +168,11 @@ export const VisitMatrix = ({
 
   const nameOf = (key: string) => {
     if (key === OTHER) return "Other";
-    const name = pathName(key);
-    return name ? `${name.label} (${name.locale.toUpperCase()})` : key;
+    return pathLabel(key);
   };
 
-  const noun = (axis: VisitAxis) => (axis === "device" ? "devices" : "pages");
+  const noun = (axis: VisitAxis) =>
+    axis === "device" ? columnNoun.many : "pages";
 
   // Deleting as an action of its own, outlined red – apart from the blue
   // “Reset” that only resets the view.
@@ -124,7 +205,7 @@ export const VisitMatrix = ({
         type="button"
       >
         <Trash2 size={compact ? 12 : 13} />
-        {compact ? null : "Delete this device's views"}
+        {compact ? null : `Delete this ${columnNoun.one}'s views`}
       </button>
     ) : null;
 
@@ -182,21 +263,46 @@ export const VisitMatrix = ({
             letterSpacing: "0.04em",
           }}
         >
-          {page.locale.toUpperCase()}
+          {page.locale?.toUpperCase()}
         </span>
       );
       return inHeader ? (
         <span style={{ display: "block" }} title={key}>
-          <span style={{ display: "block" }}>{page.label}</span>
+          <span
+            style={{
+              display: "block",
+              margin: "0 auto",
+              maxWidth: 96,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {page.label}
+          </span>
           <span style={{ display: "block" }}>{tag}</span>
         </span>
       ) : (
-        <span style={{ display: "block", whiteSpace: "nowrap" }} title={key}>
+        <span
+          style={{
+            display: "block",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+          title={key}
+        >
           {page.label} {tag}
         </span>
       );
     }
 
+    // Paths in the header shortened from the front: the end names the page.
+    const shown = key === OTHER ? "Other" : key;
+    const short =
+      inHeader && shown.startsWith("/") && shown.length > 14
+        ? `…/${shown.split("/").filter(Boolean).pop() ?? ""}`
+        : shown;
     return (
       <span
         style={{
@@ -209,7 +315,7 @@ export const VisitMatrix = ({
         }}
         title={key}
       >
-        {key === OTHER ? "Other" : key}
+        {short}
       </span>
     );
   };
@@ -256,10 +362,12 @@ export const VisitMatrix = ({
           marginBottom: 8,
         }}
       >
-        <div style={{ display: "flex" }}>
-          {toggle("page", "By page")}
-          {toggle("device", "By device")}
-        </div>
+        {swappable && (
+          <div style={{ display: "flex" }}>
+            {toggle("page", "By page")}
+            {toggle("device", `By ${columnNoun.one}`)}
+          </div>
+        )}
         {activeCol && colAxis === "device" && deleteButton(activeCol, false)}
         {activeCol && (
           <button
@@ -416,25 +524,18 @@ export const VisitMatrix = ({
                           setHover({ kind: "cell", row, col })
                         }
                         style={{
+                          height: CELL,
+                          padding: 2,
                           textAlign: "center",
-                          padding: "6px 4px",
-                          borderRadius: 6,
-                          fontWeight: 600,
-                          fontVariantNumeric: "tabular-nums",
-                          outline: isHovered
-                            ? "2px solid var(--theme-text)"
-                            : undefined,
-                          outlineOffset: -1,
-                          ...(value ? shade(value.count) : {}),
+                          verticalAlign: "middle",
                         }}
                       >
-                        {value ? (
-                          value.count
-                        ) : (
-                          <span style={{ color: "var(--theme-elevation-150)" }}>
-                            ·
-                          </span>
-                        )}
+                        <Bubble
+                          count={value?.count ?? 0}
+                          hovered={isHovered}
+                          max={max}
+                          shade={value ? shade(value.count) : undefined}
+                        />
                       </td>
                     );
                   })}

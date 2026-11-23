@@ -1,10 +1,17 @@
 import type { Field, GlobalConfig } from "payload";
 import { authenticated } from "../access/authenticated";
+import { TRACKING } from "../stats/config";
 
 const view = (name: string, Field: string): Field => ({
   name,
   type: "ui",
   admin: { components: { Field } },
+});
+
+const section = (label: string, name: string, Field: string): Field => ({
+  type: "collapsible",
+  label,
+  fields: [view(name, Field)],
 });
 
 /**
@@ -30,32 +37,44 @@ export const Analytics: GlobalConfig = {
       "Anonymous page views and actions (no IP, no cookies), and visitors' accounts as totals only. The time range in the sidebar applies to every section.",
   },
   fields: [
-    {
-      type: "collapsible",
-      label: "Overview",
-      fields: [
-        view("overview", "@/fields/analytics/overview#AnalyticsOverview"),
-      ],
-    },
-    {
-      type: "collapsible",
-      label: "Visitors",
-      fields: [
-        view("visitors", "@/fields/analytics/visitors#AnalyticsVisitors"),
-      ],
-    },
-    {
-      type: "collapsible",
-      label: "Actions",
-      fields: [view("actions", "@/fields/analytics/actions#AnalyticsActions")],
-    },
-    {
-      type: "collapsible",
-      label: "Accounts",
-      fields: [
-        view("accounts", "@/fields/analytics/accounts#AnalyticsAccounts"),
-      ],
-    },
+    section(
+      "Overview",
+      "overview",
+      "@/fields/analytics/overview#AnalyticsOverview"
+    ),
+    section(
+      "Visitors",
+      "visitors",
+      "@/fields/analytics/visitors#AnalyticsVisitors"
+    ),
+    ...(TRACKING.origin
+      ? [
+          section(
+            "Locations",
+            "locations",
+            "@/fields/analytics/locations#AnalyticsLocations"
+          ),
+        ]
+      : []),
+    ...(TRACKING.visits || TRACKING.timing
+      ? [
+          section(
+            TRACKING.visits ? "Journeys" : "Time on page",
+            "journeys",
+            "@/fields/analytics/journeys#AnalyticsJourneys"
+          ),
+        ]
+      : []),
+    section(
+      "Actions",
+      "actions",
+      "@/fields/analytics/actions#AnalyticsActions"
+    ),
+    section(
+      "Accounts",
+      "accounts",
+      "@/fields/analytics/accounts#AnalyticsAccounts"
+    ),
     {
       // Unnamed groups: only a heading and a line in the sidebar, no nesting
       // of the data.

@@ -2,6 +2,7 @@ import configPromise from "@payload-config";
 import { NextResponse } from "next/server";
 import { getPayload } from "payload";
 import { denyUnlessAuthorized } from "@/stats/auth";
+import { RETENTION_DAYS } from "@/stats/config";
 import { sendMail } from "@/stats/send-mail";
 import { buildDigest } from "./digest";
 
@@ -9,7 +10,7 @@ import { buildDigest } from "./digest";
  * The statistics report by mail. Called daily by a cron on the server
  * (scripts/setup-cron.sh), but only sends when the interval set in the admin
  * (analytics global → Email report) is due, tracked by lastDigestAt. Then it
- * prunes rows older than 90 days.
+ * prunes rows older than RETENTION_DAYS (stats/config.ts).
  *
  * `?force=1` (the “send now” button): ignores interval and “off” and does
  * NOT move lastDigestAt, so the regular cadence stays.
@@ -18,7 +19,6 @@ export const dynamic = "force-dynamic";
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
-const RETENTION_MS = 90 * DAY_MS;
 
 const INTERVAL: Record<
   string,
@@ -53,7 +53,7 @@ export const GET = async (request: Request) => {
   // Pruned on every call – also when no report is due or mail is off.
   let pruned = 0;
   try {
-    const cutoff = new Date(now - RETENTION_MS).toISOString();
+    const cutoff = new Date(now - RETENTION_DAYS * DAY_MS).toISOString();
     for (const collection of ["page-views", "actions"] as const) {
       const result = await payload.delete({
         collection,

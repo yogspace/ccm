@@ -1,3 +1,4 @@
+import { ACTION_GROUPS } from "@/stats/actions";
 import { pathName } from "@/stats/page-names";
 import {
   buildVisitMatrix,
@@ -55,9 +56,9 @@ const DEVICES: Record<string, { name: string; color: string }> = {
 const FONT =
   "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
-// Heatmap steps on the cream ground, from the app's soft accent to its blue
-// and the night blue of dark mode – dark = many.
-const RAMP = [
+// Heatmap and map steps on the cream ground, from the app's soft accent to
+// its blue and the night blue of dark mode – dark = many.
+export const RAMP = [
   "#e3e7ff",
   "#c4cdff",
   "#9aa8ff",
@@ -227,6 +228,8 @@ const TREND_COLOR: Record<Trend, string> = {
 export type Tile = {
   label: string;
   value: number;
+  /** The value as text instead of a count – “1,4” pages per visitor. */
+  display?: string;
   detail?: string;
   delta?: Delta | null;
   /** Its course over the period – small columns under the number … */
@@ -267,6 +270,7 @@ const meterHtml = (share: number) => {
 const tile = ({
   label,
   value,
+  display,
   detail,
   delta,
   spark,
@@ -280,7 +284,7 @@ const tile = ({
       : "";
   return card(
     `<div style="font-size:11px;line-height:14px;color:${C.muted};">${label}</div>
-     <div style="font-size:26px;line-height:32px;font-weight:700;color:${C.ink};padding-top:4px;letter-spacing:-0.01em;">${fmt(value)}</div>
+     <div style="font-size:26px;line-height:32px;font-weight:700;color:${C.ink};padding-top:4px;letter-spacing:-0.01em;">${escapeHtml(display ?? fmt(value))}</div>
      ${sub}${sparkImage ? `<img src="${escapeHtml(sparkImage)}" width="${SPARK_W}" alt="" style="display:block;width:100%;max-width:${SPARK_W}px;height:auto;border:0;margin-top:10px;">` : spark ? sparkHtml(spark) : ""}${share !== undefined ? meterHtml(share) : ""}`,
     "14px 16px"
   );
@@ -359,18 +363,25 @@ const rowName = (key: string) => {
     : `<span style="color:${C.text};">${escapeHtml(key)}</span>`;
 };
 
+/** Rows of the heatmap in the mail – the rest is in the admin. */
+const MATRIX_ROWS = 12;
+
 /**
- * Pages × devices – the admin's grid (stats/visit-matrix), without clicking.
- * Four device columns: a grid scrolling sideways in a mail program nobody
- * reads; the rest stands in “Other”.
+ * Pages × visitors (`TRACKING.visits`) or pages × devices – the admin's grid
+ * (stats/visit-matrix), without clicking: a circle per cell, its area and
+ * tone growing with the count, the number inside once it is large enough.
+ * Four columns: a grid scrolling sideways in a mail program nobody reads;
+ * the rest stands in “Andere” – for visitors left out of the shading, its
+ * sum would pale every named circle. Classic Outlook draws squares.
  */
-const matrixHtml = (visits: Visit[]) => {
+const matrixHtml = (visits: Visit[], by: "visitors" | "devices") => {
   if (!visits.length) {
     return `<div style="color:${C.muted};font-size:12px;">Keine Aufrufe im Zeitraum.</div>`;
   }
   const { columns, rows, cell, columnTotal, max } = buildVisitMatrix(visits, {
     rowAxis: "page",
     maxColumns: 4,
+    ...(by === "visitors" ? { otherInMax: false } : {}),
   });
 
   const head = columns
@@ -386,7 +397,7 @@ const matrixHtml = (visits: Visit[]) => {
     .join("");
 
   const body = rows
-    .slice(0, 12)
+    .slice(0, MATRIX_ROWS)
     .map(([row, total]) => {
       const cells = columns
         .map((col) => {
@@ -402,7 +413,12 @@ const matrixHtml = (visits: Visit[]) => {
             )
           );
           const ink = index >= 4 ? "#ffffff" : C.ink;
-          return `<td class="r-mx-cell" style="padding:3px 2px;"><div title="${value.count} · zuletzt ${berlinStamp(value.lastAt)}" style="background:${RAMP[index]};color:${ink};border-radius:6px;text-align:center;font-size:12px;line-height:26px;font-weight:600;">${value.count}</div></td>`;
+          // The circle's AREA grows with the count (diameter by the root).
+          const d = Math.round(
+            8 + Math.sqrt(Math.min(1, value.count / max)) * 22
+          );
+          const label = d >= 20;
+          return `<td class="r-mx-cell" style="padding:3px 2px;text-align:center;vertical-align:middle;height:32px;"><div title="${value.count} · zuletzt ${berlinStamp(value.lastAt)}" style="display:inline-block;width:${d}px;height:${d}px;background:${RAMP[index]};color:${ink};border-radius:50%;text-align:center;font-size:${label ? 11 : 1}px;line-height:${d}px;font-weight:600;vertical-align:middle;">${label ? value.count : "&nbsp;"}</div></td>`;
         })
         .join("");
       return `<tr>
@@ -424,11 +440,16 @@ const matrixHtml = (visits: Visit[]) => {
     })
     .join("");
 
+  const more =
+    rows.length > MATRIX_ROWS
+      ? `<div style="color:${C.muted};font-size:11px;padding-top:8px;">+ ${fmt(rows.length - MATRIX_ROWS)} weitere Seiten – alle im Admin unter Analytics.</div>`
+      : "";
+
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
     <tr><td></td>${head}</tr>
     ${body}
-    <tr><td style="padding:8px 10px 0 0;font-size:10px;line-height:13px;color:${C.muted};border-top:1px solid ${C.line};">${visits.length} gesamt<br>je Gerät · zuletzt</td>${foot}</tr>
-  </table>`;
+    <tr><td style="padding:8px 10px 0 0;font-size:10px;line-height:13px;color:${C.muted};border-top:1px solid ${C.line};">${fmt(visits.length)} gesamt<br>je ${by === "visitors" ? "Besucher" : "Gerät"} · zuletzt</td>${foot}</tr>
+  </table>${more}`;
 };
 
 // ─── Lists ───────────────────────────────────────────────────────────────────
@@ -466,11 +487,6 @@ const rankList = (entries: [string, number, string?][], limit = 8) => {
 };
 
 /**
- * The device classes as ONE stacked bar – the mail's ring: desktop, mobile,
- * tablet in fixed colors, the rest as “Andere” – with every number and
- * share in the legend below.
- */
-/**
  * The device classes in their fixed colors, the rest as “Andere” – for the
  * stacked bar and the ring picture alike.
  */
@@ -488,6 +504,9 @@ export const deviceParts = (devices: [string, number][]) => {
       count: merged.get(key) ?? 0,
     }));
 };
+
+/** “Mobil” for “mobile” – a device class as the mail names it. */
+export const deviceClassName = (key: string) => DEVICES[key]?.name ?? key;
 
 const devicesHtml = (devices: [string, number][], ring?: string) => {
   const total = devices.reduce((sum, [, n]) => sum + n, 0);
@@ -520,42 +539,6 @@ const devicesHtml = (devices: [string, number][], ring?: string) => {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;table-layout:fixed;"><tr>${segments}</tr></table>${legendTable}`;
 };
 
-/** The actions by what they are about – as in the admin; new ones in “Weitere”. */
-const ACTION_GROUPS: { title: string; names: string[] }[] = [
-  { title: "Erstellen", names: ["cookie-saved", "template", "svg-import"] },
-  {
-    title: "Downloads",
-    names: ["download-3mf", "download-stl", "download-embossed"],
-  },
-  {
-    title: "Teilen",
-    names: ["share-open", "share-link", "share-image", "save-image"],
-  },
-  {
-    title: "Karten",
-    names: [
-      "card-created",
-      "card-turned",
-      "card-eaten",
-      "card-picture",
-      "card-download-3mf",
-      "card-download-stl",
-    ],
-  },
-  {
-    title: "Konten",
-    names: [
-      "account-created",
-      "account-login",
-      "account-logout",
-      "account-deleted",
-      "cookie-online",
-      "cookie-replaced",
-      "cookie-offline",
-    ],
-  },
-];
-
 /**
  * Each action as a blue bar for now and a thin grey one for before, on one
  * scale, the change as a number with an arrow – grouped like in the admin.
@@ -565,9 +548,15 @@ const actionsHtml = (actions: ReportAction[]) => {
     return `<div style="color:${C.muted};font-size:12px;">Nichts im Zeitraum.</div>`;
   }
   const max = Math.max(...actions.map((a) => Math.max(a.count, a.before)), 1);
-  const grouped = new Set(ACTION_GROUPS.flatMap((group) => group.names));
+  // The groups of the admin (stats/actions.ts), their German titles.
+  const grouped = new Set<string>(
+    ACTION_GROUPS.flatMap((group) => group.names)
+  );
   const groups = [
-    ...ACTION_GROUPS,
+    ...ACTION_GROUPS.map(({ title, names }) => ({
+      title: title.de,
+      names: names as string[],
+    })),
     {
       title: "Weitere",
       names: actions.map((a) => a.name).filter((name) => !grouped.has(name)),
@@ -629,6 +618,87 @@ const actionsHtml = (actions: ReportAction[]) => {
   </tr></table>`;
 };
 
+// ─── Visitors, countries, paths ──────────────────────────────────────────────
+
+export type RecentVisitor = {
+  /** “Mo 23.11. 14:05” – in Berlin time, without commas. */
+  when: string;
+  /** The made-up name (stats/visit-name.ts). */
+  name: string;
+  /** “🇩🇪 Deutschland” – empty without a country. */
+  place: string;
+  /** “Desktop · macOS 15 · Safari 18 · von Google”. */
+  device: string;
+  /** “Editor (DE) → Card (DE)”. */
+  path: string;
+};
+
+/** The latest visitors, one per row: when, who, from where, their path. */
+const recentVisitorsHtml = (list: RecentVisitor[], more: number) =>
+  `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">${list
+    .map(
+      (v) => `<tr>
+        <td style="padding:9px 12px 9px 0;border-top:1px solid ${C.line};vertical-align:top;white-space:nowrap;font-size:12px;font-weight:600;color:${C.ink};width:1%;">${escapeHtml(v.when)}</td>
+        <td style="padding:9px 0;border-top:1px solid ${C.line};vertical-align:top;font-size:12px;line-height:17px;color:${C.text};">
+          <span style="font-weight:600;color:${C.ink};">${escapeHtml(v.name)}</span>${v.place ? ` <span style="color:${C.muted};">· ${escapeHtml(v.place)}</span>` : ""}
+          <div style="font-size:11px;color:${C.muted};">${escapeHtml(v.device)}</div>
+          <div style="font-size:11px;color:${C.text};padding-top:3px;">${escapeHtml(v.path)}</div>
+        </td>
+      </tr>`
+    )
+    .join("")}</table>${
+    more > 0
+      ? `<div style="color:${C.muted};font-size:11px;padding-top:8px;">+ ${fmt(more)} weitere – alle im Admin unter Analytics → Visitors.</div>`
+      : ""
+  }`;
+
+/**
+ * Under the countries: where they come from and that the IP is not kept.
+ * Names the database the lookup uses (stats/geoip.ts, DB-IP IP to Country
+ * Lite, CC BY 4.0 – attribution required).
+ */
+const ORIGIN_NOTE =
+  "Nur das Land – aus der IP nachgeschlagen, die nie gespeichert wird. IP Geolocation by DB-IP (CC BY 4.0).";
+
+/**
+ * Where visitors come from: the map as a picture across the card, below it
+ * the countries and the browser languages side by side (one below the other
+ * on the phone).
+ */
+const countriesHtml = (r: NonNullable<ReportData["origin"]>) => {
+  const map = r.image
+    ? `<img src="${escapeHtml(r.image)}" width="${r.imageWidth}" alt="Weltkarte: ${escapeHtml(
+        r.countries
+          .slice(0, 5)
+          .map(([name, n]) => `${name} ${n}`)
+          .join(", ")
+      )}" style="display:block;width:100%;max-width:${r.imageWidth}px;height:auto;border:0;border-radius:8px;">${gap(14)}`
+    : "";
+  const missing = r.missing
+    ? `<div style="color:${C.muted};font-size:11px;padding-top:10px;">${fmt(r.missing)} Aufrufe ohne Land – älter oder eine Adresse, die die Datenbank nicht kennt.</div>`
+    : "";
+  const half = (inner: string, side: "left" | "right") =>
+    `<td class="r-col" width="50%" style="width:50%;vertical-align:top;padding:${side === "left" ? "0 10px 0 0" : "0 0 0 10px"};">${inner}</td>`;
+  const heading = (title: string, aside = "") =>
+    `<div style="font-size:12px;font-weight:600;color:${C.text};padding-bottom:2px;">${title}${aside ? ` <span style="font-weight:400;color:${C.muted};">${aside}</span>` : ""}</div>`;
+  return `${map}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;table-layout:fixed;"><tr>
+    ${half(`${heading("Länder")}${rankList(r.countries)}`, "left")}
+    ${half(`${heading("Sprachen", "die erste des Browsers")}${rankList(r.languages)}`, "right")}
+  </tr></table>${missing}
+  <div style="color:${C.muted};font-size:10px;line-height:14px;padding-top:10px;">${escapeHtml(ORIGIN_NOTE)}</div>`;
+};
+
+/**
+ * The paths diagram as a picture – the wide one, and on the phone (media
+ * query) a narrower one with fewer steps.
+ */
+const flowHtml = (f: NonNullable<ReportData["flow"]>) =>
+  `<img class="${f.phoneImage ? "r-hide" : ""}" src="${escapeHtml(f.image)}" width="${f.width}" alt="Wege durch die Seite" style="display:block;width:100%;max-width:${f.width}px;height:auto;border:0;">${
+    f.phoneImage
+      ? `<!--[if !mso]><!--><div class="r-show" style="display:none;max-height:0;overflow:hidden;mso-hide:all;"><img src="${escapeHtml(f.phoneImage)}" width="${f.phoneWidth}" alt="Wege durch die Seite" style="display:block;width:100%;max-width:${f.phoneWidth}px;height:auto;border:0;"></div><!--<![endif]-->`
+      : ""
+  }<div style="color:${C.muted};font-size:11px;line-height:15px;padding-top:10px;">Jede Spalte ist ein Schritt eines Besuchs: Spalte 1 zeigt, wo Besuche beginnen, die Bänder, wie es weitergeht – je breiter, desto öfter. „% Ende“ heißt: dort aufgehört.</div>`;
+
 // ─── The mail ────────────────────────────────────────────────────────────────
 
 export type ReportAction = {
@@ -644,8 +714,11 @@ export type ReportData = {
   title: string;
   period: string;
   adminUrl: string;
-  /** Five tiles: three in the first row, two in the second. */
-  tiles: Tile[];
+  /**
+   * Groups of tiles (how many · what and how), each in full rows of three:
+   * the last tile spans what is left of its row, as in the admin.
+   */
+  tiles: Tile[][];
   chart: {
     grain: "hour" | "day";
     buckets: ReportBucket[];
@@ -660,9 +733,37 @@ export type ReportData = {
   devices: [string, number][];
   /** … and as a ring picture (`cid:…`), if it could be drawn. */
   devicesImage?: string;
+  /** The heatmap's views – page × visitor (`visits`) or page × device. */
   visits: Visit[];
+  heatmap: "visitors" | "devices";
+  /** Page views left out of pages × visitors – no visit id. */
+  unlinked?: number;
   sources: [string, number][];
   actions: ReportAction[];
+  /** With `TRACKING.visits`: the latest visitors … */
+  recentVisitors?: RecentVisitor[];
+  /** … and how many more there were. */
+  moreVisitors?: number;
+  /** With `TRACKING.origin`: countries and languages – null without any. */
+  origin?: {
+    /** “🇩🇪 Deutschland” by views. */
+    countries: [string, number][];
+    languages: [string, number][];
+    /** The map (`cid:…`), if it could be drawn. */
+    image?: string;
+    imageWidth: number;
+    /** Page views without a country. */
+    missing: number;
+  } | null;
+  /** With `TRACKING.visits`: the paths diagram – null without a path. */
+  flow?: {
+    image: string;
+    width: number;
+    phoneImage?: string;
+    phoneWidth: number;
+  } | null;
+  /** With `TRACKING.visits` and no paths diagram: where visits began. */
+  entryPages?: [string, number][];
 };
 
 /**
@@ -693,22 +794,28 @@ const RESPONSIVE_CSS = `
 `;
 
 const renderHtml = (r: ReportData): string => {
-  // `r-col`: one below the other on the phone (media query).
-  const col = (inner: string, side: "left" | "mid" | "right") =>
-    `<td class="r-col" width="33.33%" style="width:33.33%;vertical-align:top;padding:${
-      side === "left" ? "0 5px 0 0" : side === "right" ? "0 0 0 5px" : "0 5px"
-    };">${inner}</td>`;
-  const sides = ["left", "mid", "right"] as const;
-  const row = (tiles: Tile[]) =>
-    `<tr>${tiles.map((t, i) => col(tile(t), sides[i])).join("")}${
-      tiles.length < 3 ? '<td class="r-hide"></td>' : ""
-    }</tr>`;
-
-  const kpis = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;table-layout:fixed;">
-    ${row(r.tiles.slice(0, 3))}
-    <tr class="r-hide"><td colspan="3">${gap(10)}</td></tr>
-    ${row(r.tiles.slice(3, 6))}
-  </table>`;
+  // Tiles in full rows of three – the last one of a group spans what is left
+  // of its row. Each row a table of its own: no colspan under a fixed
+  // layout. `r-col`: one below the other on the phone (media query).
+  const tileRow = (tiles: Tile[]) => {
+    const cells = tiles.map((t, i) => {
+      const from = i;
+      const to = i === tiles.length - 1 ? 2 : i;
+      const width = `${(((to - from + 1) / 3) * 100).toFixed(2)}%`;
+      const padding = `0 ${to === 2 ? 0 : 5}px 0 ${from === 0 ? 0 : 5}px`;
+      return `<td class="r-col" width="${width}" style="width:${width};vertical-align:top;padding:${padding};">${tile(t)}</td>`;
+    });
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;table-layout:fixed;"><tr>${cells.join("")}</tr></table>`;
+  };
+  const tileRows = r.tiles.flatMap((group) => {
+    const rows: Tile[][] = [];
+    for (let i = 0; i < group.length; i += 3) rows.push(group.slice(i, i + 3));
+    return rows;
+  });
+  // Between rows a gap – on the phone the stacked tiles bring their own.
+  const kpis = tileRows
+    .map(tileRow)
+    .join(`<div class="r-hide">${gap(10)}</div>`);
 
   const chartTotal = r.chart.buckets.reduce((sum, b) => sum + b.count, 0);
   const beforeTotal = (r.chart.before ?? []).reduce((sum, n) => sum + n, 0);
@@ -736,7 +843,13 @@ const renderHtml = (r: ReportData): string => {
   );
 
   const matrix = card(
-    `${sectionTitle("Seiten × Geräte")}${matrixHtml(r.visits)}`
+    `${sectionTitle(
+      r.heatmap === "visitors" ? "Seiten × Besucher" : "Seiten × Geräte",
+      r.unlinked
+        ? // Short – the aside does not wrap, and must fit a phone.
+          `${fmt(r.unlinked)} Aufrufe ohne Besucher`
+        : ""
+    )}${matrixHtml(r.visits, r.heatmap)}`
   );
   const sources = card(
     `${sectionTitle("Quellen", "ohne interne Navigation")}${rankList(r.sources)}`
@@ -752,6 +865,23 @@ const renderHtml = (r: ReportData): string => {
     <td class="r-col" width="50%" style="width:50%;vertical-align:top;padding:0 5px 0 0;">${devices}</td>
     <td class="r-col" width="50%" style="width:50%;vertical-align:top;padding:0 0 0 5px;">${sources}</td>
   </tr></table>`;
+  // What the options in stats/config.ts add – only what has data.
+  const visitors = r.recentVisitors?.length
+    ? card(
+        `${sectionTitle("Letzte Besucher", "Namen erfunden")}${recentVisitorsHtml(r.recentVisitors, r.moreVisitors ?? 0)}`
+      )
+    : "";
+  const origin = r.origin
+    ? card(
+        `${sectionTitle("Woher die Besucher kommen")}${countriesHtml(r.origin)}`
+      )
+    : "";
+  const flow = r.flow
+    ? card(`${sectionTitle("Wege durch die Seite")}${flowHtml(r.flow)}`)
+    : "";
+  const entryPages = r.entryPages?.length
+    ? card(`${sectionTitle("Einstiegsseiten")}${rankList(r.entryPages)}`)
+    : "";
 
   return `<!DOCTYPE html>
 <html lang="de">
@@ -777,14 +907,10 @@ const renderHtml = (r: ReportData): string => {
   </td></tr>
 
   <tr><td>${kpis}</td></tr>
-  <tr><td>${gap(10)}</td></tr>
-  <tr><td>${chart}</td></tr>
-  <tr><td>${gap(10)}</td></tr>
-  <tr><td>${actions}</td></tr>
-  <tr><td>${gap(10)}</td></tr>
-  <tr><td>${pair}</td></tr>
-  <tr><td>${gap(10)}</td></tr>
-  <tr><td>${matrix}</td></tr>
+  ${[chart, actions, pair, matrix, visitors, origin, flow, entryPages]
+    .filter(Boolean)
+    .map((part) => `<tr><td>${gap(10)}</td></tr><tr><td>${part}</td></tr>`)
+    .join("")}
 
   <tr><td style="padding:28px 4px 0;">
     <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate;"><tr>

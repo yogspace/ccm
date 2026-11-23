@@ -63,6 +63,8 @@ export const POST = async (request: NextRequest) => {
     overrideAccess: true,
   });
   let code = docs[0]?.code;
+  // The same model online already – its short link may have a picture.
+  const preview = Boolean(docs[0]?.preview);
   // A code taken already (next to impossible): another one.
   for (let attempt = 0; !code && attempt < 3; attempt++) {
     try {
@@ -79,7 +81,9 @@ export const POST = async (request: NextRequest) => {
   if (!code) return failure("No code found", 500);
 
   await keepJar(payload, account, [{ ...cookie, code }, ...jar]);
-  return NextResponse.json({ code });
+  // `preview`: whether the browser still has to draw the picture
+  // (account/preview.ts).
+  return NextResponse.json({ code, preview });
 };
 
 /**
@@ -121,7 +125,8 @@ export const PUT = async (request: NextRequest) => {
     (other) => other.code !== code && other.hash !== cookie.hash
   );
   await keepJar(payload, account, [{ ...cookie, code }, ...jar]);
-  return NextResponse.json({ code });
+  // A new model drops the old picture (short-links.ts) – unless unchanged.
+  return NextResponse.json({ code, preview: Boolean(docs[0]?.preview) });
 };
 
 export const DELETE = async (request: NextRequest) => {

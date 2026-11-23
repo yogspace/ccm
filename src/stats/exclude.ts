@@ -34,15 +34,24 @@ export const readExcludeToken = async (
 };
 
 /**
- * Straight at the model instead of `payload.updateGlobal()`: the analytics
- * global is open in the admin exactly when the button is pressed, and a
- * regular update would bump `updatedAt` and make the open form claim someone
- * else changed it. This writes the one field and nothing else.
+ * On MongoDB straight at the model instead of `payload.updateGlobal()`: the
+ * analytics global is open in the admin exactly when the button is pressed,
+ * and a regular update would bump `updatedAt` and make the open form claim
+ * someone else changed it. This writes the one field and nothing else. Other
+ * adapters take the regular update – reload the form after the button.
  */
 export const writeExcludeToken = async (
   payload: BasePayload,
   token: string
 ): Promise<void> => {
+  if (payload.db.name !== "mongoose") {
+    await payload.updateGlobal({
+      slug: "analytics",
+      data: { [TOKEN_FIELD]: token },
+      overrideAccess: true,
+    });
+    return;
+  }
   const globals = (
     payload.db as unknown as {
       globals: {

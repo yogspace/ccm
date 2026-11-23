@@ -522,7 +522,7 @@ $muted: #5c6080;
 // Device classes in three fixed hues; magnitude in one blue ramp – turned
 // round in dark, so more always stands further from the ground; the fixed
 // status colors for when an account goes. Text never wears them.
-.ccm-viz {
+.stats-viz {
   --viz-1: #2a78d6;
   --viz-2: #eb6834;
   --viz-3: #1baf7a;
@@ -549,7 +549,7 @@ $muted: #5c6080;
   --viz-seq-ink-7: #ffffff;
 }
 
-html[data-theme="dark"] .ccm-viz {
+html[data-theme="dark"] .stats-viz {
   --viz-1: #3987e5;
   --viz-2: #d95926;
   --viz-3: #199e70;
@@ -573,14 +573,23 @@ html[data-theme="dark"] .ccm-viz {
 }
 
 // Cards around each chart, a grid of them where there is room.
-.ccm-viz__grid {
+.stats-viz__grid {
   display: grid;
   gap: 16px;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   margin-bottom: 16px;
 }
 
-.ccm-viz__card {
+// A map beside its list – the map takes the room.
+.stats-viz__grid--map {
+  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+
+  @media (max-width: 900px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.stats-viz__card {
   background: var(--theme-elevation-0);
   border: 1px solid var(--theme-elevation-100);
   border-radius: var(--style-radius-m);
@@ -588,26 +597,308 @@ html[data-theme="dark"] .ccm-viz {
   min-width: 0;
   padding: 16px 18px 14px;
 
-  .ccm-viz__grid > & {
+  .stats-viz__grid > & {
     margin-bottom: 0;
   }
 }
 
-.ccm-viz__focusable:focus-visible {
+.stats-viz__focusable:focus-visible {
   outline: 2px solid var(--viz-1);
   outline-offset: 2px;
   border-radius: 4px;
 }
 
 // Changes against the period before, as text: dark enough to read.
-.ccm-viz {
+.stats-viz {
   --viz-up-text: #006300;
   --viz-down-text: #b42f2f;
 }
 
-html[data-theme="dark"] .ccm-viz {
+html[data-theme="dark"] .stats-viz {
   --viz-up-text: #0ca30c;
   --viz-down-text: #e66767;
+}
+
+// The overlays (fields/analytics/journey-overlay.tsx, `Overlay`).
+.stats-viz__dialog {
+  background: var(--theme-elevation-0);
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: var(--style-radius-m);
+  box-shadow: 0 24px 64px -24px rgb(0 0 0 / 0.5);
+  color: var(--theme-elevation-800);
+  max-height: calc(100vh - 48px);
+  max-width: min(1280px, calc(100vw - 32px));
+  padding: 0;
+  width: 100%;
+
+  &::backdrop {
+    background: rgb(0 0 0 / 0.45);
+  }
+}
+
+.stats-viz__dialog-body {
+  padding: 20px 24px 24px;
+}
+
+// The visitors (fields/analytics/visit-browser.tsx): a scrollable list, a
+// click opens one in an overlay.
+.stats-viz__visit-list {
+  border: 1px solid var(--theme-elevation-100);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-radius: var(--style-radius-m);
+  max-height: 480px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  @media (max-width: 760px) {
+    max-height: 260px;
+  }
+}
+
+.stats-viz__visit-item {
+  align-items: center;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--theme-elevation-100);
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 4px 16px;
+  // When, avatar, who, where, the path's length.
+  grid-template-columns: 44px 30px minmax(160px, 1.6fr) minmax(110px, 1fr) 150px;
+  padding: 10px 14px;
+  text-align: left;
+  width: 100%;
+
+  li:last-child > & {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: var(--theme-elevation-50);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--viz-1);
+    outline-offset: -2px;
+  }
+
+  // Inside a country's overlay the country is in its head already; without
+  // `TRACKING.origin` there is none.
+  .stats-viz__visit-list--within &,
+  .stats-viz__visit-list--no-place & {
+    grid-template-columns: 44px 30px minmax(0, 1fr) 150px;
+  }
+
+  @media (max-width: 760px) {
+    grid-template-columns: 44px 30px minmax(0, 1fr);
+
+    .stats-viz__visit-list--within &,
+    .stats-viz__visit-list--no-place & {
+      grid-template-columns: 44px 30px minmax(0, 1fr);
+    }
+
+    .stats-viz__visit-where {
+      display: none;
+    }
+
+    .stats-viz__visit-path {
+      grid-column: 3;
+      justify-content: flex-start;
+    }
+  }
+}
+
+.stats-viz__visit-who {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.stats-viz__visit-path {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+// Inside an overlay: no frame of its own – the overlay is the frame.
+.stats-viz__visit-list--within {
+  border: none;
+  border-radius: 0;
+  border-top: 1px solid var(--theme-elevation-100);
+  max-height: min(60vh, 560px);
+}
+
+// Back from a visitor to the list it was opened from.
+.stats-viz__back {
+  background: none;
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 999px;
+  color: var(--theme-elevation-800);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  padding: 3px 12px;
+
+  &:hover {
+    background: var(--theme-elevation-50);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--viz-1);
+    outline-offset: 2px;
+  }
+}
+
+// A day's heading in the visitor list – it stays on top while its visitors
+// scroll by.
+.stats-viz__visit-day {
+  background: var(--theme-elevation-50);
+  border-bottom: 1px solid var(--theme-elevation-100);
+  color: var(--theme-elevation-500);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 6px 14px;
+  position: sticky;
+  text-transform: uppercase;
+  top: 0;
+  z-index: 1;
+}
+
+.stats-viz__visit-where {
+  color: var(--theme-elevation-800);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats-viz__visit-when {
+  color: var(--theme-elevation-1000);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.stats-viz__visit-pages {
+  color: var(--theme-elevation-500);
+  font-size: 11px;
+  min-width: 48px;
+  text-align: right;
+}
+
+// A visitor in the overlay: facts and the country's map on the left, the
+// path on the right – the path first where it gets narrow.
+.stats-viz__visitor {
+  display: grid;
+  gap: 20px 28px;
+  grid-template-areas: "about path";
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+
+  @media (max-width: 720px) {
+    grid-template-areas: "path" "about";
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.stats-viz__visitor-about {
+  align-content: start;
+  display: grid;
+  gap: 12px;
+  grid-area: about;
+}
+
+.stats-viz__visitor-path {
+  grid-area: path;
+  min-width: 0;
+}
+
+.stats-viz__eyebrow {
+  color: var(--theme-elevation-500);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  margin: 0 0 14px;
+  text-transform: uppercase;
+}
+
+// The facts as small tiles, two in a row.
+.stats-viz__facts {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.stats-viz__fact {
+  background: var(--theme-elevation-50);
+  border-radius: var(--style-radius-m);
+  min-width: 0;
+  padding: 8px 10px;
+
+  dt {
+    color: var(--theme-elevation-500);
+    font-size: 11px;
+    margin-bottom: 2px;
+  }
+
+  dd {
+    color: var(--theme-elevation-1000);
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+// A bar row that opens something (BarList `onPick`, e.g. a country).
+.stats-viz__pick {
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: inherit;
+  cursor: pointer;
+  display: block;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+
+  &:hover span:first-child {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--viz-1);
+    outline-offset: 3px;
+  }
+}
+
+// The key figures (fields/analytics/parts.tsx, StatGrid): three in a row,
+// a tile across `--span` columns – on phones one below the other, so they
+// aren't squeezed.
+.stats-viz__stats {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 8px;
+
+  @media (max-width: 640px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.stats-viz__tile {
+  grid-column: span var(--span, 1);
+
+  @media (max-width: 640px) {
+    grid-column: auto;
+  }
 }
 
 // MakerWorld: a kit's download (fields/makerworld-kit.tsx) – the button,

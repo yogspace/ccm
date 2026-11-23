@@ -315,6 +315,12 @@ export interface PageView {
   device?: string | null;
   os?: string | null;
   browser?: string | null;
+  country?: string | null;
+  region?: string | null;
+  city?: string | null;
+  language?: string | null;
+  visit?: string | null;
+  step?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -616,6 +622,12 @@ export interface PageViewsSelect<T extends boolean = true> {
   device?: T;
   os?: T;
   browser?: T;
+  country?: T;
+  region?: T;
+  city?: T;
+  language?: T;
+  visit?: T;
+  step?: T;
   updatedAt?: T;
   createdAt?: T;
 }

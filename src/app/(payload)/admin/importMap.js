@@ -3,6 +3,7 @@ import { AccountEndField as AccountEndField_c0aabdee28504ea6fbd03e1b99707b33 } f
 import { PassphraseField as PassphraseField_15ef3acca1e1eb9413efd8009fb9a01b } from '@/fields/passphrase-field'
 import { AccountFinder as AccountFinder_25ee25c1b43dae615a503f07ca23b573 } from '@/fields/account-finder'
 import { ShortLinkOpen as ShortLinkOpen_e5cc19105f404cc3e2afed9494c39329 } from '@/fields/short-link-open'
+import { ShortLinkOpenCell as ShortLinkOpenCell_e5cc19105f404cc3e2afed9494c39329 } from '@/fields/short-link-open'
 import { ShortLinksTools as ShortLinksTools_77cc48dd1337e04781289094220cc88e } from '@/fields/short-links-tools'
 import { GalleryColorField as GalleryColorField_b82447014a4072087d806e281ca6fa7b } from '@/fields/gallery-color-field'
 import { GalleryBuilder as GalleryBuilder_c8865404e7f66dba38e8e939d5b9efe8 } from '@/fields/gallery-builder'
@@ -33,6 +34,8 @@ import { HeadingFeatureClient as HeadingFeatureClient_e70f5e05f09f93e00b997edb1e
 import { ParagraphFeatureClient as ParagraphFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { AnalyticsOverview as AnalyticsOverview_a0624fd016c2f8942a26ade7dd283502 } from '@/fields/analytics/overview'
 import { AnalyticsVisitors as AnalyticsVisitors_34f7beb10cb81b9a70cea51140b0b6c1 } from '@/fields/analytics/visitors'
+import { AnalyticsLocations as AnalyticsLocations_01c0334ece4db00ba883b6b11090857f } from '@/fields/analytics/locations'
+import { AnalyticsJourneys as AnalyticsJourneys_922b551dd2e392304ccc1601b907199e } from '@/fields/analytics/journeys'
 import { AnalyticsActions as AnalyticsActions_ad6a542d4ec8235306b47d90f6274019 } from '@/fields/analytics/actions'
 import { AnalyticsAccounts as AnalyticsAccounts_a9cfcfba7d9df05c10e0d423af555cea } from '@/fields/analytics/accounts'
 import { AnalyticsRange as AnalyticsRange_73ce8286c5cae4d48ec5095a15f5a7ae } from '@/fields/analytics/range'
@@ -51,6 +54,7 @@ export const importMap = {
   "@/fields/passphrase-field#PassphraseField": PassphraseField_15ef3acca1e1eb9413efd8009fb9a01b,
   "@/fields/account-finder#AccountFinder": AccountFinder_25ee25c1b43dae615a503f07ca23b573,
   "@/fields/short-link-open#ShortLinkOpen": ShortLinkOpen_e5cc19105f404cc3e2afed9494c39329,
+  "@/fields/short-link-open#ShortLinkOpenCell": ShortLinkOpenCell_e5cc19105f404cc3e2afed9494c39329,
   "@/fields/short-links-tools#ShortLinksTools": ShortLinksTools_77cc48dd1337e04781289094220cc88e,
   "@/fields/gallery-color-field#GalleryColorField": GalleryColorField_b82447014a4072087d806e281ca6fa7b,
   "@/fields/gallery-builder#GalleryBuilder": GalleryBuilder_c8865404e7f66dba38e8e939d5b9efe8,
@@ -81,6 +85,8 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#ParagraphFeatureClient": ParagraphFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@/fields/analytics/overview#AnalyticsOverview": AnalyticsOverview_a0624fd016c2f8942a26ade7dd283502,
   "@/fields/analytics/visitors#AnalyticsVisitors": AnalyticsVisitors_34f7beb10cb81b9a70cea51140b0b6c1,
+  "@/fields/analytics/locations#AnalyticsLocations": AnalyticsLocations_01c0334ece4db00ba883b6b11090857f,
+  "@/fields/analytics/journeys#AnalyticsJourneys": AnalyticsJourneys_922b551dd2e392304ccc1601b907199e,
   "@/fields/analytics/actions#AnalyticsActions": AnalyticsActions_ad6a542d4ec8235306b47d90f6274019,
   "@/fields/analytics/accounts#AnalyticsAccounts": AnalyticsAccounts_a9cfcfba7d9df05c10e0d423af555cea,
   "@/fields/analytics/range#AnalyticsRange": AnalyticsRange_73ce8286c5cae4d48ec5095a15f5a7ae,

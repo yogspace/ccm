@@ -21,6 +21,7 @@ import { blenderFiles, photoCommand } from "./blender-photo";
 import { fileBase, nameBase } from "./file-name";
 import { FEATURES, makerWorldTexts } from "./makerworld-texts";
 import { arrange, mergeMeshes, PLATE } from "./plate";
+import { PREVIEW_SIZE } from "./preview-size";
 import { renderPrintLook } from "./print-look";
 import { toThreeMf, toThreeMfProject } from "./three-mf";
 
@@ -508,7 +509,7 @@ const encode = (canvas: HTMLCanvasElement, jpeg = false) =>
   );
 
 /** A short link's preview: twice Media's card size (collections/media.ts). */
-const PREVIEW = { width: 1200, height: 978 } as const;
+const PREVIEW = PREVIEW_SIZE;
 
 /**
  * The picture of a kit's cutter for its short link in the admin

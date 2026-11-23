@@ -1,12 +1,13 @@
 "use client";
 
-import type { PropsWithChildren } from "react";
+import type { CSSProperties, PropsWithChildren } from "react";
+import { LOCALE } from "../../stats/config";
 
 /**
  * Building blocks of the analytics global.
  *
  * Text and lines through Payload's theme variables, data colors through
- * the `.ccm-viz` ones (custom.scss) – light and dark mode both fit without
+ * the `.stats-viz` ones (custom.scss) – light and dark mode both fit without
  * asking which one is on. The charts themselves are in charts.tsx.
  */
 
@@ -15,7 +16,24 @@ export const TEXT = "var(--theme-elevation-800)";
 export const MUTED = "var(--theme-elevation-500)";
 export const LINE = "var(--theme-elevation-150)";
 
-export const fmt = (n: number) => n.toLocaleString("de-DE");
+export const fmt = (n: number) => n.toLocaleString(LOCALE);
+
+/** Seconds as “42 s”, “3:05 min”, “1:02 h”. */
+export const duration = (seconds: number) => {
+  const s = Math.round(seconds);
+  if (s < 60) return `${s} s`;
+  const two = (n: number) => String(n).padStart(2, "0");
+  if (s < 3600) return `${Math.floor(s / 60)}:${two(s % 60)} min`;
+  return `${Math.floor(s / 3600)}:${two(Math.floor((s % 3600) / 60))} h`;
+};
+
+/** The middle value – a forgotten tab does not drag it up like the mean. */
+export const median = (values: number[]) => {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+};
 
 export const Note = ({ children }: PropsWithChildren) => (
   <p
@@ -30,17 +48,10 @@ export const Loading = () => <Note>Loading …</Note>;
 // ─── Key figures ─────────────────────────────────────────────────────────────
 
 export const StatGrid = ({ children }: PropsWithChildren) => (
-  <div
-    style={{
-      display: "grid",
-      gap: 12,
-      // Five in a row where there is room – the figures of a section.
-      gridTemplateColumns: "repeat(auto-fit, minmax(136px, 1fr))",
-      marginBottom: 8,
-    }}
-  >
-    {children}
-  </div>
+  // Three columns – full rows only: a tile that would stand alone spans the
+  // rest (`span`). On phones one below the other (custom.scss,
+  // .stats-viz__stats).
+  <div className="stats-viz__stats">{children}</div>
 );
 
 export type Trend = "up" | "down" | "flat";
@@ -62,21 +73,30 @@ const TREND_COLOR: Record<Trend, string> = {
 export const StatTile = ({
   label,
   value,
+  format = fmt,
   detail,
   trend,
   detailTitle,
+  span,
   children,
 }: PropsWithChildren<{
   label: string;
   value: number;
+  /** How the value reads – a count by default, `duration` for seconds. */
+  format?: (value: number) => string;
   /** Comparison or context, e.g. “+12 % vs. the 7 days before”. */
   detail?: string;
   trend?: Trend;
   /** Tooltip of the detail line. */
   detailTitle?: string;
+  /** How many of the grid's columns the tile spans (default 1). */
+  span?: number;
 }>) => (
   <div
+    className="stats-viz__tile"
     style={{
+      // As a variable, so phones can drop it.
+      ...(span ? ({ "--span": span } as CSSProperties) : {}),
       background: "var(--theme-elevation-50)",
       border: "1px solid var(--theme-elevation-100)",
       borderRadius: "var(--style-radius-m)",
@@ -106,7 +126,7 @@ export const StatTile = ({
         lineHeight: 1.1,
       }}
     >
-      {fmt(value)}
+      {format(value)}
     </div>
     {detail && (
       <div
@@ -124,7 +144,7 @@ export const StatTile = ({
         title={detailTitle ?? detail}
       >
         {trend && (
-          <span aria-hidden style={{ fontSize: 9, marginRight: 4 }}>
+          <span aria-hidden="true" style={{ fontSize: 9, marginRight: 4 }}>
             {TREND_ICON[trend]}
           </span>
         )}
@@ -159,7 +179,7 @@ export const compare = (
   }
   const change = Math.round(((now - before) / before) * 100);
   return {
-    detail: `${change > 0 ? "+" : ""}${change} % (${before.toLocaleString("de-DE")} before)`,
+    detail: `${change > 0 ? "+" : ""}${change} % (${before.toLocaleString(LOCALE)} before)`,
     trend: change > 0 ? "up" : change < 0 ? "down" : "flat",
     detailTitle: `${change > 0 ? "+" : ""}${change} % vs. ${against}`,
   };
@@ -201,4 +221,42 @@ export const ButtonRow = ({ children }: PropsWithChildren) => (
   <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
     {children}
   </div>
+);
+
+const pill = (on: boolean) =>
+  ({
+    background: on ? "var(--theme-elevation-100)" : "none",
+    border: `1px solid ${LINE}`,
+    borderRadius: 999,
+    color: TEXT,
+    cursor: "pointer",
+    font: "inherit",
+    fontSize: 11,
+    fontWeight: on ? 600 : 400,
+    padding: "2px 10px",
+  }) as const;
+
+/** A row of pills, one of them on – switches between views of a card. */
+export const Switches = <T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+}) => (
+  <span style={{ display: "inline-flex", flexWrap: "wrap", gap: 4 }}>
+    {options.map((option) => (
+      <button
+        aria-pressed={value === option.value}
+        key={option.value}
+        onClick={() => onChange(option.value)}
+        style={pill(value === option.value)}
+        type="button"
+      >
+        {option.label}
+      </button>
+    ))}
+  </span>
 );

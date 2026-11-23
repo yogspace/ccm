@@ -66,7 +66,17 @@ export const buildVisitMatrix = (
     rowAxis,
     maxColumns = 6,
     sortCol = null,
-  }: { rowAxis: VisitAxis; maxColumns?: number; sortCol?: string | null }
+    otherInMax = true,
+  }: {
+    rowAxis: VisitAxis;
+    maxColumns?: number;
+    sortCol?: string | null;
+    /**
+     * Whether “Other” counts for the darkest shade. Off where the columns are
+     * many small ones (visitors): their sum would pale every named cell.
+     */
+    otherInMax?: boolean;
+  }
 ): VisitMatrixData => {
   const colAxis: VisitAxis = rowAxis === "page" ? "device" : "page";
 
@@ -107,7 +117,12 @@ export const buildVisitMatrix = (
     cell,
     columnTotal: (col) =>
       col === OTHER ? otherTotal.get(OTHER) : colTotals.get(col),
-    max: Math.max(...[...cells.values()].map((c) => c.count), 1),
+    max: Math.max(
+      ...[...cells.entries()]
+        .filter(([key]) => otherInMax || !key.endsWith(`\u001f${OTHER}`))
+        .map(([, c]) => c.count),
+      1
+    ),
     activeCol,
   };
 };

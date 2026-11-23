@@ -92,7 +92,7 @@ const german = () =>
       "Einen Keks kannst du online stellen. Dann liegt er in deinem Konto – Link samt Zeichnung, Name, Größe und Umriss – und ist auf allen Geräten da, auf denen du angemeldet bist. Hast du noch kein Konto, entsteht es dabei. Es hat weder Namen noch E-Mail-Adresse: Der Server erzeugt eine Passphrase aus drei Wörtern, manche mit einer Zahl, und zeigt sie dir ein einziges Mal; gespeichert wird nur ein daraus abgeleiteter Schlüssel, aus dem sich die Passphrase nicht zurückgewinnen lässt, und wann das Konto angelegt, zuletzt besucht und zuletzt mit der Passphrase angemeldet wurde."
     ),
     p(
-      "Ein Online-Keks hat einen Kurzlink. Der speichert nur die Form des Ausstechers: Im Link steht statt der Form ein Code, mit dem die Seite sie vom Server holt; Name, Größe, Empfänger, Absender und Nachricht bleiben im Link und erreichen den Server so nicht. Wer einen Kurzlink hat, kann die Form dahinter abrufen. Damit ich Kurzlinks in der Verwaltung der Seite auseinanderhalten kann, erzeuge ich dort aus dem, was ohnehin gespeichert ist, ein Vorschaubild des Ausstechers. Es liegt auf dem Server, ist nur in der Verwaltung zu sehen und nie öffentlich und wird mit dem Kurzlink gelöscht – ebenso, wenn du den Kurzlink auf eine neue Version umstellst."
+      "Ein Online-Keks hat einen Kurzlink. Der speichert nur die Form des Ausstechers: Im Link steht statt der Form ein Code, mit dem die Seite sie vom Server holt; Name, Größe, Empfänger, Absender und Nachricht bleiben im Link und erreichen den Server so nicht. Wer einen Kurzlink hat, kann die Form dahinter abrufen. Damit ich Kurzlinks in der Verwaltung der Seite auseinanderhalten kann, zeichnet dein Browser beim Online-Stellen aus der ohnehin gespeicherten Form ein Vorschaubild des Ausstechers und schickt es an den Server – sonst erzeuge ich es dort selbst. Es liegt auf dem Server, ist nur in der Verwaltung zu sehen und nie öffentlich und wird mit dem Kurzlink gelöscht – ebenso, wenn du den Kurzlink auf eine neue Version umstellst."
     ),
     p(
       "Angemeldet bleibst du über ein Cookie („ccm-account“), das nur die Kennung deines Kontos trägt, signiert ist und nach 180 Tagen ohne Besuch abläuft – jeder Besuch verlängert es; Abmelden löscht es. Deine Passphrase merkt sich der Browser, in dem du das Konto angelegt oder dich angemeldet hast (lokaler Speicher), damit du sie im Konto nachsehen kannst; sie verlässt ihn dafür nicht, und Abmelden löscht sie dort. Gegen Missbrauch hält der Server beim Anlegen, Anmelden, Online-Stellen und Öffnen von Kurzlinks deine IP-Adresse höchstens eine Stunde im Arbeitsspeicher."
@@ -104,9 +104,18 @@ const german = () =>
     p(
       "Die Website wird bei der Hetzner Online GmbH, Industriestr. 25, 91710 Gunzenhausen, Deutschland, gehostet; es besteht ein Vertrag zur Auftragsverarbeitung. Beim Aufruf werden technisch notwendige Daten (IP-Adresse, Datum und Uhrzeit, aufgerufene Datei, Browsertyp und Betriebssystem) in Server-Logfiles verarbeitet, um die Website bereitzustellen und ihre Sicherheit zu gewährleisten. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO."
     ),
-    h3("Anonyme Statistik"),
+    h3("Statistik"),
     p(
-      "Damit ich sehe, ob und wie der Cookie Cutter Maker genutzt wird, meldet die Seite beim Aufruf und bei einzelnen Aktionen (etwa Download, Teilen oder Karte erstellen) eine kurze Nachricht an meinen Server. Gespeichert werden dazu nur grobe Angaben: aufgerufene Seite, grobe Herkunft (etwa „Google“ oder „direkt“, nie die vollständige Adresse), Geräteklasse, Betriebssystem und Browser mit Hauptversion sowie der Zeitpunkt. Es werden keine Cookies gesetzt, keine IP-Adressen gespeichert und keine Kennungen vergeben – einzelne Einträge lassen sich weder einer Person zuordnen noch miteinander verknüpfen. Zeichnungen, Namen und Nachrichten werden nie übertragen. Die Einträge werden nach 90 Tagen gelöscht. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO. Sendet dein Browser das Signal „Global Privacy Control“, wird nichts gezählt."
+      "Damit ich sehe, ob und wie der Cookie Cutter Maker genutzt wird, meldet die Seite beim Aufruf und bei einzelnen Aktionen (etwa Download, Teilen oder Karte erstellen) eine kurze Nachricht an meinen Server. Gespeichert werden dazu nur grobe Angaben: aufgerufene Seite, grobe Herkunft (etwa „Google“ oder „direkt“, nie die vollständige Adresse), Geräteklasse, Betriebssystem und Browser mit Hauptversion, die bevorzugte Sprache deines Browsers, das Land und der Zeitpunkt. Zeichnungen, Namen und Nachrichten werden nie übertragen."
+    ),
+    p(
+      "Das Land ermittelt mein Server aus deiner IP-Adresse mit einer Datenbank auf dem Server selbst. Die IP-Adresse wird dafür nur in diesem Moment verwendet und nie gespeichert; es gehen keine Daten an Dritte."
+    ),
+    p(
+      "Damit ich sehe, wie man sich durch die Seite bewegt, werden die Aufrufe eines Besuchs über eine Zufallszahl verknüpft, die nur im Arbeitsspeicher deines Browsers existiert, solange der Tab offen ist. Sie wird nicht auf deinem Gerät gespeichert (kein Cookie, kein lokaler Speicher), ist nach einem Neuladen oder Schließen vergessen und erkennt dich bei einem späteren Besuch nicht wieder. Einem Menschen lässt sich ein Eintrag nicht zuordnen."
+    ),
+    p(
+      "Die Einträge werden nach 90 Tagen gelöscht. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO. Sendet dein Browser das Signal „Global Privacy Control“, wird nichts gezählt. Länderdaten: IP Geolocation by DB-IP (db-ip.com), CC BY 4.0."
     ),
     h3("Kontaktformular"),
     p(
@@ -164,7 +173,7 @@ const english = () =>
       "You can put a cookie online. It is then kept in your account – its link with the drawing, name, size and outline – and is there on every device you are logged in on. If you have no account yet, one is made for it. It has neither a name nor an email address: the server makes a passphrase of three words, some with a number, and shows it to you once; only a key derived from it is stored, from which the passphrase cannot be recovered, and when the account was created, last visited and last logged into with the passphrase."
     ),
     p(
-      "An online cookie has a short link. It stores only the shape of the cookie cutter: instead of the shape the link carries a code the page uses to fetch it from the server; name, size, recipient, sender and message stay in the link and do not reach the server that way. Anyone with a short link can fetch the shape behind it. So that I can tell short links apart in the site’s admin, I make a preview picture of the cookie cutter there from what is stored anyway. It is kept on the server, can only be seen in the admin, is never public and is deleted with the short link – and when you point the short link to a new version."
+      "An online cookie has a short link. It stores only the shape of the cookie cutter: instead of the shape the link carries a code the page uses to fetch it from the server; name, size, recipient, sender and message stay in the link and do not reach the server that way. Anyone with a short link can fetch the shape behind it. So that I can tell short links apart in the site’s admin, your browser draws a preview picture of the cookie cutter from the shape stored anyway when you put it online and sends it to the server – otherwise I make it there myself. It is kept on the server, can only be seen in the admin, is never public and is deleted with the short link – and when you point the short link to a new version."
     ),
     p(
       "You stay logged in through a cookie (“ccm-account”) that carries only your account’s identifier, is signed and expires after 180 days without a visit – every visit renews it; logging out deletes it. The browser in which you created the account or logged in keeps your passphrase (local storage) so you can look it up in the account; it does not leave the browser for that, and logging out deletes it there. Against abuse the server keeps your IP address in memory for at most an hour when you create an account, log in, put a cookie online or open a short link."
@@ -176,9 +185,18 @@ const english = () =>
     p(
       "The site is hosted by Hetzner Online GmbH, Industriestr. 25, 91710 Gunzenhausen, Germany, under a data processing agreement. When you visit, technically necessary data (IP address, date and time, requested file, browser type and operating system) is processed in server logs to deliver the site and keep it secure. Legal basis: Art. 6 (1) (f) GDPR."
     ),
-    h3("Anonymous statistics"),
+    h3("Statistics"),
     p(
-      "So I can see whether and how Cookie Cutter Maker is used, the site sends a short note to my server when a page is opened and for some actions (such as downloading, sharing or creating a card). Only coarse details are stored: the page, a coarse source (such as “Google” or “direct”, never the full address), device class, operating system and browser with its major version, and the time. No cookies are set, no IP addresses stored and no identifiers assigned – single entries can neither be traced to a person nor linked to each other. Drawings, names and messages are never sent. The entries are deleted after 90 days. Legal basis: Art. 6 (1) (f) GDPR. If your browser sends the “Global Privacy Control” signal, nothing is counted."
+      "So I can see whether and how Cookie Cutter Maker is used, the site sends a short note to my server when a page is opened and for some actions (such as downloading, sharing or creating a card). Only coarse details are stored: the page, a coarse source (such as “Google” or “direct”, never the full address), device class, operating system and browser with its major version, your browser’s preferred language, the country and the time. Drawings, names and messages are never sent."
+    ),
+    p(
+      "My server determines the country from your IP address using a database on the server itself. The IP address is used for this moment only and never stored; no data goes to third parties."
+    ),
+    p(
+      "To see how people move through the site, the page views of one visit are linked by a random number that exists only in your browser’s memory while the tab is open. It is not stored on your device (no cookie, no local storage), is forgotten when you reload or close the tab, and cannot recognise you on a later visit. No entry can be traced to a person."
+    ),
+    p(
+      "Entries are deleted after 90 days. Legal basis: Art. 6 (1) (f) GDPR. If your browser sends the “Global Privacy Control” signal, nothing is counted. Country data: IP Geolocation by DB-IP (db-ip.com), CC BY 4.0."
     ),
     h3("Contact form"),
     p(

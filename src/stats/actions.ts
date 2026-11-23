@@ -1,7 +1,8 @@
 /**
  * The actions the statistics count – one list for the beacon (analytics.ts),
- * the route that stores them, the admin and the mail report. Import-free, so
- * the browser can use it too.
+ * the route that stores them, the admin and the mail report – with their
+ * groups and the highlighted tiles. Import-free, so the browser can use it
+ * too.
  */
 export const ACTIONS = {
   "download-3mf": { en: "3MF downloads", de: "3MF-Downloads" },
@@ -39,6 +40,73 @@ export const ACTIONS = {
 } as const;
 
 export type ActionName = keyof typeof ACTIONS;
+
+/** A heading or tile label in the admin (English) and the mail (German). */
+type Label = { en: string; de: string };
+
+/**
+ * The actions by what they are about – in the admin and the mail report
+ * alike; anything new lands in “Other”.
+ */
+export const ACTION_GROUPS: { title: Label; names: ActionName[] }[] = [
+  {
+    title: { en: "Making", de: "Erstellen" },
+    names: ["cookie-saved", "template", "svg-import"],
+  },
+  {
+    title: { en: "Downloads", de: "Downloads" },
+    names: ["download-3mf", "download-stl", "download-embossed"],
+  },
+  {
+    title: { en: "Sharing", de: "Teilen" },
+    names: ["share-open", "share-link", "share-image", "save-image"],
+  },
+  {
+    title: { en: "Cards", de: "Karten" },
+    names: [
+      "card-created",
+      "card-turned",
+      "card-eaten",
+      "card-picture",
+      "card-download-3mf",
+      "card-download-stl",
+    ],
+  },
+  {
+    title: { en: "Accounts", de: "Konten" },
+    names: [
+      "account-created",
+      "account-login",
+      "account-logout",
+      "account-deleted",
+      "cookie-online",
+      "cookie-replaced",
+      "cookie-offline",
+    ],
+  },
+];
+
+/**
+ * The tiles in Overview and the mail after the page views – each with its
+ * course and the comparison with before; several names add up in one tile.
+ * With Visitors and Page views in front they make four: a row of three, the
+ * fourth across the next row.
+ */
+export const HIGHLIGHTS: { label: Label; names: ActionName[] }[] = [
+  {
+    label: { en: "Downloads (3MF + STL)", de: "Downloads" },
+    names: [
+      "download-3mf",
+      "download-stl",
+      "card-download-3mf",
+      "card-download-stl",
+    ],
+  },
+  {
+    label: { en: "Cards created", de: "Karten erstellt" },
+    names: ["card-created"],
+  },
+];
 
 export const ACTION_NAMES = Object.keys(ACTIONS) as ActionName[];
 

@@ -119,7 +119,7 @@ export const AnalyticsAccounts = () => {
   const slots = timeSlots(w);
 
   return (
-    <div className="ccm-viz">
+    <div className="stats-viz">
       <Note>
         {w.label} – totals only, no account is listed.
         <span style={{ color: MUTED }}>
@@ -154,9 +154,11 @@ export const AnalyticsAccounts = () => {
         >
           <Meter part={keeping} whole={accounts.length} />
         </StatTile>
+        {/* The fifth spans the rest of the row – full rows of three. */}
         <StatTile
           detail="one per model put online"
           label="Short links"
+          span={2}
           value={links}
         />
       </StatGrid>

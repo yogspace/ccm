@@ -197,7 +197,7 @@ export const ShortLinks: CollectionConfig = {
     group: "Accounts",
     useAsTitle: "code",
     listSearchableFields: ["code", "name"],
-    defaultColumns: ["preview", "name", "code", "account", "createdAt"],
+    defaultColumns: ["preview", "name", "code", "open", "account", "createdAt"],
     description:
       "The models behind short links (…&k=<code> in a link) – made when a visitor puts a cookie online, gone when it is taken back or with the account. Only the model: names and messages stay in the links. Those without an account are made here – by MakerWorld kits or from a link above – and kept until deleted. Tick some to make a MakerWorld kit of them; Seeds renders the pictures.",
     // Above the list: a short link from a link, the ticked ones as a kit.
@@ -219,8 +219,13 @@ export const ShortLinks: CollectionConfig = {
       // Its address on the site, to open.
       name: "open",
       type: "ui",
+      label: "Open",
       admin: {
-        components: { Field: "@/fields/short-link-open#ShortLinkOpen" },
+        components: {
+          Field: "@/fields/short-link-open#ShortLinkOpen",
+          // In the list too – a click opens the creation, not the document.
+          Cell: "@/fields/short-link-open#ShortLinkOpenCell",
+        },
       },
     },
     {

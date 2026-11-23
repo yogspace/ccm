@@ -13,7 +13,7 @@ import { fmt, INK, LINE, MUTED, TEXT } from "./parts";
 
 /**
  * The analytics global's charts – plain SVG, colored only through the
- * `.ccm-viz` variables (custom.scss), so light and dark mode both fit.
+ * `.stats-viz` variables (custom.scss), so light and dark mode both fit.
  * Thin marks, hairline grid, values in text colors beside the marks; every
  * chart answers pointer AND keyboard, and has a table to read it without.
  */
@@ -128,7 +128,7 @@ export const ChartCard = ({
 }>) => {
   const [asTable, setAsTable] = useState(false);
   return (
-    <section className="ccm-viz__card">
+    <section className="stats-viz__card">
       <header
         style={{
           alignItems: "baseline",
@@ -229,7 +229,7 @@ export const Key = ({
 }: PropsWithChildren<{ color: string; line?: boolean }>) => (
   <span style={{ alignItems: "center", display: "inline-flex", gap: 6 }}>
     <i
-      aria-hidden
+      aria-hidden="true"
       style={{
         background: color,
         borderRadius: line ? 1 : "50%",
@@ -247,7 +247,7 @@ export const Key = ({
  * point – or, `beside`, next to a cursor line at the plot's top, on
  * whichever side has room.
  */
-const Tip = ({
+export const Tip = ({
   x,
   y,
   width,
@@ -389,7 +389,7 @@ export const AreaChart = ({
           ? `${points[at].title}: ${fmt(points[at].count)} ${unit}`
           : undefined
       }
-      className="ccm-viz__focusable"
+      className="stats-viz__focusable"
       onBlur={() => setActive(null)}
       onClick={() =>
         active !== null && onSelect ? onSelect(points[active]) : undefined
@@ -409,7 +409,7 @@ export const AreaChart = ({
     >
       {width > 0 && (
         <svg
-          aria-hidden
+          aria-hidden="true"
           height={PAD_TOP + PLOT_H + AXIS_H}
           style={{ display: "block", overflow: "visible" }}
           width={width}
@@ -595,10 +595,10 @@ export const Sparkline = ({ values }: { values: number[] }) => {
     n <= 1 ? width / 2 : 3 + (i / (n - 1)) * (width - 6);
   const yOf = (v: number) => 4 + (h - 8) * (1 - v / max);
   return (
-    <div aria-hidden ref={ref} style={{ height: h, marginTop: 8 }}>
+    <div aria-hidden="true" ref={ref} style={{ height: h, marginTop: 8 }}>
       {width > 0 && n > 1 && (
         <svg
-          aria-hidden
+          aria-hidden="true"
           height={h}
           style={{ display: "block", overflow: "visible" }}
           width={width}
@@ -628,7 +628,7 @@ export const Sparkline = ({ values }: { values: number[] }) => {
 /** A share of a whole as a thin track – for “63 of 223 views”. */
 export const Meter = ({ part, whole }: { part: number; whole: number }) => (
   <div
-    aria-hidden
+    aria-hidden="true"
     style={{
       background: "var(--theme-elevation-100)",
       borderRadius: 999,
@@ -686,7 +686,7 @@ export const Ring = ({ slices, unit }: { slices: Slice[]; unit: string }) => {
     >
       <div style={{ height: size, position: "relative", width: size }}>
         <svg
-          aria-hidden
+          aria-hidden="true"
           height={size}
           style={{ transform: "rotate(-90deg)" }}
           width={size}
@@ -837,6 +837,8 @@ export type BarEntry = {
   before?: number;
   /** Full name for the tooltip. */
   title?: string;
+  /** What `onPick` gets back – e.g. the country code behind “Germany”. */
+  key?: string;
 };
 
 const ARROWS = { up: "▲", down: "▼", same: "=" } as const;
@@ -853,14 +855,20 @@ export const BarList = ({
   color = "var(--viz-1)",
   max: scale,
   legend = true,
+  format = fmt,
+  onPick,
 }: {
   entries: BarEntry[];
+  /** How a value reads – a count by default. */
+  format?: (value: number) => string;
   limit?: number;
   color?: string;
   /** A scale shared with other lists – else this list's largest value. */
   max?: number;
   /** The “before” key below – off where the card shows it once. */
   legend?: boolean;
+  /** Makes every row a button – e.g. a country opens its visitors. */
+  onPick?: (entry: BarEntry) => void;
 }) => {
   const [expanded, setExpanded] = useState(false);
   if (!entries.length) {
@@ -905,91 +913,96 @@ export const BarList = ({
               key={entry.name}
               title={
                 entry.before === undefined
-                  ? `${entry.title ?? entry.name}: ${fmt(entry.value)}`
-                  : `${entry.title ?? entry.name}: ${fmt(entry.value)} (before: ${fmt(entry.before)})`
+                  ? `${entry.title ?? entry.name}: ${format(entry.value)}`
+                  : `${entry.title ?? entry.name}: ${format(entry.value)} (before: ${format(entry.before)})`
               }
             >
-              <div
-                style={{
-                  alignItems: "baseline",
-                  display: "flex",
-                  fontSize: 13,
-                  gap: 8,
-                  marginBottom: 4,
-                }}
-              >
-                <span
-                  style={{
-                    color: TEXT,
-                    flex: 1,
-                    minWidth: 0,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {entry.name}
-                </span>
-                {change && (
-                  <span
-                    style={{
-                      color: MUTED,
-                      fontSize: 11,
-                      fontVariantNumeric: "tabular-nums",
-                    }}
-                  >
-                    <span aria-hidden style={{ fontSize: 8, marginRight: 3 }}>
-                      {ARROWS[change]}
-                    </span>
-                    {change === "same"
-                      ? "same as before"
-                      : `${diff > 0 ? "+" : "−"}${fmt(Math.abs(diff))}`}
-                  </span>
-                )}
-                <strong
-                  style={{
-                    color: INK,
-                    fontVariantNumeric: "tabular-nums",
-                    minWidth: 28,
-                    textAlign: "right",
-                  }}
-                >
-                  {fmt(entry.value)}
-                </strong>
-              </div>
-              <div
-                aria-hidden
-                style={{
-                  background: "var(--theme-elevation-50)",
-                  borderRadius: "0 4px 4px 0",
-                  height: 8,
-                  position: "relative",
-                }}
-              >
+              <Pickable onPick={onPick ? () => onPick(entry) : undefined}>
                 <div
                   style={{
-                    background: color,
-                    borderRadius: "0 4px 4px 0",
-                    height: "100%",
-                    minWidth: entry.value > 0 ? 3 : 0,
-                    width: `${(entry.value / max) * 100}%`,
+                    alignItems: "baseline",
+                    display: "flex",
+                    fontSize: 13,
+                    gap: 8,
+                    marginBottom: 4,
                   }}
-                />
-                {entry.before !== undefined && (
+                >
+                  <span
+                    style={{
+                      color: TEXT,
+                      flex: 1,
+                      minWidth: 0,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {entry.name}
+                  </span>
+                  {change && (
+                    <span
+                      style={{
+                        color: MUTED,
+                        fontSize: 11,
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      <span
+                        aria-hidden="true"
+                        style={{ fontSize: 8, marginRight: 3 }}
+                      >
+                        {ARROWS[change]}
+                      </span>
+                      {change === "same"
+                        ? "same as before"
+                        : `${diff > 0 ? "+" : "−"}${format(Math.abs(diff))}`}
+                    </span>
+                  )}
+                  <strong
+                    style={{
+                      color: INK,
+                      fontVariantNumeric: "tabular-nums",
+                      minWidth: 28,
+                      textAlign: "right",
+                    }}
+                  >
+                    {format(entry.value)}
+                  </strong>
+                </div>
+                <div
+                  aria-hidden="true"
+                  style={{
+                    background: "var(--theme-elevation-50)",
+                    borderRadius: "0 4px 4px 0",
+                    height: 8,
+                    position: "relative",
+                  }}
+                >
                   <div
                     style={{
-                      background: "var(--viz-before)",
-                      borderRadius: 1,
-                      boxShadow: "0 0 0 1.5px var(--theme-elevation-0)",
-                      height: 14,
-                      left: `calc(${(entry.before / max) * 100}% - 1px)`,
-                      position: "absolute",
-                      top: -3,
-                      width: 2,
+                      background: color,
+                      borderRadius: "0 4px 4px 0",
+                      height: "100%",
+                      minWidth: entry.value > 0 ? 3 : 0,
+                      width: `${(entry.value / max) * 100}%`,
                     }}
                   />
-                )}
-              </div>
+                  {entry.before !== undefined && (
+                    <div
+                      style={{
+                        background: "var(--viz-before)",
+                        borderRadius: 1,
+                        boxShadow: "0 0 0 1.5px var(--theme-elevation-0)",
+                        height: 14,
+                        left: `calc(${(entry.before / max) * 100}% - 1px)`,
+                        position: "absolute",
+                        top: -3,
+                        width: 2,
+                      }}
+                    />
+                  )}
+                </div>
+              </Pickable>
             </li>
           );
         })}
@@ -1028,6 +1041,19 @@ export const BarList = ({
     </>
   );
 };
+
+/** A bar row as a button where it can be picked – else just its content. */
+const Pickable = ({
+  onPick,
+  children,
+}: PropsWithChildren<{ onPick?: () => void }>) =>
+  onPick ? (
+    <button className="stats-viz__pick" onClick={onPick} type="button">
+      {children}
+    </button>
+  ) : (
+    children
+  );
 
 /** A ranking's numbers as table rows. */
 export const barTable = (entries: BarEntry[], what: string) => {

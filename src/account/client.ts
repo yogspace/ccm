@@ -3,6 +3,7 @@ import { trackEvent } from "../analytics";
 import { type SavedCookie, trimJar } from "../cookie-jar";
 import { shapeOf, shortened } from "../short-shape";
 import { eatCookie, store } from "../store";
+import { drawPreview } from "./preview";
 import { type AccountData, isSavedCookie, modelOf } from "./rules";
 
 /**
@@ -263,8 +264,11 @@ export const putOnline = async (hash: string): Promise<OnlineResult> => {
     call("/links", { method: "POST", body: JSON.stringify({ cookie }) })
   );
   if (ok) {
-    setCode(hash, String(body.code));
+    const code = String(body.code);
+    setCode(hash, code);
     trackEvent("cookie-online");
+    // Its short link's picture, drawn here – the server has no 3D.
+    if (body.preview !== true) void drawPreview(hash, code);
     return "ok";
   }
   if (status === 401) loggedOut(false);
@@ -315,6 +319,8 @@ export const replaceOnline = async (hash: string): Promise<OnlineResult> => {
   );
   if (ok) {
     const code = String(body.code);
+    // The short link shows a new model now – its picture too.
+    if (body.preview !== true) void drawPreview(hash, code);
     store.jar = ref(
       store.jar
         .filter((other) => other.hash === hash || other.code !== code)

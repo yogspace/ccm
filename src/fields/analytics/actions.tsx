@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  ACTION_NAMES,
-  type ActionName,
-  actionLabel,
-} from "../../stats/actions";
+import { ACTION_GROUPS, ACTION_NAMES, actionLabel } from "../../stats/actions";
 import { pathLabel } from "../../stats/page-names";
 import { tally } from "../../stats/tally";
 import {
@@ -19,45 +15,9 @@ import {
 import { inWindow, rangeWindow, useAnalytics } from "./data";
 import { fmt, Loading, MUTED, Note, TEXT } from "./parts";
 
-/** The actions by what they are about – anything new lands in “Other”. */
-const GROUPS: { title: string; names: ActionName[] }[] = [
-  { title: "Making", names: ["cookie-saved", "template", "svg-import"] },
-  {
-    title: "Downloads",
-    names: ["download-3mf", "download-stl", "download-embossed"],
-  },
-  {
-    title: "Sharing",
-    names: ["share-open", "share-link", "share-image", "save-image"],
-  },
-  {
-    title: "Cards",
-    names: [
-      "card-created",
-      "card-turned",
-      "card-eaten",
-      "card-picture",
-      "card-download-3mf",
-      "card-download-stl",
-    ],
-  },
-  {
-    title: "Accounts",
-    names: [
-      "account-created",
-      "account-login",
-      "account-logout",
-      "account-deleted",
-      "cookie-online",
-      "cookie-replaced",
-      "cookie-offline",
-    ],
-  },
-];
-
-const grouped = new Set(GROUPS.flatMap((group) => group.names));
+const grouped = new Set(ACTION_GROUPS.flatMap((group) => group.names));
 const ALL_GROUPS = [
-  ...GROUPS,
+  ...ACTION_GROUPS.map(({ title, names }) => ({ title: title.en, names })),
   {
     title: "Other",
     names: ACTION_NAMES.filter((name) => !grouped.has(name)),
@@ -65,7 +25,7 @@ const ALL_GROUPS = [
 ];
 
 /**
- * What people did: making, downloads, sharing, cards, accounts – in the
+ * What people did, by group (stats/actions.ts) – in the
  * range from the sidebar (or the hour or day chosen in the chart), each
  * against the same span before. Where it happened, and on which devices.
  */
@@ -116,7 +76,7 @@ export const AnalyticsActions = () => {
   const devices = deviceSlices(actions.map((row) => row.device));
 
   return (
-    <div className="ccm-viz">
+    <div className="stats-viz">
       <Note>
         {focus ? focus.label : w.label} · {fmt(actions.length)} actions
         {previous && w.previous && (
@@ -173,7 +133,7 @@ export const AnalyticsActions = () => {
             </div>
           </ChartCard>
           {actions.length > 0 && (
-            <div className="ccm-viz__grid">
+            <div className="stats-viz__grid">
               <ChartCard table={barTable(pages, "Page")} title="On which page">
                 <BarList entries={pages} />
               </ChartCard>

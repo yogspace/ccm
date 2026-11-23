@@ -27,3 +27,9 @@ export const cleanPath = (value: unknown): string | null => {
   const path = typeof value === "string" ? value.trim().split(/[?#]/)[0] : "";
   return path.startsWith("/") && path.length <= 200 ? path : null;
 };
+
+/** A random id from the beacon (analytics.ts) – anything else is dropped. */
+export const cleanId = (value: unknown): string | null =>
+  typeof value === "string" && /^[A-Za-z0-9-]{8,64}$/.test(value)
+    ? value
+    : null;

@@ -19,7 +19,7 @@ export const CHART_H = 220;
 /** The phone's own, narrower one – the wide one would shrink to unreadable. */
 export const PHONE_W = 360;
 export const PHONE_H = 200;
-const SCALE = 2;
+export const SCALE = 2;
 
 const AXIS_W = 34;
 const TOP = 26;
@@ -237,7 +237,7 @@ export const viewsChartPng = async (
 };
 
 /** An SVG drawing as a picture of `w` × `h` (drawn at twice it). */
-const svgPng = async (svg: string, w: number, h: number) => {
+export const svgPng = async (svg: string, w: number, h: number) => {
   const src = `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
   const response = new ImageResponse(
     <div style={{ display: "flex", height: h * SCALE, width: w * SCALE }}>
