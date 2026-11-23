@@ -3,6 +3,9 @@
 import { useEffect } from "react";
 import { shortLinkPreview } from "@/export/makerworld";
 import { buildFromLink } from "@/fields/short-link-client";
+// The picture's shades are read from the color's CSS (card-image.ts
+// glazeShades) – without it the background comes out black.
+import "@/glaze.css";
 
 /**
  * A creation (a link with its model in it) drawn as a short link's picture
