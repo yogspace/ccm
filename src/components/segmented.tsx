@@ -24,7 +24,8 @@ const tones = {
 
 type Props<T extends string> = PropsWithChildren<{
   label: string;
-  options: { value: T; label: ReactNode }[];
+  /** `title`: a tooltip – what the option does, where its label is short. */
+  options: { value: T; label: ReactNode; title?: string }[];
   value: T;
   onChange: (value: T) => void;
   tone: keyof typeof tones;
@@ -59,6 +60,7 @@ const Segmented = <T extends string>({
           )}
           key={option.value}
           onClick={() => onChange(option.value)}
+          title={option.title}
           type="button"
         >
           {option.value === value && (
