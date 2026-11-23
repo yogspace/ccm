@@ -19,9 +19,10 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
-    # Next + Payload take ~200 MB; room for spikes, and the other apps on the
-    # server stay safe.
-    mem_limit: 512m
+    # Next + Payload take ~200 MB, a Chromium drawing a short link's picture
+    # (export/server-preview.ts) up to ~400 MB more for a few seconds; the
+    # other apps on the server stay safe.
+    mem_limit: 1g
     logging:
       driver: json-file
       options:

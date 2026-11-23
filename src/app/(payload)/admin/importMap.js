@@ -4,6 +4,7 @@ import { PassphraseField as PassphraseField_15ef3acca1e1eb9413efd8009fb9a01b } f
 import { AccountFinder as AccountFinder_25ee25c1b43dae615a503f07ca23b573 } from '@/fields/account-finder'
 import { ShortLinkOpen as ShortLinkOpen_e5cc19105f404cc3e2afed9494c39329 } from '@/fields/short-link-open'
 import { ShortLinkOpenCell as ShortLinkOpenCell_e5cc19105f404cc3e2afed9494c39329 } from '@/fields/short-link-open'
+import { ShortLinkPreviewButton as ShortLinkPreviewButton_59c4be31bc3cb230e53c80d6938ec2c0 } from '@/fields/short-link-preview-button'
 import { ShortLinksTools as ShortLinksTools_77cc48dd1337e04781289094220cc88e } from '@/fields/short-links-tools'
 import { GalleryColorField as GalleryColorField_b82447014a4072087d806e281ca6fa7b } from '@/fields/gallery-color-field'
 import { GalleryBuilder as GalleryBuilder_c8865404e7f66dba38e8e939d5b9efe8 } from '@/fields/gallery-builder'
@@ -55,6 +56,7 @@ export const importMap = {
   "@/fields/account-finder#AccountFinder": AccountFinder_25ee25c1b43dae615a503f07ca23b573,
   "@/fields/short-link-open#ShortLinkOpen": ShortLinkOpen_e5cc19105f404cc3e2afed9494c39329,
   "@/fields/short-link-open#ShortLinkOpenCell": ShortLinkOpenCell_e5cc19105f404cc3e2afed9494c39329,
+  "@/fields/short-link-preview-button#ShortLinkPreviewButton": ShortLinkPreviewButton_59c4be31bc3cb230e53c80d6938ec2c0,
   "@/fields/short-links-tools#ShortLinksTools": ShortLinksTools_77cc48dd1337e04781289094220cc88e,
   "@/fields/gallery-color-field#GalleryColorField": GalleryColorField_b82447014a4072087d806e281ca6fa7b,
   "@/fields/gallery-builder#GalleryBuilder": GalleryBuilder_c8865404e7f66dba38e8e939d5b9efe8,

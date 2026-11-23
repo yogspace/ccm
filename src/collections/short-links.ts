@@ -180,8 +180,10 @@ const unauthorized = () =>
  * after kit and cutter, the kit's texts link to it – or from a link above
  * the list (fields/short-links-tools.tsx); the whole creation kept. Each
  * can have a picture of its cutter, for the admin only
- * (short-link-previews.ts) – the Seeds page renders them all. Ticked in the
- * list, short links become a new kit.
+ * (short-link-previews.ts), drawn on the server for every new short link
+ * and new version (export/server-preview.ts) – or by the “Create preview”
+ * button, the Seeds page and a kit's download. Ticked in the list, short
+ * links become a new kit.
  */
 export const ShortLinks: CollectionConfig = {
   slug: "short-links",
@@ -279,8 +281,43 @@ export const ShortLinks: CollectionConfig = {
       label: "Preview",
       admin: { readOnly: true },
     },
+    {
+      // Without a picture: draw it now, on the server (/:id/preview).
+      name: "createPreview",
+      type: "ui",
+      admin: {
+        components: {
+          Field: "@/fields/short-link-preview-button#ShortLinkPreviewButton",
+        },
+      },
+    },
   ],
   endpoints: [
+    {
+      // “Create preview” (fields/short-link-preview-button.tsx): the
+      // picture drawn on the server now – waits until it is there.
+      path: "/:id/preview",
+      method: "post",
+      handler: async (req) => {
+        if (!req.user) return unauthorized();
+        const id = req.routeParams?.id;
+        if (typeof id !== "string") {
+          return Response.json({ error: "Invalid id" }, { status: 400 });
+        }
+        const { createPreview } = await import("../export/server-preview");
+        try {
+          const created = await createPreview(req.payload, id);
+          return Response.json({ created });
+        } catch (error) {
+          return Response.json(
+            {
+              error: error instanceof Error ? error.message : "Preview failed",
+            },
+            { status: 500 }
+          );
+        }
+      },
+    },
     {
       // A creation (`hash`) of a MakerWorld kit (fields/makerworld-kit.tsx)
       // or given above the list: the short link for its model – the
@@ -425,6 +462,22 @@ export const ShortLinks: CollectionConfig = {
       },
     ],
     afterChange: [
+      async ({ doc, operation, previousDoc, req }) => {
+        // A visitor's, new or switched to a new version (its picture dropped
+        // above): drawn on the server, in the background – the request does
+        // not wait. The admin's own (kits, a link above the list) are drawn
+        // by the admin's browser as they are made.
+        const newShape =
+          operation === "update" && doc.shape !== previousDoc?.shape;
+        if (
+          doc.account &&
+          !doc.preview &&
+          (operation === "create" || newShape)
+        ) {
+          const { queuePreview } = await import("../export/server-preview");
+          queuePreview(req.payload, String(doc.id));
+        }
+      },
       async ({ doc, previousDoc, req }) => {
         // A new picture: the old one goes.
         const before = idOf(previousDoc?.preview);
