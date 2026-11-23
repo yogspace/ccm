@@ -5,7 +5,6 @@ import {
   buildCutter,
   type CutterParams,
   defaultParams,
-  FOOT,
   reliefReach,
 } from "../src/geometry/cutter";
 import type { Ring } from "../src/geometry/outline";
@@ -232,7 +231,7 @@ describe("embossing", () => {
     }
   });
 
-  it("stands on a foot, held plainly – no flange, nothing rounded", () => {
+  it("stands straight up from the bed – no foot, no flange, nothing rounded", () => {
     // A thin square drawn in the embossing ink on a round cookie.
     const square = (half: number): Ring => [
       [0.5 - half, 0.5 - half],
@@ -255,12 +254,10 @@ describe("embossing", () => {
       return area;
     };
     try {
-      // Above the foot no plate at all – no flange, no corners filled …
-      expect(within((FOOT + params.flangeHeight) / 2)).toBeLessThan(0.01);
-      // … at the bed the foot, a band along the stroke.
-      const band = 4 * inside * FOOT;
-      expect(within(0.1)).toBeGreaterThan(0.8 * band);
-      expect(within(0.1)).toBeLessThan(band);
+      // Inside the stroke nothing – no flange, no corners filled, and at
+      // the bed no foot either: the stroke stands straight up.
+      expect(within(params.flangeHeight / 2)).toBeLessThan(0.01);
+      expect(within(0.1)).toBeLessThan(0.01);
     } finally {
       middle.delete();
       cutter.manifold.delete();
