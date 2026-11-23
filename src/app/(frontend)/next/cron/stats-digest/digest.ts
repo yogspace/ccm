@@ -3,9 +3,9 @@ import { ACTION_NAMES, actionLabel, HIGHLIGHTS } from "@/stats/actions";
 import { LOCALE, SITE_NAME, TIME_ZONE, TRACKING } from "@/stats/config";
 import { atlasKey, countryName, languageName } from "@/stats/country-codes";
 import { type JourneyRow, journeysOf } from "@/stats/journeys";
-import { pathLabel } from "@/stats/page-names";
+import { pageParts, pathLabel } from "@/stats/page-names";
 import { tally } from "@/stats/tally";
-import { deviceName, type Visit } from "@/stats/visit-matrix";
+import { deviceName } from "@/stats/visit-matrix";
 import { countryFlag } from "@/stats/visit-name";
 import {
   CHART_ID,
@@ -19,12 +19,13 @@ import {
   compare,
   deviceClassName,
   deviceParts,
+  pageRingParts,
   type RecentVisitor,
   renderReportHtml,
   reportBuckets,
   type Tile,
 } from "./email";
-import { FLOW_PHONE_W, FLOW_W, flowPng, MAP_W, mapPng } from "./journey-images";
+import { MAP_W, mapPng } from "./journey-images";
 
 /**
  * The report for a period – subject, text and HTML, without sending it. Apart
@@ -186,35 +187,6 @@ export const buildDigest = async (
     : 0;
   const visitorsDelta =
     visitorsBefore > 0 ? compare(visitorCount, visitorsBefore) : null;
-  const entryPages = tally(journeys.map((j) => j.pages[0]));
-
-  // A visitor as a heatmap column: the made-up name on top, device class
-  // and country below – the same names as the list and the admin.
-  const columnOf = new Map(
-    journeys.map((j) => [
-      j.key,
-      [
-        j.name,
-        j.deviceClass ? deviceClassName(j.deviceClass) : null,
-        j.country ? `${countryFlag(j.country)} ${j.country}`.trim() : null,
-      ]
-        .filter(Boolean)
-        .join(" · "),
-    ])
-  );
-  const at = (row: ViewRow) =>
-    row.createdAt ? new Date(row.createdAt).getTime() : 0;
-  const visits: Visit[] = TRACKING.visits
-    ? tracked.map((row) => ({
-        page: row.path || "—",
-        device: columnOf.get(row.visit as string) ?? "—",
-        at: at(row),
-      }))
-    : rows.map((row) => ({
-        page: row.path || "—",
-        device: deviceName(row),
-        at: at(row),
-      }));
 
   // The latest visitors with their path – who came, from where, which way.
   const known = (value: string | null) =>
@@ -347,9 +319,6 @@ export const buildDigest = async (
             : []),
         ]
       : []),
-    ...(entryPages.length
-      ? ["", "Einstiegsseiten:", textList(entryPages, journeys.length)]
-      : []),
     "",
     "Aktionen:",
     actionList.length
@@ -381,19 +350,12 @@ export const buildDigest = async (
   const viewsSparkValues = chart.buckets.map((b) => b.count);
   // A visitor's course: the first page of each visit.
   const visitorsSparkValues = sparkOf(tracked.filter((row) => row.step === 1));
-  const [visitorsSpark, map, flow, phoneFlow] = await Promise.all([
+  // The pages as a ring – a part per page and language.
+  const pages = pageParts(rows.map((row) => row.path));
+  const [visitorsSpark, map, pagesRing] = await Promise.all([
     picture(TRACKING.visits ? () => sparkPng(visitorsSparkValues) : none),
     picture(TRACKING.origin ? () => mapPng(countryShades) : none),
-    picture(
-      TRACKING.visits
-        ? () => flowPng(journeys, { width: FLOW_W, steps: 4, perStep: 5 })
-        : none
-    ),
-    picture(
-      TRACKING.visits
-        ? () => flowPng(journeys, { width: FLOW_PHONE_W, steps: 3, perStep: 4 })
-        : none
-    ),
+    picture(() => ringPng(pageRingParts(pages), total, "Aufrufe")),
   ]);
   const [png, phonePng, ring, viewsSpark, ...highlightSparks] =
     await Promise.all([
@@ -417,8 +379,7 @@ export const buildDigest = async (
     ["verlauf-aufrufe.png", "spark-views", viewsSpark],
     ["verlauf-besucher.png", "spark-visitors", visitorsSpark],
     ["laender.png", "countries-map", map],
-    ["wege.png", "paths-flow", flow?.png ?? null],
-    ["wege-handy.png", "paths-flow-phone", phoneFlow?.png ?? null],
+    ["seiten.png", "pages-ring", pagesRing],
     ...highlights.map((_, i): [string, string, Buffer | null] => [
       `verlauf-${i}.png`,
       `spark-${i}`,
@@ -502,9 +463,8 @@ export const buildDigest = async (
     },
     devices: byClass,
     devicesImage: ring ? "cid:devices-ring" : undefined,
-    visits,
-    heatmap: TRACKING.visits ? "visitors" : "devices",
-    unlinked: TRACKING.visits ? total - tracked.length : 0,
+    pages,
+    pagesImage: pagesRing ? "cid:pages-ring" : undefined,
     sources: bySource,
     actions: actionList,
     recentVisitors,
@@ -518,16 +478,6 @@ export const buildDigest = async (
           missing: total - located.length,
         }
       : null,
-    flow: flow
-      ? {
-          image: "cid:paths-flow",
-          width: FLOW_W,
-          phoneImage: phoneFlow ? "cid:paths-flow-phone" : undefined,
-          phoneWidth: FLOW_PHONE_W,
-        }
-      : null,
-    // The paths' first column says where visits began – only without it.
-    entryPages: flow ? [] : entryPages,
   });
 
   const [downloads] = highlights;

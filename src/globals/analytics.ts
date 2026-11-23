@@ -56,15 +56,8 @@ export const Analytics: GlobalConfig = {
           ),
         ]
       : []),
-    ...(TRACKING.visits || TRACKING.timing
-      ? [
-          section(
-            TRACKING.visits ? "Journeys" : "Time on page",
-            "journeys",
-            "@/fields/analytics/journeys#AnalyticsJourneys"
-          ),
-        ]
-      : []),
+    // No Journeys: the site has two pages (editor and card), each opened
+    // on its own – paths through it say nothing (Visitors shows the pages).
     section(
       "Actions",
       "actions",

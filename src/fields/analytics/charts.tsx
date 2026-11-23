@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { pageParts, partLabel } from "../../stats/page-names";
 import { fmt, INK, LINE, MUTED, TEXT } from "./parts";
 
 /**
@@ -653,8 +654,8 @@ export const Meter = ({ part, whole }: { part: number; whole: number }) => (
 export type Slice = { name: string; value: number; color: string };
 
 /**
- * A whole in up to four parts – desktop, mobile, tablet, other – as a ring
- * with the total in the middle (the part's own, while pointed at), and a
+ * A whole in a few parts – the device classes, or the pages in their
+ * languages – as a ring with the total in the middle (the part's own, while pointed at), and a
  * legend with every number and share beside it.
  */
 export const Ring = ({ slices, unit }: { slices: Slice[]; unit: string }) => {
@@ -827,6 +828,25 @@ export const deviceSlices = (classes: (string | null | undefined)[]) => {
       color: CLASS_COLORS[name] ?? "var(--viz-other)",
     }));
 };
+
+/** Each page in its hue – German in the first shade, English in the second. */
+const PAGE_COLORS: Record<string, [string, string]> = {
+  Editor: ["var(--viz-1)", "var(--viz-1-alt)"],
+  Card: ["var(--viz-2)", "var(--viz-2-alt)"],
+};
+
+/**
+ * Page views as ring slices – a slice per page and language (stats/page-names.ts
+ * `pageParts`), in fixed colors; paths of no page folded into “Other”.
+ */
+export const pageSlices = (paths: (string | null | undefined)[]): Slice[] =>
+  pageParts(paths).map((part) => ({
+    name: partLabel(part, "Other"),
+    value: part.count,
+    color:
+      (part.page && PAGE_COLORS[part.page]?.[part.locale === "en" ? 1 : 0]) ||
+      "var(--viz-other)",
+  }));
 
 // ─── Bars: a ranking, optionally against before ──────────────────────────────
 

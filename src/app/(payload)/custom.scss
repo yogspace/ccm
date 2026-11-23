@@ -526,6 +526,10 @@ $muted: #5c6080;
   --viz-1: #2a78d6;
   --viz-2: #eb6834;
   --viz-3: #1baf7a;
+  // A second shade of the first two – the pages ring's English (Editor
+  // and Card in their hue, EN further from the ground than DE).
+  --viz-1-alt: #184f95;
+  --viz-2-alt: #a3441d;
   --viz-other: #a9a8a1;
   --viz-before: #898781;
   --viz-wash: rgb(42 120 214 / 0.1);
@@ -553,6 +557,8 @@ html[data-theme="dark"] .stats-viz {
   --viz-1: #3987e5;
   --viz-2: #d95926;
   --viz-3: #199e70;
+  --viz-1-alt: #8fbdf2;
+  --viz-2-alt: #f0956c;
   --viz-other: #5f5e59;
   --viz-wash: rgb(57 135 229 / 0.16);
   --viz-select: rgb(57 135 229 / 0.18);

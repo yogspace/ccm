@@ -1,15 +1,9 @@
 import { ACTION_GROUPS } from "@/stats/actions";
-import { pathName } from "@/stats/page-names";
-import {
-  buildVisitMatrix,
-  OTHER,
-  type Visit,
-  visitShade,
-} from "@/stats/visit-matrix";
+import { type PagePart, partLabel } from "@/stats/page-names";
 import { CHART_W, PHONE_W, RING_SIZE, SPARK_W } from "./chart-image";
 
 /**
- * The mail report as HTML – tiles, columns, heatmap, lists, in the app's
+ * The mail report as HTML – tiles, columns, rings, lists, in the app's
  * colors: the blue page, cream cards, ink text, neon pink for what went
  * down.
  *
@@ -105,17 +99,6 @@ const berlin = (t: number) => {
   };
 };
 
-// Without toLocaleString's comma: in narrow columns it broke right there.
-const berlinStamp = (at: number) =>
-  new Date(at)
-    .toLocaleString("de-DE", {
-      timeZone: TZ,
-      day: "2-digit",
-      month: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-    .replace(",", "");
 
 // ─── Columns ─────────────────────────────────────────────────────────────────
 
@@ -353,105 +336,6 @@ const chartHtml = (buckets: ReportBucket[], before?: number[]) => {
   </table>`;
 };
 
-// ─── Heatmap ─────────────────────────────────────────────────────────────────
-
-/** Row name: page and language instead of the path. */
-const rowName = (key: string) => {
-  const name = pathName(key);
-  return name
-    ? `<span style="color:${C.text};">${escapeHtml(name.label)}</span> <span style="color:${C.muted};font-size:10px;font-weight:600;letter-spacing:0.04em;">${escapeHtml(name.locale.toUpperCase())}</span>`
-    : `<span style="color:${C.text};">${escapeHtml(key)}</span>`;
-};
-
-/** Rows of the heatmap in the mail – the rest is in the admin. */
-const MATRIX_ROWS = 12;
-
-/**
- * Pages × visitors (`TRACKING.visits`) or pages × devices – the admin's grid
- * (stats/visit-matrix), without clicking: a circle per cell, its area and
- * tone growing with the count, the number inside once it is large enough.
- * Four columns: a grid scrolling sideways in a mail program nobody reads;
- * the rest stands in “Andere” – for visitors left out of the shading, its
- * sum would pale every named circle. Classic Outlook draws squares.
- */
-const matrixHtml = (visits: Visit[], by: "visitors" | "devices") => {
-  if (!visits.length) {
-    return `<div style="color:${C.muted};font-size:12px;">${by === "visitors" ? "Keine Besucher im Zeitraum." : "Keine Aufrufe im Zeitraum."}</div>`;
-  }
-  const { columns, rows, cell, columnTotal, max } = buildVisitMatrix(visits, {
-    rowAxis: "page",
-    maxColumns: 4,
-    ...(by === "visitors" ? { otherInMax: false } : {}),
-  });
-
-  const head = columns
-    .map((col) => {
-      const [first, ...rest] = col === OTHER ? ["Andere"] : col.split(" · ");
-      return `<td class="r-mx-cell" style="padding:0 2px 8px;text-align:center;vertical-align:bottom;font-size:11px;line-height:14px;color:${C.text};">${escapeHtml(first)}${rest
-        .map(
-          (part) =>
-            `<br><span style="color:${C.muted};font-size:10px;">${escapeHtml(part)}</span>`
-        )
-        .join("")}</td>`;
-    })
-    .join("");
-
-  const body = rows
-    .slice(0, MATRIX_ROWS)
-    .map(([row, total]) => {
-      const cells = columns
-        .map((col) => {
-          const value = cell(row, col);
-          if (!value) {
-            return `<td class="r-mx-cell" style="padding:3px 2px;text-align:center;color:${C.empty};font-size:12px;">·</td>`;
-          }
-          const index = Math.max(
-            0,
-            Math.min(
-              RAMP.length - 1,
-              Math.ceil(visitShade(value.count, max) * RAMP.length) - 1
-            )
-          );
-          const ink = index >= 4 ? "#ffffff" : C.ink;
-          // The circle's AREA grows with the count (diameter by the root).
-          const d = Math.round(
-            8 + Math.sqrt(Math.min(1, value.count / max)) * 22
-          );
-          const label = d >= 20;
-          return `<td class="r-mx-cell" style="padding:3px 2px;text-align:center;vertical-align:middle;height:32px;"><div title="${value.count} · zuletzt ${berlinStamp(value.lastAt)}" style="display:inline-block;width:${d}px;height:${d}px;background:${RAMP[index]};color:${ink};border-radius:50%;text-align:center;font-size:${label ? 11 : 1}px;line-height:${d}px;font-weight:600;vertical-align:middle;">${label ? value.count : "&nbsp;"}</div></td>`;
-        })
-        .join("");
-      return `<tr>
-        <td class="r-mx-label" style="padding:5px 10px 5px 0;vertical-align:middle;border-top:1px solid ${C.line};font-size:12px;line-height:16px;">
-          ${rowName(row)}<br>
-          <span class="r-wrap" style="color:${C.muted};font-size:10px;white-space:nowrap;">${total.count} · zuletzt ${berlinStamp(total.lastAt)}</span>
-        </td>${cells}</tr>`;
-    })
-    .join("");
-
-  const foot = columns
-    .map((col) => {
-      const total = columnTotal(col);
-      return `<td class="r-mx-cell" style="padding:8px 2px 0;text-align:center;font-size:10px;line-height:13px;color:${C.muted};border-top:1px solid ${C.line};">${
-        total
-          ? `<span style="color:${C.text};font-size:12px;font-weight:600;">${total.count}</span><br>${berlinStamp(total.lastAt)}`
-          : ""
-      }</td>`;
-    })
-    .join("");
-
-  const more =
-    rows.length > MATRIX_ROWS
-      ? `<div style="color:${C.muted};font-size:11px;padding-top:8px;">+ ${fmt(rows.length - MATRIX_ROWS)} weitere Seiten – alle im Admin unter Analytics.</div>`
-      : "";
-
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-    <tr><td></td>${head}</tr>
-    ${body}
-    <tr><td style="padding:8px 10px 0 0;font-size:10px;line-height:13px;color:${C.muted};border-top:1px solid ${C.line};">${fmt(visits.length)} gesamt<br>je ${by === "visitors" ? "Besucher" : "Gerät"} · zuletzt</td>${foot}</tr>
-  </table>${more}`;
-};
-
 // ─── Lists ───────────────────────────────────────────────────────────────────
 
 /** A bar of `pct` % on a cream track, `h` px high. */
@@ -505,15 +389,41 @@ export const deviceParts = (devices: [string, number][]) => {
     }));
 };
 
+/**
+ * Each page in the app's hue – German in it, English in its deep shade –
+ * the rest grey: the “Seiten” ring, a part per page and language.
+ */
+const PAGE_COLORS: Record<string, [string, string]> = {
+  Editor: ["#2a44ff", "#141c86"],
+  Card: ["#ff6a1f", "#a83f0b"],
+};
+
+export const pageRingParts = (parts: PagePart[]) =>
+  parts.map((part) => ({
+    name: partLabel(part, "Andere"),
+    color:
+      (part.page && PAGE_COLORS[part.page]?.[part.locale === "en" ? 1 : 0]) ||
+      C.before,
+    count: part.count,
+  }));
+
 /** “Mobil” for “mobile” – a device class as the mail names it. */
 export const deviceClassName = (key: string) => DEVICES[key]?.name ?? key;
 
-const devicesHtml = (devices: [string, number][], ring?: string) => {
-  const total = devices.reduce((sum, [, n]) => sum + n, 0);
+/**
+ * A whole in parts – devices, or pages in their languages: the ring as a
+ * picture with the legend beside it, else one stacked bar. `what` names it
+ * for the picture's alt text.
+ */
+const partsHtml = (
+  parts: { name: string; color: string; count: number }[],
+  what: string,
+  ring?: string
+) => {
+  const total = parts.reduce((sum, part) => sum + part.count, 0);
   if (!total) {
     return `<div style="color:${C.muted};font-size:12px;">Keine Aufrufe im Zeitraum.</div>`;
   }
-  const parts = deviceParts(devices);
   const segments = parts
     .map(
       (part, i) =>
@@ -532,7 +442,7 @@ const devicesHtml = (devices: [string, number][], ring?: string) => {
   // The ring as a picture, the legend beside it – else one stacked bar.
   if (ring) {
     return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;"><tr>
-      <td width="${RING_SIZE}" style="width:${RING_SIZE}px;vertical-align:middle;padding-right:18px;"><img src="${escapeHtml(ring)}" width="${RING_SIZE}" height="${RING_SIZE}" alt="Geräte: ${parts.map((p) => `${p.name} ${p.count}`).join(", ")}" style="display:block;width:${RING_SIZE}px;height:${RING_SIZE}px;border:0;"></td>
+      <td width="${RING_SIZE}" style="width:${RING_SIZE}px;vertical-align:middle;padding-right:18px;"><img src="${escapeHtml(ring)}" width="${RING_SIZE}" height="${RING_SIZE}" alt="${what}: ${parts.map((p) => `${p.name} ${p.count}`).join(", ")}" style="display:block;width:${RING_SIZE}px;height:${RING_SIZE}px;border:0;"></td>
       <td style="vertical-align:middle;">${legendTable}</td>
     </tr></table>`;
   }
@@ -688,19 +598,6 @@ const countriesHtml = (r: NonNullable<ReportData["origin"]>) => {
   <div style="color:${C.muted};font-size:10px;line-height:14px;padding-top:10px;">${escapeHtml(ORIGIN_NOTE)}</div>`;
 };
 
-/**
- * The paths diagram as a picture – the wide one, and on the phone (media
- * query) a narrower one with fewer steps.
- */
-const flowHtml = (f: NonNullable<ReportData["flow"]>) =>
-  `<img class="${f.phoneImage ? "r-hide" : ""}" src="${escapeHtml(f.image)}" width="${f.width}" alt="Wege durch die Seite" style="display:block;width:100%;max-width:${f.width}px;height:auto;border:0;">${
-    f.phoneImage
-      ? `<!--[if !mso]><!--><div class="r-show" style="display:none;max-height:0;overflow:hidden;mso-hide:all;"><img src="${escapeHtml(f.phoneImage)}" width="${f.phoneWidth}" alt="Wege durch die Seite" style="display:block;width:100%;max-width:${f.phoneWidth}px;height:auto;border:0;"></div><!--<![endif]-->`
-      : ""
-  }<div style="color:${C.muted};font-size:11px;line-height:15px;padding-top:10px;">Jede Spalte ist ein Schritt eines Besuchs: Spalte 1 zeigt, wo Besuche beginnen, die Bänder, wie es weitergeht – je breiter, desto öfter. „% Ende“ heißt: dort aufgehört.</div>`;
-
-// ─── The mail ────────────────────────────────────────────────────────────────
-
 export type ReportAction = {
   /** Its key (stats/actions) – for the groups. */
   name: string;
@@ -733,11 +630,10 @@ export type ReportData = {
   devices: [string, number][];
   /** … and as a ring picture (`cid:…`), if it could be drawn. */
   devicesImage?: string;
-  /** The heatmap's views – page × visitor (`visits`) or page × device. */
-  visits: Visit[];
-  heatmap: "visitors" | "devices";
-  /** Page views left out of pages × visitors – no visit id. */
-  unlinked?: number;
+  /** Page views by page and language … */
+  pages: PagePart[];
+  /** … and as a ring picture (`cid:…`), if it could be drawn. */
+  pagesImage?: string;
   sources: [string, number][];
   actions: ReportAction[];
   /** With `TRACKING.visits`: the latest visitors … */
@@ -755,15 +651,6 @@ export type ReportData = {
     /** Page views without a country. */
     missing: number;
   } | null;
-  /** With `TRACKING.visits`: the paths diagram – null without a path. */
-  flow?: {
-    image: string;
-    width: number;
-    phoneImage?: string;
-    phoneWidth: number;
-  } | null;
-  /** With `TRACKING.visits` and no paths diagram: where visits began. */
-  entryPages?: [string, number][];
 };
 
 /**
@@ -842,28 +729,22 @@ const renderHtml = (r: ReportData): string => {
     }`
   );
 
-  const matrix = card(
-    `${sectionTitle(
-      r.heatmap === "visitors" ? "Seiten × Besucher" : "Seiten × Geräte",
-      r.unlinked
-        ? // Short – the aside does not wrap, and must fit a phone.
-          `${fmt(r.unlinked)} Aufrufe ohne Besucher`
-        : ""
-    )}${matrixHtml(r.visits, r.heatmap)}`
-  );
   const sources = card(
     `${sectionTitle("Quellen", "ohne interne Navigation")}${rankList(r.sources)}`
   );
   const devices = card(
-    `${sectionTitle("Geräte")}${devicesHtml(r.devices, r.devicesImage)}`
+    `${sectionTitle("Geräte")}${partsHtml(deviceParts(r.devices), "Geräte", r.devicesImage)}`
+  );
+  const pages = card(
+    `${sectionTitle("Seiten")}${partsHtml(pageRingParts(r.pages), "Seiten", r.pagesImage)}`
   );
   const actions = card(
     `${sectionTitle("Aktionen", `${key(C.data, "jetzt")}${key(C.before, "davor")}`)}${actionsHtml(r.actions)}`
   );
-  // Devices and sources side by side – one below the other on the phone.
+  // Pages and devices side by side – one below the other on the phone.
   const pair = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;table-layout:fixed;"><tr>
-    <td class="r-col" width="50%" style="width:50%;vertical-align:top;padding:0 5px 0 0;">${devices}</td>
-    <td class="r-col" width="50%" style="width:50%;vertical-align:top;padding:0 0 0 5px;">${sources}</td>
+    <td class="r-col" width="50%" style="width:50%;vertical-align:top;padding:0 5px 0 0;">${pages}</td>
+    <td class="r-col" width="50%" style="width:50%;vertical-align:top;padding:0 0 0 5px;">${devices}</td>
   </tr></table>`;
   // What the options in stats/config.ts add – only what has data.
   const visitors = r.recentVisitors?.length
@@ -876,13 +757,6 @@ const renderHtml = (r: ReportData): string => {
         `${sectionTitle("Woher die Besucher kommen")}${countriesHtml(r.origin)}`
       )
     : "";
-  const flow = r.flow
-    ? card(`${sectionTitle("Wege durch die Seite")}${flowHtml(r.flow)}`)
-    : "";
-  const entryPages = r.entryPages?.length
-    ? card(`${sectionTitle("Einstiegsseiten")}${rankList(r.entryPages)}`)
-    : "";
-
   return `<!DOCTYPE html>
 <html lang="de">
 <head>
@@ -907,7 +781,7 @@ const renderHtml = (r: ReportData): string => {
   </td></tr>
 
   <tr><td>${kpis}</td></tr>
-  ${[chart, actions, pair, matrix, visitors, origin, flow, entryPages]
+  ${[chart, actions, pair, sources, visitors, origin]
     .filter(Boolean)
     .map((part) => `<tr><td>${gap(10)}</td></tr><tr><td>${part}</td></tr>`)
     .join("")}
