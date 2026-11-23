@@ -31,10 +31,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # /data/media: the mount point of the media volume (uploads). It must exist in
 # the image and belong to nextjs – a named volume takes over the mount
 # point's ownership when first mounted.
-# chromium draws short links' pictures (export/server-preview.ts) – WebGL in
-# software (SwiftShader). The Alpine package, not puppeteer's download: that
-# is a glibc build and doesn't start on Alpine (musl) – hence puppeteer-CORE.
-RUN apk add --no-cache chromium
+# chromium draws short links' pictures (export/server-preview.ts). The Alpine
+# package, not puppeteer's download: that is a glibc build and doesn't start
+# on Alpine (musl) – hence puppeteer-CORE. Alpine's Chromium has no
+# SwiftShader, so WebGL runs on Mesa's llvmpipe (CPU) through EGL.
+RUN apk add --no-cache chromium mesa-egl mesa-gles mesa-gl mesa-dri-gallium
 ENV CHROMIUM_PATH=/usr/bin/chromium-browser
 RUN addgroup -S -g 1001 nodejs && adduser -S -u 1001 -G nodejs nextjs \
  && mkdir -p /data/media && chown nextjs:nodejs /data/media

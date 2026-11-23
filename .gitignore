@@ -49,4 +49,4 @@ media/
 geoip/
 
 # Local previews (scripts/preview-stats-digest.ts) – they hold real analytics
-preview/
+/preview/

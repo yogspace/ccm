@@ -60,10 +60,12 @@ const launch = async (): Promise<Browser> => {
       "--disable-setuid-sandbox",
       // Docker gives /dev/shm only 64 MB.
       "--disable-dev-shm-usage",
-      // WebGL without a GPU: SwiftShader, rendered on the CPU.
-      "--use-angle=swiftshader",
-      "--enable-unsafe-swiftshader",
-      "--ignore-gpu-blocklist",
+      // WebGL without a GPU in the container: Mesa's llvmpipe on the CPU
+      // through EGL (Dockerfile) – Alpine's Chromium has no SwiftShader. A
+      // Mac's Chrome has WebGL as it is.
+      ...(process.platform === "linux"
+        ? ["--use-gl=angle", "--use-angle=gl-egl", "--ignore-gpu-blocklist"]
+        : []),
     ],
   });
 };
