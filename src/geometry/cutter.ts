@@ -123,11 +123,6 @@ export const reliefReach = ({ bladeHeight, relief }: CutterParams) =>
   Math.max(0, Math.min(bladeHeight, relief));
 /** Embossing leaves out crumbs below this area (mm²). */
 const MIN_RELIEF = 0.5;
-/**
- * Embossing has no flange: it stands on a foot this wide (mm) at the bed,
- * slanting in at 45° – firm even for thin strokes, without corners.
- */
-export const FOOT = 1;
 /** How far (mm) a link reaches into embossing – not through a thin stroke. */
 const TUCK = 0.3;
 /**
@@ -181,8 +176,8 @@ const fitToSize = (rings: Ring[], size: number) => {
  *
  * `emboss`: what was drawn in the embossing ink (same coordinates). Where it
  * lies on the cookie it is held like a hole – but by straight flat links
- * only, no arches, no flange: filled from the bed up on a slanted foot, and
- * reaching `relief` out of the flange instead of up to the cutting edge.
+ * only, no arches, no flange: filled straight up from the bed, and reaching
+ * `relief` out of the flange instead of up to the cutting edge.
  */
 export const buildCutter = (
   wasm: ManifoldToplevel,
@@ -317,7 +312,6 @@ export const buildCutter = (
     const innerFlange = flangeWidth / 2;
     const connections = planConnections([...islands, ...reliefs], {
       innerFlange,
-      foot: FOOT,
       join: LINK_GAP,
       flatSpan: FLAT_SPAN,
       width: bridgeWidth,
@@ -491,7 +485,7 @@ export const buildCutter = (
       );
       const rim = track(grow(roots, 0.05).subtract(grow(roots, -0.05)));
       const embossing = track(
-        CrossSection.union(relief ? [...plain, grow(relief, FOOT)] : plain)
+        CrossSection.union(relief ? [...plain, relief] : plain)
       );
       const plugs = track(shape.subtract(filled))
         .decompose()
@@ -519,20 +513,10 @@ export const buildCutter = (
 
     let embossId: number | null = null;
     if (relief) {
-      // Filled from the bed up, `relief` out of the flange – on its foot,
-      // stepped in layers like the taper, over cookie and walls only.
+      // Filled straight up from the bed, `relief` out of the flange – no
+      // foot: the embossing is a filled area, it stands on its own.
       const height = flangeHeight + reliefReach(params);
-      const rise = Math.min(FOOT, height);
-      const footSteps = Math.round(rise / LAYER);
-      const layers = [track(relief.extrude(height))];
-      for (let i = 0; i < footSteps; i++) {
-        const out = (rise * (footSteps - i)) / footSteps;
-        const step = track(grow(relief, out).intersect(cookieAndWalls));
-        layers.push(
-          track(track(step.extrude(LAYER + OVERLAP)).translate(0, 0, i * LAYER))
-        );
-      }
-      const pads = track(track(Manifold.union(layers)).asOriginal());
+      const pads = track(track(relief.extrude(height)).asOriginal());
       embossId = pads.originalID();
       parts.push(pads);
     }
