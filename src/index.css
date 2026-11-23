@@ -104,6 +104,47 @@
   @container draw (aspect-ratio >= 0.88) and (width >= 30rem)
 );
 
+/* The bars below the drawing area – tools on the left, undo & clear on the
+   right – side by side need about 310px, with the line tool's “finish” 355px:
+   more than a phone's area is wide. There they scale down (zoom, so the row
+   takes less room too) in steps, each the largest that still fits. Beside
+   the area (`beside`, from 30rem) they stand in columns and keep their size. */
+@container draw (width < 20.9rem) {
+  .draw-grid {
+    --bars: 0.9;
+  }
+}
+@container draw (width < 18.95rem) {
+  .draw-grid {
+    --bars: 0.8;
+  }
+}
+@container draw (width < 17rem) {
+  .draw-grid {
+    --bars: 0.7;
+  }
+}
+@container draw (width < 23.6rem) {
+  .draw-grid:has([aria-keyshortcuts="Enter"]) {
+    --bars: 0.9;
+  }
+}
+@container draw (width < 21.4rem) {
+  .draw-grid:has([aria-keyshortcuts="Enter"]) {
+    --bars: 0.78;
+  }
+}
+@container draw (width < 18.77rem) {
+  .draw-grid:has([aria-keyshortcuts="Enter"]) {
+    --bars: 0.7;
+  }
+}
+@container draw (width < 17rem) {
+  .draw-grid:has([aria-keyshortcuts="Enter"]) {
+    --bars: 0.62;
+  }
+}
+
 /* The drawing area stays a light sheet in both themes – with light colors of
    its own for everything on it. */
 @utility paper {

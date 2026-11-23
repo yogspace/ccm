@@ -37,7 +37,7 @@ const ToolPicker = ({ tool, onChoose }: Props) => {
     // biome-ignore lint/a11y/useSemanticElements: a group of toggles, not a form
     <div
       aria-label={t("draw.tools")}
-      className="flex items-center gap-2.5 [grid-area:tools] justify-self-start @max-[34rem]/draw:gap-2 beside:flex-col beside:gap-3 beside:self-start beside:justify-self-center"
+      className="flex items-center gap-2.5 [grid-area:tools] [zoom:var(--bars,1)] justify-self-start @max-[34rem]/draw:gap-2 beside:flex-col beside:gap-3 beside:self-start beside:justify-self-center"
       role="group"
     >
       {TOOLS.map(([value, icon, icing, roll, label, key]) => {

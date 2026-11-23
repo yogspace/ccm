@@ -38,7 +38,7 @@ const DrawActions = ({
 }: Props) => {
   const { t } = useTranslation();
   return (
-    <div className="flex items-center gap-4 [grid-area:actions] justify-self-end @max-[34rem]/draw:gap-2 beside:flex-col beside:gap-3 beside:[grid-area:tools] beside:self-end beside:justify-self-center">
+    <div className="flex items-center gap-4 [grid-area:actions] [zoom:var(--bars,1)] justify-self-end @max-[34rem]/draw:gap-2 beside:flex-col beside:gap-3 beside:[grid-area:tools] beside:self-end beside:justify-self-center">
       {onFinish && (
         <Button
           aria-keyshortcuts="Enter"

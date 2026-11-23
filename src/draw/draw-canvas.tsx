@@ -5,6 +5,7 @@ import {
   memo,
   type PointerEvent,
   useCallback,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -83,6 +84,18 @@ const DrawCanvas = () => {
   const zoom = useZoom(stageRef, drawing.setView);
   const { view } = zoom;
   const zoomed = view.s > 1.001;
+  // The area's width on screen – the brush options' dot is as big as a
+  // stroke there (as the brush preview, showBrush).
+  const [stageWidth, setStageWidth] = useState(0);
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const observer = new ResizeObserver(() =>
+      setStageWidth(stage.getBoundingClientRect().width)
+    );
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, []);
 
   /** Where on the area a pointer is, and how many area pixels a CSS pixel is. */
   const locate: Locate = (event) => {
@@ -247,9 +260,9 @@ const DrawCanvas = () => {
       ref={areaRef}
     >
       {/* One grid for head, area and bars – the head as wide as the area.
-          Default: everything below the area – tools | brush size | undo &
-          clear, below that the templates; narrow:
-          tools and actions on top, the brush size full width below. Unless
+          Default: everything below the area – tools and undo & clear,
+          below them ink and brush size full width (two rows: they don't fit
+          between the two), then the templates. Unless
           the card is clearly taller than wide, the bars sit beside the area
           and it gets larger: tools on the left (drawing on top, undo & clear
           at the bottom), templates stacked on the right, only the brush size
@@ -261,7 +274,7 @@ const DrawCanvas = () => {
           need, both measured – the fallbacks only apply until the first
           measurement. */}
       <div
-        className="grid w-(--s,auto) grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-5 gap-y-4 [grid-template-areas:'head_head_head'_'stage_stage_stage'_'tools_options_actions'_'templates_templates_templates'] md:[--s:max(12rem,min(60rem,100cqw-var(--chrome-w,0px),100cqh-var(--chrome-h,8rem)))] @max-[34rem]/draw:gap-x-3 @max-[34rem]/draw:[grid-template-areas:'head_head_head'_'stage_stage_stage'_'tools_._actions'_'options_options_options'_'templates_templates_templates'] beside:w-auto beside:grid-cols-[--spacing(12)_var(--s)_--spacing(12)] beside:grid-rows-[auto_var(--s)_auto] beside:gap-x-3 beside:gap-y-4 beside:[grid-template-areas:'._head_.'_'tools_stage_templates'_'._options_.']"
+        className="draw-grid grid w-(--s,auto) grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-5 gap-y-4 [grid-template-areas:'head_head_head'_'stage_stage_stage'_'tools_._actions'_'options_options_options'_'templates_templates_templates'] md:[--s:max(12rem,min(60rem,100cqw-var(--chrome-w,0px),100cqh-var(--chrome-h,8rem)))] @max-[34rem]/draw:gap-x-3 beside:w-auto beside:grid-cols-[--spacing(12)_var(--s)_--spacing(12)] beside:grid-rows-[auto_var(--s)_auto] beside:gap-x-3 beside:gap-y-4 beside:[grid-template-areas:'._head_.'_'tools_stage_templates'_'._options_.']"
         ref={gridRef}
       >
         <ShapeHead />
@@ -485,6 +498,7 @@ const DrawCanvas = () => {
         <ToolPicker onChoose={onChooseTool} tool={tool} />
         <BrushOptions
           brush={brush}
+          dot={(brush * stageWidth * view.s) / RES}
           ink={ink}
           inks={tool !== "eraser" && (tool !== "move" || !!selection)}
           onChange={drawing.changeBrush}
