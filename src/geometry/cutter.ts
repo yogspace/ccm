@@ -322,10 +322,12 @@ export const buildCutter = (
         // Where the gap is just about too wide, closing leaves a sliver – a
         // hairline again: what is thinner than MIN_BRIDGE goes, and a bridge
         // left touching only one side with it.
+        // Opening moves its edges a hair: it reaches a hair into wall and
+        // embossing again, or a gap of no width would part them.
         .map((piece) =>
           grow(
             grow(track(piece.intersect(shape)), -MIN_BRIDGE / 2),
-            MIN_BRIDGE / 2
+            MIN_BRIDGE / 2 + DUST
           )
         )
         .filter(
