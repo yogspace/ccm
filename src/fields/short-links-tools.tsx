@@ -56,10 +56,9 @@ export const ShortLinksTools = () => {
     if (!text) return;
     setMade({ state: "busy" });
     try {
-      const { hash, built, name } = await buildFromLink(await linkOf(text));
+      const { hash, name } = await buildFromLink(await linkOf(text));
       const code = await adminShortLink(api, hash, {
         name,
-        mesh: built.mesh,
         color: PREVIEW_COLOR,
       });
       setMade({

@@ -1,18 +1,15 @@
 import { loadCutter } from "../card/load-cutter";
-import { nameBase } from "../export/file-name";
-import { shortLinkPreview } from "../export/makerworld";
 import { FILAMENTS } from "../filaments";
-import type { MeshData } from "../geometry/mesh";
 import { GREETING_KEYS } from "../greeting";
 import { currentForm } from "../link-keys";
 import { readHash } from "../url-state";
 
 /**
  * The admin's short links, in its browser (collections/short-links.ts): a
- * creation's link made whole, the admin's own short link for it, and the
- * picture of its cutter – rendered here, the server has no 3D. For kits
- * (makerworld-kit.tsx), links given above the list (short-links-tools.tsx)
- * and the Seeds page (admin/previews-runner.tsx).
+ * creation's link made whole and built, the admin's own short link for it,
+ * and its picture drawn on the server. For kits (makerworld-kit.tsx), links
+ * given above the list (short-links-tools.tsx) and the Seeds page
+ * (admin/previews-runner.tsx).
  */
 
 /** The default name, as on the site. */
@@ -102,47 +99,31 @@ export const buildFromLink = async (link: string) => {
   return { hash, shared, built, name: shared.name.trim() || FALLBACK_NAME };
 };
 
-/** A cutter's picture as a short link's preview – the old one goes. */
-export const savePreview = async (
+/**
+ * A short link's picture, drawn on the server (collections/short-links.ts
+ * `/:id/preview`) – the one way pictures are drawn, so they all look alike.
+ * `force` draws it anew, the old one goes; else only if it has none.
+ */
+export const drawPreview = (
   api: string,
-  link: { id: string; code: string },
-  { name, mesh, color }: { name: string; mesh: MeshData; color: string }
-) => {
-  const picture = await shortLinkPreview(mesh, color);
-  if (!picture) throw new Error("The picture could not be made.");
-  const form = new FormData();
-  form.append(
-    "file",
-    new File([picture], `${nameBase(name)}-${link.code}.png`, {
-      type: "image/png",
-    })
-  );
-  form.append("_payload", "{}");
-  const { doc } = await send<{ doc: { id: string } }>(
-    `${api}/short-link-previews`,
-    { method: "POST", body: form }
-  );
-  await send(`${api}/short-links/${link.id}`, {
-    method: "PATCH",
+  id: string,
+  { force = false }: { force?: boolean } = {}
+) =>
+  send(`${api}/short-links/${id}/preview`, {
+    method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ preview: doc.id }),
+    body: JSON.stringify({ force }),
   });
-};
 
 /**
  * The admin's own short link for a creation (`hash`) – one per model, made
- * the first time, named `label` (a kit's: “Halloween – Pumpkin”), with a
- * picture of the cutter to tell it by – and its code.
+ * the first time, named `label` (a kit's: “Halloween – Pumpkin”) – and its
+ * code. A new one's picture is drawn on the server in the background.
  */
 export const adminShortLink = async (
   api: string,
   hash: string,
-  {
-    name,
-    label = name,
-    mesh,
-    color,
-  }: { name: string; label?: string; mesh: MeshData; color: string }
+  { name, label = name, color }: { name: string; label?: string; color: string }
 ) => {
   const link = await send<{ id: string; code: string; preview: boolean }>(
     `${api}/short-links/kit`,
@@ -152,6 +133,5 @@ export const adminShortLink = async (
       body: JSON.stringify({ hash, name: label, color }),
     }
   );
-  if (!link.preview) await savePreview(api, link, { name, mesh, color });
   return link.code;
 };

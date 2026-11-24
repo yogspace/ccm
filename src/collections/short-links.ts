@@ -467,17 +467,13 @@ export const ShortLinks: CollectionConfig = {
     ],
     afterChange: [
       async ({ doc, operation, previousDoc, req }) => {
-        // A visitor's, new or switched to a new version (its picture dropped
-        // above): drawn on the server, in the background – the request does
-        // not wait. The admin's own (kits, a link above the list) are drawn
-        // by the admin's browser as they are made.
+        // New, or switched to a new version (its picture dropped above):
+        // drawn on the server, in the background – the request does not
+        // wait. Visitors' and the admin's own (kits, a link above the list)
+        // alike.
         const newShape =
           operation === "update" && doc.shape !== previousDoc?.shape;
-        if (
-          doc.account &&
-          !doc.preview &&
-          (operation === "create" || newShape)
-        ) {
+        if (!doc.preview && (operation === "create" || newShape)) {
           const { queuePreview } = await import("../export/server-preview");
           queuePreview(req.payload, String(doc.id));
         }

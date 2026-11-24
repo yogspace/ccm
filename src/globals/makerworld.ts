@@ -144,8 +144,8 @@ export const MakerWorld: GlobalConfig = {
       async ({ doc, req }) => {
         // Saved: every cutter has its short link – the admin's own for its
         // model, named after kit and cutter where it has no name yet (the
-        // kit downloaded renames it). Its picture follows from the browser,
-        // right after (fields/kit-previews.tsx) – the server has no 3D.
+        // kit downloaded renames it). Its picture is drawn on the server
+        // (collections/short-links.ts; fields/kit-previews.tsx checks).
         for (const kit of (doc as Makerworld).kits ?? []) {
           for (const cutter of kit.cutters ?? []) {
             try {

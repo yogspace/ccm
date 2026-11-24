@@ -2,12 +2,7 @@
 
 import { useConfig, useDocumentEvents } from "@payloadcms/ui";
 import { useEffect, useRef, useState } from "react";
-import {
-  buildFromLink,
-  creationsOf,
-  PREVIEW_COLOR,
-  savePreview,
-} from "./short-link-client";
+import { creationsOf, drawPreview } from "./short-link-client";
 
 type State =
   | { status: "idle" }
@@ -17,9 +12,9 @@ type State =
 /**
  * Beside the MakerWorld kits' Save: once saved, the server has made each
  * cutter's short link (globals/makerworld.ts) – their pictures are drawn
- * here, in this browser, the server has no 3D: every one of the admin's
- * own short links still without one. Saved again meanwhile, it looks once
- * more when done.
+ * on the server, one after another (short-link-client.ts `drawPreview`):
+ * every one of the admin's own short links still without one. Saved again
+ * meanwhile, it looks once more when done.
  */
 export const KitPreviews = () => {
   const {
@@ -49,12 +44,7 @@ export const KitPreviews = () => {
         for (const [i, link] of links.entries()) {
           setState({ status: "running", done: i, of: links.length });
           try {
-            const { built, name } = await buildFromLink(link.creation);
-            await savePreview(api, link, {
-              name,
-              mesh: built.mesh,
-              color: link.color ?? PREVIEW_COLOR,
-            });
+            await drawPreview(api, link.id);
             drawn++;
           } catch {
             failed++;

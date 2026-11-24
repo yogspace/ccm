@@ -9,8 +9,8 @@ import "@/glaze.css";
 
 /**
  * A creation (a link with its model in it) drawn as a short link's picture
- * – as the admin's browser draws it (fields/short-link-client.ts) – and
- * returned as base64 PNG. Null if nothing came out.
+ * – with the site's own code, as the editor shows it – and returned as
+ * base64 PNG. Null if nothing came out.
  */
 export type DrawPreview = (
   creation: string,

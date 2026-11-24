@@ -5,8 +5,9 @@ import { MEDIA_DIR } from "../media";
 
 /**
  * Short links' pictures (collections/short-links.ts): the cutter of each,
- * rendered in the admin's browser – by a kit's download, a short link made
- * above the list, or the Seeds page for all of them. For the admin only –
+ * drawn on the server (export/server-preview.ts) – for every new short link,
+ * by “Render preview again”, or the Seeds page for all of them. For the
+ * admin only –
  * unlike Media, never public: a visitor's online cookie is theirs.
  */
 export const ShortLinkPreviews: CollectionConfig = {

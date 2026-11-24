@@ -230,7 +230,6 @@ export const KitDownload: UIFieldClientComponent = ({ path }) => {
         const code = await adminShortLink(api, hash, {
           name,
           label: kitLinkName(kit.name, name),
-          mesh,
           color: kit.color,
         });
         cutters.push({

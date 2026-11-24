@@ -2,12 +2,7 @@
 
 import { Button, Pill, useConfig } from "@payloadcms/ui";
 import { useState } from "react";
-import {
-  buildFromLink,
-  creationsOf,
-  PREVIEW_COLOR,
-  savePreview,
-} from "../fields/short-link-client";
+import { creationsOf, drawPreview } from "../fields/short-link-client";
 
 type State =
   | { status: "idle" }
@@ -17,9 +12,11 @@ type State =
 
 /**
  * The Seeds page's pictures of the short links (collections/short-links.ts):
- * each one's cutter built and drawn in this browser – the server has no 3D –
- * one after another, its old picture replaced. All of them, or only those
- * still without one. A kit's in its color, the others in the usual one.
+ * each one drawn on the server (`/:id/preview`, export/server-preview.ts) –
+ * the same as a short link's “Render preview again”, so the pictures are
+ * the same too – one after another, its old picture replaced. All of them,
+ * or only those still without one. A kit's in its color, the others in the
+ * usual one.
  */
 export const PreviewsRunner = () => {
   const {
@@ -37,12 +34,8 @@ export const PreviewsRunner = () => {
       for (const [i, link] of todo.entries()) {
         setState({ status: "running", all, done: i, of: todo.length });
         try {
-          const { built, name } = await buildFromLink(link.creation);
-          await savePreview(api, link, {
-            name,
-            mesh: built.mesh,
-            color: link.color ?? PREVIEW_COLOR,
-          });
+          // All: drawn anew, the old picture replaced.
+          await drawPreview(api, link.id, { force: all });
         } catch (error) {
           failed.push(
             `${link.code}: ${error instanceof Error ? error.message : String(error)}`
@@ -73,8 +66,8 @@ export const PreviewsRunner = () => {
         <h3>Short link previews</h3>
         <p>
           Draws the cutter of every short link – for the list under Short links,
-          seen only here. In this browser, a second or two each; keep the page
-          open until it is done.
+          seen only here. On the server, a few seconds each; keep the page open
+          until it is done.
         </p>
         {running && (
           <div>

@@ -12,9 +12,10 @@ const PREVIEW_COLOR = FILAMENTS[1];
 /**
  * A short link's picture, drawn on the server: a headless Chromium opens
  * the site's own render page (app/(render)/next/render/preview), builds the
- * cutter there exactly as the admin's browser does and hands back the PNG.
- * For every new short link (collections/short-links.ts, afterChange) and
- * the admin's “Create preview” button.
+ * cutter there with the site's own code and hands back the PNG. The one way
+ * pictures are drawn: for every new short link (collections/short-links.ts,
+ * afterChange), the admin's “Create preview” / “Render preview again”, the
+ * Seeds page and a kit saved (fields/short-link-client.ts `drawPreview`).
  *
  * One job at a time, Chromium started per job and closed after – it is
  * needed now and then and should not hold memory in between (the container
