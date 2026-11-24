@@ -10,7 +10,7 @@ import {
 import { type Connection, planConnections } from "./connections";
 import { type Island, isHole, nestIslands } from "./islands";
 import type { Point, Ring } from "./outline";
-import { bounds, contains, signedArea } from "./rings";
+import { bounds, closestOnRing, contains, distance, signedArea } from "./rings";
 import { SIGNATURE_BAND, SIGNATURE_RAISE, signatureArea } from "./signature";
 
 /** All dimensions in millimetres. */
@@ -121,8 +121,26 @@ export const flangeOf = ({ flangeWidth, wall }: CutterParams) =>
 /** How far (mm) embossing reaches out of the flange – at most as the walls. */
 export const reliefReach = ({ bladeHeight, relief }: CutterParams) =>
   Math.max(0, Math.min(bladeHeight, relief));
-/** Embossing leaves out crumbs below this area (mm²). */
-const MIN_RELIEF = 0.5;
+/** Embossing is cut apart where it is thinner than this (mm). */
+const RELIEF_NECK = 0.5;
+/**
+ * Embossing leaves out crumbs below this area (mm²) – where a stroke runs
+ * over the cookie's edge, cutting it there leaves dots too small to print.
+ */
+const MIN_RELIEF = 1.5;
+/**
+ * Embossing that touches a wall along at least this much (mm) is one piece
+ * with it there – that counts as one of its supports. Less (a corner, a
+ * hairline end) would break off: then it is held like any other.
+ */
+const WALL_CONTACT = 1;
+/**
+ * Embossing closer to a wall than twice this (mm) is joined to it – a gap
+ * that narrow would print as a hairline or not at all.
+ */
+const NEAR_WALL = 0.8;
+/** A bridge to a wall thinner than this (mm) would be a hairline – none. */
+const MIN_BRIDGE = 0.6;
 /** How far (mm) a link reaches into embossing – not through a thin stroke. */
 const TUCK = 0.3;
 /**
@@ -263,30 +281,128 @@ export const buildCutter = (
           "EvenOdd"
         )
       );
-      const pads = track(drawn.intersect(shape))
+      // Opened a little: where a stroke runs over the cookie's edge, cutting
+      // it leaves bits on necks thinner than a nozzle – cut off, then left
+      // out as crumbs.
+      const pads = grow(
+        grow(track(drawn.intersect(shape)), -RELIEF_NECK / 2),
+        RELIEF_NECK / 2
+      )
         .decompose()
         .map(track)
         .filter((pad) => pad.area() > MIN_RELIEF);
       if (pads.length > 0) relief = track(CrossSection.union(pads));
     }
     // To be held, each embossed area counts as a hole in the cookie it lies
-    // on – for the links and arches only, the cookie keeps it.
+    // on – for the links and arches only, the cookie keeps it. Unless it
+    // reaches the cookie's edge: the walls stand right outside it (`band`),
+    // so there the two are one piece – a link would hold what is held.
+    // Embossing that reaches the cookie's edge stands against a wall there
+    // (`band`) – one piece with it. Against the wall around, that counts as
+    // one of its supports: a small piece needs no link, a long one gets its
+    // others away from the wall. Against a hole's wall the two hang
+    // together and are held as one (connections.ts).
+    const wallsAtBed = relief ? track(grow(shape, wall).subtract(shape)) : null;
+    // Almost touching would print as a hairline gap: up to 2 × NEAR_WALL
+    // apart, embossing and wall are joined. Of what closing the two fills,
+    // only the pieces touching both – the drawing keeps its shape elsewhere.
+    if (relief && wallsAtBed) {
+      const solid = track(relief.add(wallsAtBed));
+      const touchingWall = track(relief.intersect(grow(wallsAtBed, DUST)));
+      const filled = track(close(solid, NEAR_WALL).subtract(solid));
+      const touches = (piece: CrossSection, other: CrossSection) =>
+        !track(grow(piece, 0.05).intersect(other)).isEmpty();
+      const bridges = filled
+        .decompose()
+        .map(track)
+        .filter(
+          (piece) =>
+            touches(piece, relief as CrossSection) && touches(piece, wallsAtBed)
+        )
+        // Where the gap is just about too wide, closing leaves a sliver – a
+        // hairline again: what is thinner than MIN_BRIDGE goes, and a bridge
+        // left touching only one side with it.
+        .map((piece) =>
+          grow(
+            grow(track(piece.intersect(shape)), -MIN_BRIDGE / 2),
+            MIN_BRIDGE / 2
+          )
+        )
+        .filter(
+          (piece) =>
+            touches(piece, relief as CrossSection) &&
+            touches(piece, wallsAtBed) &&
+            // Right beside a place where they touch already, it only fills
+            // the corner there – a bump, not a bridge.
+            track(grow(piece, NEAR_WALL).intersect(touchingWall)).isEmpty()
+        );
+      if (bridges.length > 0) {
+        relief = track(relief.add(track(CrossSection.union(bridges))));
+      }
+    }
+    /**
+     * Where a connected piece of embossing (with its own holes) touches a
+     * wall – grown a little into it, a contact's area is its length times
+     * the growth. One spot per contact, in its middle.
+     */
+    const contactsOf = (piece: CrossSection): Point[] => {
+      if (!wallsAtBed) return [];
+      const reach = 0.1;
+      return track(grow(piece, reach).intersect(wallsAtBed))
+        .decompose()
+        .map(track)
+        .filter((touch) => touch.area() >= WALL_CONTACT * reach)
+        .map((touch) => {
+          const { min, max } = touch.bounds();
+          return [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2];
+        });
+    };
+    /** The contour whose wall a contact is at – the one closest to it. */
+    const wallAt = (point: Point) => {
+      let best: Island | null = null;
+      let bestDistance = Infinity;
+      for (const island of islands) {
+        const length = distance(point, closestOnRing(point, island.ring));
+        if (length < bestDistance) {
+          best = island;
+          bestDistance = length;
+        }
+      }
+      return best;
+    };
     const reliefs: Island[] = [];
-    for (const ring of relief?.toPolygons() ?? []) {
-      if (signedArea(ring) <= 0) continue;
-      const around = islands
-        .filter((island) => contains(island.ring, ring[0]))
-        .sort((a, b) => b.depth - a.depth)[0];
-      // Right on a hole's edge the hole may claim it – its cookie is meant.
-      const parent = around && isHole(around) ? around.parent : around;
-      if (!parent) continue;
-      reliefs.push({
-        ring,
-        area: signedArea(ring),
-        parent,
-        depth: parent.depth + 1,
-        relief: true,
-      });
+    // Piece by piece: an outline alone would take in what lies inside a
+    // ring – other embossing, holes and their walls.
+    for (const piece of (relief ? relief.decompose() : []).map(track)) {
+      const polygons = piece.toPolygons();
+      const holes = polygons.filter((ring) => signedArea(ring) < 0);
+      const touching = contactsOf(piece).map((point) => ({
+        point,
+        island: wallAt(point),
+      }));
+      for (const ring of polygons) {
+        if (signedArea(ring) <= 0) continue;
+        const around = islands
+          .filter((island) => contains(island.ring, ring[0]))
+          .sort((a, b) => b.depth - a.depth)[0];
+        // Right on a hole's edge the hole may claim it – its cookie is meant.
+        const parent = around && isHole(around) ? around.parent : around;
+        if (!parent) continue;
+        reliefs.push({
+          ring,
+          area: signedArea(ring),
+          parent,
+          depth: parent.depth + 1,
+          relief: true,
+          inner: holes.filter((hole) => contains(ring, hole[0])),
+          contacts: touching
+            .filter(({ island }) => island === parent)
+            .map(({ point }) => point),
+          joined: touching.flatMap(({ island }) =>
+            island && island !== parent ? [island] : []
+          ),
+        });
+      }
     }
 
     /** Wall of thickness `thickness` around the cookie, from `z` to `z + height`. */
@@ -362,6 +478,17 @@ export const buildCutter = (
           ).subtract(relief)
         )
       : null;
+    // Each pocket on its own: a link lying in one (a pupil held to its
+    // eye's ring) flares into what it holds there too – only the other
+    // pockets stay clear of it.
+    const pockets = reliefPockets ? reliefPockets.decompose().map(track) : [];
+    /** The pockets `of` does not reach into – null if none. */
+    const pocketsBeside = (of: CrossSection) => {
+      const beside = pockets.filter((pocket) =>
+        track(pocket.intersect(of)).isEmpty()
+      );
+      return beside.length > 0 ? track(CrossSection.union(beside)) : null;
+    };
     for (const { from, to, length, kind, start, end } of connections) {
       if (kind !== "flat" || length <= 0) continue;
       const dir: Point = [
@@ -390,21 +517,56 @@ export const buildCutter = (
       // flares into it instead – the hull of its end and the embossing
       // around there, a hair inside its edges (faces lying on each other
       // overlap), never into its pockets.
-      const flare = (at: Point) => {
+      const beside = pocketsBeside(link);
+      // Only into the embossing it ends at – a pupil's link not into the
+      // ring around it as well, a ring's not into the pupil within.
+      const flare = (at: Point, island: Island) => {
         const disk = (radius: number) =>
           track(track(CrossSection.circle(radius, SEGMENTS)).translate(at));
-        const hull = track(
-          CrossSection.hull([
-            track(link.intersect(disk(bridgeWidth))),
-            grow(track(relief.intersect(disk(bridgeWidth * FLARE))), -DUST),
-          ])
+        const own = track(
+          relief.intersect(
+            track(
+              new CrossSection(
+                [island.ring, ...(island.inner ?? [])],
+                "EvenOdd"
+              )
+            )
+          )
         );
-        return track(hull.subtract(reliefPockets));
+        // Rounded into it, in the corners between the two only – a hull
+        // would span a ring's hollow inner edge with a wedge.
+        const reach = bridgeWidth * FLARE;
+        const near = track(own.intersect(disk(reach)));
+        // Without the dust closing leaves along the edges, then a hair into
+        // the embossing (faces lying on each other overlap).
+        const joint = grow(
+          grow(
+            track(
+              track(
+                close(
+                  track(track(link.intersect(disk(reach))).add(near)),
+                  bridgeWidth / 2
+                ).intersect(disk(reach))
+              ).subtract(near)
+            ),
+            -2 * DUST
+          ),
+          4 * DUST
+        );
+        // Only the corners at the link – not a hollow of the embossing
+        // itself nearby (under an arch), which closing fills as well.
+        const corners = joint
+          .decompose()
+          .map(track)
+          .filter((piece) => !track(piece.intersect(link)).isEmpty());
+        if (corners.length === 0) return link;
+        const kept = track(CrossSection.union(corners));
+        return beside ? track(kept.subtract(beside)) : kept;
       };
       const ends = [
         link,
-        ...(start.relief ? [flare(from)] : []),
-        ...(end.relief ? [flare(to)] : []),
+        ...(start.relief ? [flare(from, start)] : []),
+        ...(end.relief ? [flare(to, end)] : []),
       ];
       plain.push(
         track(track(CrossSection.union(ends)).intersect(cookieAndWalls))
@@ -438,19 +600,16 @@ export const buildCutter = (
         links.length > 0 ? gaps(joined, FILLET, linked, FILLET) : linked;
       // The embossing's links round off onto it as well – without the dust
       // along its edges, then a hair into it (faces lying on each other
-      // overlap), never into its pockets.
-      const onEmbossing =
-        relief && reliefPockets && plain.length > 0
+      // overlap), never into its pockets: closing there would fill them.
+      const plainLinks =
+        plain.length > 0 ? track(CrossSection.union(plain)) : null;
+      const roundings =
+        relief && reliefPockets && plainLinks
           ? track(
               track(
                 grow(
                   grow(
-                    gaps(
-                      track(joined.add(relief)),
-                      FILLET,
-                      track(CrossSection.union(plain)),
-                      FILLET
-                    ),
+                    gaps(track(joined.add(relief)), FILLET, plainLinks, FILLET),
                     -DUST
                   ),
                   2 * DUST
@@ -458,6 +617,17 @@ export const buildCutter = (
               ).intersect(cookieAndWalls)
             )
           : null;
+      // Only what rounds off a link – not a hollow of the embossing itself
+      // near one (under an arch), which closing fills as well.
+      const rounding = (roundings?.decompose() ?? [])
+        .map(track)
+        .filter(
+          (piece) =>
+            plainLinks &&
+            !track(grow(piece, DUST).intersect(plainLinks)).isEmpty()
+        );
+      const onEmbossing =
+        rounding.length > 0 ? track(CrossSection.union(rounding)) : null;
       const rounded = track(
         joined.add(onEmbossing ? track(fillets.add(onEmbossing)) : fillets)
       );
@@ -466,15 +636,26 @@ export const buildCutter = (
       // Closed after the fillets: where one fills a narrow strip, it ends
       // straight across, and its corners are rounded off here too.
       const innerPieces = track(
-        CrossSection.union([...inner, ...links, fillets])
+        CrossSection.union([
+          ...inner,
+          ...links,
+          ...plain,
+          fillets,
+          ...(onEmbossing ? [onEmbossing] : []),
+        ])
       );
-      const hairlines = gaps(rounded, HAIRLINE / 2, innerPieces, HAIRLINE)
+      // Slits between the plate and embossing too – never in its pockets.
+      const closing = relief ? track(rounded.add(relief)) : rounded;
+      const hairlines = gaps(closing, HAIRLINE / 2, innerPieces, HAIRLINE)
         .decompose()
         .map(track)
         .filter(
           (gap) =>
             gap.area() > 0.01 &&
             !track(grow(gap, 0.05).intersect(innerPieces)).isEmpty()
+        )
+        .map((gap) =>
+          reliefPockets ? track(gap.subtract(reliefPockets)) : gap
         );
       const filled = track(rounded.add(track(CrossSection.union(hairlines))));
       // Cookie along the outside is open to the rim, a pocket is not.

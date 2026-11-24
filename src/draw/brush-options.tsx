@@ -30,9 +30,9 @@ const MAX_DOT = 64;
 /**
  * Below the drawing area: the ink and the brush size. On top the inks as a
  * switch with their names – “Cut out”, “Emboss”: what each does is read,
- * not guessed from a colour (the hint as tooltip) – and beside it one dot
+ * not guessed from a colour (the hint as tooltip) – and before it one dot
  * exactly as wide as a stroke on the area, in the ink it draws with (the
- * eraser has the dot alone). Below, the slider. The dot grows in a box of
+ * eraser has the dot alone, in the same place). Below, the slider. The dot grows in a box of
  * its own, out of the flow: dragging the slider moves nothing – nor the
  * measured height the area is sized by (use-area-fit.ts). While moving with
  * nothing selected it keeps its room, empty, so nothing jumps – the move
@@ -60,6 +60,22 @@ const BrushOptions = ({
       >
         {/* As tall as the switch even without it (the eraser). */}
         <div className="flex min-h-11 items-center gap-3">
+          {/* First, at a fixed place: the eraser (no switch) moves nothing.
+              Centred in its box, which is as wide as the largest dot. */}
+          <span aria-hidden className="relative h-11 w-16 shrink-0">
+            <span
+              className="absolute top-1/2 left-1/2 -translate-1/2 rounded-full bg-(--dot-ink) [transition:background-color_0.2s]"
+              style={
+                {
+                  width: `${Math.min(MAX_DOT, Math.max(2, dot))}px`,
+                  height: `${Math.min(MAX_DOT, Math.max(2, dot))}px`,
+                  // Black stays the page's ink colour.
+                  "--dot-ink":
+                    inks && ink === "emboss" ? EMBOSS_INK : "var(--color-ink)",
+                } as CSSProperties
+              }
+            />
+          </span>
           {inks && (
             <Segmented
               className="shrink-0"
@@ -74,20 +90,6 @@ const BrushOptions = ({
               value={ink}
             />
           )}
-          <span aria-hidden className="relative h-11 w-16 shrink-0">
-            <span
-              className="absolute top-1/2 left-0 -translate-y-1/2 rounded-full bg-(--dot-ink) [transition:background-color_0.2s]"
-              style={
-                {
-                  width: `${Math.min(MAX_DOT, Math.max(2, dot))}px`,
-                  height: `${Math.min(MAX_DOT, Math.max(2, dot))}px`,
-                  // Black stays the page's ink colour.
-                  "--dot-ink":
-                    inks && ink === "emboss" ? EMBOSS_INK : "var(--color-ink)",
-                } as CSSProperties
-              }
-            />
-          </span>
         </div>
         <div className="flex">
           <CookieSlider

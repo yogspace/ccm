@@ -1,4 +1,4 @@
-import type { Ring } from "./outline";
+import type { Point, Ring } from "./outline";
 import { contains, signedArea } from "./rings";
 
 /** One closed outer contour of the cookie shape and where it lies. */
@@ -14,6 +14,21 @@ export type Island = {
    * flange plate – it cuts nothing, so no arch is needed over its span.
    */
   relief?: boolean;
+  /**
+   * Embossing's own holes – a ring's inside: what lies within is held there,
+   * at its inner edge, and no link may cross them (connections.ts).
+   */
+  inner?: Ring[];
+  /**
+   * Where embossing touches a wall – one piece with it there, held already:
+   * each counts as one of its supports (connections.ts).
+   */
+  contacts?: Point[];
+  /**
+   * Inner contours whose walls embossing touches – one piece with them:
+   * held together, as one group (connections.ts).
+   */
+  joined?: Island[];
 };
 
 /** A hole in the cookie (odd depth) – as opposed to cookie (even depth). */

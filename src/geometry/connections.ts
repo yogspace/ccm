@@ -64,6 +64,11 @@ const SMALL_GROUP = 10;
 const GAP = 6;
 /** An arch counts as this much (mm) longer than a flat link. */
 const ARCH_COST = 3;
+/**
+ * Embossing held at a wall gets a link wherever it reaches farther than this
+ * (mm) from all that holds it – a long arm at its hand, not at the wall.
+ */
+const REACH = 20;
 /** Extra cost (mm) for a support right next to another instead of opposite. */
 const SPREAD_COST = 10;
 /** Cost of a connection that crowds another – only if there is no other way. */
@@ -81,6 +86,24 @@ type Group = {
   needed: number;
   /** The connections holding it (for spacing). */
   attached: Connection[];
+};
+
+/** An island's edges: its outline, and embossing's inner edges too. */
+const edgesOf = (island: Island) => [island.ring, ...(island.inner ?? [])];
+
+/** The spot on any of an island's edges closest to `point`. */
+const closestOn = (point: Point, island: Island) => {
+  let best: Point = island.ring[0];
+  let bestDistance = Infinity;
+  for (const edge of edgesOf(island)) {
+    const spot = closestOnRing(point, edge);
+    const length = distance(point, spot);
+    if (length < bestDistance) {
+      best = spot;
+      bestDistance = length;
+    }
+  }
+  return best;
 };
 
 /** Gap between the bounding boxes of two rings (0 if they overlap). */
@@ -104,8 +127,24 @@ const contactsBetween = (
   rings: Ring[]
 ): Connection[] => {
   if (boxGap(a.ring, b.ring) >= within) return [];
-  const near = resample(a.ring, CONTACT_SAMPLE).map(({ point }) => {
-    const to = closestOnRing(point, b.ring);
+  const contacts: Connection[] = [];
+  // Each of `a`'s edges on its own – a ring's inside may hold `b`.
+  for (const edge of edgesOf(a)) {
+    contacts.push(...contactsAlong(a, edge, b, within, rings));
+  }
+  return contacts;
+};
+
+/** The same along one edge of `a`. */
+const contactsAlong = (
+  a: Island,
+  edge: Ring,
+  b: Island,
+  within: number,
+  rings: Ring[]
+): Connection[] => {
+  const near = resample(edge, CONTACT_SAMPLE).map(({ point }) => {
+    const to = closestOn(point, b);
     return { from: point, to, length: distance(point, to) };
   });
   const contacts: Connection[] = [];
@@ -175,7 +214,7 @@ const planInside = (
       ? options.width + 2 * options.fillet
       : GAP + 2 * options.width;
   const around = [parent, ...children];
-  const rings = around.map((island) => island.ring);
+  const rings = around.flatMap(edgesOf);
   const maxTilt = Math.cos((MAX_TILT * Math.PI) / 180);
 
   // Where flanges come close: to each other, and to the parent's wall.
@@ -184,6 +223,10 @@ const planInside = (
   if (!overOpening) {
     for (const [i, child] of children.entries()) {
       for (const other of [parent, ...children.slice(i + 1)]) {
+        // Embossing has no flange to come close: near other embossing or a
+        // hole it is still a piece of its own, held by its own supports
+        // (2.) – one link to a neighbour would leave a nose dangling.
+        if (other !== parent && (child.relief || other.relief)) continue;
         const within = options.join + reach(child) + reach(other);
         const found = contactsBetween(child, other, within, rings);
         (other === parent ? wallward : close).push(...found);
@@ -200,6 +243,13 @@ const planInside = (
     while (root[found] !== found) found = root[found];
     return found;
   };
+  // Embossing against a hole's wall is one piece with it already – no link.
+  for (const [i, child] of children.entries()) {
+    for (const other of child.joined ?? []) {
+      const j = children.indexOf(other);
+      if (j >= 0 && find(i) !== find(j)) root[find(i)] = find(j);
+    }
+  }
   const links: Connection[] = [];
   for (const contact of close.sort((a, b) => a.length - b.length)) {
     const a = find(children.indexOf(contact.start));
@@ -268,10 +318,12 @@ const planInside = (
         let hit = { distance: Infinity, square: 0 };
         let target: Island | null = null;
         for (const island of around) {
-          const next = rayHit(point, normal, island.ring);
-          if (next.distance < hit.distance) {
-            hit = next;
-            target = island;
+          for (const edge of edgesOf(island)) {
+            const next = rayHit(point, normal, edge);
+            if (next.distance < hit.distance) {
+              hit = next;
+              target = island;
+            }
           }
         }
         if (
@@ -292,7 +344,7 @@ const planInside = (
         // … or to the nearest spot of a contour around, if not too oblique.
         for (const island of around) {
           if (groupOf.get(island) === group) continue;
-          const to = closestOnRing(point, island.ring);
+          const to = closestOn(point, island);
           const length = distance(point, to);
           const facing =
             ((to[0] - point[0]) * normal[0] + (to[1] - point[1]) * normal[1]) /
@@ -402,6 +454,14 @@ const planInside = (
     return best;
   };
 
+  // Embossing against the wall around is held there already: anchored from
+  // the start – others may hold on to it – and only where it reaches far
+  // from what holds it does it get links of its own, at the end (3.).
+  const touching = groups.filter((group) =>
+    group.members.some((member) => (member.contacts ?? []).length > 0)
+  );
+  for (const group of touching) anchored.add(group);
+
   // 2. Hold the groups one by one, the one closest to what is held already
   //    first, each with the best set of supports spread around it (fewer if
   //    there is no way to spread them).
@@ -442,6 +502,68 @@ const planInside = (
       choose(connection);
     }
     anchored.add(group);
+  }
+
+  // 3. Embossing held at the wall: wherever it reaches farther than REACH
+  //    from all that holds it – its contacts, the links at it – one more
+  //    link there, the cheapest. The farthest reach first.
+  const spotsOf = new Map(
+    touching.map((group) => [
+      group,
+      group.members.flatMap((member) =>
+        resample(member.ring, SAMPLE).map(({ point }) => point)
+      ),
+    ])
+  );
+  const holdsOf = (group: Group) => [
+    ...group.members.flatMap((member) => member.contacts ?? []),
+    ...group.attached.map((connection) =>
+      groupOf.get(connection.start) === group ? connection.from : connection.to
+    ),
+  ];
+  /** A group's spot farthest from all that holds it, if beyond REACH. */
+  const farthestOf = (group: Group) => {
+    const holds = holdsOf(group);
+    let far: { spot: Point; reach: number } | null = null;
+    for (const spot of spotsOf.get(group) ?? []) {
+      const reach = Math.min(...holds.map((hold) => distance(spot, hold)));
+      if (reach > REACH && (!far || reach > far.reach)) far = { spot, reach };
+    }
+    return far;
+  };
+  // First only links between embossing – each holds both of its ends, a
+  // hand's may hold the foot it reaches. Then to anything, walls included.
+  for (const toEmbossing of [true, false]) {
+    const done = new Set<Group>();
+    for (let round = 0; round < 4 * touching.length; round++) {
+      let next: { group: Group; spot: Point; reach: number } | null = null;
+      for (const group of touching) {
+        if (done.has(group)) continue;
+        const far = farthestOf(group);
+        if (far && (!next || far.reach > next.reach)) next = { group, ...far };
+      }
+      if (!next) break;
+      const { group, spot } = next;
+      const pick = (candidates.get(group) ?? [])
+        .filter(
+          ({ from, end }) =>
+            distance(from, spot) <= REACH / 2 &&
+            (!toEmbossing || Boolean(end.relief))
+        )
+        .map((candidate) => ({
+          candidate,
+          score:
+            candidate.cost +
+            (crowded(candidate, group.attached) ? CROWDED_COST : 0),
+        }))
+        .sort((a, b) => a.score - b.score)[0];
+      if (!pick || pick.score >= CROWDED_COST) {
+        // Nothing to hold it there – in this pass.
+        done.add(group);
+        continue;
+      }
+      choose(pick.candidate);
+    }
   }
 
   planned.push(...links, ...chosen);

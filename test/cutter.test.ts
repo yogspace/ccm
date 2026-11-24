@@ -217,6 +217,62 @@ describe("embossing", () => {
     }
   });
 
+  it("counts reaching a wall as held there – links only away from it", () => {
+    // A bar across the whole round cookie: one piece with the wall at both
+    // ends. Its links (it is long) stay away from those ends.
+    const bar = (from: number, to: number): Ring => [
+      [from, 0.47],
+      [to, 0.47],
+      [to, 0.53],
+      [from, 0.53],
+    ];
+    const round = blob(0.5, 0.5, 0.45);
+    const across = solid(round, {}, [bar(0, 1)]);
+    try {
+      expect(inspect(wasm, across.cutter.manifold, across.params).parts).toBe(
+        1
+      );
+      const { min, max } = across.cutter.manifold.boundingBox();
+      const ends = [min[0], max[0]];
+      for (const { from } of across.cutter.connections) {
+        for (const end of ends) {
+          expect(Math.abs(from[0] - end)).toBeGreaterThan(10);
+        }
+      }
+    } finally {
+      across.cutter.manifold.delete();
+    }
+  });
+
+  it("joins embossing that almost reaches a wall – no hairline gap", () => {
+    // A bar ending 1 mm short of the wall on both sides (80 mm cookie):
+    // closed, so it touches the wall like the one drawn all the way.
+    const short = 1 / 80;
+    const round = blob(0.5, 0.5, 0.45);
+    const bar: Ring = [
+      [0.05 + short, 0.47],
+      [0.95 - short, 0.47],
+      [0.95 - short, 0.53],
+      [0.05 + short, 0.53],
+    ];
+    // Standing 10 mm out of the flange: above it, the gap would show.
+    const { cutter, params } = solid(round, { relief: 10 }, [bar]);
+    try {
+      // Above the flange, a slice across the bar's ends: the bar runs into
+      // the wall without a gap.
+      const slice = cutter.manifold.slice(params.flangeHeight + 3);
+      const row = wasm.CrossSection.square([200, 1], true);
+      const cut = slice.intersect(row);
+      try {
+        expect(cut.decompose().length).toBe(1);
+      } finally {
+        for (const object of [cut, row, slice]) object.delete();
+      }
+    } finally {
+      cutter.manifold.delete();
+    }
+  });
+
   it("leaves the cookie open around it", () => {
     const { cutter } = solid(shapes.face, {}, emboss);
     // In the middle of the face, between the ring and the eyes: no plate.
