@@ -1,4 +1,8 @@
 import { resolveColors } from "../glaze";
+// The shades are read from it (glazeShades): wherever a picture is painted –
+// the admin's Seeds page and kits too, not only where a color field already
+// loads it – or its ground comes out black.
+import "../glaze.css";
 import { RING_RADIUS, ringLayout } from "./ring-text";
 
 /** Where it was made – at the share picture's foot. */
