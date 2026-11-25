@@ -1,5 +1,6 @@
 import type { CrossSection, Manifold, ManifoldToplevel } from "manifold-3d";
 import type { Point, Ring } from "./outline";
+import { piecesOf } from "./pieces";
 import {
   contains,
   distance,
@@ -111,8 +112,7 @@ export const buildArch = (
     strip(scope, from, dir, -extend, span + extend, width).intersect(allowed)
   );
   const middle: Point = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2];
-  const band = reaching
-    .decompose()
+  const band = piecesOf(wasm, reaching)
     .map(track)
     .find((piece) =>
       piece
@@ -139,8 +139,7 @@ export const buildArch = (
   );
   const free = track(
     wasm.CrossSection.union(
-      outside
-        .decompose()
+      piecesOf(wasm, outside)
         .map(track)
         .filter((piece) => piece.area() > 0.05)
     )

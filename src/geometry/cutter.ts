@@ -10,6 +10,7 @@ import {
 import { type Connection, planConnections } from "./connections";
 import { type Island, isHole, nestIslands } from "./islands";
 import type { Point, Ring } from "./outline";
+import { piecesOf } from "./pieces";
 import { bounds, closestOnRing, contains, distance, signedArea } from "./rings";
 import { SIGNATURE_BAND, SIGNATURE_RAISE, signatureArea } from "./signature";
 
@@ -213,6 +214,8 @@ export const buildCutter = (
 
   try {
     const { CrossSection, Manifold } = wasm;
+    /** Taken apart into connected pieces (pieces.ts). */
+    const apart = (section: CrossSection) => piecesOf(wasm, section);
     const grow = (shape: CrossSection, delta: number) =>
       track(shape.offset(delta, "Round", 2, SEGMENTS));
     /** Morphological closing: fills gaps and inner corners up to `radius`. */
@@ -284,11 +287,12 @@ export const buildCutter = (
       // Opened a little: where a stroke runs over the cookie's edge, cutting
       // it leaves bits on necks thinner than a nozzle – cut off, then left
       // out as crumbs.
-      const pads = grow(
-        grow(track(drawn.intersect(shape)), -RELIEF_NECK / 2),
-        RELIEF_NECK / 2
+      const pads = apart(
+        grow(
+          grow(track(drawn.intersect(shape)), -RELIEF_NECK / 2),
+          RELIEF_NECK / 2
+        )
       )
-        .decompose()
         .map(track)
         .filter((pad) => pad.area() > MIN_RELIEF);
       if (pads.length > 0) relief = track(CrossSection.union(pads));
@@ -321,7 +325,7 @@ export const buildCutter = (
       // Opening moves its edges a hair: it reaches a hair into wall and
       // embossing again, or a gap of no width would part them.
       const cores = grow(track(filled.intersect(shape)), -MIN_BRIDGE / 2);
-      const bridges = (cores.isEmpty() ? [] : cores.decompose())
+      const bridges = (cores.isEmpty() ? [] : apart(cores))
         .map((core) => grow(track(core), MIN_BRIDGE / 2 + DUST))
         .filter(
           (piece) =>
@@ -343,8 +347,7 @@ export const buildCutter = (
     const contactsOf = (piece: CrossSection): Point[] => {
       if (!wallsAtBed) return [];
       const reach = 0.1;
-      return track(grow(piece, reach).intersect(wallsAtBed))
-        .decompose()
+      return apart(track(grow(piece, reach).intersect(wallsAtBed)))
         .map(track)
         .filter((touch) => touch.area() >= WALL_CONTACT * reach)
         .map((touch) => {
@@ -368,7 +371,7 @@ export const buildCutter = (
     const reliefs: Island[] = [];
     // Piece by piece: an outline alone would take in what lies inside a
     // ring – other embossing, holes and their walls.
-    for (const piece of (relief ? relief.decompose() : []).map(track)) {
+    for (const piece of (relief ? apart(relief) : []).map(track)) {
       const polygons = piece.toPolygons();
       const holes = polygons.filter((ring) => signedArea(ring) < 0);
       const touching = contactsOf(piece).map((point) => ({
@@ -476,7 +479,7 @@ export const buildCutter = (
     // Each pocket on its own: a link lying in one (a pupil held to its
     // eye's ring) flares into what it holds there too – only the other
     // pockets stay clear of it.
-    const pockets = reliefPockets ? reliefPockets.decompose().map(track) : [];
+    const pockets = reliefPockets ? apart(reliefPockets).map(track) : [];
     /** The pockets `of` does not reach into – null if none. */
     const pocketsBeside = (of: CrossSection) => {
       const beside = pockets.filter((pocket) =>
@@ -550,8 +553,7 @@ export const buildCutter = (
         );
         // Only the corners at the link – not a hollow of the embossing
         // itself nearby (under an arch), which closing fills as well.
-        const corners = joint
-          .decompose()
+        const corners = apart(joint)
           .map(track)
           .filter((piece) => !track(piece.intersect(link)).isEmpty());
         if (corners.length === 0) return link;
@@ -614,7 +616,7 @@ export const buildCutter = (
           : null;
       // Only what rounds off a link – not a hollow of the embossing itself
       // near one (under an arch), which closing fills as well.
-      const rounding = (roundings?.decompose() ?? [])
+      const rounding = (roundings ? apart(roundings) : [])
         .map(track)
         .filter(
           (piece) =>
@@ -641,8 +643,9 @@ export const buildCutter = (
       );
       // Slits between the plate and embossing too – never in its pockets.
       const closing = relief ? track(rounded.add(relief)) : rounded;
-      const hairlines = gaps(closing, HAIRLINE / 2, innerPieces, HAIRLINE)
-        .decompose()
+      const hairlines = apart(
+        gaps(closing, HAIRLINE / 2, innerPieces, HAIRLINE)
+      )
         .map(track)
         .filter(
           (gap) =>
@@ -663,8 +666,7 @@ export const buildCutter = (
       const embossing = track(
         CrossSection.union(relief ? [...plain, relief] : plain)
       );
-      const plugs = track(shape.subtract(filled))
-        .decompose()
+      const plugs = apart(track(shape.subtract(filled)))
         .map(track)
         .filter((pocket) => track(pocket.intersect(rim)).isEmpty())
         .flatMap((pocket) => {
@@ -810,8 +812,7 @@ export const buildCutter = (
     const area = shape.area();
     const pour = (inset: number) => {
       const poured = grow(grow(shape, -1.6 * inset), 0.6 * inset);
-      const kept = poured
-        .decompose()
+      const kept = apart(poured)
         .map(track)
         .filter((part) => part.area() > area * ICING_CRUMB);
       return track(CrossSection.union(kept));
@@ -829,8 +830,7 @@ export const buildCutter = (
       const clear = track(icing.subtract(grow(imprint, IMPRINT_RIM)));
       icing = track(
         CrossSection.union(
-          clear
-            .decompose()
+          apart(clear)
             .map(track)
             .filter((part) => part.area() > area * ICING_CRUMB)
         )
@@ -841,8 +841,7 @@ export const buildCutter = (
     let inlay: CrossSection | null = null;
     if (imprint && !imprint.isEmpty()) {
       const inset = params.size * INLAY_INSET;
-      const poured = grow(grow(imprint, -1.25 * inset), 0.25 * inset)
-        .decompose()
+      const poured = apart(grow(grow(imprint, -1.25 * inset), 0.25 * inset))
         .map(track)
         .filter((part) => part.area() > area * ICING_CRUMB * 0.1);
       if (poured.length > 0) inlay = track(CrossSection.union(poured));
