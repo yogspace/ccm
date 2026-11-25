@@ -312,24 +312,17 @@ export const buildCutter = (
       const filled = track(close(solid, NEAR_WALL).subtract(solid));
       const touches = (piece: CrossSection, other: CrossSection) =>
         !track(grow(piece, 0.05).intersect(other)).isEmpty();
-      const bridges = filled
-        .decompose()
-        .map(track)
-        .filter(
-          (piece) =>
-            touches(piece, relief as CrossSection) && touches(piece, wallsAtBed)
-        )
-        // Where the gap is just about too wide, closing leaves a sliver – a
-        // hairline again: what is thinner than MIN_BRIDGE goes, and a bridge
-        // left touching only one side with it.
-        // Opening moves its edges a hair: it reaches a hair into wall and
-        // embossing again, or a gap of no width would part them.
-        .map((piece) =>
-          grow(
-            grow(track(piece.intersect(shape)), -MIN_BRIDGE / 2),
-            MIN_BRIDGE / 2 + DUST
-          )
-        )
+      // Where the gap is just about too wide, closing leaves a sliver – a
+      // hairline again: what is thinner than MIN_BRIDGE goes (opened), and a
+      // bridge left touching only one side with it. Shrunk before it is
+      // taken apart: along every edge where the two nearly meet, closing
+      // leaves splinters – hundreds, too many for Safari to take apart in a
+      // worker (its stack runs out); none of them survives the shrinking.
+      // Opening moves its edges a hair: it reaches a hair into wall and
+      // embossing again, or a gap of no width would part them.
+      const cores = grow(track(filled.intersect(shape)), -MIN_BRIDGE / 2);
+      const bridges = (cores.isEmpty() ? [] : cores.decompose())
+        .map((core) => grow(track(core), MIN_BRIDGE / 2 + DUST))
         .filter(
           (piece) =>
             touches(piece, relief as CrossSection) &&
